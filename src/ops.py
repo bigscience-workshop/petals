@@ -1,6 +1,7 @@
 """
 Utility operations used in the the BLOOM model
 Based on https://github.com/huggingface/transformers/commit/ca2a55e9dfb245527b5e1c954fec6ffbb7aef07b
+See commit history for authorship.
 """
 import math
 
