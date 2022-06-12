@@ -21,12 +21,11 @@ logger = logging.get_logger(__name__)
 _CHECKPOINT_FOR_DOC = "bigscience/Bloom"
 _CONFIG_FOR_DOC = "MemoryEfficientBloomConfig"
 _TOKENIZER_FOR_DOC = "BloomTokenizer"
-_NOT_IMPLEMENTED = 'NOT_IMPLEMENTED'
 
 
 class MemoryEfficientBloomConfig(_VanillaBloomConfig):
     compression: str = 'none'
-    slow_but_exact = _NOT_IMPLEMENTED
+    slow_but_exact: bool = False
 
 
 class BloomPreTrainedModel(PreTrainedModel):
@@ -144,7 +143,7 @@ BLOOM_INPUTS_DOCSTRING = r"""
 class BloomModel(BloomPreTrainedModel):
     def __init__(self, config):
         super().__init__(config)
-        assert config.slow_but_exact == _NOT_IMPLEMENTED, "slow_but_exact mode was removed for code simplicity"
+        assert not config.slow_but_exact, "slow_but_exact mode was removed for code simplicity"
 
         self.embed_dim = config.hidden_size
         self.n_head = config.n_head
