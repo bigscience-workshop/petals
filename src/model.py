@@ -10,12 +10,15 @@ import torch
 import torch.utils.checkpoint
 from torch import nn
 from torch.nn import CrossEntropyLoss, LayerNorm
-
-from transformers.file_utils import add_code_sample_docstrings, add_start_docstrings, add_start_docstrings_to_model_forward
+from transformers.file_utils import (
+    add_code_sample_docstrings,
+    add_start_docstrings,
+    add_start_docstrings_to_model_forward,
+)
 from transformers.modeling_outputs import BaseModelOutputWithPastAndCrossAttentions, CausalLMOutputWithCrossAttentions
 from transformers.modeling_utils import PreTrainedModel
-from transformers.utils import logging
 from transformers.models.bloom.configuration_bloom import BloomConfig as _VanillaBloomConfig
+from transformers.utils import logging
 
 from src.block import BloomBlock
 from src.ops import build_alibi_tensor
@@ -28,7 +31,7 @@ _TOKENIZER_FOR_DOC = "BloomTokenizer"
 
 
 class MemoryEfficientBloomConfig(_VanillaBloomConfig):
-    compression: str = 'none'
+    compression: str = "none"
     slow_but_exact: bool = False
 
 
