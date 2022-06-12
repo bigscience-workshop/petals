@@ -1,3 +1,0 @@
-torch
-https://github.com/learning-at-home/hivemind/archive/dac8940c324dd612d89c773b51a53e4a04c59064.zip
-https://github.com/huggingface/transformers/archive/224bde91caff4ccfd12277ab5e9bf97c61e22ee9.zip
