@@ -11,7 +11,7 @@ from transformers.file_utils import add_code_sample_docstrings, add_start_docstr
 from transformers.modeling_outputs import BaseModelOutputWithPastAndCrossAttentions, CausalLMOutputWithCrossAttentions
 from transformers.modeling_utils import PreTrainedModel
 from transformers.utils import logging
-from transformers.models.bloom.configuration_bloom import BloomConfig
+from transformers.models.bloom.configuration_bloom import BloomConfig as _VanillaBloomConfig
 
 from src.layer import BloomBlock
 from src.ops import build_alibi_tensor
@@ -19,8 +19,14 @@ from src.ops import build_alibi_tensor
 logger = logging.get_logger(__name__)
 
 _CHECKPOINT_FOR_DOC = "bigscience/Bloom"
-_CONFIG_FOR_DOC = "BloomConfig"
+_CONFIG_FOR_DOC = "MemoryEfficientBloomConfig"
 _TOKENIZER_FOR_DOC = "BloomTokenizer"
+_NOT_IMPLEMENTED = 'NOT_IMPLEMENTED'
+
+
+class MemoryEfficientBloomConfig(_VanillaBloomConfig):
+    compression: str = 'none'
+    slow_but_exact = _NOT_IMPLEMENTED
 
 
 class BloomPreTrainedModel(PreTrainedModel):
@@ -30,7 +36,7 @@ class BloomPreTrainedModel(PreTrainedModel):
     models.
     """
 
-    config_class = BloomConfig
+    config_class = MemoryEfficientBloomConfig
     base_model_prefix = "transformer"
     supports_gradient_checkpointing = True
     _no_split_modules = ["BloomBlock"]
@@ -69,7 +75,7 @@ BLOOM_START_DOCSTRING = r"""
     and behavior.
 
     Parameters:
-        config ([`BloomConfig`]): Model configuration class with all the parameters of the model.
+        config ([`MemoryEfficientBloomConfig`]): Model configuration class with all the parameters of the model.
             Initializing with a config file does not load the weights associated with the model, only the
             configuration. Check out the [`~PreTrainedModel.from_pretrained`] method to load the model weights.
 """
@@ -138,6 +144,7 @@ BLOOM_INPUTS_DOCSTRING = r"""
 class BloomModel(BloomPreTrainedModel):
     def __init__(self, config):
         super().__init__(config)
+        assert config.slow_but_exact == _NOT_IMPLEMENTED, "slow_but_exact mode was removed for code simplicity"
 
         self.embed_dim = config.hidden_size
         self.n_head = config.n_head
