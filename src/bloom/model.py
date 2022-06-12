@@ -20,8 +20,8 @@ from transformers.modeling_utils import PreTrainedModel
 from transformers.models.bloom.configuration_bloom import BloomConfig as _VanillaBloomConfig
 from transformers.utils import logging
 
-from src.block import BloomBlock
-from src.ops import build_alibi_tensor
+from src.bloom.block import BloomBlock
+from src.bloom.ops import build_alibi_tensor
 
 logger = logging.get_logger(__name__)
 

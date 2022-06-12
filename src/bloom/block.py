@@ -9,7 +9,7 @@ import torch
 import torch.nn as nn
 import torch.nn.quantized.dynamic.modules.linear
 
-from src.ops import (
+from src.bloom.ops import (
     BloomGelu,
     BloomScaledSoftmax,
     attention_mask_func,
