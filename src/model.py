@@ -17,7 +17,7 @@ from transformers.modeling_utils import PreTrainedModel
 from transformers.utils import logging
 from transformers.models.bloom.configuration_bloom import BloomConfig as _VanillaBloomConfig
 
-from src.layer import BloomBlock
+from src.bloom_block import BloomBlock
 from src.ops import build_alibi_tensor
 
 logger = logging.get_logger(__name__)
