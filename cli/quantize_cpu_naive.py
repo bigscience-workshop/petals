@@ -51,4 +51,3 @@ if __name__ == "__main__":
 
     model.transformer.h = torch.nn.ModuleList()
     torch.save(model.state_dict(), os.path.join(args.output_path, f"client.pth"))
-

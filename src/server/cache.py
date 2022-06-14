@@ -32,7 +32,7 @@ class MemoryCache:
     """A shared cache for storing tensors that persist across calls. Main use case: storing past attention KVs"""
 
     def __init__(self, device: Union[str, torch.device], max_size_bytes: Optional[int]):
-        self.max_size_bytes = max_size_bytes if max_size_bytes is not None else (2 ** 64 - 1)
+        self.max_size_bytes = max_size_bytes if max_size_bytes is not None else (2**64 - 1)
         self.device = device
         self.lock_metadata, self.size_decreased_event = mp.Lock(), mp.Event()
         self._current_size = mp.Value(ctypes.c_uint64, 0, lock=False)
@@ -77,12 +77,14 @@ class MemoryCache:
         try:
             async with hivemind.utils.enter_asynchronously(self.lock_metadata):
                 if self.current_size_bytes + allocated_size_bytes > self.max_size_bytes:
-                    raise AllocationFailed(f"Could not allocate {allocated_size_bytes} bytes in cache; cache size = "
-                                           f"{self.max_size_bytes} bytes; {self.current_size_bytes} already allocated.")
+                    raise AllocationFailed(
+                        f"Could not allocate {allocated_size_bytes} bytes in cache; cache size = "
+                        f"{self.max_size_bytes} bytes; {self.current_size_bytes} already allocated."
+                    )
 
                 allocated_handle = int(self.handle_counter)
                 self.current_size_bytes += allocated_size_bytes
-                self.handle_counter += 1   # note: this will eventually overflow and it is okay
+                self.handle_counter += 1  # note: this will eventually overflow and it is okay
                 self._pending_messages.value += 1
                 self._pipe_send.send((allocated_handle, descr))
 

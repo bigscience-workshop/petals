@@ -19,6 +19,7 @@ from src.server.cache import MemoryCache
 
 class BloomBlockBackend(ExpertBackend):
     """A wrapper for BloomBlock that can process requests for bloom layer forward, forward_incremental, and backward"""
+
     def __init__(self, *args, memory_cache: MemoryCache, **kwargs):
         super().__init__(*args, **kwargs)  # to bypass super.__init__
         self.memory_cache = memory_cache
@@ -31,4 +32,3 @@ class BloomBlockBackend(ExpertBackend):
     def forward_incremental(self, *inputs: torch.Tensor, attention_cache_handle: int) -> Tuple[torch.Tensor, ...]:
         with self.memory_cache.use_cache(attention_cache_handle) as (current_length, cached_keys, cached_values):
             raise NotImplementedError("TODO")
-

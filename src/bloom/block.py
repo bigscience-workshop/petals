@@ -15,7 +15,8 @@ from src.bloom.ops import (
     attention_mask_func,
     dropout_add,
     pre_process_alibi_for_pad,
-    split_tensor_along_last_dim, build_alibi_tensor,
+    split_tensor_along_last_dim,
+    build_alibi_tensor,
 )
 
 

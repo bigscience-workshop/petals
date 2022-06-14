@@ -37,9 +37,11 @@ def create_remote_module(
     infos: Union[Sequence[Optional[ExpertInfo]], MPFuture], dht: DHT, return_future: bool = False
 ) -> Union[List[Optional[RemoteTransformerBlock]], Future]:
     if return_future:
+
         async def _unpack(infos_future: MPFuture, dht: DHT):
             p2p = await dht.replicate_p2p()
             return _create_remote_experts(await infos_future, p2p)
+
         return RemoteExpertWorker.run_coroutine(_unpack(infos, dht), return_future)
     p2p = RemoteExpertWorker.run_coroutine(dht.replicate_p2p())
     return _create_remote_experts(infos, p2p)
@@ -53,6 +55,3 @@ def _create_remote_experts(infos: Sequence[Optional[ExpertInfo]], p2p: P2P) -> L
         else:
             experts.append(None)
     return experts
-
-
-
