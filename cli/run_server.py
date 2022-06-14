@@ -1,7 +1,3 @@
-import os, sys
-
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # add path to src
-
 import configargparse
 
 from hivemind.proto.runtime_pb2 import CompressionType

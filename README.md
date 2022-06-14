@@ -21,3 +21,14 @@ pip install bitsandbytes-cuda113==0.26.0
 pip install https://github.com/learning-at-home/hivemind/archive/dac8940c324dd612d89c773b51a53e4a04c59064.zip
 pip install https://github.com/huggingface/transformers/archive/224bde91caff4ccfd12277ab5e9bf97c61e22ee9.zip
 ```
+
+
+# tests
+
+```bash
+# run one bloom block for a few steps
+python -m cli.inference_one_block --config cli/config.json  # see other args
+
+# minimalistic server
+python -m cli.run_server --block_config bigscience/bloom-6b3 --num_blocks 2
+```

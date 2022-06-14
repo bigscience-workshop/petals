@@ -1,0 +1,20 @@
+{
+  "apply_residual_connection_post_layernorm": false,
+  "attention_dropout": 0.0,
+  "attention_softmax_in_fp32": true,
+  "bos_token_id": 1,
+  "eos_token_id": 2,
+  "hidden_dropout": 0.0,
+  "initializer_range": 0.02,
+  "layer_norm_epsilon": 1e-05,
+  "masked_softmax_fusion": true,
+  "model_type": "bloom",
+  "n_embed": 14336,
+  "n_layer": 70,
+  "num_attention_heads": 112,
+  "pretraining_tp": 4,
+  "slow_but_exact": false,
+  "transformers_version": "4.20.0.dev0",
+  "use_cache": true,
+  "vocab_size": 250880
+}
