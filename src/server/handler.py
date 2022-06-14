@@ -15,24 +15,16 @@ class TransformerConnectionHandler(ConnectionHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    async def rpc_forward_incremental(
+    async def rpc_inference(
         self, requests: AsyncIterator[runtime_pb2.ExpertRequest], context: P2PContext
     ) -> AsyncIterator[runtime_pb2.ExpertRequest]:
 
         request = await anext(requests)
-        expert = self.experts[request.uid]
-        assert isinstance(expert, TransformerBlockBackend)
+        backend = self.experts[request.uid]
+        assert isinstance(backend, TransformerBlockBackend)
 
         inputs = [deserialize_torch_tensor(tensor) for tensor in request.tensors]
-        async with expert.memory_cache.allocate_cache(TensorDescriptor.from_tensor(torch.randn(3))):
-            outputs = await self._process_inputs(inputs, expert.forward_pool, expert.outputs_schema)
+        async with backend.memory_cache.allocate_cache(TensorDescriptor.from_tensor(torch.randn(3))):
+            outputs = await self._process_inputs(inputs, backend.inference_pool, backend.outputs_schema)
 
-        return runtime_pb2.ExpertResponse(tensors=outputs)
-
-
-        # note: you may use self.experts[uid].memory_cache!
-        # encode expert_uid as @model_name[starting_layer:finishing_layer]
-        # - while not closed: read input embeddings, check input shapes, run inference, return batch of outputs, repeat
-        # - receive and maintain a handle for attention cache here
-
-        raise NotImplementedError()
+        yield runtime_pb2.ExpertResponse(tensors=outputs)
