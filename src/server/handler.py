@@ -1,12 +1,19 @@
-from typing import AsyncIterator
+from typing import AsyncIterator, Dict
 
-from hivemind import P2PContext
+from hivemind import P2PContext, DHT
 from hivemind.moe.server.connection_handler import ConnectionHandler
 from hivemind.proto import runtime_pb2
 
 
 class BloomConnectionHandler(ConnectionHandler):
     """Handles three request types: forward, backward and forward-incremental (inference)"""
+
+    def __init__(self, dht: DHT, experts: Dict[str, BloomBackend]):
+        super().__init__()
+        self.dht, self.experts = dht, experts
+        self._p2p: Optional[P2P] = None
+
+        self.ready = MPFuture()
 
     async def rpc_forward_incremental(
         self, requests: AsyncIterator[runtime_pb2.ExpertRequest], context: P2PContext

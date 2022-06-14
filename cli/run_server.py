@@ -7,7 +7,7 @@ from hivemind.proto.runtime_pb2 import CompressionType
 from hivemind.utils.limits import increase_file_limit
 from hivemind.utils.logging import get_logger, use_hivemind_log_handler
 
-from src.server.server import BloomServer
+from src.server.server import Server
 
 use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__name__)
@@ -63,7 +63,7 @@ def main():
     compression_type = args.pop("compression")
     compression = getattr(CompressionType, compression_type)
 
-    server = BloomServer.create(**args, start=True, compression=compression)
+    server = Server.create(**args, start=True, compression=compression)
 
     try:
         server.join()
