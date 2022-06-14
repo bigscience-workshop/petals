@@ -5,9 +5,10 @@ import os
 import psutil
 import torch.backends.quantized
 import transformers
-from hivemind.utils.logging import get_logger
+from hivemind.utils.logging import get_logger, use_hivemind_log_handler
 from tqdm.auto import trange
 
+use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
 
 DTYPE_MAP = dict(bfloat16=torch.bfloat16, float16=torch.float16, float32=torch.float32, auto="auto")
