@@ -14,7 +14,7 @@ import multiprocessing as mp
 from src import DistributedBloomConfig
 from src.bloom.block import BloomBlock
 from src.server.cache import MemoryCache
-from src.server.backend import BloomBlockBackend
+from src.server.backend import TransformerBlockBackend
 from src.server.handler import TransformerConnectionHandler
 
 use_hivemind_log_handler("in_root_logger")
@@ -27,7 +27,7 @@ class Server(threading.Thread):
     def __init__(
         self,
         dht: DHT,
-        module_backends: Dict[str, BloomBlockBackend],
+        module_backends: Dict[str, TransformerBlockBackend],
         *,
         device: torch.device,
         num_connection_handlers: int = 8,
@@ -118,7 +118,7 @@ class Server(threading.Thread):
             for param in block.parameters():
                 param.requires_grad = False
 
-            blocks[module_uid] = BloomBlockBackend(
+            blocks[module_uid] = TransformerBlockBackend(
                 module_uid,
                 block,
                 memory_cache=memory_cache,

@@ -10,14 +10,7 @@ from src.bloom.block import BloomBlock
 from src.server.cache import MemoryCache
 
 
-# TODO
-# BloomBackend serves a single layer
-# - ensure that parameters do not require grad!
-# - ensure that TaskPool for inference is NOT batched
-# - ensure that optimizer/scheduler is not created
-
-
-class BloomBlockBackend(ExpertBackend):
+class TransformerBlockBackend(ExpertBackend):
     """A wrapper for BloomBlock that can process requests for bloom layer forward, forward_incremental, and backward"""
 
     def __init__(self, *args, memory_cache: MemoryCache, **kwargs):
@@ -31,4 +24,4 @@ class BloomBlockBackend(ExpertBackend):
 
     def forward_incremental(self, *inputs: torch.Tensor, attention_cache_handle: int) -> Tuple[torch.Tensor, ...]:
         with self.memory_cache.use_cache(attention_cache_handle) as (current_length, cached_keys, cached_values):
-            raise NotImplementedError("TODO")
+            return inputs[0] * 2
