@@ -17,7 +17,7 @@ from src.server.cache import MemoryCache
 # - ensure that optimizer/scheduler is not created
 
 
-class TransformerBlockBackend(ExpertBackend):
+class BloomBlockBackend(ExpertBackend):
     """A wrapper for BloomBlock that can process requests for bloom layer forward, forward_incremental, and backward"""
     def __init__(self, name: str, module: BloomBlock, *, memory_cache: MemoryCache, **kwargs):
         object().__init__()  # to bypass super.__init__
