@@ -1,1 +1,1 @@
-from src.bloom.model import BloomModel, BloomForCausalLM, MemoryEfficientBloomConfig
+from src.bloom.model import BloomModel, BloomForCausalLM, DistributedBloomConfig

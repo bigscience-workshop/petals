@@ -5,6 +5,7 @@ For now, the only purpose of this code is to ensure that allocated memory will b
 
 TODO In future, one could modify cache to implement, among other things,
 - in allocate_cache, if there is not enough memory, wait for memory to be freed by existing tasks up to a given timeout.
+-- note: this can be done using mp.Condtion
 - allocate cache as one contigous buffer to avoid fragmentation
 - quantize cached values using bitsandbytes
 - LRU offloading from gpu to ram
@@ -18,9 +19,11 @@ from typing import Dict, Optional, Union
 
 import hivemind
 import torch
+from hivemind import use_hivemind_log_handler
 from hivemind.utils import TensorDescriptor, get_logger
 
-logger = get_logger(__file__)
+use_hivemind_log_handler("in_root_logger")
+logger = get_logger(__name__)
 
 Handle = int
 
