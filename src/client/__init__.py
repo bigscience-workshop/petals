@@ -1,1 +1,1 @@
-from hivemind.moe.client import RemoteExpert
+from src.client.remote_block import RemoteTransformerBlock
