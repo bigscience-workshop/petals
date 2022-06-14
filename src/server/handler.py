@@ -7,7 +7,7 @@ from hivemind.proto import runtime_pb2
 from src.bloom.block import BloomBlock
 
 
-class BloomConnectionHandler(ConnectionHandler):
+class TransformerConnectionHandler(ConnectionHandler):
     """Handles three request types: forward, backward and forward-incremental (inference)"""
 
     def __init__(self, *args, **kwargs):
