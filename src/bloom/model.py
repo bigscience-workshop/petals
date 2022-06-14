@@ -8,6 +8,7 @@ from typing import Tuple
 
 import torch
 import torch.utils.checkpoint
+from hivemind import use_hivemind_log_handler
 from torch import nn
 from torch.nn import CrossEntropyLoss, LayerNorm
 from transformers.file_utils import (
@@ -20,9 +21,10 @@ from transformers.modeling_utils import PreTrainedModel
 from transformers.models.bloom.configuration_bloom import BloomConfig as _VanillaBloomConfig
 from transformers.utils import logging
 
-from src.block import BloomBlock
-from src.ops import build_alibi_tensor
+from src.bloom.block import BloomBlock
+from src.bloom.ops import build_alibi_tensor
 
+use_hivemind_log_handler("in_root_logger")
 logger = logging.get_logger(__name__)
 
 _CHECKPOINT_FOR_DOC = "bigscience/Bloom"
@@ -30,7 +32,7 @@ _CONFIG_FOR_DOC = "MemoryEfficientBloomConfig"
 _TOKENIZER_FOR_DOC = "BloomTokenizer"
 
 
-class MemoryEfficientBloomConfig(_VanillaBloomConfig):
+class DistributedBloomConfig(_VanillaBloomConfig):
     compression: str = "none"
     slow_but_exact: bool = False
 
@@ -42,7 +44,7 @@ class BloomPreTrainedModel(PreTrainedModel):
     models.
     """
 
-    config_class = MemoryEfficientBloomConfig
+    config_class = DistributedBloomConfig
     base_model_prefix = "transformer"
     supports_gradient_checkpointing = True
     _no_split_modules = ["BloomBlock"]

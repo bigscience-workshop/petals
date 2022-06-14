@@ -5,9 +5,10 @@ import os
 import psutil
 import torch.backends.quantized
 import transformers
-from hivemind.utils.logging import get_logger
+from hivemind.utils.logging import get_logger, use_hivemind_log_handler
 from tqdm.auto import trange
 
+use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
 
 DTYPE_MAP = dict(bfloat16=torch.bfloat16, float16=torch.float16, float32=torch.float32, auto="auto")
@@ -47,3 +48,6 @@ if __name__ == "__main__":
             layer_fp32, {torch.nn.Linear: qconfig}, dtype=torch.qint8, inplace=True
         )
         torch.save(layer_quantized.state_dict(), os.path.join(args.output_path, f"block_{i}_qint8.pth"))
+
+    model.transformer.h = torch.nn.ModuleList()
+    torch.save(model.state_dict(), os.path.join(args.output_path, f"client.pth"))
