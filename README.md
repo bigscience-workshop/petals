@@ -29,6 +29,6 @@ pip install https://github.com/huggingface/transformers/archive/224bde91caff4ccf
 # run one bloom block for a few steps
 python -m cli.inference_one_block --config cli/config.json  # see other args
 
-# minimalistic server
+# minimalistic server with non-trained bloom blocks
 python -m cli.run_server --block_config bigscience/bloom-6b3 --num_blocks 2
 ```
