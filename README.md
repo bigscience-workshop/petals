@@ -30,5 +30,5 @@ pip install https://github.com/huggingface/transformers/archive/224bde91caff4ccf
 python -m cli.inference_one_block --config cli/config.json  # see other args
 
 # minimalistic server with non-trained bloom blocks
-python -m cli.run_server --block_config bigscience/bloom-6b3 --num_blocks 2
+python -m cli.run_server --prefix smol --block_config bigscience/bloom-6b3 --num_blocks 2 --identity_path ./server1.id --host_maddrs /ip4/127.0.0.1/tcp/31337
 ```
