@@ -15,11 +15,13 @@ def main():
     parser = configargparse.ArgParser(default_config_files=["config.yml"])
     parser.add('-c', '--config', required=False, is_config_file=True, help='config file path')
 
-    parser.add_argument('--block_config', type=str, default='bigscience/bloom', help="name or path of model config")
-    parser.add_argument('--num_blocks', type=int, default=1, help="The number of blocks to serve")
-    parser.add_argument('--host_maddrs', type=list, nargs='+', default=['/ip4/0.0.0.0/tcp/0'], required=False,
+    parser.add_argument('--prefix', type=str, required=True, help="Announce all blocks with this prefix")
+    parser.add_argument('--block_config', type=str, default='bigscience/bloom-6b3', help="name or path of model config")
+    parser.add_argument('--num_blocks', type=int, default=None, help="The number of blocks to serve")
+    parser.add_argument('--block_indices', type=str, default=None, help="Specific block indices to serve")
+    parser.add_argument('--host_maddrs', nargs='+', default=['/ip4/0.0.0.0/tcp/0'], required=False,
                         help='Multiaddrs to listen for external connections from other p2p instances; default: all IPv4 and TCP: /ip4/0.0.0.0/tcp/0')
-    parser.add_argument('--announce_maddrs', type=list, nargs='+', default=None, required=False,
+    parser.add_argument('--announce_maddrs', nargs='+', default=None, required=False,
                         help='Visible multiaddrs the host announces for external connections from other p2p instances')
 
     parser.add_argument('--compression', type=str, default='NONE', required=False, help='Tensor compression communication')
