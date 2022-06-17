@@ -49,6 +49,7 @@ def main():
 
     parser.add_argument('--custom_module_path', type=str, required=False,
                         help='Path of a file with custom nn.modules, wrapped into special decorator')
+    parser.add_argument('--identity_path', type=str, required=False, help='Path to identity file to be used in P2P')
 
     # fmt:on
     args = vars(parser.parse_args())
