@@ -8,8 +8,8 @@ from hivemind.moe.expert_uid import ExpertUID
 from hivemind.moe.server.dht_handler import _get_experts
 from hivemind.p2p import StubBase, P2P
 from hivemind.proto.runtime_pb2 import ExpertInfo
-from hivemind.dht import DHTExpiration, DHT
-from hivemind.utils import MPFuture
+from hivemind.dht import DHT
+from hivemind.utils import MPFuture, DHTExpiration
 from src.server.handler import TransformerConnectionHandler
 
 
