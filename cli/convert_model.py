@@ -57,7 +57,6 @@ if __name__ == "__main__":
         with repo.commit(
                 commit_message=args.commit_message, branch=args.block_branch_prefix + str(i), track_large_files=True
         ):
-            print(block.self_attention.layer_number)
             torch.save(block.state_dict(), "./pytorch_model.bin")
 
     repo.git_checkout(args.base_branch, create_branch_ok=True)
