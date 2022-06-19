@@ -1,16 +1,18 @@
 from __future__ import annotations
+
 import asyncio
 from functools import partial
-from typing import List, Optional, Union, Sequence, AsyncIterator, Dict, Any
+from typing import Any, AsyncIterator, Dict, List, Optional, Sequence, Union
 
 import torch
+from hivemind.compression import deserialize_torch_tensor, serialize_torch_tensor
+from hivemind.dht import DHT, DHTNode, DHTValue
 from hivemind.moe.client.expert import RemoteExpert, RemoteExpertWorker
-from hivemind.moe.expert_uid import ExpertUID, ExpertInfo as RemoteModuleInfo
+from hivemind.moe.expert_uid import ExpertInfo as RemoteModuleInfo
+from hivemind.moe.expert_uid import ExpertUID
 from hivemind.p2p import P2P, PeerID, StubBase
 from hivemind.proto import runtime_pb2
-from hivemind.dht import DHT, DHTNode, DHTValue
-from hivemind.utils import MPFuture, DHTExpiration, get_dht_time, as_aiter, anext, nested_flatten
-from hivemind.compression import serialize_torch_tensor, deserialize_torch_tensor
+from hivemind.utils import DHTExpiration, MPFuture, anext, as_aiter, get_dht_time, nested_flatten
 
 from src.server.handler import TransformerConnectionHandler
 

@@ -1,6 +1,8 @@
 from __future__ import annotations
+
+import multiprocessing as mp
 import threading
-from typing import Optional, Dict, Union, Sequence
+from typing import Dict, Optional, Sequence, Union
 
 import torch
 from hivemind import DHT, BatchTensorDescriptor
@@ -8,13 +10,12 @@ from hivemind.moe.server.dht_handler import DHTHandlerThread
 from hivemind.moe.server.layers import add_custom_models_from_file
 from hivemind.moe.server.runtime import Runtime
 from hivemind.proto.runtime_pb2 import CompressionType
-from hivemind.utils.logging import use_hivemind_log_handler, get_logger
-import multiprocessing as mp
+from hivemind.utils.logging import get_logger, use_hivemind_log_handler
 
-from src import DistributedBloomConfig, BloomForCausalLM
+from src import BloomForCausalLM, DistributedBloomConfig
 from src.bloom.block import BloomBlock
-from src.server.cache import MemoryCache
 from src.server.backend import TransformerBackend
+from src.server.cache import MemoryCache
 from src.server.handler import TransformerConnectionHandler
 
 use_hivemind_log_handler("in_root_logger")

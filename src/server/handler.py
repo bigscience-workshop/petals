@@ -1,12 +1,12 @@
 from typing import AsyncIterator, Dict
 
 import torch
-from hivemind import P2PContext, DHT, deserialize_torch_tensor, TensorDescriptor, nested_flatten
+from hivemind import DHT, P2PContext, TensorDescriptor, deserialize_torch_tensor, nested_flatten
 from hivemind.moe.server.connection_handler import ConnectionHandler
 from hivemind.proto import runtime_pb2
 from hivemind.utils.asyncio import anext
 
-from src.server.backend import TransformerBackend, MAX_LENGTH
+from src.server.backend import MAX_LENGTH, TransformerBackend
 
 
 class TransformerConnectionHandler(ConnectionHandler):

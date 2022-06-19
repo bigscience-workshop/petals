@@ -1,5 +1,5 @@
-from typing import Sequence
 from collections import defaultdict
+from typing import Sequence
 
 import torch
 from hivemind import DHT
