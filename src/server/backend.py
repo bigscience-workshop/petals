@@ -7,6 +7,8 @@ from hivemind.moe.server.task_pool import TaskPool
 
 from src.server.cache import MemoryCache
 
+MAX_LENGTH = 2048
+
 
 class TransformerBackend(ModuleBackend):
     """A wrapper for BloomBlock that can process requests for bloom layer forward, forward_incremental, and backward"""
@@ -22,7 +24,10 @@ class TransformerBackend(ModuleBackend):
 
         self.inference_pool = TaskPool(self.inference_step, max_batch_size=1, name=f"{self.name}_inference")
 
-    def inference_step(self, *inputs: torch.Tensor, attention_cache_handle: int) -> Tuple[torch.Tensor, ...]:
+    def inference_step(self, *inputs: torch.Tensor, attention_cache_handle: torch.IntTensor) -> Tuple[torch.Tensor, ...]:
+
+        attention_cache_handle = int(attention_cache_handle.item())
+        print('HANDLE:', attention_cache_handle)
         with self.memory_cache.use_cache(attention_cache_handle) as cache:
             cache[...] += 1
             return inputs[0] + cache

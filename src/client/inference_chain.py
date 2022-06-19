@@ -6,8 +6,7 @@ from hivemind import DHT
 from torch import nn
 
 from src import DistributedBloomConfig
-
-MAX_LENGTH = 128  #TODO un-hardcode
+from src.server.backend import MAX_LENGTH
 
 
 class RemoteInferenceChain(nn.Module):

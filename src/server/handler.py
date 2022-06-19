@@ -26,7 +26,8 @@ class TransformerConnectionHandler(ConnectionHandler):
         assert isinstance(backend, TransformerBackend)
 
         inputs = [deserialize_torch_tensor(tensor) for tensor in request.tensors]
-        async with backend.memory_cache.allocate_cache(TensorDescriptor(size=(1,2,3), dtype=torch.float32)):
+        async with backend.memory_cache.allocate_cache(TensorDescriptor(size=(1,2,3), dtype=torch.float32)) as handle:
+            inputs.append(torch.tensor([handle], dtype=torch.int64))
             outputs = await self._process_inputs(inputs, backend.inference_pool, backend.outputs_schema)
 
         yield runtime_pb2.ExpertResponse(tensors=outputs)
