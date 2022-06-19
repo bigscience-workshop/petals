@@ -46,6 +46,6 @@ class TransformerConnectionHandler(ConnectionHandler):
                     yield runtime_pb2.ExpertResponse(tensors=outputs)
 
                     prefix_length += inputs[1].shape[1]
-                    request = await(anext(requests))
+                    request = await (anext(requests))
         finally:
             print("CLOSED RPC_INFERENCE")

@@ -22,6 +22,7 @@ class RemoteInferenceChain(nn.Module):
     def step(self, hidden_states: torch.Tensor):
         pass
 
+
 # plan:
 # - run inference STUB from a jupyter notebook
 # - extend to run actual inference

@@ -28,11 +28,14 @@ class TransformerBackend(ModuleBackend):
     def inference_step(self, cache_metadata: torch.IntTensor, *inputs: torch.Tensor) -> Tuple[torch.Tensor, ...]:
         attention_cache_handle = int(cache_metadata[0, 0].item())
         prefix_length = int(cache_metadata[0, 1].item())
-        hidden_states, *_ = inputs  # todo: this ignores any extra inputs for now; in future, it would be best to support attention mask as an extra input
+        (
+            hidden_states,
+            *_,
+        ) = inputs  # todo: this ignores any extra inputs for now; in future, it would be best to support attention mask as an extra input
         assert hidden_states.ndim == 3, "expected hidden states to be 3-dimensional: [batch_size, seq_len, hid_size]"
 
         with self.memory_cache.use_cache(attention_cache_handle) as cache:
-            print('METADATA:', cache_metadata)
+            print("METADATA:", cache_metadata)
             assert isinstance(self.module, BloomBlock) and cache.shape[0] == 2 and cache.ndim == 5
             layer_past = past_k, past_v = cache[0, :, :prefix_length], cache[1, :, :prefix_length]
             print(past_k.shape, past_v.shape)
@@ -44,10 +47,10 @@ class TransformerBackend(ModuleBackend):
             assert new_k.shape[0] == past_k.shape[0] and new_v.shape[0] == past_v.shape[0]
             assert new_k.shape[1] == new_length and new_v.shape[1] == new_length
             assert new_k.shape[2:] == past_k.shape[2:] and new_v.shape[2:] == past_v.shape[2:]
-            assert torch.allclose(new_v[:, :past_v.shape[1]], past_v)
-            assert torch.allclose(new_k[:, :past_k.shape[1]], past_k)
-            cache[0, :, prefix_length: new_length, :] = new_k[:, prefix_length: new_length]
-            cache[1, :, prefix_length: new_length, :] = new_v[:, prefix_length: new_length]
+            assert torch.allclose(new_v[:, : past_v.shape[1]], past_v)
+            assert torch.allclose(new_k[:, : past_k.shape[1]], past_k)
+            cache[0, :, prefix_length:new_length, :] = new_k[:, prefix_length:new_length]
+            cache[1, :, prefix_length:new_length, :] = new_v[:, prefix_length:new_length]
             return (hidden_states,)
 
     def get_pools(self) -> Sequence[TaskPool]:

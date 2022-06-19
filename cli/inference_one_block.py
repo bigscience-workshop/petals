@@ -25,7 +25,7 @@ def print_device_info(device=None):
         logger.info(f"Cached:   {round(torch.cuda.memory_cached(0) / 1024 ** 3, 1)} GB")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run a single bloom block locally on dummy data")
     parser.add_argument("--config", required=True, type=str, help="Path to a config json file")
     parser.add_argument("--state_dict", default=None, type=str, help="Optional path to saved block state dict")
@@ -35,7 +35,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.device is None:
-        args.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        args.device = "cuda" if torch.cuda.is_available() else "cpu"
 
     config = DistributedBloomConfig.from_json_file(args.config)
     block = BloomBlock(config, args.layer_index).to(args.device)

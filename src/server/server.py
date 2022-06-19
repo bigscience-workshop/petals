@@ -114,7 +114,7 @@ class Server(threading.Thread):
 
         if block_indices is not None:
             try:
-                start, end = block_indices.split(':')
+                start, end = block_indices.split(":")
                 start, end = map(int, map(str.strip, (start, end)))
             except Exception as e:
                 logger.error(f"Failed to parse --block_indices ({e}), must be start:end (e.g. 0:33)")
@@ -122,13 +122,12 @@ class Server(threading.Thread):
             block_indices = range(start, end)
         else:
             assert num_blocks is not None
-            block_indices = range(num_blocks) # TODO replace with proper load balancing
+            block_indices = range(num_blocks)  # TODO replace with proper load balancing
 
         ## TODO: the code below will load the entire model in RAM. Please replace with sliced model
         block_config = DistributedBloomConfig.from_pretrained(block_config, use_auth_token=True)
         # model = BloomForCausalLM.from_pretrained(model, use_auth_token=True)
         ## /TODO
-
 
         # initialize modules
         blocks = {}
