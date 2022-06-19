@@ -30,7 +30,8 @@ pip install https://github.com/huggingface/transformers/archive/6589e510fa4e6c44
 # run one bloom block for a few steps
 python -m cli.inference_one_block --config cli/config.json  # see other args
 
-# convert model from HF hub to a distributed format
+
+# convert model from HF hub to a distributed format (can take hours depending on your connection!)
 MY_WRITE_TOKEN=TODO_WRITE_TOKEN_FROM_https://huggingface.co/settings/token
 python -m cli.convert_model --model bigscience/bloom-6b3  \
   --output_path ./converted_model --output_repo bigscience/test-bloomd-6b3 \
