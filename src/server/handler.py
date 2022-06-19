@@ -30,21 +30,22 @@ class TransformerConnectionHandler(ConnectionHandler):
             assert isinstance(backend, TransformerBackend)
 
             # prepare attention cache
-            hidden_size = backend.module.hidden_size
-            cache_metadata = torch.tensor([[-1, -1]], dtype=torch.int64)  # [cache_handle, current_sequence_length]
-            cache_descriptor = TensorDescriptor(size=(1, MAX_LENGTH, hidden_size), dtype=torch.float32)
-            current_sequence_length = 0
+            num_heads = backend.module.self_attention.num_heads
+            head_dim = backend.module.self_attention.head_dim
+            cache_metadata = torch.tensor([[-1, -1]], dtype=torch.int64)  # [cache_handle, prefix_length]
+            cache_descriptor = TensorDescriptor(size=(2, 1, MAX_LENGTH, num_heads, head_dim), dtype=torch.float32)
+            prefix_length = 0
 
             async with backend.memory_cache.allocate_cache(cache_descriptor) as cache_handle:
                 while request.uid or request.tensors:  # iterate while user is willing to supply tensors
                     inputs = [cache_metadata, *(deserialize_torch_tensor(tensor) for tensor in request.tensors)]
                     print("INPUTS:", inputs)
                     assert len(inputs) == 2 and inputs[1].ndim == 3, "send only hidden states for now"
-                    cache_metadata[0, 0], cache_metadata[0, 1] = cache_handle, current_sequence_length
+                    cache_metadata[0, 0], cache_metadata[0, 1] = cache_handle, prefix_length
                     outputs = await self._process_inputs(inputs, backend.inference_pool, backend.outputs_schema)
                     yield runtime_pb2.ExpertResponse(tensors=outputs)
 
-                    current_sequence_length += inputs[1].shape[1]
+                    prefix_length += inputs[1].shape[1]
                     request = await(anext(requests))
         finally:
             print("CLOSED RPC_INFERENCE")
