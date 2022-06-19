@@ -22,7 +22,10 @@ class TransformerConnectionHandler(ConnectionHandler):
     ) -> AsyncIterator[runtime_pb2.ExpertRequest]:
         """Compute a single step of inference using attention cache; update attention cache accordingly."""
         try:
+            print("OPENED RPC_INFERENCE")
             request = await anext(requests)
+            if not request.uid:
+                raise RuntimeError("User did not provide any uids.")
             backend = self.module_backends[request.uid]
             assert isinstance(backend, TransformerBackend)
 
@@ -33,13 +36,15 @@ class TransformerConnectionHandler(ConnectionHandler):
             current_sequence_length = 0
 
             async with backend.memory_cache.allocate_cache(cache_descriptor) as cache_handle:
-                inputs = [cache_metadata, *(deserialize_torch_tensor(tensor) for tensor in request.tensors)]
-                print("INPUTS:", inputs)
-                assert len(inputs) == 2 and inputs[1].ndim == 3, "send only hidden states for now"
-                cache_metadata[0, 0], cache_metadata[0, 1] = cache_handle, current_sequence_length
-                outputs = await self._process_inputs(inputs, backend.inference_pool, backend.outputs_schema)
-                yield runtime_pb2.ExpertResponse(tensors=outputs)
+                while request.uid or request.tensors:  # iterate while user is willing to supply tensors
+                    inputs = [cache_metadata, *(deserialize_torch_tensor(tensor) for tensor in request.tensors)]
+                    print("INPUTS:", inputs)
+                    assert len(inputs) == 2 and inputs[1].ndim == 3, "send only hidden states for now"
+                    cache_metadata[0, 0], cache_metadata[0, 1] = cache_handle, current_sequence_length
+                    outputs = await self._process_inputs(inputs, backend.inference_pool, backend.outputs_schema)
+                    yield runtime_pb2.ExpertResponse(tensors=outputs)
 
-                current_sequence_length += inputs[1].shape[1]
+                    current_sequence_length += inputs[1].shape[1]
+                    request = await(anext(requests))
         finally:
             print("CLOSED RPC_INFERENCE")

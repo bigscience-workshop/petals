@@ -4,11 +4,11 @@ A pytorch memory cache that can be allocated by ConnectionHandler (on cpu) and u
 For now, the only purpose of this code is to ensure that allocated memory will be deleted properly.
 
 TODO In future, one could modify cache to implement, among other things,
-- in allocate_cache, if there is not enough memory, wait for memory to be freed by existing tasks up to a given timeout.
--- note: this can be done using mp.Condtion
-- allocate cache as one contigous buffer to avoid fragmentation
-- quantize cached values using bitsandbytes
-- LRU offloading from gpu to ram
+-
+--
+-
+-
+-
 
 """
 import contextlib
