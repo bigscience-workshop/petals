@@ -26,14 +26,14 @@ class TransformerBackend(ModuleBackend):
 
         self.inference_pool = TaskPool(self.inference_step, max_batch_size=1, name=f"{self.name}_inference")
 
-    def inference_step(self, attention_cache_handle: torch.IntTensor, *inputs: torch.Tensor) -> Tuple[torch.Tensor, ...]:
-
-        attention_cache_handle = int(attention_cache_handle.item())
-        print('HANDLE:', attention_cache_handle)
+    def inference_step(self, cache_metadata: torch.IntTensor, *inputs: torch.Tensor) -> Tuple[torch.Tensor, ...]:
+        attention_cache_handle = int(cache_metadata[0, 0].item())
+        current_sequence_length = int(cache_metadata[0, 1].item())
         with self.memory_cache.use_cache(attention_cache_handle) as cache:
+            print('METADATA:', cache_metadata, "CACHE ENTRIES:", len(self.memory_cache._allocated_tensors))
             print(inputs[0].shape, cache.shape)
             cache[...] += 1
-            return (inputs[0] + cache,)
+            return (inputs[0] + cache.flatten()[0],)
 
     def get_pools(self) -> Sequence[TaskPool]:
         return self.forward_pool, self.backward_pool, self.inference_pool
