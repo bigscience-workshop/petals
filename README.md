@@ -38,5 +38,11 @@ python -m cli.convert_model --model bigscience/bloom-6b3  \
 
 
 # minimalistic server with non-trained bloom blocks
-python -m cli.run_server --prefix smol --block_config bigscience/bloom-6b3 --num_blocks 2 --identity_path ./server1.id --host_maddrs /ip4/127.0.0.1/tcp/31337
+python -m cli.run_server --prefix smol --block_config bigscience/bloom-6b3 --num_blocks 2 \
+  --identity_path ./server1.id --host_maddrs /ip4/127.0.0.1/tcp/31337
+# when running multiple servers:
+# - give each server a unique --identity_path (or remote --identity_path arg when debugging)
+# - if running multiple servers on the same machine, give each a unique port (last integer in --host_maddrs, 0 means random port)
+# - when running over the internet, change --host_maddrs according to https://learning-at-home.readthedocs.io/en/latest/user/dht.html#running-across-the-internet
+# - each server except first should have --initial_peers pointing to one of pre-existing servers 
 ```
