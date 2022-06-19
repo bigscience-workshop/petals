@@ -24,26 +24,58 @@ pip install https://github.com/huggingface/transformers/archive/6589e510fa4e6c44
 ```
 
 
-# tests
+### Test local inference:
+No networking whatsoever, used to verify architecture optimizations
 
 ```bash
-# run one bloom block for a few steps
+# run one bloom block for a few steps -- on a local machine
 python -m cli.inference_one_block --config cli/config.json  # see other args
+```
 
+### Test distributed inference / training
 
-# convert model from HF hub to a distributed format (can take hours depending on your connection!)
-MY_WRITE_TOKEN=TODO_WRITE_TOKEN_FROM_https://huggingface.co/settings/token
-python -m cli.convert_model --model bigscience/bloom-6b3  \
-  --output_path ./converted_model --output_repo bigscience/test-bloomd-6b3 \
-  --use_auth_token $MY_WRITE_TOKEN  # ^-- todo replace output repo with something you have access to
-
-
+First, run one or more servers like this:
+```bash
 # minimalistic server with non-trained bloom blocks
-python -m cli.run_server --prefix smol --block_config bigscience/bloom-6b3 --num_blocks 2 \
+python -m cli.run_server --prefix bloom6b3 --block_config bigscience/bloom-6b3 --num_blocks 2 \
   --identity_path ./server1.id --host_maddrs /ip4/127.0.0.1/tcp/31337
 # when running multiple servers:
 # - give each server a unique --identity_path (or remote --identity_path arg when debugging)
 # - if running multiple servers on the same machine, give each a unique port (last integer in --host_maddrs, 0 means random port)
 # - when running over the internet, change --host_maddrs according to https://learning-at-home.readthedocs.io/en/latest/user/dht.html#running-across-the-internet
 # - each server except first should have --initial_peers pointing to one of pre-existing servers 
+```
+
+Then open a python notebook or console and run:
+```python
+import torch
+import hivemind
+from src.client.remote_block import get_remote_module
+
+dht = hivemind.DHT(
+    initial_peers=["/ip4/127.0.0.1/COPY_FULL_ADDRESS_FROM_ANY_OF_THE_SERVERS"],
+    client_mode=True, start=True,
+)
+
+m, = get_remote_module(dht, ['bloom6b3.0'])
+
+# test forward/backward, one block
+outputs = m(torch.randn(1, 128, 4096))
+loss = (outputs * torch.randn_like(outputs)).norm()
+loss.backward()
+
+with m.begin_inference_session() as sess:
+    for i in range(10):
+        res = sess.step(torch.ones(1, 1, 4096))
+```
+
+
+### Convert regular bloom to distributed
+```bash
+
+# convert model from HF hub to a distributed format (can take hours depending on your connection!)
+MY_WRITE_TOKEN=TODO_WRITE_TOKEN_FROM_https://huggingface.co/settings/token
+python -m cli.convert_model --model bigscience/bloom-6b3  \
+  --output_path ./converted_model --output_repo bigscience/test-bloomd-6b3 \
+  --use_auth_token $MY_WRITE_TOKEN  # ^-- todo replace output repo with something you have access to
 ```
