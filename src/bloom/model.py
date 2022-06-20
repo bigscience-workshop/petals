@@ -25,7 +25,7 @@ from src.bloom.block import BloomBlock
 from src.bloom.ops import build_alibi_tensor
 
 use_hivemind_log_handler("in_root_logger")
-logger = logging.get_logger(__name__)
+logger = logging.get_logger(__file__)
 
 _CHECKPOINT_FOR_DOC = "bigscience/Bloom"
 _CONFIG_FOR_DOC = "MemoryEfficientBloomConfig"
