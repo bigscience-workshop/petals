@@ -86,11 +86,11 @@ python -m cli.convert_model --model bigscience/bloom-6b3  \
 
 To test distributed inference, run one or more servers, then open a new shell and run pytest with environment variables:
 ```bash
-# shell A:
+# shell A: serve blocks 3 and 4
 python -m cli.run_server --prefix bloom6b3 --converted_model_name_or_path bigscience/test-bloomd-6b3 \
   --block_indices 3:5 --torch_dtype float32 --identity_path ./server1.id --host_maddrs /ip4/127.0.0.1/tcp/31337
 
-# shell B:
+# shell B: connect to the swarm and test individual blocks for exact match
 export PYTHONPATH=. INITIAL_PEERS="/ip4/TODO_COPY_INITIAL_PEERS_FROM_SERVER_OUTPUT"
 BLOCK_UID=bloom6b3.3 pytest tests/test_block_exact_match.py
 BLOCK_UID=bloom6b3.4 pytest tests/test_block_exact_match.py
