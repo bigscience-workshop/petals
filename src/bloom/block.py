@@ -74,18 +74,19 @@ class BloomAttention(nn.Module):
         use_cache=False,
         output_attentions=False,
     ):
-        if alibi is None:  # TODO OPTIMIZE ALIBI CREATION
-            current_sequence_length = hidden_states.shape[1]
-            if layer_past is not None:
-                current_sequence_length += layer_past[0].shape[1]
-            alibi = build_alibi_tensor(hidden_states.shape[1], n_head=self.num_heads, dtype=hidden_states.dtype)
-        # hidden_states: [batch_size, seq_length, hidden_size]
-        # repeat alibi tensor with the batch size
-        alibi = alibi.repeat(hidden_states.shape[0], 1, 1).to(hidden_states.device)  # TODO eliminate cpu-gpu transfer!
+        if alibi is None:
+            current_sequence_length = hidden_states.shape[1] + (0 if layer_past is None else layer_past[0].shape[1])
+            alibi = build_alibi_tensor(
+                current_sequence_length, n_head=self.num_heads, dtype=hidden_states.dtype, device=hidden_states.device
+            )
 
+        # hidden_states: [batch_size, seq_length, hidden_size]
         # apply preprocessing if the input is padded
-        if attention_mask is not None and 0 in attention_mask:  # TODO REMOVE CUDA SYNC
-            alibi = pre_process_alibi_for_pad(alibi, attention_mask, self.num_heads)
+        if attention_mask is not None:
+            alibi = pre_process_alibi_for_pad(alibi, attention_mask)
+        # otherwise repeat alibi tensor with the batch size
+        else:
+            alibi = alibi.repeat(hidden_states.shape[0], 1, 1)
 
         mixed_x_layer = self.query_key_value(hidden_states)
 
@@ -115,19 +116,16 @@ class BloomAttention(nn.Module):
         # [batch_size, k_length, num_heads, head_dim] -> [k_length, batch_size * num_heads, head_dim]
         key_layer = key_layer.transpose(1, 0).reshape(output_size[3], output_size[0] * output_size[1], -1)
 
-        # slice alibi tensor until the query length
-        sliced_alibi = alibi[: output_size[0] * output_size[1], :, : output_size[3]]
-
         # Raw attention scores. [batch_size * num_heads, q_length, k_length]
         beta = 1.0 / self.layer_number
 
         matmul_result = torch.baddbmm(
-            sliced_alibi,
+            alibi,
             query_layer.transpose(1, 0),
             key_layer.transpose(1, 0).transpose(1, 2),
             beta=beta,
             alpha=(1.0 / self.norm_factor),
-        )  # TODO if end up creating alibi inside forward, consider setting out=sliced_alibi for memory efficiency
+        )
 
         # change view to [batch_size, num_heads, q_length, k_length]
         attention_scores = matmul_result.view(*output_size)
