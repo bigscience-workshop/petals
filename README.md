@@ -8,7 +8,7 @@ if you.read(this) and you.name not in '@timdettmers @borzunov @mryab @greenfatgu
 
 
 
-# install
+### install
 
 
 ```bash
@@ -24,7 +24,7 @@ pip install https://github.com/huggingface/transformers/archive/6589e510fa4e6c44
 ```
 
 
-### Test local inference:
+### run local inference:
 No networking whatsoever, used to verify architecture optimizations
 
 ```bash
@@ -32,7 +32,7 @@ No networking whatsoever, used to verify architecture optimizations
 python -m cli.inference_one_block --config cli/config.json  # see other args
 ```
 
-### Test distributed inference / training
+### run distributed inference / training
 
 First, run one or more servers like this:
 ```bash
@@ -71,7 +71,7 @@ with layer3.begin_inference_session() as sess:
 ```
 
 
-### Convert regular bloom to distributed
+### convert regular bloom to distributed
 ```bash
 
 # convert model from HF hub to a distributed format (can take hours depending on your connection!)
@@ -82,7 +82,7 @@ python -m cli.convert_model --model bigscience/bloom-6b3  \
 ```
 
 
-### Test local vs remote model
+### test local vs remote block (allclose)
 
 To test distributed inference, run one or more servers, then open a new shell and run pytest with environment variables:
 ```bash
