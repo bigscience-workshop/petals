@@ -80,3 +80,21 @@ python -m cli.convert_model --model bigscience/bloom-6b3  \
   --output_path ./converted_model --output_repo bigscience/test-bloomd-6b3 \
   --use_auth_token $MY_WRITE_TOKEN  # ^-- todo replace output repo with something you have access to
 ```
+
+
+### Test local vs remote model
+
+To test distributed inference, run one or more servers, then open a new shell and run pytest with environment variables:
+```bash
+# shell A:
+python -m cli.run_server --prefix bloom6b3 --converted_model_name_or_path bigscience/test-bloomd-6b3 \
+  --block_indices 3:5 --torch_dtype float32 --identity_path ./server1.id --host_maddrs /ip4/127.0.0.1/tcp/31337
+
+# shell B:
+export PYTHONPATH=. INITIAL_PEERS="/ip4/TODO_COPY_INITIAL_PEERS_FROM_SERVER_OUTPUT"
+BLOCK_UID=bloom6b3.3 pytest tests/test_block_exact_match.py
+BLOCK_UID=bloom6b3.4 pytest tests/test_block_exact_match.py
+
+# the test below will fail because server only has layers [3:5)
+# BLOCK_UID=bloom6b3.7 pytest tests/test_block_exact_match.py
+```
