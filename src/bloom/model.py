@@ -28,7 +28,7 @@ use_hivemind_log_handler("in_root_logger")
 logger = logging.get_logger(__file__)
 
 _CHECKPOINT_FOR_DOC = "bigscience/Bloom"
-_CONFIG_FOR_DOC = "MemoryEfficientBloomConfig"
+_CONFIG_FOR_DOC = "DistributedBloomConfig"
 _TOKENIZER_FOR_DOC = "BloomTokenizer"
 
 

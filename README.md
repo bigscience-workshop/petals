@@ -37,8 +37,8 @@ python -m cli.inference_one_block --config cli/config.json  # see other args
 First, run one or more servers like this:
 ```bash
 # minimalistic server with non-trained bloom blocks
-python -m cli.run_server --prefix bloom6b3 --block_config bigscience/bloom-6b3 --num_blocks 2 \
-  --identity_path ./server1.id --host_maddrs /ip4/127.0.0.1/tcp/31337
+python -m cli.run_server --prefix bloom6b3 --converted_model_name_or_path bigscience/test-bloomd-6b3 \
+  --block_indices 3:5 --torch_dtype float32 --identity_path ./server1.id --host_maddrs /ip4/127.0.0.1/tcp/31337
 # when running multiple servers:
 # - give each server a unique --identity_path (or remote --identity_path arg when debugging)
 # - if running multiple servers on the same machine, give each a unique port (last integer in --host_maddrs, 0 means random port)
@@ -57,15 +57,15 @@ dht = hivemind.DHT(
     client_mode=True, start=True,
 )
 
-layer0, layer1 = get_remote_module(dht, ['bloom6b3.0', 'bloom6b3.1'])
-
+layer3, layer4 = get_remote_module(dht, ['bloom6b3.3', 'bloom6b3.4'])
+assert layer3 is not None and layer4 is not None, "one or both layers were not found in DHT"
 # test forward/backward, two blocks
-outputs, = layer1(*layer0(torch.randn(1, 64, 4096)))
+outputs, = layer4(*layer3(torch.randn(1, 64, 4096)))
 loss = (outputs * torch.randn_like(outputs)).norm()
 loss.backward()
 
 # test inference, one block
-with layer0.begin_inference_session() as sess:
+with layer3.begin_inference_session() as sess:
     for i in range(10):
         res = sess.step(torch.ones(1, 1, 4096))
 ```

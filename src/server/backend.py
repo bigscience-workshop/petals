@@ -5,7 +5,7 @@ import torch
 from hivemind.moe.server.module_backend import ModuleBackend
 from hivemind.moe.server.task_pool import TaskPool
 
-from src.bloom.block import BloomBlock
+from src.bloom.from_pretrained import BloomBlock
 from src.server.cache import MemoryCache
 
 MAX_LENGTH = 2048
@@ -38,7 +38,7 @@ class TransformerBackend(ModuleBackend):
             print(past_k.shape, past_v.shape)
             hidden_states, (new_k, new_v) = self.module.forward(hidden_states, layer_past=layer_past, use_cache=True)
 
-            # todo remove these debugprints
+            # todo remove these asserts once we pass all tests
             new_length = new_v.shape[1]
             assert new_length > prefix_length
             assert new_k.shape[0] == past_k.shape[0] and new_v.shape[0] == past_v.shape[0]

@@ -6,7 +6,7 @@ from hivemind.utils.logging import get_logger, use_hivemind_log_handler
 from src.server.server import Server
 
 use_hivemind_log_handler("in_root_logger")
-logger = get_logger(__name__)
+logger = get_logger(__file__)
 
 
 def main():
@@ -15,7 +15,8 @@ def main():
     parser.add('-c', '--config', required=False, is_config_file=True, help='config file path')
 
     parser.add_argument('--prefix', type=str, required=True, help="Announce all blocks with this prefix")
-    parser.add_argument('--block_config', type=str, default='bigscience/bloom-6b3', help="name or path of model config")
+    parser.add_argument('--converted_model_name_or_path', type=str, default='bigscience/test-bloomd-6b3',
+                        help="path or name of a pretrained model, converted with cli/convert_model.py (see README.md)")
     parser.add_argument('--num_blocks', type=int, default=None, help="The number of blocks to serve")
     parser.add_argument('--block_indices', type=str, default=None, help="Specific block indices to serve")
     parser.add_argument('--host_maddrs', nargs='+', default=['/ip4/0.0.0.0/tcp/0'], required=False,
@@ -35,6 +36,9 @@ def main():
                         help='The size of memory cache for storing past attention keys/values between inference steps')
     parser.add_argument('--device', type=str, default=None, required=False,
                         help='all experts will use this device in torch notation; default: cuda if available else cpu')
+    parser.add_argument("--torch_dtype", type=str, default="auto",
+                        help="Use this dtype to store block weights and do computations. "
+                             "By default, respect the dtypes in the pre-trained state dict.")
 
     parser.add_argument('--update_period', type=float, required=False, default=30,
                         help='Server will report experts to DHT once in this many seconds')
