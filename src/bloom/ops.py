@@ -7,8 +7,8 @@ import math
 
 import torch
 import torch.autograd
-from torch import nn
 import torch.nn.functional as F
+from torch import nn
 
 
 def split_tensor_along_last_dim(tensor, num_partitions, contiguous_split_chunks=False):

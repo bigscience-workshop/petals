@@ -35,7 +35,7 @@ class TransformerBackend(ModuleBackend):
             print("METADATA:", cache_metadata)
             assert isinstance(self.module, BloomBlock) and cache.shape[0] == 2 and cache.ndim == 5
             layer_past = past_k, past_v = cache[0, :, :prefix_length], cache[1, :, :prefix_length]
-            print('PAST', past_k.shape, past_v.shape)
+            print("PAST", past_k.shape, past_v.shape)
             hidden_states, (new_k, new_v) = self.module.forward(hidden_states, layer_past=layer_past, use_cache=True)
 
             # todo remove these asserts once we pass all tests

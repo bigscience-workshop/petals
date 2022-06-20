@@ -3,10 +3,10 @@ import os
 
 import psutil
 import torch.backends.quantized
+import torch.nn as nn
 import transformers
 from hivemind.utils.logging import get_logger, use_hivemind_log_handler
 from huggingface_hub import Repository
-import torch.nn as nn
 from tqdm.auto import tqdm
 
 use_hivemind_log_handler("in_root_logger")
@@ -85,4 +85,3 @@ if __name__ == "__main__":
         config.save_pretrained(".")
 
     logger.info(f"Converted {args.model} and pushed to {args.output_repo}")
-

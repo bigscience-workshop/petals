@@ -12,11 +12,10 @@ from hivemind.moe.server.runtime import Runtime
 from hivemind.proto.runtime_pb2 import CompressionType
 from hivemind.utils.logging import get_logger, use_hivemind_log_handler
 
-from src.bloom.from_pretrained import load_pretrained_block, DistributedBloomConfig, DTYPE_MAP
+from src.bloom.from_pretrained import DTYPE_MAP, DistributedBloomConfig, load_pretrained_block
 from src.server.backend import TransformerBackend
 from src.server.cache import MemoryCache
 from src.server.handler import TransformerConnectionHandler
-
 
 use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
@@ -89,7 +88,7 @@ class Server(threading.Thread):
         num_handlers: Optional[int] = None,
         min_batch_size: int = 1,
         max_batch_size: int = 4096,
-        torch_dtype: str = 'auto',
+        torch_dtype: str = "auto",
         cache_size_bytes: Optional[int] = None,
         device: Union[str, torch.device] = None,
         initial_peers: Sequence[str] = (),
