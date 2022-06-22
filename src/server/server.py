@@ -5,7 +5,7 @@ import threading
 from typing import Dict, Optional, Sequence, Union
 
 import torch
-from hivemind import DHT, BatchTensorDescriptor, MAX_DHT_TIME_DISCREPANCY_SECONDS, get_dht_time
+from hivemind import DHT, MAX_DHT_TIME_DISCREPANCY_SECONDS, BatchTensorDescriptor, get_dht_time
 from hivemind.moe.server.dht_handler import DHTHandlerThread
 from hivemind.moe.server.layers import add_custom_models_from_file
 from hivemind.moe.server.runtime import Runtime
@@ -43,7 +43,9 @@ class Server(threading.Thread):
             TransformerConnectionHandler(dht, self.module_backends) for _ in range(num_connection_handlers)
         ]
         self.runtime = Runtime(self.module_backends, device=device, **kwargs)
-        self.dht_handler_thread = ModuleAnnouncerThread(self.module_backends, dht, update_period, expiration, daemon=True)
+        self.dht_handler_thread = ModuleAnnouncerThread(
+            self.module_backends, dht, update_period, expiration, daemon=True
+        )
         self.checkpoint_saver = None  # no need to save checkpoints since we do not change model state
 
         if start:
@@ -217,6 +219,7 @@ class Server(threading.Thread):
 
 class ModuleAnnouncerThread(threading.Thread):
     """Periodically announces that this server hosts the specified modules, visible to all DHT peers"""
+
     def __init__(
         self, module_backends, dht: DHT, update_period: float = 30, expiration: Optional[int] = None, **kwargs
     ):

@@ -6,14 +6,14 @@ from typing import Any, AsyncIterator, Dict, Optional
 
 import torch
 from hivemind.compression import deserialize_torch_tensor, serialize_torch_tensor
-from hivemind.moe.client.expert import RemoteExpertWorker, RemoteExpert
+from hivemind.moe.client.expert import RemoteExpert, RemoteExpertWorker
 from hivemind.moe.expert_uid import ExpertInfo
 from hivemind.p2p import P2P, StubBase
 from hivemind.proto import runtime_pb2
 from hivemind.utils import anext, nested_flatten
 
-from src.dht_utils import ModuleUID
 from src.data_structures import RemoteModuleInfo
+from src.dht_utils import ModuleUID
 from src.server.handler import TransformerConnectionHandler
 
 
@@ -21,7 +21,7 @@ class RemoteTransformerBlock(RemoteExpert):
     """A class that interacts with a remote module on a specific server for forward/backward or inference"""
 
     def __init__(self, peers_info: RemoteModuleInfo, p2p: P2P):
-        peer_info = ExpertInfo(peers_info.uid, random.choice(list(peers_info.peer_ids))) #TODO replace this
+        peer_info = ExpertInfo(peers_info.uid, random.choice(list(peers_info.peer_ids)))  # TODO replace this
         super().__init__(peer_info, p2p)
 
     @property
@@ -37,9 +37,7 @@ class RemoteTransformerBlock(RemoteExpert):
 class RemoteTransformerBlockInferenceSession:
     """An interface to a single multi-step *inference* session for a specific remote module with a specific server"""
 
-    def __init__(
-            self, uid: ModuleUID, info: Dict[str, Any], inputs_queue: asyncio.Queue, outputs_aiter: AsyncIterator
-    ):
+    def __init__(self, uid: ModuleUID, info: Dict[str, Any], inputs_queue: asyncio.Queue, outputs_aiter: AsyncIterator):
         self.uid, self.info = uid, info
         # warning: this code manages async objects that are only usable inside RemoteExpertWorker's background thread;
         # using them in any other EventLoop may cause side-effects including, headaches, diarrhea, and loss of sleep
@@ -119,4 +117,3 @@ class RemoteTransformerBlockInferenceSession:
 
     def __exit__(self, *exc_details):
         self.close()
-

@@ -8,25 +8,29 @@ from typing import Dict, List, Optional, Sequence, Union
 
 from hivemind.dht import DHT, DHTNode, DHTValue
 from hivemind.moe.client.remote_expert_worker import RemoteExpertWorker
-from hivemind.utils import DHTExpiration, MPFuture, get_dht_time, use_hivemind_log_handler, get_logger
 from hivemind.p2p import P2P, PeerID
+from hivemind.utils import DHTExpiration, MPFuture, get_dht_time, get_logger, use_hivemind_log_handler
 
 import src
-from src.data_structures import RemoteModuleInfo, ModuleUID, UID_DELIMITER
-
+from src.data_structures import UID_DELIMITER, ModuleUID, RemoteModuleInfo
 
 use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
 
 
 def declare_active_modules(
-    dht: DHT, uids: Sequence[ModuleUID], expiration_time: DHTExpiration, wait: bool = True
+    dht: DHT,
+    uids: Sequence[ModuleUID],
+    expiration_time: DHTExpiration,
+    throughput: Optional[float] = None,
+    wait: bool = True,
 ) -> Union[Dict[ModuleUID, bool], MPFuture[Dict[ModuleUID, bool]]]:
     """
     Declare that your node serves the specified modules; update timestamps if declared previously
 
     :param uids: a list of module ids to declare
     :param wait: if True, awaits for declaration to finish, otherwise runs in background
+    :param throughput: optionally specify your performance in terms of compute throughput
     :param expiration_time: declated modules will be visible for this many seconds
     :returns: if wait, returns store status for every key (True = store succeeded, False = store rejected)
     """
@@ -37,25 +41,33 @@ def declare_active_modules(
     for uid in uids:
         assert isinstance(uid, ModuleUID) and UID_DELIMITER in uid
     return dht.run_coroutine(
-        partial(_declare_active_modules, uids=uids, expiration_time=expiration_time), return_future=not wait
+        partial(_declare_active_modules, uids=uids, expiration_time=expiration_time, throughput=throughput),
+        return_future=not wait,
     )
 
 
 async def _declare_active_modules(
-    dht: DHT, node: DHTNode, uids: List[ModuleUID], expiration_time: DHTExpiration
+    dht: DHT,
+    node: DHTNode,
+    uids: List[ModuleUID],
+    expiration_time: DHTExpiration,
+    throughput: Optional[float] = None,
 ) -> Dict[ModuleUID, bool]:
     num_workers = len(uids) if dht.num_workers is None else min(len(uids), dht.num_workers)
     return await node.store_many(
         keys=uids,
         subkeys=[dht.peer_id.to_base58()] * len(uids),
-        values=[None] * len(uids),
+        values=[throughput] * len(uids),
         expiration_time=expiration_time,
-        num_workers=num_workers
+        num_workers=num_workers,
     )
 
 
 def get_remote_module(
-    dht: DHT, uid_or_uids: Union[ModuleUID, List[ModuleUID]], expiration_time: Optional[DHTExpiration] = None, return_future: bool = False
+    dht: DHT,
+    uid_or_uids: Union[ModuleUID, List[ModuleUID]],
+    expiration_time: Optional[DHTExpiration] = None,
+    return_future: bool = False,
 ) -> Union[List[Optional["src.RemoteTransformerBlock"]], MPFuture[List[Optional["src.RemoteTransformerBlock"]]]]:
     """
     :param uid_or_uids: find one or more modules with these ids from across the DHT
@@ -70,6 +82,7 @@ def get_remote_module(
     )
 
     if return_future:
+
         async def _unpack(infos_future: MPFuture, dht: DHT):
             p2p = await dht.replicate_p2p()
             modules = _create_remote_modules_from_infos(await infos_future, p2p)
@@ -82,7 +95,7 @@ def get_remote_module(
 
 
 async def _get_remote_module_infos(
-        dht: DHT, node: DHTNode, uids: List[ModuleUID], expiration_time: Optional[DHTExpiration]
+    dht: DHT, node: DHTNode, uids: List[ModuleUID], expiration_time: Optional[DHTExpiration]
 ) -> List[Optional[RemoteModuleInfo]]:
     if expiration_time is None:
         expiration_time = get_dht_time()
