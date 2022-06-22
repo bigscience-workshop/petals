@@ -49,7 +49,7 @@ Then open a python notebook or console and run:
 ```python
 import torch
 import hivemind
-from src.client.remote_block import get_remote_module
+from src import get_remote_module
 
 dht = hivemind.DHT(
     initial_peers=["/ip4/127.0.0.1/COPY_FULL_ADDRESS_FROM_ANY_OF_THE_SERVERS"],

@@ -1,1 +1,1 @@
-from src.client.remote_block import RemoteTransformerBlock
+from src.client.remote_block import RemoteTransformerBlock, RemoteTransformerBlockInferenceSession

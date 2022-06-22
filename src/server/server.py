@@ -5,13 +5,14 @@ import threading
 from typing import Dict, Optional, Sequence, Union
 
 import torch
-from hivemind import DHT, BatchTensorDescriptor
+from hivemind import DHT, BatchTensorDescriptor, MAX_DHT_TIME_DISCREPANCY_SECONDS, get_dht_time
 from hivemind.moe.server.dht_handler import DHTHandlerThread
 from hivemind.moe.server.layers import add_custom_models_from_file
 from hivemind.moe.server.runtime import Runtime
 from hivemind.proto.runtime_pb2 import CompressionType
 from hivemind.utils.logging import get_logger, use_hivemind_log_handler
 
+from src import declare_active_modules
 from src.bloom.from_pretrained import DTYPE_MAP, DistributedBloomConfig, load_pretrained_block
 from src.server.backend import TransformerBackend
 from src.server.cache import MemoryCache
@@ -42,7 +43,7 @@ class Server(threading.Thread):
             TransformerConnectionHandler(dht, self.module_backends) for _ in range(num_connection_handlers)
         ]
         self.runtime = Runtime(self.module_backends, device=device, **kwargs)
-        self.dht_handler_thread = DHTHandlerThread(self.module_backends, dht, update_period, expiration, daemon=True)
+        self.dht_handler_thread = ModuleAnnouncerThread(self.module_backends, dht, update_period, expiration, daemon=True)
         self.checkpoint_saver = None  # no need to save checkpoints since we do not change model state
 
         if start:
@@ -212,3 +213,23 @@ class Server(threading.Thread):
 
         self.runtime.shutdown()
         logger.info("Server shutdown succesfully")
+
+
+class ModuleAnnouncerThread(threading.Thread):
+    """Periodically announces that this server hosts the specified modules, visible to all DHT peers"""
+    def __init__(
+        self, module_backends, dht: DHT, update_period: float = 30, expiration: Optional[int] = None, **kwargs
+    ):
+        super().__init__(**kwargs)
+        if expiration is None:
+            expiration = max(2 * update_period, MAX_DHT_TIME_DISCREPANCY_SECONDS)
+        self.module_backends = module_backends
+        self.dht = dht
+        self.update_period = update_period
+        self.expiration = expiration
+        self.stop = threading.Event()
+
+    def run(self) -> None:
+        declare_active_modules(self.dht, self.module_backends.keys(), get_dht_time() + self.expiration)
+        while not self.stop.wait(self.update_period):
+            declare_active_modules(self.dht, self.module_backends.keys(), get_dht_time() + self.expiration)

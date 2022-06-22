@@ -4,7 +4,8 @@ import hivemind
 import torch
 
 from src.bloom.from_pretrained import load_pretrained_block
-from src.client.remote_block import RemoteTransformerBlock, get_remote_module
+from src.client.remote_block import RemoteTransformerBlock
+from src.dht_utils import get_remote_module
 
 INITIAL_PEERS = os.environ.get("INITIAL_PEERS")
 if not INITIAL_PEERS:
@@ -22,7 +23,7 @@ REF_INDEX = int(os.environ.get("REF_INDEX", BLOCK_UID[-1].split(".")[-1]))
 
 def test_remote_block_exact_match(atol_forward=1e-5, atol_inference=1e-3):
     dht = hivemind.DHT(initial_peers=INITIAL_PEERS, client_mode=True, start=True)
-    (remote_block,) = get_remote_module(dht, [BLOCK_UID])
+    remote_block = get_remote_module(dht, BLOCK_UID)
     assert remote_block is not None, f"Could not find {BLOCK_UID} in DHT"
     assert isinstance(remote_block, RemoteTransformerBlock)
 
