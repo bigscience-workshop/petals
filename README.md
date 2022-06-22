@@ -17,9 +17,8 @@ conda activate bloom-demo
 
 conda install -y -c conda-forge cudatoolkit-dev==11.3.1 cudatoolkit==11.3.1 cudnn==8.2.1.32
 pip install torch==1.11.0+cu113 torchvision==0.12.0+cu113 -f https://download.pytorch.org/whl/torch_stable.html
-pip install accelerate==0.10.0 huggingface-hub==0.7.0
+pip install accelerate==0.10.0 huggingface-hub==0.7.0 hivemind==1.1.0
 pip install bitsandbytes-cuda113==0.26.0
-pip install https://github.com/learning-at-home/hivemind/archive/master.zip
 pip install https://github.com/huggingface/transformers/archive/6589e510fa4e6c442059de2fab84752535de9b23.zip
 ```
 
