@@ -12,7 +12,7 @@ from hivemind.p2p import P2P, PeerID
 from hivemind.utils import DHTExpiration, MPFuture, get_dht_time, get_logger, use_hivemind_log_handler
 
 import src
-from src.data_structures import UID_DELIMITER, ModuleUID, RemoteModuleInfo
+from src.data_structures import CHAIN_DELIMITER, UID_DELIMITER, ModuleUID, RemoteModuleInfo
 
 use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
@@ -39,7 +39,7 @@ def declare_active_modules(
     if not isinstance(uids, list):
         uids = list(uids)
     for uid in uids:
-        assert isinstance(uid, ModuleUID) and UID_DELIMITER in uid
+        assert isinstance(uid, ModuleUID) and UID_DELIMITER in uid and CHAIN_DELIMITER not in uid
     return dht.run_coroutine(
         partial(_declare_active_modules, uids=uids, expiration_time=expiration_time, throughput=throughput),
         return_future=not wait,
@@ -68,7 +68,7 @@ def get_remote_module(
     uid_or_uids: Union[ModuleUID, List[ModuleUID]],
     expiration_time: Optional[DHTExpiration] = None,
     return_future: bool = False,
-) -> Union[List[Optional["src.RemoteTransformerBlock"]], MPFuture[List[Optional["src.RemoteTransformerBlock"]]]]:
+) -> Union[List[Optional[src.RemoteTransformerBlock]], MPFuture[List[Optional[src.RemoteTransformerBlock]]]]:
     """
     :param uid_or_uids: find one or more modules with these ids from across the DHT
     :param expiration_time: if specified, return modules that expire no sooner than this (based on get_dht_time)
