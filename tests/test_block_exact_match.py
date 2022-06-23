@@ -1,3 +1,4 @@
+# Note: this code is being actively modified by justheuristic. If you want to change anything about it, please warn me.
 import os
 
 import hivemind
