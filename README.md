@@ -51,8 +51,9 @@ import torch
 import hivemind
 from src import get_remote_module
 
+
 dht = hivemind.DHT(
-    initial_peers=["/ip4/127.0.0.1/COPY_FULL_ADDRESS_FROM_ANY_OF_THE_SERVERS"],
+    initial_peers=[TODO_COPY_FULL_ADDRESS_FROM_ANY_OF_THE_SERVERS],  # e.g. /ip4/127.0.0.1/...
     client_mode=True, start=True,
 )
 

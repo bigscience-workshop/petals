@@ -8,7 +8,7 @@ import contextlib
 import ctypes
 import multiprocessing as mp
 import os
-from typing import Dict, Optional, Union
+from typing import Dict, Optional, Union, AsyncContextManager
 
 import hivemind
 import torch
@@ -54,7 +54,7 @@ class MemoryCache:
         self._handle_counter.value = value
 
     @contextlib.asynccontextmanager
-    async def allocate_cache(self, descr: TensorDescriptor) -> Handle:
+    async def allocate_cache(self, descr: TensorDescriptor) -> AsyncContextManager[Handle]:
         """
         Create a handle that is associated with buffers on unique device. If cache full, raises AllocationFailed.
 
