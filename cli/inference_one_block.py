@@ -11,6 +11,8 @@ from src.bloom.ops import build_alibi_tensor
 use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
 
+logger.warning("inference_one_block will soon be deprecated in favour of tests!")
+
 
 def print_device_info(device=None):
     """Prints device stats. Code from https://stackoverflow.com/a/53374933/12891528"""
