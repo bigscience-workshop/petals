@@ -95,6 +95,6 @@ export PYTHONPATH=. INITIAL_PEERS="/ip4/TODO_COPY_INITIAL_PEERS_FROM_SERVER_OUTP
 BLOCK_UID=bloom6b3.3 pytest tests/test_block_exact_match.py
 BLOCK_UID=bloom6b3.4 pytest tests/test_block_exact_match.py
 
-# the test below will fail because server only has layers [3:5)
+# the test below will fail because there is no server that serves layer 7
 # BLOCK_UID=bloom6b3.7 pytest tests/test_block_exact_match.py
 ```
