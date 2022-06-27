@@ -1,0 +1,113 @@
+# !/usr/bin/env bash
+
+#################
+# Parse options #
+#################
+
+instructions() {
+  echo "Usage: $0 [-n] [-c]" >&2
+  echo " -n: number of servers to run" >&2
+  echo " -c: path to the server configs" >&2
+  exit 1
+}
+
+if [ $# != 4 ]; then
+    instructions
+fi
+
+while getopts ":n:c:t:" option; do
+    case $option in
+        n)  NUM_SERVERS=${OPTARG}
+            ;;
+        c)  CONFIG_PATH=${OPTARG}
+            ;;
+        \?) instructions
+            ;;
+   esac
+done
+
+
+###########################
+# Install or activate env #
+###########################
+
+source ~/miniconda3/etc/profile.d/conda.sh
+if conda env list | grep ".*bloom-demo.*"  >/dev/null 2>/dev/null; then
+    conda activate bloom-demo
+else
+    conda create -y --name bloom-demo python=3.8.12 pip
+    conda activate bloom-demo
+
+    conda install -y -c conda-forge cudatoolkit-dev==11.3.1 cudatoolkit==11.3.1 cudnn==8.2.1.32
+    # Specify -i https://pypi.org/simple at Ultramar
+    pip install -i https://pypi.org/simple torch==1.11.0+cu113 torchvision==0.12.0+cu113 -f https://download.pytorch.org/whl/torch_stable.html
+    pip install -i https://pypi.org/simple accelerate==0.10.0 huggingface-hub==0.7.0 hivemind==1.1.0
+    pip install -i https://pypi.org/simple bitsandbytes-cuda113==0.26.0
+    pip install -i https://pypi.org/simple https://github.com/huggingface/transformers/archive/6589e510fa4e6c442059de2fab84752535de9b23.zip
+fi
+
+
+#######################
+# Create Initial peer #
+#######################
+
+hivemind-dht 2> tmp.out &
+PID=$! # How to get multiple pids initiated by hivemind-dht?
+
+sleep 3
+INITIAL_PEER=$(python -c "with open('tmp.out') as f: print(f.readlines()[1].split()[-1])" )
+echo "Initial peer: ${INITIAL_PEER}"
+
+
+##############################
+# Initialize the config file #
+##############################
+
+typeset -A cfg 
+cfg=( # set default values in config array
+    [device]="cpu"
+    [block_ids]="1:2"
+    [port]="30000"
+)
+
+###############
+# Run servers #
+###############
+
+for SERVER_ID in $(seq 0 $(( $NUM_SERVERS - 1 )) )
+do  
+    ###############
+    # Read config #
+    ###############
+
+    while read line
+    do
+        if echo $line | grep -F = &>/dev/null
+        then
+            varname=$(echo "$line" | cut -d '=' -f 1)
+            cfg[$varname]=$(echo "$line" | cut -d '=' -f 2-)
+        fi
+    done < ${CONFIG_PATH}/server_${SERVER_ID}.cfg
+    
+    echo "================="
+    echo "Server ${SERVER_ID}"
+    echo "Device: ${cfg[device]}"
+    echo "Bloom block ids: ${cfg[block_ids]}"
+    echo "Port: ${cfg[port]}"
+    echo "================="
+    
+    ##############
+    # Run server #
+    ##############
+
+    tmux new-session -d -s "Server_${SERVER_ID}" bash deploy_server.sh -i ${INITIAL_PEER} -d ${cfg[device]} -s ${SERVER_ID} -b ${cfg[block_ids]} -p ${cfg[port]}
+done
+
+
+#####################
+# Kill initial peer #
+#####################
+
+sleep 10
+pkill -f hivemind-dht # TODO: kill only particular pids of hivemind-dht
+rm tmp.out
