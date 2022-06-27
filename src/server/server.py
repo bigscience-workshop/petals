@@ -100,6 +100,7 @@ class Server(threading.Thread):
         custom_module_path=None,
         update_period: float = 30,
         expiration: Optional[float] = None,
+        use_auth_token: Optional[str] = None,
         *,
         start: bool,
         **kwargs,
@@ -137,7 +138,13 @@ class Server(threading.Thread):
         blocks = {}
         for block_index in block_indices:
             module_uid = f"{prefix}.{block_index}"
-            block = load_pretrained_block(converted_model_name_or_path, block_index, block_config, torch_dtype)
+            block = load_pretrained_block(
+                converted_model_name_or_path,
+                block_index,
+                block_config,
+                torch_dtype=torch_dtype,
+                use_auth_token=use_auth_token
+            )
             for param in block.parameters():
                 param.requires_grad = False
 
