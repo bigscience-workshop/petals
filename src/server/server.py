@@ -132,7 +132,7 @@ class Server(threading.Thread):
             assert num_blocks is not None
             block_indices = range(num_blocks)  # TODO replace with proper load balancing
 
-        block_config = DistributedBloomConfig.from_pretrained(converted_model_name_or_path, use_auth_token=True)
+        block_config = DistributedBloomConfig.from_pretrained(converted_model_name_or_path, use_auth_token=use_auth_token)
 
         # initialize modules
         blocks = {}
