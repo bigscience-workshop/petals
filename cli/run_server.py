@@ -68,7 +68,7 @@ def main():
     compression = getattr(CompressionType, compression_type)
 
     use_auth_token = args.pop("use_auth_token")
-    args['use_auth_token'] = True if use_auth_token in ('True', 'true', '') else use_auth_token
+    args["use_auth_token"] = True if use_auth_token in ("True", "true", "") else use_auth_token
 
     server = Server.create(**args, start=True, compression=compression)
 

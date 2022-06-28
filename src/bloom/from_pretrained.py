@@ -34,7 +34,7 @@ def load_pretrained_block(
     block_index: int,
     config: Optional[DistributedBloomConfig] = None,
     torch_dtype: Union[torch.dtype, str] = "auto",
-    use_auth_token: Optional[str]=None
+    use_auth_token: Optional[str] = None,
 ) -> BloomBlock:
     """Load one BloomBlock from a converted model. See convert_model.py (or README.md) on how to convert it."""
     if config is None:

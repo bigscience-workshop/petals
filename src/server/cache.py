@@ -8,7 +8,7 @@ import contextlib
 import ctypes
 import multiprocessing as mp
 import os
-from typing import Dict, Optional, Union, AsyncContextManager
+from typing import AsyncContextManager, Dict, Optional, Union
 
 import hivemind
 import torch

@@ -34,7 +34,7 @@ def test_remote_block_exact_match(atol_inference=1e-4):
     assert isinstance(remote_block, RemoteTransformerBlock)
 
     _ = remote_block.info  # lazy-init info now, because otherwise we will _break_ info init by chaning _info
-    remote_block._info = ExpertInfo('bloom6b3.3 bloom6b3.4', remote_block._info.peer_id)
+    remote_block._info = ExpertInfo("bloom6b3.3 bloom6b3.4", remote_block._info.peer_id)
 
     inputs = torch.randn(1, 8, 4096)
 
@@ -46,7 +46,7 @@ def test_remote_block_exact_match(atol_inference=1e-4):
 
     ref_blocks = [
         load_pretrained_block(REF_NAME, 3, torch_dtype=torch.float32),
-        load_pretrained_block(REF_NAME, 4, torch_dtype=torch.float32)
+        load_pretrained_block(REF_NAME, 4, torch_dtype=torch.float32),
     ]
     outputs_ref = []
     caches = [None, None]

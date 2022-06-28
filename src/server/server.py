@@ -143,7 +143,7 @@ class Server(threading.Thread):
                 block_index,
                 block_config,
                 torch_dtype=torch_dtype,
-                use_auth_token=use_auth_token
+                use_auth_token=use_auth_token,
             )
             for param in block.parameters():
                 param.requires_grad = False
