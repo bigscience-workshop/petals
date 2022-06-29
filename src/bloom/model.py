@@ -235,7 +235,7 @@ class BloomModel(BloomPreTrainedModel):
 
         # Compute alibi tensor: check build_alibi_tensor documentation
         current_sequence_length = hidden_states.shape[1]
-        if past_key_values[0] is not None:
+        if past_key_values is not None and past_key_values[0] is not None:
             current_sequence_length += past_key_values[0][0].shape[1]
         alibi = build_alibi_tensor(current_sequence_length, self.n_head, hidden_states.dtype)
 
