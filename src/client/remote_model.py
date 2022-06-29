@@ -33,7 +33,7 @@ class DistributedBloomForCausalLM(BloomForCausalLM):
             start=True)
 
         if 'prefix' not in kwargs:
-            logger.warning(f"No prefix specified; setting prefix to {pretrained_model_name_or_path}")
+            logger.debug(f"No DHT prefix specified; using automatic prefix {pretrained_model_name_or_path}")
             assert UID_DELIMITER not in pretrained_model_name_or_path, \
                 f"Cannot infer prefix automatically from {pretrained_model_name_or_path}; please specify prefix=..."
         prefix = kwargs.pop("prefix", pretrained_model_name_or_path)
