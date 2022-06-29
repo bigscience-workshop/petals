@@ -20,7 +20,7 @@ class RemoteSequential(nn.Sequential):
     A sequence of transformer blocks hosted by the swarm.
     """
 
-    def __init__(self, config: DistributedBloomConfig, dht: DHT, prefix: Optional[str] = None, max_retries: int = 3):
+    def __init__(self, config: DistributedBloomConfig, dht: DHT, prefix: str, max_retries: int = 3):
         logger.warning(f"{self.__class__.__name__} is in active development; expect adventures")
         if prefix.endswith(UID_DELIMITER):
             logger.warning(
