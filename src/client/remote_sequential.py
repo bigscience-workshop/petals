@@ -74,7 +74,7 @@ class RemoteSequential(nn.Sequential):
 
     def inference_session(self) -> RemoteSequentialInferenceSession:
         self.remote_sequence_info.update_()
-        return RemoteSequentialInferenceSession(self.remote_sequence_info)
+        return RemoteSequentialInferenceSession(self.remote_sequence_info, self.p2p)
 
 
 class RemoteSequentialInferenceSession:
