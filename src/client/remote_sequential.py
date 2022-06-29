@@ -16,7 +16,9 @@ logger = get_logger(__file__)
 
 
 class RemoteSequential(nn.Sequential):
-    """A sequence of transformer blocks hosted by the swarm"""
+    """
+    A sequence of transformer blocks hosted by the swarm.
+    """
 
     def __init__(self, config: DistributedBloomConfig, dht: DHT, prefix: Optional[str] = None, max_retries: int = 3):
         logger.warning(f"{self.__class__.__name__} is in active development; expect adventures")
