@@ -32,7 +32,7 @@ def test_remote_block_exact_match(atol_forward=1e-5, atol_inference=1e-3):
     (outputs_forward,) = remote_block(inputs)
 
     outputs_inference = []
-    with remote_block.begin_inference_session() as sess:
+    with remote_block.inference_session() as sess:
         for i in range(inputs.shape[1]):
             outputs_inference.append(sess.step(inputs[:, i : i + 1, :]))
     outputs_inference = torch.cat(outputs_inference, dim=1)

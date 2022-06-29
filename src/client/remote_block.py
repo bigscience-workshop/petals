@@ -11,11 +11,15 @@ from hivemind.moe.client.expert import RemoteExpert, RemoteExpertWorker
 from hivemind.moe.expert_uid import ExpertInfo
 from hivemind.p2p import P2P, StubBase
 from hivemind.proto import runtime_pb2
-from hivemind.utils import anext, nested_flatten
+from hivemind.utils import anext, nested_flatten, use_hivemind_log_handler, get_logger
 
 from src.data_structures import RemoteModuleInfo
 from src.dht_utils import ModuleUID
 from src.server.handler import TransformerConnectionHandler
+
+
+use_hivemind_log_handler("in_root_logger")
+logger = get_logger(__file__)
 
 
 class RemoteTransformerBlock(RemoteExpert):
@@ -34,10 +38,14 @@ class RemoteTransformerBlock(RemoteExpert):
             assert v is None, f"Extra keyword arguments are not yet supported (got {k} = {v})"
         return super().forward(inputs)
 
-    def begin_inference_session(self) -> RemoteTransformerBlockInferenceSession:
+    def inference_session(self) -> RemoteTransformerBlockInferenceSession:
         """Initialize a new inference session with the specified remote server"""
         _ = self.info  # create _info manually since the built-in property will not work inside RemoteExpertWorker
         return RemoteExpertWorker.run_coroutine(RemoteTransformerBlockInferenceSession._create(self))
+
+    def begin_inference_session(self):
+        logger.warning("beging_inference_session was renamed to just inference_session")
+        return self.inference_session()
 
 
 class RemoteTransformerBlockInferenceSession:
