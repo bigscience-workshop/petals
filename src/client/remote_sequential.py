@@ -151,8 +151,9 @@ class RemoteModelInfo:
 
         return closed_spans, spans_containing_block
 
-# 
-# class RemoteSequentialInferenceSession:
+
+class RemoteSequentialInferenceSession:
+    pass
 #     """An interface to a multi-step *inference* session for a sequence of remote modules"""
 # 
 #     def __init__(self, block):
