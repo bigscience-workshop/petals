@@ -85,6 +85,7 @@ class RemoteTransformerBlockInferenceSession:
             raise Exception("Session is closed, cannot perform step")
         # serialize inputs and put them into the queue
         inputs = (new_hidden_states,)
+        print('!!', self.uid)
         outputs_serialized = RemoteExpertWorker.run_coroutine(
             self._step(
                 runtime_pb2.ExpertRequest(
