@@ -6,6 +6,7 @@ from src.bloom import DistributedBloomConfig, BloomForCausalLM
 from src.client.remote_sequential import RemoteSequential
 from src.data_structures import UID_DELIMITER
 
+
 use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
 

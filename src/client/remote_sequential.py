@@ -37,7 +37,7 @@ class RemoteSequential(nn.Sequential):
         for uid, info in zip(self.block_uids, self.block_infos):
             assert isinstance(info, (type(None), RemoteModuleInfo)), f"Unexpected dht entry for {uid}: {info}"
             assert info is not None, f"Found no active peers for block {uid}"
-            assert isinstance(info.peer_ids, (list, tuple)), f"expected peer_ids to be list/tuple, got {info.peer_ids}"
+            assert isinstance(info.peer_ids, set), f"expected peer_ids to be a set, got {info.peer_ids}"
             assert info.uid == uid, f"The DHT entry for {uid} actually points to {info.uid}"
             assert len(info.peer_ids) > 0,  f"Found no active peers for block {uid}"
 
