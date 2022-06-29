@@ -75,7 +75,6 @@ class RemoteSequential(nn.Sequential):
         return RemoteSequentialInferenceSession(self.remote_sequence_info)
 
 
-
 class RemoteSequentialInferenceSession:
     """An interface to a multi-step *inference* session for a sequence of remote transformer blocks"""
 
