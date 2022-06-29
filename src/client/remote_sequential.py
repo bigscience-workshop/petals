@@ -121,11 +121,12 @@ class RemoteSequentialInferenceSession:
     def close(self, *exc_details):
         """Finish a given inference session, close the underlying connection"""
         assert not self.closed
+        self.stack.__exit__(*exc_details)
         self.active_sessions.clear()
         self.closed = True
 
     def __exit__(self, *exc_details):
-        self.close()
+        self.close(*exc_details)
 
     def __del__(self):
         self.close()
