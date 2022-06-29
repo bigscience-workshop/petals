@@ -26,7 +26,8 @@ class DistributedBloomForCausalLM(BloomForCausalLM):
 
     @classmethod
     def from_pretrained(cls, pretrained_model_name_or_path: Optional[Union[str, os.PathLike]], *model_args, **kwargs):
-        assert 'initial_peers' in kwargs
+        if 'initial_peers' not in kwargs:
+            raise ValueError("Please specify initial_peers=...")
         dht = hivemind.DHT(
             initial_peers=kwargs.pop('initial_peers'), client_mode=kwargs.pop('client_mode', True),
             start=True)

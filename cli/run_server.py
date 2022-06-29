@@ -14,11 +14,12 @@ def main():
     parser = configargparse.ArgParser(default_config_files=["config.yml"])
     parser.add('-c', '--config', required=False, is_config_file=True, help='config file path')
 
-    parser.add_argument('--prefix', type=str, required=True, help="Announce all blocks with this prefix")
     parser.add_argument('--converted_model_name_or_path', type=str, default='bigscience/test-bloomd-6b3',
                         help="path or name of a pretrained model, converted with cli/convert_model.py (see README.md)")
     parser.add_argument('--num_blocks', type=int, default=None, help="The number of blocks to serve")
     parser.add_argument('--block_indices', type=str, default=None, help="Specific block indices to serve")
+    parser.add_argument('--prefix', type=str, default=None, help="Announce all blocks with this prefix. By default,"
+                                                                 "use the same name as in the converted model.")
     parser.add_argument('--host_maddrs', nargs='+', default=['/ip4/0.0.0.0/tcp/0'], required=False,
                         help='Multiaddrs to listen for external connections from other p2p instances; default: all IPv4 and TCP: /ip4/0.0.0.0/tcp/0')
     parser.add_argument('--announce_maddrs', nargs='+', default=None, required=False,
