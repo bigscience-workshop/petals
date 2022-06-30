@@ -35,7 +35,7 @@ class RemoteTransformerBlock(RemoteExpert):
 
     def forward(self, inputs: torch.Tensor, **kwargs):
         for k, v in kwargs.items():
-            assert v is None, f"Extra keyword arguments are not yet supported (got {k} = {v})"
+            assert v is None or v is False, f"Extra keyword arguments are not yet supported (got {k} = {v})"
         return super().forward(inputs)
 
     def inference_session(self) -> RemoteTransformerBlockInferenceSession:
