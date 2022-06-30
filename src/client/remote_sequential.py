@@ -102,6 +102,7 @@ class RemoteSequentialInferenceSession:
 
             # TODO begin throwaway prototype code
             remote = RemoteTransformerBlock(self.remote_sequence_info.block_infos[current_block], self.p2p)
+            _=remote.info #TODO fix
             span_uids = self.remote_sequence_info.block_uids[current_block: chosen_span.end]
             remote._info = ExpertInfo(" ".join(span_uids), chosen_span.peer_id)
             self.active_sessions.append(remote.inference_session())
