@@ -239,7 +239,6 @@ class BloomModel(BloomPreTrainedModel):
         current_sequence_length = hidden_states.shape[1]
         if past_key_values and past_key_values[0]:
             current_sequence_length += past_key_values[0][0].shape[1]
-        alibi = build_alibi_tensor(current_sequence_length, self.n_head, hidden_states.dtype)
 
         for i, (block, layer_past) in enumerate(zip(self.h, past_key_values)):
 
@@ -257,7 +256,7 @@ class BloomModel(BloomPreTrainedModel):
                 def create_custom_forward(module):
                     def custom_forward(*inputs):
                         # None for past_key_value
-                        return module(*inputs, use_cache, output_attentions, alibi)
+                        return module(*inputs, use_cache, output_attentions, alibi=None)
 
                     return custom_forward
 
@@ -276,7 +275,7 @@ class BloomModel(BloomPreTrainedModel):
                     head_mask=head_mask[i],
                     use_cache=use_cache,
                     output_attentions=output_attentions,
-                    alibi=alibi,
+                    alibi=None,
                 )
 
             hidden_states = outputs[0]
