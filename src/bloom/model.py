@@ -205,6 +205,8 @@ class BloomModel(BloomPreTrainedModel):
 
         if input_ids is not None and inputs_embeds is not None:
             raise ValueError("You cannot specify both input_ids and inputs_embeds at the same time")
+        if position_ids is not None:
+            logger.warning("position_ids are ignored in this bloom implementation")
         elif input_ids is not None:
             input_shape = input_ids.size()
             input_ids = input_ids.view(-1, input_shape[-1])
