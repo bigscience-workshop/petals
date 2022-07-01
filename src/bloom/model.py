@@ -11,11 +11,8 @@ import torch.utils.checkpoint
 from hivemind import use_hivemind_log_handler
 from torch import nn
 from torch.nn import CrossEntropyLoss, LayerNorm
-from transformers.file_utils import (
-    add_code_sample_docstrings,
-    add_start_docstrings,
-    add_start_docstrings_to_model_forward,
-)
+from transformers.file_utils import (add_code_sample_docstrings, add_start_docstrings,
+                                     add_start_docstrings_to_model_forward)
 from transformers.modeling_outputs import BaseModelOutputWithPastAndCrossAttentions, CausalLMOutputWithCrossAttentions
 from transformers.modeling_utils import PreTrainedModel
 from transformers.models.bloom.configuration_bloom import BloomConfig as _VanillaBloomConfig
@@ -208,6 +205,8 @@ class BloomModel(BloomPreTrainedModel):
 
         if input_ids is not None and inputs_embeds is not None:
             raise ValueError("You cannot specify both input_ids and inputs_embeds at the same time")
+        if position_ids is not None:
+            logger.warning("position_ids are ignored in this bloom implementation")
         elif input_ids is not None:
             input_shape = input_ids.size()
             input_ids = input_ids.view(-1, input_shape[-1])
@@ -238,9 +237,8 @@ class BloomModel(BloomPreTrainedModel):
 
         # Compute alibi tensor: check build_alibi_tensor documentation
         current_sequence_length = hidden_states.shape[1]
-        if past_key_values[0] is not None:
+        if past_key_values and past_key_values[0]:
             current_sequence_length += past_key_values[0][0].shape[1]
-        alibi = build_alibi_tensor(current_sequence_length, self.n_head, hidden_states.dtype)
 
         for i, (block, layer_past) in enumerate(zip(self.h, past_key_values)):
 
@@ -258,7 +256,7 @@ class BloomModel(BloomPreTrainedModel):
                 def create_custom_forward(module):
                     def custom_forward(*inputs):
                         # None for past_key_value
-                        return module(*inputs, use_cache, output_attentions, alibi)
+                        return module(*inputs, use_cache, output_attentions, alibi=None)
 
                     return custom_forward
 
@@ -277,7 +275,7 @@ class BloomModel(BloomPreTrainedModel):
                     head_mask=head_mask[i],
                     use_cache=use_cache,
                     output_attentions=output_attentions,
-                    alibi=alibi,
+                    alibi=None,
                 )
 
             hidden_states = outputs[0]

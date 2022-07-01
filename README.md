@@ -65,7 +65,7 @@ loss = (outputs * torch.randn_like(outputs)).norm()
 loss.backward()
 
 # test inference, one block
-with layer3.begin_inference_session() as sess:
+with layer3.inference_session() as sess:
     for i in range(10):
         res = sess.step(torch.ones(1, 1, 4096))
 ```
@@ -94,7 +94,9 @@ python -m cli.run_server --prefix bloom6b3 --converted_model_name_or_path bigsci
 export PYTHONPATH=. INITIAL_PEERS="/ip4/TODO_COPY_INITIAL_PEERS_FROM_SERVER_OUTPUT"
 BLOCK_UID=bloom6b3.3 pytest tests/test_block_exact_match.py
 BLOCK_UID=bloom6b3.4 pytest tests/test_block_exact_match.py
-
 # the test below will fail because there is no server that serves layer 7
 # BLOCK_UID=bloom6b3.7 pytest tests/test_block_exact_match.py
+
+# test full model exact match
+MODEL_NAME=bigscience/test-bloomd-6b3 REF_NAME=bigscience/bloom-6b3 pytest tests/test_full_model.py
 ```

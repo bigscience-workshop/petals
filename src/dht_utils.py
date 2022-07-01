@@ -106,7 +106,8 @@ async def _get_remote_module_infos(
     for i, uid in enumerate(uids):
         metadata = found[uid]
         if metadata is None or not isinstance(metadata.value, dict):
-            logger.error(f"Incorrect metadata for {uid}: {metadata}")
+            if metadata is not None:
+                logger.error(f"Incorrect metadata for {uid}: {metadata}")
             continue
         valid_entries = set()
         for maybe_peer_id, _unused_value in metadata.value.items():
