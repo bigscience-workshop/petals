@@ -1,3 +1,9 @@
+server_configs
+converted_model
+*.id
+*.ipynb
+*.out
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

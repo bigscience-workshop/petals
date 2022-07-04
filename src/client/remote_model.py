@@ -5,7 +5,7 @@ from typing import Optional, Union
 import hivemind
 from hivemind import DHT, get_logger, use_hivemind_log_handler
 
-from src.bloom import BloomForCausalLM, DistributedBloomConfig
+from src.bloom import BloomModel, BloomForCausalLM, DistributedBloomConfig
 from src.bloom.from_pretrained import CLIENT_BRANCH, _load_state_dict
 from src.client.remote_sequential import RemoteSequential
 from src.data_structures import UID_DELIMITER
@@ -20,14 +20,15 @@ class DistributedBloomForCausalLM(BloomForCausalLM):
     def __init__(self, config: DistributedBloomConfig, dht: DHT, prefix: str):
         n_layer, config.n_layer = config.n_layer, 0  # temporarily set n_layer to 0 to prevent layer initialization
         super().__init__(config)
-        assert len(self.transformer.h) == 0
+        assert len(self.h) == 0
         config.n_layer = n_layer
-        self.transformer.h = RemoteSequential(config, dht, prefix)
+        self.h = RemoteSequential(config, dht, prefix)
 
     @classmethod
     def from_pretrained(cls, pretrained_model_name_or_path: Optional[Union[str, os.PathLike]], *model_args, **kwargs):
         if 'initial_peers' not in kwargs:
             raise ValueError("Please specify initial_peers=...")
+        
         dht = hivemind.DHT(
             initial_peers=kwargs.pop('initial_peers'), client_mode=kwargs.pop('client_mode', True),
             start=True)
@@ -42,8 +43,5 @@ class DistributedBloomForCausalLM(BloomForCausalLM):
         model = cls(config, dht, prefix)
         model.load_state_dict(_load_state_dict(
             pretrained_model_name_or_path, use_auth_token=kwargs.get('use_auth_token')
-        ), strict=True)
+        ), strict=True) 
         return model
-
-
-

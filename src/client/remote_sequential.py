@@ -41,7 +41,9 @@ class RemoteSequential(nn.Module):
         self.max_retries = max_retries
         self.p2p = RemoteExpertWorker.run_coroutine(dht.replicate_p2p())
 
+        print(prefix)
         block_uids = tuple(f"{prefix}{UID_DELIMITER}{i}" for i in range(config.n_layer))
+
         logger.debug(f"Remote block uids: {block_uids}")
         self.remote_sequence_info = RemoteSequenceInfo(dht, block_uids)
 
