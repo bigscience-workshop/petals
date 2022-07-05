@@ -15,7 +15,7 @@ from hivemind.utils.logging import get_logger, use_hivemind_log_handler
 from transformers.modeling_utils import WEIGHTS_NAME
 from transformers.utils.hub import cached_path, hf_bucket_url
 
-from src.bloom import BloomBlock, BloomForCausalLM, DistributedBloomConfig
+from src.bloom import BloomBlock, DistributedBloomConfig
 
 use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
@@ -23,7 +23,6 @@ logger = get_logger(__file__)
 CLIENT_BRANCH = "client"
 BLOCK_BRANCH_PREFIX = "block_"
 USER_AGENT = {"file_type": "model", "framework": "pytorch", "from_auto_class": False}
-cls = BloomForCausalLM
 FORCE_DOWNLOAD = False
 RESUME_DOWNLOAD = False
 LOCAL_FILES_ONLY = False
