@@ -16,6 +16,7 @@ from src.bloom.model import (
     LMHead,
 )
 from src.client.remote_sequential import RemoteSequential
+from src.client.remote_generation import RemoteGenerationMixin
 
 use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
@@ -137,9 +138,8 @@ class DistributedBloomPrefix(DistributedBloomModel):
         return transformer_outputs
 
 
-class DistributedBloomForCausalLM(BloomForCausalLM):
-    """Similar to BloomForCausalLM, but all transformer layers are hosted by the swarm"""
-
+class DistributedBloomForCausalLM(BloomForCausalLM, RemoteGenerationMixin):
+    """DistributedBloomForCausalLM, but all transformer layers are hosted by the swarm"""
     config_class = DistributedBloomConfig
 
     def __init__(self, config: DistributedBloomConfig):
