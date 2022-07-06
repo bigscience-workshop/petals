@@ -15,7 +15,6 @@ from src.client.remote_sequence_info import RemoteSequenceInfo
 from src.data_structures import UID_DELIMITER
 from src.dht_utils import _create_remote_modules_from_infos
 
-
 use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
 

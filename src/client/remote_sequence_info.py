@@ -3,10 +3,10 @@ from __future__ import annotations
 import dataclasses
 import threading
 from functools import partial
-from typing import Tuple, List, Optional, Sequence, NamedTuple
+from typing import List, NamedTuple, Optional, Sequence, Tuple
 
 from hivemind import DHT, PeerID
-from hivemind.utils.logging import use_hivemind_log_handler, get_logger
+from hivemind.utils.logging import get_logger, use_hivemind_log_handler
 
 from src.data_structures import ModuleUID, RemoteModuleInfo
 from src.dht_utils import _get_remote_module_infos

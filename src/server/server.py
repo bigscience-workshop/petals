@@ -14,7 +14,7 @@ from hivemind.utils.logging import get_logger, use_hivemind_log_handler
 
 from src import declare_active_modules
 from src.bloom.from_pretrained import DTYPE_MAP, DistributedBloomConfig, load_pretrained_block
-from src.data_structures import UID_DELIMITER, CHAIN_DELIMITER
+from src.data_structures import CHAIN_DELIMITER, UID_DELIMITER
 from src.server.backend import TransformerBackend
 from src.server.cache import MemoryCache
 from src.server.handler import TransformerConnectionHandler

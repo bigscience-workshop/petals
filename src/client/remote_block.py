@@ -11,12 +11,11 @@ from hivemind.moe.client.expert import RemoteExpert, RemoteExpertWorker
 from hivemind.moe.expert_uid import ExpertInfo
 from hivemind.p2p import P2P, StubBase
 from hivemind.proto import runtime_pb2
-from hivemind.utils import anext, nested_flatten, use_hivemind_log_handler, get_logger
+from hivemind.utils import anext, get_logger, nested_flatten, use_hivemind_log_handler
 
 from src.data_structures import RemoteModuleInfo
 from src.dht_utils import ModuleUID
 from src.server.handler import TransformerConnectionHandler
-
 
 use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)

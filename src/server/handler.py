@@ -5,11 +5,11 @@ from typing import AsyncIterator, Dict, Sequence
 import torch
 from hivemind import DHT, P2PContext, TensorDescriptor, deserialize_torch_tensor, nested_flatten, serialize_torch_tensor
 from hivemind.moe.server.connection_handler import ConnectionHandler
+from hivemind.p2p.p2p_daemon import DEFAULT_MAX_MSG_SIZE
 from hivemind.proto import runtime_pb2
+from hivemind.utils import as_aiter
 from hivemind.utils.asyncio import anext
 from hivemind.utils.streaming import split_for_streaming
-from hivemind.p2p.p2p_daemon import DEFAULT_MAX_MSG_SIZE
-from hivemind.utils import as_aiter
 
 from src.data_structures import CHAIN_DELIMITER, ModuleUID
 from src.server.backend import MAX_LENGTH, TransformerBackend

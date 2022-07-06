@@ -3,7 +3,7 @@ import os
 
 import torch
 import transformers
-from hivemind import use_hivemind_log_handler, get_logger
+from hivemind import get_logger, use_hivemind_log_handler
 
 from src.client.remote_model import DistributedBloomForCausalLM
 
