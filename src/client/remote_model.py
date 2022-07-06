@@ -31,29 +31,31 @@ class DistributedBloomForYou(BloomForYou):
 
     @classmethod
     def from_pretrained(cls, pretrained_model_name_or_path: Optional[Union[str, os.PathLike]], *model_args, **kwargs):
-        if 'initial_peers' not in kwargs:
+        if "initial_peers" not in kwargs:
             raise ValueError("Please specify initial_peers=...")
-        
-        dht = hivemind.DHT(
-            initial_peers=kwargs.pop('initial_peers'), client_mode=kwargs.pop('client_mode', True),
-            start=True)
 
-        if 'prefix' not in kwargs:
+        dht = hivemind.DHT(
+            initial_peers=kwargs.pop("initial_peers"), client_mode=kwargs.pop("client_mode", True), start=True
+        )
+
+        if "prefix" not in kwargs:
             logger.debug(f"No DHT prefix specified; using automatic prefix {pretrained_model_name_or_path}")
-            assert UID_DELIMITER not in pretrained_model_name_or_path, \
-                f"Cannot infer prefix automatically from {pretrained_model_name_or_path}; please specify prefix=..."
+            assert (
+                UID_DELIMITER not in pretrained_model_name_or_path
+            ), f"Cannot infer prefix automatically from {pretrained_model_name_or_path}; please specify prefix=..."
         prefix = kwargs.pop("prefix", pretrained_model_name_or_path)
 
         config = DistributedBloomConfig.from_pretrained(pretrained_model_name_or_path, revision=CLIENT_BRANCH, **kwargs)
         model = cls(config, dht, prefix)
-        model.transformer.load_state_dict(_load_state_dict(
-            pretrained_model_name_or_path, use_auth_token=kwargs.get('use_auth_token')
-        ), strict=True) 
+        model.transformer.load_state_dict(
+            _load_state_dict(pretrained_model_name_or_path, use_auth_token=kwargs.get("use_auth_token")), strict=True
+        )
         return model
 
 
 class DistributedBloomForCausalLM(DistributedBloomForYou):
     """DistributedBloomForCausalLM, but all transformer layers are hosted by the swarm"""
+
     def prepare_inputs_for_generation(self, input_ids, past=None, **kwargs):
         # only last token for inputs_ids if past is defined in kwargs
         if past:
@@ -86,9 +88,7 @@ class DistributedBloomForCausalLM(DistributedBloomForYou):
             are ignored (masked), the loss is only computed for labels in `[0, ..., config.vocab_size]`
         """
         return_dict = return_dict if return_dict is not None else self.config.use_return_dict
-        transformer_outputs = self.transformer.forward(
-            input_ids=input_ids, return_dict=return_dict, **kwargs
-        )
+        transformer_outputs = self.transformer.forward(input_ids=input_ids, return_dict=return_dict, **kwargs)
 
         # Switch dtype in case word_embeddings are fp16
         word_embeddings = self.transformer.word_embeddings.weight.t()

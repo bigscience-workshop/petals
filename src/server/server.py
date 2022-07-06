@@ -111,9 +111,10 @@ class Server(threading.Thread):
             add_custom_models_from_file(custom_module_path)
         if prefix is None:
             prefix = converted_model_name_or_path
-            assert UID_DELIMITER not in prefix and CHAIN_DELIMITER not in prefix,\
-                f"Cannot use model name as prefix (contains '{UID_DELIMITER}' or '{CHAIN_DELIMITER}'); " \
+            assert UID_DELIMITER not in prefix and CHAIN_DELIMITER not in prefix, (
+                f"Cannot use model name as prefix (contains '{UID_DELIMITER}' or '{CHAIN_DELIMITER}'); "
                 f"Please specify --prefix manually when starting a server"
+            )
             logger.info(f"Automatic dht prefix: {prefix}")
         assert (block_indices is None) != (num_blocks is None), "please specify num_blocks or block_indices, not both"
         dht = DHT(initial_peers=initial_peers, start=True, **kwargs)
@@ -139,7 +140,9 @@ class Server(threading.Thread):
             assert num_blocks is not None
             block_indices = range(num_blocks)  # TODO replace with proper load balancing
 
-        block_config = DistributedBloomConfig.from_pretrained(converted_model_name_or_path, use_auth_token=use_auth_token)
+        block_config = DistributedBloomConfig.from_pretrained(
+            converted_model_name_or_path, use_auth_token=use_auth_token
+        )
 
         # initialize modules
         blocks = {}

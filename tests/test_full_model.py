@@ -29,7 +29,7 @@ def test_full_model_exact_match(atol_forward=1e-5, atol_inference=1e-3, prefix="
     model = DistributedBloomForCausalLM.from_pretrained(MODEL_NAME, initial_peers=INITIAL_PEERS, prefix=prefix)
     assert len(model.transformer.h) == model.config.n_layer
 
-    test_inputs = tokenizer("A cat sat on a mat", return_tensors='pt')['input_ids']
+    test_inputs = tokenizer("A cat sat on a mat", return_tensors="pt")["input_ids"]
     parallel_outputs = model.forward(test_inputs).logits
     assert torch.all(torch.isfinite(parallel_outputs))
     logger.info("Forward outputs are finite")
@@ -49,7 +49,7 @@ def test_full_model_exact_match(atol_forward=1e-5, atol_inference=1e-3, prefix="
     recurrent_outputs = []
     with model.transformer.h.inference_session() as sess:
         for t in range(embs.shape[1]):
-            recurrent_outputs.append(sess.step(embs[:, t: t + 1, :]))
+            recurrent_outputs.append(sess.step(embs[:, t : t + 1, :]))
     recurrent_outputs = torch.cat(recurrent_outputs, dim=1)
     recurrent_outputs = model.transformer.ln_f(recurrent_outputs)
 

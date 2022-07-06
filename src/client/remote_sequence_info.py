@@ -15,12 +15,13 @@ use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
 
 
-Span = NamedTuple('Span', [('start', int), ('end', Optional[int]), ('peer_id', PeerID)])
+Span = NamedTuple("Span", [("start", int), ("end", Optional[int]), ("peer_id", PeerID)])
 
 
 @dataclasses.dataclass(frozen=False, init=False)  # TODO[borzunov@] eto ne dataclass
 class RemoteSequenceInfo:
     """Keeps and updates the meta-information about which peers host which blocks"""
+
     dht: DHT
     block_uids: List[ModuleUID, ...]
     block_infos: List[Optional[RemoteModuleInfo], ...]
@@ -48,8 +49,8 @@ class RemoteSequenceInfo:
 
     def update_block_infos_(self):
         new_block_infos: Sequence[RemoteModuleInfo] = self.dht.run_coroutine(
-            partial(_get_remote_module_infos, uids=self.block_uids, expiration_time=float("inf")),
-            return_future=False)
+            partial(_get_remote_module_infos, uids=self.block_uids, expiration_time=float("inf")), return_future=False
+        )
         assert len(new_block_infos) == len(self.block_uids)
         for block_index, (uid, info) in enumerate(zip(self.block_uids, new_block_infos)):
             if info is None:

@@ -9,8 +9,11 @@ import torch.utils.checkpoint
 from hivemind import use_hivemind_log_handler
 from torch import nn
 from torch.nn import CrossEntropyLoss, LayerNorm
-from transformers.file_utils import (add_code_sample_docstrings, add_start_docstrings,
-                                     add_start_docstrings_to_model_forward)
+from transformers.file_utils import (
+    add_code_sample_docstrings,
+    add_start_docstrings,
+    add_start_docstrings_to_model_forward,
+)
 from transformers.modeling_outputs import BaseModelOutputWithPastAndCrossAttentions, CausalLMOutputWithCrossAttentions
 from transformers.modeling_utils import PreTrainedModel
 from transformers.models.bloom.configuration_bloom import BloomConfig as _VanillaBloomConfig
@@ -153,9 +156,9 @@ class BloomModel(BloomPreTrainedModel):
         self.n_head = config.n_head
 
         # Embedding + LN Embedding
-        
+
         # TODO: @dbaranchuk make efficient fp16 on cpu (convert only word_embeddings!)
-        self.word_embeddings = nn.Embedding(config.vocab_size, self.embed_dim) # dtype=config.torch_dtype
+        self.word_embeddings = nn.Embedding(config.vocab_size, self.embed_dim)  # dtype=config.torch_dtype
         self.word_embeddings_layernorm = LayerNorm(self.embed_dim, eps=config.layer_norm_epsilon)
 
         # Transformer blocks
@@ -177,10 +180,10 @@ class BloomModel(BloomPreTrainedModel):
 
     def set_input_embeddings(self, new_embeddings):
         self.word_embeddings = new_embeddings
-    
+
     def set_requires_grad(self, value):
         for p in self.parameters():
-            p.requires_grad=value
+            p.requires_grad = value
 
     @add_start_docstrings_to_model_forward(BLOOM_INPUTS_DOCSTRING)
     @add_code_sample_docstrings(
@@ -320,9 +323,9 @@ class BloomForYou(BloomPreTrainedModel):
     _keys_to_ignore_on_load_missing = [r"h.*.self_attention.scale_mask_softmax.causal_mask", r"lm_head.weight"]
 
     def __init__(self, config):
-         super().__init__(config)
-         self.transformer = BloomModel(config)
-         self.lm_head = None 
+        super().__init__(config)
+        self.transformer = BloomModel(config)
+        self.lm_head = None
 
-         # Initialize weights and apply final processing
-         self.post_init()
+        # Initialize weights and apply final processing
+        self.post_init()

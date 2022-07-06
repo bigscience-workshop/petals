@@ -48,7 +48,7 @@ if __name__ == "__main__":
     config = transformers.AutoConfig.from_pretrained(
         args.model, use_auth_token=args.use_auth_token, revision=args.revision
     )
-    model = transformers.AutoModel.from_pretrained(    
+    model = transformers.AutoModel.from_pretrained(
         args.model, use_auth_token=args.use_auth_token, revision=args.revision, torch_dtype=DTYPE_MAP[args.torch_dtype]
     )
     tokenizer = transformers.AutoTokenizer.from_pretrained(
