@@ -69,6 +69,7 @@ if __name__ == "__main__":
         f" - {args.output_repo}@{args.block_branch_prefix}{len(transformer_blocks)}"
     )
     for i, block in enumerate(tqdm(transformer_blocks)):
+        repo.git_checkout(args.client_branch, create_branch_ok=True)
         with repo.commit(
             commit_message=args.commit_message, branch=args.block_branch_prefix + str(i), track_large_files=True
         ):
