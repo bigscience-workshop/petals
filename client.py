@@ -14,6 +14,8 @@ from hivemind.utils import get_logger, nested_compare, nested_flatten, nested_pa
 
 logger = get_logger(__name__)
 
+MAX_NODES = 99999
+
 
 class BalancedRemoteExpert(nn.Module):
     """
@@ -26,7 +28,7 @@ class BalancedRemoteExpert(nn.Module):
         *,
         dht: hivemind.DHT,
         uid_prefix: str,
-        grid_size: Tuple[int, ...],
+        grid_size: Tuple[int, ...] = (1, MAX_NODES),
         forward_timeout: Optional[float] = None,
         backward_timeout: Optional[float] = None,
         update_period: float = 30.0,
