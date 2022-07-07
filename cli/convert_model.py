@@ -77,8 +77,4 @@ if __name__ == "__main__":
         tokenizer.save_pretrained(".")
         config.save_pretrained(".")
 
-    repo.git_checkout(args.client_branch, create_branch_ok=True)
-    with repo.commit(commit_message=args.commit_message, branch=args.client_branch, track_large_files=True):
-
-
     logger.info(f"Converted {args.model} and pushed to {args.output_repo}")
