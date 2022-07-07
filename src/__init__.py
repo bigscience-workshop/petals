@@ -1,5 +1,5 @@
-from .bloom import *
-from .client import RemoteTransformerBlock, RemoteTransformerBlockInferenceSession
-from .dht_utils import declare_active_modules, get_remote_module
+from src.bloom import *
+from src.client import *
+from src.dht_utils import declare_active_modules, get_remote_module
 
-__version__ = "0.1"
+__version__ = "0.2"
