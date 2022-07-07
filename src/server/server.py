@@ -6,14 +6,13 @@ from typing import Dict, Optional, Sequence, Union
 
 import torch
 from hivemind import DHT, MAX_DHT_TIME_DISCREPANCY_SECONDS, BatchTensorDescriptor, get_dht_time
-from hivemind.moe.server.dht_handler import DHTHandlerThread
 from hivemind.moe.server.layers import add_custom_models_from_file
 from hivemind.moe.server.runtime import Runtime
 from hivemind.proto.runtime_pb2 import CompressionType
 from hivemind.utils.logging import get_logger, use_hivemind_log_handler
 
-from src import declare_active_modules
-from src.bloom.from_pretrained import DTYPE_MAP, DistributedBloomConfig, load_pretrained_block
+from src import declare_active_modules, BloomConfig
+from src.bloom.from_pretrained import DTYPE_MAP, load_pretrained_block
 from src.data_structures import CHAIN_DELIMITER, UID_DELIMITER
 from src.server.backend import TransformerBackend
 from src.server.cache import MemoryCache
@@ -140,7 +139,7 @@ class Server(threading.Thread):
             assert num_blocks is not None
             block_indices = range(num_blocks)  # TODO replace with proper load balancing
 
-        block_config = DistributedBloomConfig.from_pretrained(
+        block_config = BloomConfig.from_pretrained(
             converted_model_name_or_path, use_auth_token=use_auth_token
         )
 
