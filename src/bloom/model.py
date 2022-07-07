@@ -359,13 +359,7 @@ class BloomForCausalLM(BloomPreTrainedModel):
         output_type=CausalLMOutputWithCrossAttentions,
         config_class=_CONFIG_FOR_DOC,
     )
-    def forward(
-        self,
-        input_ids=None,
-        labels=None,
-        return_dict=None,
-        **kwargs
-    ):
+    def forward(self, input_ids=None, labels=None, return_dict=None, **kwargs):
         r"""
         labels (`torch.LongTensor` of shape `(batch_size, sequence_length)`, *optional*):
             Labels for language modeling. Note that the labels **are shifted** inside the model, i.e. you can set
