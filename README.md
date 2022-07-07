@@ -4,6 +4,8 @@ Early dev prototype for decentralized bloom. Not for public eyes **yet**.
 Roadmap: [issue #12](https://github.com/learning-at-home/bloom-demo/issues/12)
 
 Latest news @ main branch (max 5):
+- [Jul 4] @dbaranchuk implemented chained rpc_forward and rpc_backward (for prompt tuning)
+- [Jul 3] @dbaranchuk optimized DistributedBloom to reduce embeddings/logits RAM usage
 - [Jul 1] @yozh added RemoteSequential and test for full model exact match
 - [June 28] @dbaranchunk added quick deployment scripts for testnet
 

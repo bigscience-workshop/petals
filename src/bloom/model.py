@@ -3,8 +3,10 @@ PyTorch BLOOM model that implements several memory-efficient modes.
 Based on https://github.com/huggingface/transformers/commit/ca2a55e9dfb245527b5e1c954fec6ffbb7aef07b
 See commit history for authorship.
 """
+from typing import Tuple
 
 import torch
+import torch.nn.functional as F
 import torch.utils.checkpoint
 from hivemind import use_hivemind_log_handler
 from torch import nn
@@ -13,23 +15,17 @@ from transformers.file_utils import (add_code_sample_docstrings, add_start_docst
                                      add_start_docstrings_to_model_forward)
 from transformers.modeling_outputs import BaseModelOutputWithPastAndCrossAttentions, CausalLMOutputWithCrossAttentions
 from transformers.modeling_utils import PreTrainedModel
-from transformers.models.bloom.configuration_bloom import BloomConfig as _VanillaBloomConfig
+from transformers.models.bloom.configuration_bloom import BloomConfig
 from transformers.utils import logging
 
 from src.bloom.block import BloomBlock
-from src.bloom.ops import build_alibi_tensor
 
 use_hivemind_log_handler("in_root_logger")
 logger = logging.get_logger(__file__)
 
 _CHECKPOINT_FOR_DOC = "bigscience/Bloom"
-_CONFIG_FOR_DOC = "DistributedBloomConfig"
+_CONFIG_FOR_DOC = "BloomConfig"
 _TOKENIZER_FOR_DOC = "BloomTokenizer"
-
-
-class DistributedBloomConfig(_VanillaBloomConfig):
-    compression: str = "none"
-    slow_but_exact: bool = False
 
 
 class BloomPreTrainedModel(PreTrainedModel):
@@ -39,7 +35,7 @@ class BloomPreTrainedModel(PreTrainedModel):
     models.
     """
 
-    config_class = DistributedBloomConfig
+    config_class = BloomConfig
     base_model_prefix = "transformer"
     supports_gradient_checkpointing = True
     _no_split_modules = ["BloomBlock"]
@@ -312,17 +308,107 @@ class BloomModel(BloomPreTrainedModel):
 
 @add_start_docstrings(
     """
-    The Bloom interface for various applications, e.g., inference, classification...
+    The Bloom Model transformer with a language modeling head on top (linear layer with weights tied to the input
+    embeddings).
     """,
     BLOOM_START_DOCSTRING,
 )
-class BloomForYou(BloomPreTrainedModel):
+class BloomForCausalLM(BloomPreTrainedModel):
     _keys_to_ignore_on_load_missing = [r"h.*.self_attention.scale_mask_softmax.causal_mask", r"lm_head.weight"]
 
     def __init__(self, config):
         super().__init__(config)
         self.transformer = BloomModel(config)
-        self.lm_head = None
-
         # Initialize weights and apply final processing
         self.post_init()
+
+    def get_output_embeddings(self):
+        return self.transformer.word_embeddings
+
+    def set_output_embeddings(self, new_embeddings):
+        self.transformer.word_embeddings.weight = new_embeddings.weight
+
+    def prepare_inputs_for_generation(self, input_ids, past=None, **kwargs):
+        # only last token for inputs_ids if past is defined in kwargs
+        if past:
+            input_ids = input_ids[:, -1].unsqueeze(-1)
+
+        attention_mask = kwargs.get("attention_mask", None)
+        position_ids = kwargs.get("position_ids", None)
+
+        if attention_mask is not None and position_ids is None:
+            # create position_ids on the fly for batch generation
+            position_ids = attention_mask.long().cumsum(-1) - 1
+            position_ids.masked_fill_(attention_mask == 0, 1)
+            if past:
+                position_ids = position_ids[:, -1].unsqueeze(-1)
+        else:
+            position_ids = None
+        return {
+            "input_ids": input_ids,
+            "past_key_values": past,
+            "use_cache": kwargs.get("use_cache"),
+            "position_ids": position_ids,
+            "attention_mask": attention_mask,
+        }
+
+    @add_start_docstrings_to_model_forward(BLOOM_INPUTS_DOCSTRING)
+    @add_code_sample_docstrings(
+        processor_class=_TOKENIZER_FOR_DOC,
+        checkpoint=_CHECKPOINT_FOR_DOC,
+        output_type=CausalLMOutputWithCrossAttentions,
+        config_class=_CONFIG_FOR_DOC,
+    )
+    def forward(
+        self,
+        input_ids=None,
+        labels=None,
+        return_dict=None,
+        **kwargs
+    ):
+        r"""
+        labels (`torch.LongTensor` of shape `(batch_size, sequence_length)`, *optional*):
+            Labels for language modeling. Note that the labels **are shifted** inside the model, i.e. you can set
+            `labels = input_ids` Indices are selected in `[-100, 0, ..., config.vocab_size]` All labels set to `-100`
+            are ignored (masked), the loss is only computed for labels in `[0, ..., config.vocab_size]`
+        """
+        return_dict = return_dict if return_dict is not None else self.config.use_return_dict
+        transformer_outputs = self.transformer.forward(input_ids=input_ids, return_dict=return_dict, **kwargs)
+        word_embeddings = self.transformer.word_embeddings.weight
+
+        # Switch dtype in case word_embeddings are fp16/bf16
+        hidden_states = transformer_outputs[0].to(word_embeddings.dtype)
+        lm_logits = F.linear(hidden_states, word_embeddings).float()
+
+        loss = None
+        if labels is not None:
+            # Shift so that tokens < n predict n
+            shift_logits = lm_logits[..., :-1, :].contiguous()
+            shift_labels = labels[..., 1:].contiguous()
+            # Flatten the tokens
+            loss_fct = CrossEntropyLoss()
+            loss = loss_fct(shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1))
+
+        if not return_dict:
+            output = (lm_logits,) + transformer_outputs[1:]
+            return ((loss,) + output) if loss is not None else output
+
+        return CausalLMOutputWithCrossAttentions(
+            loss=loss,
+            logits=lm_logits,
+            past_key_values=transformer_outputs.past_key_values,
+            hidden_states=transformer_outputs.hidden_states,
+            attentions=transformer_outputs.attentions,
+        )
+
+    @staticmethod
+    def _reorder_cache(past: Tuple[Tuple[torch.Tensor]], beam_idx: torch.Tensor) -> Tuple[Tuple[torch.Tensor]]:
+        """
+        This function is used to re-order the `past_key_values` cache if [`~PreTrainedModel.beam_search`] or
+        [`~PreTrainedModel.beam_sample`] is called. This is required to match `past_key_values` with the correct
+        beam_idx at every generation step.
+        """
+        return tuple(
+            tuple(past_state.index_select(0, beam_idx.to(past_state.device)) for past_state in layer_past)
+            for layer_past in past
+        )
