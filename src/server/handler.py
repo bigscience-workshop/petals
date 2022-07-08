@@ -124,7 +124,6 @@ class TransformerConnectionHandler(ConnectionHandler):
             yield runtime_pb2.ExpertResponse(tensors=[part])
 
     async def rpc_backward(self, request: runtime_pb2.ExpertRequest, context: P2PContext) -> runtime_pb2.ExpertResponse:
-        return await super().rpc_backward(request, context)
         # Parse requests and prepare backends
         inputs, grads = [deserialize_torch_tensor(tensor) for tensor in request.tensors]
         requested_uids = self._check_header(request)
@@ -158,8 +157,6 @@ class TransformerConnectionHandler(ConnectionHandler):
     async def rpc_backward_stream(
         self, requests: AsyncIterator[runtime_pb2.ExpertRequest], context: P2PContext
     ) -> AsyncIterator[runtime_pb2.ExpertResponse]:
-        async for response in super().rpc_backward_stream(requests, context):
-            yield response
         uids_header, inputs_and_grads = await self._gather_inputs(requests, context)
         inputs, grads = inputs_and_grads
         requested_uids = self._check_header_str(uids_header)
