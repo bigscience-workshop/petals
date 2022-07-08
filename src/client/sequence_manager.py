@@ -18,8 +18,7 @@ logger = get_logger(__file__)
 Span = NamedTuple("Span", [("start", int), ("end", Optional[int]), ("peer_id", PeerID)])
 
 
-@dataclasses.dataclass(frozen=False, init=False)  # TODO[borzunov@] eto ne dataclass
-class RemoteSequenceInfo:
+class RemoteSequenceManager:
     """Keeps and updates the meta-information about which peers host which blocks"""
 
     dht: DHT
@@ -92,3 +91,4 @@ class RemoteSequenceInfo:
 
     def __len__(self):
         return len(self.block_uids)
+
