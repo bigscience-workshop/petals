@@ -98,4 +98,7 @@ BLOCK_UID=bigscience/test-bloomd-6b3.4 pytest tests/test_block_exact_match.py
 
 # the test below will fail because there is no server that serves layer 7
 # BLOCK_UID=bigscience/test-bloomd-6b3.7 pytest tests/test_block_exact_match.py
+
+
+BLOCK_UID=bigscience/test-bloomd-6b3.4 pytest tests/test_block_exact_match.py
 ```
