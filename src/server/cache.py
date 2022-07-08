@@ -122,6 +122,14 @@ class MemoryCache:
         assert handle in self._allocated_tensors, f"Sanity check failed: no such handle ({handle})"
         yield self._allocated_tensors[handle]
 
+    @staticmethod
+    def update_cache_via_batch_ids(cache: torch.Tensor, batch_ids: torch.Tensor) -> None:
+        new_cache_shape = cache.shape
+        new_cache_shape[1] = batch_ids.size(0)
+        new_cache = torch.zeros(new_cache_shape)
+        new_cache.scatter_(1, batch_ids, cache)
+        cache.copy_(new_cache)
+
 
 class AllocationFailed(Exception):
     pass

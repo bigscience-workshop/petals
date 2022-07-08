@@ -1,5 +1,5 @@
 """Code for serving bloom blocks via hivemind-server"""
-from typing import Sequence, Tuple
+from typing import Optional, Sequence, Tuple
 
 import torch
 from hivemind.moe.server.module_backend import ModuleBackend
