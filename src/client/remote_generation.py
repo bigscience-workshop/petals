@@ -32,16 +32,16 @@ class RemoteGenerationMixin(PreTrainedModel):
                     decoding_algorithm = NucleusAlgorithm(top_p, temperature)
             else:
                 decoding_algorithm = GreedyAlgorithm()
-        
+
         constraints = []
         constraints.extend(provided_constraints)
-                
+
         if max_new_tokens and eos_token_id:
             constraints.append(MaxNewTokensConstraint(max_new_tokens, eos_token_id))
-            
+
         for constraint in constraints:
             constraint.consume_prefix(inputs)
-       
+
         word_embeddings = self.transformer.word_embeddings.weight.t()
 
         with self.transformer.h.inference_session() as sess:

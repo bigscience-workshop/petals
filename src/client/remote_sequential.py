@@ -5,8 +5,6 @@ import logging
 import random
 from typing import Optional, Union
 
-from typing import Optional
-
 import torch
 from hivemind import DHT, P2P, get_logger, use_hivemind_log_handler
 from hivemind.moe.client.remote_expert_worker import RemoteExpertWorker
