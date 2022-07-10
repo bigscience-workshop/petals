@@ -9,7 +9,7 @@ from transformers.modeling_utils import PreTrainedModel
 
 
 class RemoteGenerationMixin(PreTrainedModel):
-    def generation(
+    def generate(
         self,
         inputs: Optional[torch.Tensor] = None,
         do_sample: Optional[bool] = None,
