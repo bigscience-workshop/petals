@@ -20,7 +20,7 @@ from src.bloom.model import (
 from src.client.remote_sequential import RemoteSequential
 from src.client.remote_generation import RemoteGenerationMixin
 from src.utils.generation_algorithms import DecodingAlgorithm
-from src.utils.generation_constraints import ABConstraint
+from src.utils.generation_constraints import ABCBloomConstraint
 
 use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
@@ -185,20 +185,20 @@ class DistributedBloomForCausalLM(BloomForCausalLM, RemoteGenerationMixin):
         eos_token_id: Optional[int] = None,
         max_new_tokens: Optional[int] = None,
         decoding_algorithm: Optional[DecodingAlgorithm] = None,
-        provided_constraints: List[ABConstraint] = [],
+        provided_constraints: List[ABCBloomConstraint] = [],
         **model_kwargs,
     ) -> torch.Tensor:
         return RemoteGenerationMixin.generate(
             self,
-            inputs,
-            do_sample,
-            temperature,
-            top_k,
-            top_p,
-            eos_token_id,
-            max_new_tokens,
-            decoding_algorithm,
-            provided_constraints,
+            inputs=inputs,
+            do_sample=do_sample,
+            temperature=temperature,
+            top_k=top_k,
+            top_p=top_p,
+            eos_token_id=eos_token_id,
+            max_new_tokens=max_new_tokens,
+            decoding_algorithm=decoding_algorithm,
+            provided_constraints=provided_constraints,
             **model_kwargs,
         )
 
