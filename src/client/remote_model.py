@@ -54,6 +54,6 @@ class DistributedBloomForCausalLM(BloomForCausalLM):
     def __init__(self, config: DistributedBloomConfig):
         BloomPreTrainedModel.__init__(self, config)
         self.transformer = DistributedBloomModel(config)
-        self.lm_head = LMHeadForCausalLM(config)
+        self.lm_head = LMHeadForCausalLM(config, self.transformer.word_embeddings)
         # Initialize weights and apply final processing
         self.post_init()
