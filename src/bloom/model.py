@@ -165,18 +165,11 @@ class BloomModel(BloomPreTrainedModel):
         # Initialize weights and apply final processing
         self.post_init()
 
-        # Forbid accumulate grads for embeddings and layernorm
-        self.set_requires_grad(False)
-
     def get_input_embeddings(self):
         return self.word_embeddings
 
     def set_input_embeddings(self, new_embeddings):
         self.word_embeddings = new_embeddings
-
-    def set_requires_grad(self, value):
-        for p in self.parameters():
-            p.requires_grad = value
 
     @add_start_docstrings_to_model_forward(BLOOM_INPUTS_DOCSTRING)
     @add_code_sample_docstrings(

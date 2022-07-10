@@ -45,6 +45,13 @@ class DistributedBloomModel(BloomModel):
         )
         assert isinstance(dht, hivemind.DHT) and dht.is_alive(), "dht must be a running hivemind.DHT instance"
         self.h = RemoteSequential(config, dht, config.dht_prefix)
+    
+        # Forbid accumulate grads for embeddings and layernorm
+        self.set_requires_grad(False)
+
+    def set_requires_grad(self, value):
+        for p in self.parameters():
+            p.requires_grad = value
 
 
 class DistributedBloomForCausalLM(BloomForCausalLM):
