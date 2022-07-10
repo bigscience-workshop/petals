@@ -5,7 +5,7 @@ from typing import Optional, Tuple
 import hivemind
 from hivemind import get_logger, use_hivemind_log_handler
 
-from src.bloom.model import BloomConfig, BloomForCausalLM, BloomModel, BloomPreTrainedModel, LMHeadForCausalLM
+from src.bloom.model import BloomConfig, BloomForCausalLM, BloomModel, BloomPreTrainedModel, LMHead
 from src.client.remote_sequential import RemoteSequential
 from src.data_structures import UID_DELIMITER
 
@@ -54,6 +54,12 @@ class DistributedBloomForCausalLM(BloomForCausalLM):
     def __init__(self, config: DistributedBloomConfig):
         BloomPreTrainedModel.__init__(self, config)
         self.transformer = DistributedBloomModel(config)
-        self.lm_head = LMHeadForCausalLM(config, self.transformer.word_embeddings)
+        self.lm_head = LMHead(config, self.transformer.word_embeddings)
         # Initialize weights and apply final processing
         self.post_init()
+
+    def get_output_embeddings(self):
+        return self.lm_head.word_embeddings
+
+    def set_output_embeddings(self, new_embeddings):
+        self.lm_head.word_embeddings.weight = new_embeddings.weight
