@@ -140,12 +140,11 @@ class RemoteSequentialInferenceSession:
 
         return self
 
-    def step(self, inputs: torch.Tensor, batch_ids: torch.Tensor):
+    def step(self, inputs: torch.Tensor):
         assert not self.closed
         for session in self.active_sessions:
-            outputs = session.step(inputs, batch_ids)
-            assert outputs.shape[1:] == inputs.shape[1:], f"expected {inputs.shape[1:]}, got {outputs.shape[1:]}"
-            assert outputs.shape[0] == batch_ids.shape[0], f"expected {batch_ids.shape[0]}, got {outputs.shape[0]}"
+            outputs = session.step(inputs)
+            assert outputs.shape == inputs.shape, f"expected {inputs.shape}, got {outputs.shape}"
             inputs = outputs
         return inputs
 
