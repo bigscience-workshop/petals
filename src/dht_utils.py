@@ -22,7 +22,7 @@ def declare_active_modules(
     dht: DHT,
     uids: Sequence[ModuleUID],
     expiration_time: DHTExpiration,
-    throughput: Optional[float] = None,
+    throughput: float,
     wait: bool = True,
 ) -> Union[Dict[ModuleUID, bool], MPFuture[Dict[ModuleUID, bool]]]:
     """
@@ -30,7 +30,7 @@ def declare_active_modules(
 
     :param uids: a list of module ids to declare
     :param wait: if True, awaits for declaration to finish, otherwise runs in background
-    :param throughput: optionally specify your performance in terms of compute throughput
+    :param throughput: specify your performance in terms of compute throughput
     :param expiration_time: declated modules will be visible for this many seconds
     :returns: if wait, returns store status for every key (True = store succeeded, False = store rejected)
     """
@@ -51,7 +51,7 @@ async def _declare_active_modules(
     node: DHTNode,
     uids: List[ModuleUID],
     expiration_time: DHTExpiration,
-    throughput: Optional[float] = None,
+    throughput: float,
 ) -> Dict[ModuleUID, bool]:
     num_workers = len(uids) if dht.num_workers is None else min(len(uids), dht.num_workers)
     return await node.store_many(
@@ -124,12 +124,12 @@ async def _get_remote_module_infos(
             continue
         servers = {}
         for peer_id, throughput in metadata.value.items():
-            if throughput is None:
-                throughput = 0.0  # FIXME:
             try:
-                servers[peer_id] = ServerInfo(ServerState.ONLINE, throughput)
-            except (ValueError, TypeError):
-                logger.error(f"Incorrect peer entry for {uid}: {peer_id}")
+                if not isinstance(throughput.value, float):
+                    raise ValueError(f'Throughput expected to be a float, not {throughput.value}')
+                servers[peer_id] = ServerInfo(ServerState.ONLINE, throughput.value)
+            except (ValueError, TypeError) as e:
+                logger.error(f"Incorrect peer entry for uid={uid}, peer_id={peer_id}: {e}")
         if servers:
             modules[i] = RemoteModuleInfo(uid, servers)
     return modules

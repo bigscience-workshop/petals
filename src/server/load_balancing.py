@@ -9,7 +9,7 @@ def choose_best_blocks(num_blocks: int, remote_module_infos: List[Optional[Remot
         if module is None:
             throughputs.append(0)
             continue
-        throughputs.append(sum(server.throughput for server in module.server.values()
+        throughputs.append(sum(server.throughput for server in module.servers.values()
                                if server.state != ServerState.OFFLINE))
 
     options = [(throughputs[i:i + num_blocks], i)
