@@ -1,6 +1,6 @@
 from typing import List, Optional
 
-from src.data_structures import ServerState
+from src.data_structures import RemoteModuleInfo, ServerState
 
 
 def choose_best_blocks(num_blocks: int, remote_module_infos: List[Optional[RemoteModuleInfo]]) -> List[int]:

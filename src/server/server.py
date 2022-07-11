@@ -129,6 +129,10 @@ class Server(threading.Thread):
             torch_dtype = DTYPE_MAP[torch_dtype]
         assert torch_dtype in DTYPE_MAP.values(), f"torch_dtype must be one of {list(DTYPE_MAP.values())}"
 
+        block_config = BloomConfig.from_pretrained(
+            converted_model_name_or_path, use_auth_token=use_auth_token
+        )
+
         if block_indices is not None:
             try:
                 first_block_index, last_block_index = block_indices.split(":")
@@ -142,10 +146,6 @@ class Server(threading.Thread):
             uids = [f"{prefix}.{block_index}" for block_index in range(block_config.n_layer)]
             module_infos = get_remote_module_infos(dht, uids)
             block_indices = choose_best_blocks(num_blocks, module_infos)
-
-        block_config = BloomConfig.from_pretrained(
-            converted_model_name_or_path, use_auth_token=use_auth_token
-        )
 
         # initialize modules
         blocks = {}
