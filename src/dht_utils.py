@@ -94,6 +94,19 @@ def get_remote_module(
     return modules[0] if single_uid else modules
 
 
+def get_remote_module_infos(
+    dht: DHT,
+    uid_or_uids: Union[ModuleUID, List[ModuleUID]],
+    expiration_time: Optional[DHTExpiration] = None,
+) -> List[Optional[RemoteModuleInfo]]:
+    single_uid = isinstance(uid_or_uids, ModuleUID)
+    uids = [uid_or_uids] if single_uid else uid_or_uids
+    infos = dht.run_coroutine(
+        partial(_get_remote_module_infos, uids=uids, expiration_time=expiration_time), return_future
+    )
+    return infos[0] if single_uid else infos
+
+
 async def _get_remote_module_infos(
     dht: DHT, node: DHTNode, uids: List[ModuleUID], expiration_time: Optional[DHTExpiration]
 ) -> List[Optional[RemoteModuleInfo]]:
@@ -109,14 +122,16 @@ async def _get_remote_module_infos(
             if metadata is not None:
                 logger.error(f"Incorrect metadata for {uid}: {metadata}")
             continue
-        valid_entries = set()
-        for maybe_peer_id, _unused_value in metadata.value.items():
+        servers = {}
+        for peer_id, throughput in metadata.value.items():
+            if throughput is None:
+                throughput = 0.0  # FIXME:
             try:
-                valid_entries.add(PeerID.from_base58(maybe_peer_id))
-            except:
-                logger.error(f"Incorrect peer entry for {uid}: {maybe_peer_id}")
-        if valid_entries:
-            modules[i] = RemoteModuleInfo(uid, valid_entries)
+                servers[peer_id] = ServerInfo(ServerState.ONLINE, throughput)
+            except (ValueError, TypeError):
+                logger.error(f"Incorrect peer entry for {uid}: {peer_id}")
+        if servers:
+            modules[i] = RemoteModuleInfo(uid, servers)
     return modules
 
 

@@ -14,9 +14,11 @@ from hivemind.utils.logging import get_logger, use_hivemind_log_handler
 from src import declare_active_modules, BloomConfig
 from src.bloom.from_pretrained import DTYPE_MAP, load_pretrained_block
 from src.data_structures import CHAIN_DELIMITER, UID_DELIMITER
+from src.dht_utils import get_remote_module_infos
 from src.server.backend import TransformerBackend
 from src.server.cache import MemoryCache
 from src.server.handler import TransformerConnectionHandler
+from src.server.load_balancing import choose_best_blocks
 
 use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
@@ -137,7 +139,9 @@ class Server(threading.Thread):
             block_indices = range(first_block_index, last_block_index)
         else:
             assert num_blocks is not None
-            block_indices = range(num_blocks)  # TODO replace with proper load balancing
+            uids = [f"{prefix}.{block_index}" for block_index in range(block_config.n_layer)]
+            module_infos = get_remote_module_infos(dht, uids)
+            block_indices = choose_best_blocks(num_blocks, module_infos)
 
         block_config = BloomConfig.from_pretrained(
             converted_model_name_or_path, use_auth_token=use_auth_token
