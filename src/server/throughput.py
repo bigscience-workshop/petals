@@ -6,7 +6,7 @@ import tempfile
 import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Union
 
 import torch
 from hivemind.utils.logging import get_logger, use_hivemind_log_handler
@@ -33,19 +33,19 @@ class ThroughputInfo:
 
 
 def get_host_throughput(
-    device: str,
+    device: Union[str, torch.device],
     force_eval: bool = False,
     cache_path: str = DEFAULT_CACHE_PATH,
     lock_path: str = DEFAULT_LOCK_PATH,
 ) -> float:
     # We only keep the device type, assuming that the throughput is similar among all host's GPUs
-    device = device.split(':')[0] if ':' in device else device
+    device = torch.device(device).type
 
     info = None
     # We use the system-wide lock since only one process at a time can measure the host throughput
     os.makedirs(lock_path.parent, exist_ok=True)
     with open(lock_path, 'wb') as lock_fd:
-        logger.info("Waiting for the throughput info")
+        logger.info("Loading throughput info")
         fcntl.flock(lock_fd.fileno(), fcntl.LOCK_EX)
         # The OS will release the lock when lock_fd is closed or the process is killed
 
@@ -81,7 +81,6 @@ def measure_throughput_info() -> ThroughputInfo:
     if torch.cuda.is_available():
         device_rps['cuda'] = measure_device_rps('cuda', config)
 
-    logger.info("Use `--throughput eval` if you'd like to re-evaluate the throughput later")
     return ThroughputInfo(network_rps=network_rps, device_rps=device_rps)
 
 
