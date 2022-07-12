@@ -1,12 +1,11 @@
 # this code is in active development, interfaces may change
 import os
-from typing import Optional, Tuple, Union
+from typing import Optional, Tuple
 
 import hivemind
-from hivemind import DHT, get_logger, use_hivemind_log_handler
+from hivemind import get_logger, use_hivemind_log_handler
 
-from src.bloom.from_pretrained import CLIENT_BRANCH, _load_state_dict
-from src.bloom.model import BloomConfig, BloomForCausalLM, BloomModel, BloomPreTrainedModel
+from src.bloom.model import BloomConfig, BloomForCausalLM, BloomModel, BloomPreTrainedModel, LMHead
 from src.client.remote_sequential import RemoteSequential
 from src.data_structures import UID_DELIMITER
 
@@ -23,6 +22,7 @@ class DistributedBloomConfig(BloomConfig):
     initial_peers: Tuple[str, ...] = ()  # a list of initial peers for hivemind DHT
     dht_prefix: str  # a prefix for all dht keys that correspond to this model (usually equal to model name)
     dht: Optional[hivemind.DHT] = None  # a running DHT instance, e.g. when using the same DHT for multiple models
+    chunk_size_for_efficient_fp16_on_cpu: int = 10000 # a chunk size for a LM head for efficient half-precision on CPU 
 
 
 class DistributedBloomModel(BloomModel):
@@ -45,6 +45,13 @@ class DistributedBloomModel(BloomModel):
         )
         assert isinstance(dht, hivemind.DHT) and dht.is_alive(), "dht must be a running hivemind.DHT instance"
         self.h = RemoteSequential(config, dht, config.dht_prefix)
+    
+        # Forbid accumulate grads for embeddings and layernorm
+        self.set_requires_grad(False)
+
+    def set_requires_grad(self, value):
+        for p in self.parameters():
+            p.requires_grad = value
 
 
 class DistributedBloomForCausalLM(BloomForCausalLM):
@@ -54,5 +61,12 @@ class DistributedBloomForCausalLM(BloomForCausalLM):
     def __init__(self, config: DistributedBloomConfig):
         BloomPreTrainedModel.__init__(self, config)
         self.transformer = DistributedBloomModel(config)
+        self.lm_head = LMHead(config, self.transformer.word_embeddings)
         # Initialize weights and apply final processing
         self.post_init()
+
+    def get_output_embeddings(self):
+        return self.lm_head.word_embeddings
+
+    def set_output_embeddings(self, new_embeddings):
+        self.lm_head.word_embeddings.weight = new_embeddings.weight
