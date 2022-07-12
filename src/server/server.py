@@ -41,7 +41,8 @@ class Server(threading.Thread):
         **kwargs,
     ):
         threading.Thread.__init__(self)
-        self.dht, self.module_backends, self.update_period = dht, module_backends, update_period
+        self.dht, self.module_backends = dht, module_backends
+        self.throughput, self.update_period, self.expiration = throughput, update_period, expiration
         self.conn_handlers = [
             TransformerConnectionHandler(dht, self.module_backends) for _ in range(num_connection_handlers)
         ]
@@ -165,8 +166,8 @@ class Server(threading.Thread):
             state=ServerState.JOINING,
             throughput=throughput,
         )
+        logger.info(f"Announced that blocks {block_indices} are joining")
 
-        logger.info(f"Loading blocks with indices {block_indices}")
         blocks = {}
         for module_uid, block_index in zip(module_uids, block_indices):
             block = load_pretrained_block(
@@ -232,6 +233,16 @@ class Server(threading.Thread):
         Please note that terminating server otherwise (e.g. by killing processes) may result in zombie processes.
         If you did already cause a zombie outbreak, your only option is to kill them with -9 (SIGKILL).
         """
+        if self.module_backends:
+            declare_active_modules(
+                self.dht,
+                self.module_backends.keys(),
+                expiration_time=get_dht_time() + self.expiration,
+                state=ServerState.OFFLINE,
+                throughput=self.throughput,
+            )
+            logger.info(f"Announced that blocks {list(self.module_backends.keys())} are offline")
+
         self.ready.clear()
 
         for process in self.conn_handlers:
@@ -253,7 +264,7 @@ class Server(threading.Thread):
         logger.debug(f"Shutting down runtime")
 
         self.runtime.shutdown()
-        logger.info("Server shutdown succesfully")
+        logger.info("Server shut down succesfully")
 
 
 class ModuleAnnouncerThread(threading.Thread):
