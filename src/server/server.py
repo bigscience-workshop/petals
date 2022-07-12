@@ -16,9 +16,9 @@ from src.bloom.from_pretrained import DTYPE_MAP, load_pretrained_block
 from src.data_structures import CHAIN_DELIMITER, UID_DELIMITER, ServerState
 from src.dht_utils import get_remote_module_infos
 from src.server.backend import TransformerBackend
+from src.server.block_selection import choose_best_blocks
 from src.server.cache import MemoryCache
 from src.server.handler import TransformerConnectionHandler
-from src.server.load_balancing import choose_best_blocks
 
 use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
