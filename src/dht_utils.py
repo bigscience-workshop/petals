@@ -22,6 +22,7 @@ def declare_active_modules(
     dht: DHT,
     uids: Sequence[ModuleUID],
     expiration_time: DHTExpiration,
+    state: ServerState,
     throughput: float,
     wait: bool = True,
 ) -> Union[Dict[ModuleUID, bool], MPFuture[Dict[ModuleUID, bool]]]:
@@ -41,7 +42,13 @@ def declare_active_modules(
     for uid in uids:
         assert isinstance(uid, ModuleUID) and UID_DELIMITER in uid and CHAIN_DELIMITER not in uid
     return dht.run_coroutine(
-        partial(_declare_active_modules, uids=uids, expiration_time=expiration_time, throughput=throughput),
+        partial(
+            _declare_active_modules,
+            uids=uids,
+            expiration_time=expiration_time,
+            state=state,
+            throughput=throughput,
+        ),
         return_future=not wait,
     )
 
@@ -51,13 +58,14 @@ async def _declare_active_modules(
     node: DHTNode,
     uids: List[ModuleUID],
     expiration_time: DHTExpiration,
+    state: ServerState,
     throughput: float,
 ) -> Dict[ModuleUID, bool]:
     num_workers = len(uids) if dht.num_workers is None else min(len(uids), dht.num_workers)
     return await node.store_many(
         keys=uids,
         subkeys=[dht.peer_id.to_base58()] * len(uids),
-        values=[throughput] * len(uids),
+        values=[(state.value, throughput)] * len(uids),
         expiration_time=expiration_time,
         num_workers=num_workers,
     )
@@ -123,12 +131,15 @@ async def _get_remote_module_infos(
                 logger.error(f"Incorrect metadata for {uid}: {metadata}")
             continue
         servers = {}
-        for peer_id, throughput in metadata.value.items():
+        for peer_id, server_info in metadata.value.items():
             try:
-                if not isinstance(throughput.value, float):
-                    raise ValueError(f'Throughput expected to be a float, not {throughput.value}')
-                servers[peer_id] = ServerInfo(ServerState.ONLINE, throughput.value)
-            except (ValueError, TypeError) as e:
+                server_info = server_info.value
+                if not (isinstance(server_info, tuple) and len(server_info) == 2 and
+                        isinstance(server_info[0], int) and isinstance(server_info[1], float)):
+                    raise ValueError(f"Invalid server info for uid={uid}, peer_id={peer_id}: {server_info}")
+                state, throughput = server_info
+                servers[peer_id] = ServerInfo(ServerState(state), throughput)
+            except ValueError as e:
                 logger.error(f"Incorrect peer entry for uid={uid}, peer_id={peer_id}: {e}")
         if servers:
             modules[i] = RemoteModuleInfo(uid, servers)

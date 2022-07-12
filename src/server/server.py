@@ -13,7 +13,7 @@ from hivemind.utils.logging import get_logger, use_hivemind_log_handler
 
 from src import declare_active_modules, BloomConfig
 from src.bloom.from_pretrained import DTYPE_MAP, load_pretrained_block
-from src.data_structures import CHAIN_DELIMITER, UID_DELIMITER
+from src.data_structures import CHAIN_DELIMITER, UID_DELIMITER, ServerState
 from src.dht_utils import get_remote_module_infos
 from src.server.backend import TransformerBackend
 from src.server.cache import MemoryCache
@@ -125,6 +125,9 @@ class Server(threading.Thread):
             )
             logger.info(f"Automatic dht prefix: {prefix}")
         assert (block_indices is None) != (num_blocks is None), "please specify num_blocks or block_indices, not both"
+        if expiration is None:
+            expiration = max(2 * update_period, MAX_DHT_TIME_DISCREPANCY_SECONDS)
+
         dht = DHT(initial_peers=initial_peers, start=True, **kwargs)
         visible_maddrs_str = [str(a) for a in dht.get_visible_maddrs()]
         logger.info(f"Running DHT node on {visible_maddrs_str}, initial peers = {initial_peers}")
@@ -151,13 +154,21 @@ class Server(threading.Thread):
         else:
             assert num_blocks is not None
             uids = [f"{prefix}.{block_index}" for block_index in range(block_config.n_layer)]
-            module_infos = get_remote_module_infos(dht, uids)
+            module_infos = get_remote_module_infos(dht, uids, expiration_time=float("inf"))
             block_indices = choose_best_blocks(num_blocks, module_infos)
 
-        # initialize modules
+        module_uids = [f"{prefix}.{block_index}" for block_index in block_indices]
+        declare_active_modules(
+            dht,
+            module_uids,
+            expiration_time=get_dht_time() + expiration,
+            state=ServerState.JOINING,
+            throughput=throughput,
+        )
+
+        logger.info(f"Loading blocks with indices {block_indices}")
         blocks = {}
-        for block_index in block_indices:
-            module_uid = f"{prefix}.{block_index}"
+        for module_uid, block_index in zip(module_uids, block_indices):
             block = load_pretrained_block(
                 converted_model_name_or_path,
                 block_index,
@@ -252,14 +263,13 @@ class ModuleAnnouncerThread(threading.Thread):
         self,
         module_backends: Dict[str, TransformerBackend],
         dht: DHT,
+        *,
         throughput: float,
         update_period: float = 30,
-        expiration: Optional[int] = None,
+        expiration: float,
         **kwargs
     ):
         super().__init__(**kwargs)
-        if expiration is None:
-            expiration = max(2 * update_period, MAX_DHT_TIME_DISCREPANCY_SECONDS)
         self.module_backends = module_backends
         self.dht = dht
         self.throughput = throughput
@@ -273,6 +283,7 @@ class ModuleAnnouncerThread(threading.Thread):
                 self.dht,
                 self.module_backends.keys(),
                 expiration_time=get_dht_time() + self.expiration,
+                state=ServerState.ONLINE,
                 throughput=self.throughput,
             )
             if self.stop.wait(self.update_period):
