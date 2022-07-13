@@ -27,7 +27,7 @@ def main():
 
     parser.add_argument('--compression', type=str, default='NONE', required=False, help='Tensor compression communication')
 
-    parser.add_argument('--num_handlers', type=int, default=None, required=False,
+    parser.add_argument('--num_handlers', type=int, default=16, required=False,
                         help='server will use this many processes to handle incoming requests')
     parser.add_argument('--min_batch_size', type=int, default=1,
                         help='Minimum required batch size for all expert operations')
