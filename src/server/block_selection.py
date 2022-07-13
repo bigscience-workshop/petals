@@ -12,7 +12,7 @@ def choose_best_blocks(num_blocks: int, remote_module_infos: List[Optional[Remot
         throughputs.append(sum(server.throughput for server in module.servers.values()
                                if server.state != ServerState.OFFLINE))
 
-    options = [(throughputs[i:i + num_blocks], i)
+    options = [(sorted(throughputs[i:i + num_blocks]), i)
                for i in range(0, len(throughputs) - num_blocks + 1)]
     best_start = min(options)[1]
     return list(range(best_start, best_start + num_blocks))
