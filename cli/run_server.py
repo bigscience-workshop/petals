@@ -41,8 +41,13 @@ def main():
                         help="Use this dtype to store block weights and do computations. "
                              "By default, respect the dtypes in the pre-trained state dict.")
 
-    parser.add_argument('--throughput', type=float, default=1.0,
-                        help='Expected server throughput')
+    parser.add_argument('--throughput',
+                        type=lambda value: value if value in ['auto', 'eval'] else float(value),
+                        default='auto',
+                        help='Expected server throughput (a float measured in RPS). '
+                             'If set to "auto" (default), the script evaluates network and compute throughput '
+                             'on the first run and uses these estimates for future runs. '
+                             'If set to "eval", the script re-evaluates the throughput and overrides the cache.')
     parser.add_argument('--update_period', type=float, required=False, default=30,
                         help='Server will report experts to DHT once in this many seconds')
     parser.add_argument('--expiration', type=float, required=False, default=None,

@@ -3,6 +3,7 @@ Utilities for declaring and retrieving active model layers using a shared DHT.
 """
 from __future__ import annotations
 
+import math
 from functools import partial
 from typing import Dict, List, Optional, Sequence, Union
 
@@ -134,11 +135,10 @@ async def _get_remote_module_infos(
         for peer_id, server_info in metadata.value.items():
             try:
                 peer_id = PeerID.from_base58(peer_id)
-                server_info = server_info.value
-                if not (isinstance(server_info, tuple) and len(server_info) == 2 and
-                        isinstance(server_info[0], int) and isinstance(server_info[1], float)):
-                    raise ValueError(f"Invalid server info for uid={uid}, peer_id={peer_id}: {server_info}")
-                state, throughput = server_info
+                state, throughput = server_info.value
+                if not (isinstance(state, int) and isinstance(throughput, float) and
+                        math.isfinite(throughput) and throughput >= 0.0):
+                    raise ValueError(f"Invalid server info: {server_info}")
                 servers[peer_id] = ServerInfo(ServerState(state), throughput)
             except (TypeError, ValueError) as e:
                 logger.error(f"Incorrect peer entry for uid={uid}, peer_id={peer_id}: {e}")

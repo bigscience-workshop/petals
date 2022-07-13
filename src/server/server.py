@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import multiprocessing as mp
+import random
 import threading
-from typing import Dict, Optional, Sequence, Union
+import time
+from typing import Dict, Literal, Optional, Sequence, Union
 
 import torch
 from hivemind import DHT, MAX_DHT_TIME_DISCREPANCY_SECONDS, BatchTensorDescriptor, get_dht_time
@@ -19,6 +21,7 @@ from src.server.backend import TransformerBackend
 from src.server.block_selection import choose_best_blocks
 from src.server.cache import MemoryCache
 from src.server.handler import TransformerConnectionHandler
+from src.server.throughput import get_host_throughput
 
 use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
@@ -95,7 +98,7 @@ class Server(threading.Thread):
         cls,
         prefix: Optional[str],
         converted_model_name_or_path: str,
-        throughput: float,
+        throughput: Union[float, Literal['auto', 'eval']],
         num_blocks: Optional[int] = None,
         block_indices: Optional[str] = None,
         num_handlers: Optional[int] = None,
@@ -103,13 +106,14 @@ class Server(threading.Thread):
         max_batch_size: int = 4096,
         torch_dtype: str = "auto",
         cache_size_bytes: Optional[int] = None,
-        device: Union[str, torch.device] = None,
+        device: Optional[Union[str, torch.device]] = None,
         initial_peers: Sequence[str] = (),
         compression=CompressionType.NONE,
         stats_report_interval: Optional[int] = None,
         custom_module_path=None,
         update_period: float = 30,
         expiration: Optional[float] = None,
+        max_block_selection_delay: float = 1,
         use_auth_token: Optional[str] = None,
         *,
         start: bool,
@@ -136,6 +140,10 @@ class Server(threading.Thread):
         device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         memory_cache = MemoryCache(device, cache_size_bytes)
 
+        assert isinstance(throughput, float) or throughput in ['auto', 'eval']
+        if throughput in ['auto', 'eval']:
+            throughput = get_host_throughput(device, force_eval=(throughput == 'eval'))
+
         if isinstance(torch_dtype, str):
             torch_dtype = DTYPE_MAP[torch_dtype]
         assert torch_dtype in DTYPE_MAP.values(), f"torch_dtype must be one of {list(DTYPE_MAP.values())}"
@@ -153,6 +161,10 @@ class Server(threading.Thread):
                 raise
             block_indices = range(first_block_index, last_block_index)
         else:
+            # If multiple servers (e.g., launched on the same machine by a script) get to this line at the same time,
+            # this delay decreases the probability of a race condition while choosing the best blocks to serve.
+            time.sleep(random.random() * max_block_selection_delay)
+
             assert num_blocks is not None
             uids = [f"{prefix}.{block_index}" for block_index in range(block_config.n_layer)]
             module_infos = get_remote_module_infos(dht, uids, expiration_time=float("inf"))
