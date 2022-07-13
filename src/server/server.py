@@ -203,8 +203,6 @@ class Server(threading.Thread):
                 max_batch_size=max_batch_size,
             )
 
-        num_handlers = num_handlers if num_handlers is not None else len(blocks) * 4
-
         return cls(
             dht,
             blocks,
