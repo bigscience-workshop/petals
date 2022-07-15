@@ -24,7 +24,11 @@ REF_INDEX = int(os.environ.get("REF_INDEX", BLOCK_UID.split(".")[-1]))
 
 
 def test_remote_block_exact_match(atol_forward=1e-5, atol_inference=1e-3):
-    dht = hivemind.DHT(initial_peers=INITIAL_PEERS, client_mode=True, start=True)
+    try:
+        dht = hivemind.DHT(initial_peers=INITIAL_PEERS, client_mode=True, start=True)
+    except Exception as e:
+        raise Exception(f"{INITIAL_PEERS} ; {repr(e)}")
+
     remote_block = get_remote_module(dht, BLOCK_UID)
     assert remote_block is not None, f"Could not find {BLOCK_UID} in DHT"
     assert isinstance(remote_block, RemoteTransformerBlock)
