@@ -26,15 +26,10 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-      - name: Extract branch name
-        run: |
-          echo $(env)
-          python -c "import git; print(git.Repo('.').head.ref.name)"
-          exit 255
       - name: Convert small model
         run: |
           python -m cli.convert_model --model bigscience/bloom-350m  --output_path ./converted_model \
-            --output_repo bloom-testing/test-bloomd-350m   --use_auth_token $BLOOM_TESTING_WRITE_TOKEN
+            --output_repo bloom-testing/test-bloomd-350m-$GITHUB_HEAD_REF --use_auth_token $BLOOM_TESTING_WRITE_TOKEN
 
 
   run-tests:
@@ -63,27 +58,28 @@ jobs:
           pip install -r requirements-dev.txt
       - name: Test
         run: |
-          python -m cli.run_server --converted_model_name_or_path bloom-testing/test-bloomd-350m --block_indices 0:12 \
+          export MODEL_NAME=test-bloomd-350m-$GITHUB_HEAD_REF
+          python -m cli.run_server --converted_model_name_or_path $MODEL_NAME --block_indices 0:12 \
             --torch_dtype float32 --identity tests/test.id --host_maddrs /ip4/127.0.0.1/tcp/31337 --throughput 1 &
           SERVER1_PID=$!
           
           export INITIAL_PEERS=/ip4/127.0.0.1/tcp/31337/p2p/QmS9KwZptnVdB9FFV7uGgaTq4sEKBwcYeKZDfSpyKDUd1g
           # ^-- server 1 multiaddr is determined by --identity and --host_maddrs
           
-          python -m cli.run_server --converted_model_name_or_path bloom-testing/test-bloomd-350m --block_indices 12:24 \
+          python -m cli.run_server --converted_model_name_or_path $MODEL_NAME --block_indices 12:24 \
             --torch_dtype float32 --initial_peers $INITIAL_PEERS --throughput 1 &> server2.log &
           SERVER2_PID=$!
 
           sleep 30  # wait for server to download layers
           
           # test individual blocks
-          export PYTHONPATH=. MODEL_NAME=bloom-testing/test-bloomd-350m
-          BLOCK_UID=bloom-testing/test-bloomd-350m.0 REF_NAME=$MODEL_NAME REF_INDEX=0 pytest tests/test_block_exact_match.py
-          BLOCK_UID=bloom-testing/test-bloomd-350m.19 REF_NAME=$MODEL_NAME REF_INDEX=19 pytest tests/test_block_exact_match.py
+          export PYTHONPATH=.
+          BLOCK_UID=$MODEL_NAME.0 REF_NAME=$MODEL_NAME REF_INDEX=0 pytest tests/test_block_exact_match.py
+          BLOCK_UID=$MODEL_NAME.19 REF_NAME=$MODEL_NAME REF_INDEX=19 pytest tests/test_block_exact_match.py
 
           REF_NAME=$MODEL_NAME pytest tests/test_chained_calls.py
           
-          MODEL_NAME=bloom-testing/test-bloomd-350m REF_NAME=bigscience/bloom-350m pytest tests/test_full_model.py
+          REF_NAME=bigscience/bloom-350m pytest tests/test_full_model.py
           
           kill -s SIGINT $SERVER1_PID $SERVER2_PID
           echo "Done!"
