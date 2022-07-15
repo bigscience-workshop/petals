@@ -3,6 +3,7 @@ import os
 
 import hivemind
 import torch
+import transformers
 
 from src.bloom.from_pretrained import load_pretrained_block
 from src.client.remote_block import RemoteTransformerBlock
@@ -19,16 +20,18 @@ if not BLOCK_UID:
     raise RuntimeError("Must specify BLOCK_UID as an index of a transformer block to be tested")
 
 REF_NAME = os.environ.get("REF_NAME", "bigscience/test-bloomd-6b3")
-REF_INDEX = int(os.environ.get("REF_INDEX", BLOCK_UID[-1].split(".")[-1]))
+REF_INDEX = int(os.environ.get("REF_INDEX", BLOCK_UID.split(".")[-1]))
 
 
 def test_remote_block_exact_match(atol_forward=1e-5, atol_inference=1e-3):
     dht = hivemind.DHT(initial_peers=INITIAL_PEERS, client_mode=True, start=True)
+
     remote_block = get_remote_module(dht, BLOCK_UID)
     assert remote_block is not None, f"Could not find {BLOCK_UID} in DHT"
     assert isinstance(remote_block, RemoteTransformerBlock)
+    ref_config = transformers.AutoConfig.from_pretrained(REF_NAME)
 
-    inputs = torch.randn(1, 8, 4096)
+    inputs = torch.randn(1, 8, ref_config.hidden_size)
     (outputs_forward,) = remote_block(inputs)
 
     outputs_inference = []

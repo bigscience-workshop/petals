@@ -20,10 +20,10 @@ use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
 
 
-DEFAULT_CACHE_PATH = Path(Path.home(), '.cache', project_name, 'throughput.json')
-DEFAULT_LOCK_PATH = Path(tempfile.gettempdir(), project_name, 'throughput.lock')
+DEFAULT_CACHE_PATH = Path(Path.home(), ".cache", project_name, "throughput.json")
+DEFAULT_LOCK_PATH = Path(tempfile.gettempdir(), project_name, "throughput.lock")
 
-SPEED_TEST_PATH = Path(Path(__file__).absolute().parents[2], 'cli', 'speed_test.py')
+SPEED_TEST_PATH = Path(Path(__file__).absolute().parents[2], "cli", "speed_test.py")
 
 
 @dataclass
@@ -43,7 +43,7 @@ def get_host_throughput(
 
     # We use the system-wide lock since only one process at a time can measure the host throughput
     os.makedirs(lock_path.parent, exist_ok=True)
-    with open(lock_path, 'wb') as lock_fd:
+    with open(lock_path, "wb") as lock_fd:
         logger.info("Loading throughput info")
         fcntl.flock(lock_fd.fileno(), fcntl.LOCK_EX)
         # The OS will release the lock when lock_fd is closed or the process is killed
@@ -63,7 +63,7 @@ def get_host_throughput(
             info = measure_throughput_info()
             try:
                 os.makedirs(cache_path.parent, exist_ok=True)
-                with open(cache_path, 'w') as cache_fd:
+                with open(cache_path, "w") as cache_fd:
                     json.dump(asdict(info), cache_fd)
             except Exception:
                 logger.exception(f"Failed to save throughput info in {cache_path}")
@@ -73,29 +73,30 @@ def get_host_throughput(
 
 
 def measure_throughput_info() -> ThroughputInfo:
-    logger.info("Measuring network, CPU, and GPU throughput. "
-                "This takes about a minute and will be cached for future runs")
+    logger.info(
+        "Measuring network, CPU, and GPU throughput. " "This takes about a minute and will be cached for future runs"
+    )
 
     # We measure throughput in "(inference) requests per second" (RPS) using a fixed model
-    config = BloomConfig.from_pretrained('bigscience/test-bloomd-6b3')
+    config = BloomConfig.from_pretrained("bigscience/test-bloomd-6b3")
 
     network_rps = measure_network_rps(config)
 
-    device_rps = {'cpu': measure_device_rps('cpu', config)}
+    device_rps = {"cpu": measure_device_rps("cpu", config)}
     if torch.cuda.is_available():
-        device_rps['cuda'] = measure_device_rps('cuda', config)
+        device_rps["cuda"] = measure_device_rps("cuda", config)
 
     return ThroughputInfo(network_rps=network_rps, device_rps=device_rps)
 
 
 def measure_network_rps(config: BloomConfig) -> float:
-    proc = subprocess.run([SPEED_TEST_PATH, '--json'], capture_output=True)
+    proc = subprocess.run([SPEED_TEST_PATH, "--json"], capture_output=True)
     if proc.returncode != 0:
         raise RuntimeError(f"Failed to measure network throughput (stdout: {proc.stdout}, stderr: {proc.stderr})")
     network_info = json.loads(proc.stdout)
 
     bits_per_request = config.hidden_size * 32
-    network_rps = min(network_info['download'], network_info['upload']) / bits_per_request
+    network_rps = min(network_info["download"], network_info["upload"]) / bits_per_request
 
     logger.info(
         f"Network throughput: "
@@ -120,7 +121,7 @@ def measure_device_rps(device: str, config: BloomConfig, layer_index: int = 0, n
             elapsed += time.perf_counter() - start_time
         device_rps = n_steps / elapsed
 
-    device_name = f"{torch.cuda.get_device_name(0)} GPU" if device == 'cuda' else 'CPU'
+    device_name = f"{torch.cuda.get_device_name(0)} GPU" if device == "cuda" else "CPU"
     logger.info(f"Compute throughput ({device_name}): {device_rps:.2f} RPS")
 
     return device_rps

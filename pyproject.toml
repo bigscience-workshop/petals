@@ -1,0 +1,10 @@
+[tool.black]
+line-length = 120
+required-version = "22.3.0"
+
+[tool.isort]
+profile = "black"
+line_length = 120
+combine_as_imports = true
+combine_star = true
+known_local_folder = ["tests", "cli"]

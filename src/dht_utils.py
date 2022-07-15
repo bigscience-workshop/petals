@@ -136,8 +136,12 @@ async def _get_remote_module_infos(
             try:
                 peer_id = PeerID.from_base58(peer_id)
                 state, throughput = server_info.value
-                if not (isinstance(state, int) and isinstance(throughput, float) and
-                        math.isfinite(throughput) and throughput >= 0.0):
+                if not (
+                    isinstance(state, int)
+                    and isinstance(throughput, float)
+                    and math.isfinite(throughput)
+                    and throughput >= 0.0
+                ):
                     raise ValueError(f"Invalid server info: {server_info}")
                 servers[peer_id] = ServerInfo(ServerState(state), throughput)
             except (TypeError, ValueError) as e:
