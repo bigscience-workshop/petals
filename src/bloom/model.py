@@ -11,8 +11,11 @@ import torch.utils.checkpoint
 from hivemind import use_hivemind_log_handler
 from torch import nn
 from torch.nn import CrossEntropyLoss, LayerNorm
-from transformers.file_utils import (add_code_sample_docstrings, add_start_docstrings,
-                                     add_start_docstrings_to_model_forward)
+from transformers.file_utils import (
+    add_code_sample_docstrings,
+    add_start_docstrings,
+    add_start_docstrings_to_model_forward,
+)
 from transformers.modeling_outputs import BaseModelOutputWithPastAndCrossAttentions, CausalLMOutputWithCrossAttentions
 from transformers.modeling_utils import PreTrainedModel
 from transformers.models.bloom.configuration_bloom import BloomConfig
@@ -442,10 +445,9 @@ class LMHead(nn.Module):
 
     def forward(self, hidden_states):
         word_embeddings = self.word_embeddings.weight
-        
+
         # We use 'chunked_forward' only when embeddings are in half-precision on CPU.
-        if word_embeddings.dtype in [torch.float16, torch.bfloat16] and \
-            word_embeddings.device.type == 'cpu':
+        if word_embeddings.dtype in [torch.float16, torch.bfloat16] and word_embeddings.device.type == "cpu":
             lm_logits = self.chunked_forward(hidden_states)
         else:
             # Switch dtype in case word_embeddings are fp16/bf16
@@ -454,18 +456,18 @@ class LMHead(nn.Module):
         return lm_logits
 
     def chunked_forward(self, hidden_states):
-        """ Splits word embeddings on chunks and iteratively casts them into fp32 to perform matmul more efficiently on CPU. 
-            chunk_size: provides trade-off between efficiency and extra memory consumption. 
+        """Splits word embeddings on chunks and iteratively casts them into fp32 to perform matmul more efficiently on CPU.
+        chunk_size: provides trade-off between efficiency and extra memory consumption.
         """
         assert self.chunk_size > 0, "Chunk size for chunked forward must be positive"
 
         word_embeddings = self.word_embeddings.weight
         num_embeddings = self.word_embeddings.num_embeddings
 
-        hidden_states = hidden_states.float()    
+        hidden_states = hidden_states.float()
         output = torch.zeros(*hidden_states.shape[:-1], num_embeddings)
 
         for i in range(0, num_embeddings, self.chunk_size):
-            chunk = word_embeddings[i: i + self.chunk_size].float()
-            output[..., i: i + self.chunk_size] = F.linear(hidden_states, chunk)
+            chunk = word_embeddings[i : i + self.chunk_size].float()
+            output[..., i : i + self.chunk_size] = F.linear(hidden_states, chunk)
         return output
