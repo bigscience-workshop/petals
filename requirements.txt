@@ -1,0 +1,6 @@
+torch==1.11.0+cu113 -f https://download.pytorch.org/whl/torch_stable.html
+accelerate==0.10.0
+huggingface-hub==0.7.0
+bitsandbytes-cuda113==0.26.0
+https://github.com/learning-at-home/hivemind/archive/d42c70331da43667da6d9020666df54806d8b561.zip
+https://github.com/huggingface/transformers/archive/6589e510fa4e6c442059de2fab84752535de9b23.zip

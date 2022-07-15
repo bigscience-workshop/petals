@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import threading
-from typing import List, Optional, Sequence, Tuple
+from typing import List, Optional, Sequence, Tuple, Union
 
-from hivemind import DHT
+from hivemind import DHT, DHTExpiration
 from hivemind.utils.logging import get_logger, use_hivemind_log_handler
 
 from src.data_structures import ModuleUID, RemoteModuleInfo, RemoteSpanInfo, ServerState
@@ -21,6 +21,7 @@ class RemoteSequenceManager:
     block_infos: List[Optional[RemoteModuleInfo]]
     spans_by_priority: List[RemoteSpanInfo]  # sorted from best to worst
     spans_containing_block: Tuple[List[RemoteSpanInfo], ...]
+    last_update_time: DHTExpiration
     lock_changes: threading.Lock
 
     def __init__(self, dht: DHT, block_uids: Sequence[ModuleUID]):
@@ -29,12 +30,25 @@ class RemoteSequenceManager:
         self.block_infos = [None] * len(self.block_uids)
         self.spans_by_priority = []
         self.spans_containing_block = tuple(list() for _ in range(len(self.block_uids)))
+        self.last_update_time = -float("inf")
         self.lock_changes = threading.Lock()
         self.update_()
 
         for uid, info in zip(self.block_uids, self.block_infos):
             assert info is not None, f"Found no remote peers for block {uid}"
         assert self.spans_by_priority and self.spans_containing_block
+
+    def __getitem__(self, ix: Union[int, slice]) -> RemoteSequenceManager:
+        """Get a RemoteSequenceManager for a sub-sequence of blocks"""
+        assert isinstance(ix, (int, slice))
+        if not isinstance(ix, slice):
+            ix = slice(int(ix), int(ix) + 1, 1)
+        with self.lock_changes:
+            subseq = RemoteSequenceManager(self.dht, self.block_uids[ix])
+            subseq.block_infos = self.block_infos[ix]
+            subseq.spans_by_priority, subseq.spans_containing_block = subseq.compute_spans(subseq.block_infos)
+            subseq.last_update_time = self.last_update_time
+        return subseq
 
     def update_(self):
         with self.lock_changes:
