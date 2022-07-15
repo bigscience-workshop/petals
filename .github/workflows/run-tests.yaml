@@ -24,7 +24,7 @@ jobs:
           key: Key-v1-py3.9-${{ hashFiles('requirements.txt') }}-${{ hashFiles('requirements-dev.txt') }}
       - name: Extract branch name
         run: |
-          echo $GITHUB_REF
+          echo $(env)
           exit 255
       - name: Install dependencies
         run: |
