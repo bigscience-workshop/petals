@@ -26,8 +26,10 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-      - name: Test
+      - name: Convert small model
         run: |
+          git --version
+          git lfs --version
           python -m cli.convert_model --model bigscience/bloom-350m  --output_path ./converted_model \
             --output_repo testing/test-bloomd-350m   --use_auth_token $BLOOM_TESTING_WRITE_TOKEN
 
