@@ -64,15 +64,21 @@ jobs:
         run: |
           python -m cli.run_server --converted_model_name_or_path bloom-testing/test-bloomd-350m --block_indices 0:12 \
             --torch_dtype float32 --identity tests/test.id --host_maddrs /ip4/127.0.0.1/tcp/31337 --throughput 1 &
-          SERVER1_PID=$$
+          SERVER1_PID=$!
           
           export INITIAL_PEERS=/ip4/127.0.0.1/tcp/31337/p2p/QmS9KwZptnVdB9FFV7uGgaTq4sEKBwcYeKZDfSpyKDUd1g
           # ^-- server 1 multiaddr is determined by --identity and --host_maddrs
           
+          python -m cli.run_server --converted_model_name_or_path bloom-testing/test-bloomd-350m --block_indices 12:24 \
+            --torch_dtype float32 --initial_peers $INITIAL_PEERS --throughput 1 &> server2.log &
+          SERVER2_PID=$!
+
           sleep 30  # wait for server to download layers
           
           # test individual blocks
           export PYTHONPATH=. REF_NAME=bloom-testing/test-bloomd-350m
           BLOCK_UID=bloom-testing/test-bloomd-350m.0 REF_INDEX=0 pytest tests/test_block_exact_match.py
-          BLOCK_UID=bloom-testing/test-bloomd-350m.4 REF_INDEX=4 pytest tests/test_block_exact_match.py
+          BLOCK_UID=bloom-testing/test-bloomd-350m.19 REF_INDEX=19 pytest tests/test_block_exact_match.py
+          
+          kill -s SIGINT $SERVER1_PID $SERVER2_PID
           echo "Done!"

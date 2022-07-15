@@ -447,6 +447,22 @@ class LMHead(nn.Module):
         self.word_embeddings = word_embeddings
         self.chunk_size = config.chunk_size_for_efficient_fp16_on_cpu
 
+    @property
+    def in_features(self) -> int:
+        return self.word_embeddings.num_embeddings
+
+    @property
+    def out_features(self) -> int:
+        return self.word_embeddings.embedding_dim
+
+    @property
+    def weight(self):
+        return self.word_embeddings.weight
+
+    @property
+    def bias(self):
+        return None
+
     def forward(self, hidden_states):
         word_embeddings = self.word_embeddings.weight
 

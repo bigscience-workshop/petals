@@ -16,7 +16,6 @@ from src.bloom.model import (
     LMHead,
 )
 from src.client.remote_sequential import RemoteSequential
-from src.data_structures import UID_DELIMITER
 
 use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
@@ -63,6 +62,12 @@ class DistributedBloomModel(BloomModel):
     def set_requires_grad(self, value):
         for p in self.parameters():
             p.requires_grad = value
+
+    def forward(self, *args, use_cache=None, **kwargs):
+        if use_cache:
+            raise ValueError("Distributed forward does not support use_cache; for efficient cache-aware generation, "
+                             "please use model.transformer.inference_session() or model.generate(...)")
+        return super().forward(*args, use_cache=False, **kwargs)
 
 
 class DistributedBloomPrefix(DistributedBloomModel):
@@ -131,7 +136,7 @@ class DistributedBloomPrefix(DistributedBloomModel):
 
 
 class DistributedBloomForCausalLM(BloomForCausalLM):
-    """DistributedBloomForCausalLM, but all transformer layers are hosted by the swarm"""
+    """ Similar to BloomForCausalLM, but all transformer layers are hosted by the swarm"""
 
     config_class = DistributedBloomConfig
 
@@ -146,11 +151,23 @@ class DistributedBloomForCausalLM(BloomForCausalLM):
         # Initialize weights and apply final processing
         self.post_init()
 
-    def get_output_embeddings(self):
-        return self.lm_head.word_embeddings
+    def get_input_embeddings(self):
+        return self.transformer.word_embeddings
 
-    def set_output_embeddings(self, new_embeddings):
-        self.lm_head.word_embeddings.weight = new_embeddings.weight
+    def get_output_embeddings(self):
+        if self.config.tie_word_embeddings:
+            return None
+        return self.lm_head
+
+    def set_input_embeddings(self, new_embeddings: nn.Embedding):
+        assert isinstance(new_embeddings, nn.Embedding)
+        self.transformer.word_embeddings = self.lm_head.word_embeddings = new_embeddings
+        assert self.lm_head.bias is None or len(self.lm_head.bias) == new_embeddings.num_embeddings
+
+    def set_output_embeddings(self, new_lm_head: nn.Linear):
+        with torch.no_grad():
+            self.lm_head.word_embeddings.weight[...] = new_lm_head.weight
+            self.lm_head.bias[...] = new_lm_head.bias
 
 
 class DistributedBloomForSequenceClassification(BloomForSequenceClassification):
