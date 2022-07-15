@@ -61,7 +61,7 @@ jobs:
           hivemind-dht &> dht.log &
           INITIAL_PID=$$
           sleep 3
-          INITIAL_PEERS=$(python -c "with open('dht.log') as f: print(f.readlines()[1].split()[-1])" )
+          export INITIAL_PEERS=$(python -c "with open('dht.log') as f: print(f.readlines()[1].split()[-1])" )
           echo "Initial peer: ${INITIAL_PEERS}"
           
           python -m cli.run_server --converted_model_name_or_path bloom-testing/test-bloomd-350m \
