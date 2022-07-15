@@ -152,15 +152,13 @@ except ImportError:
     from md5 import md5
 
 try:
-    from argparse import SUPPRESS as ARG_SUPPRESS
-    from argparse import ArgumentParser as ArgParser
+    from argparse import SUPPRESS as ARG_SUPPRESS, ArgumentParser as ArgParser
 
     PARSER_TYPE_INT = int
     PARSER_TYPE_STR = str
     PARSER_TYPE_FLOAT = float
 except ImportError:
-    from optparse import SUPPRESS_HELP as ARG_SUPPRESS
-    from optparse import OptionParser as ArgParser
+    from optparse import SUPPRESS_HELP as ARG_SUPPRESS, OptionParser as ArgParser
 
     PARSER_TYPE_INT = "int"
     PARSER_TYPE_STR = "string"

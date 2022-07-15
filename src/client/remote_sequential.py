@@ -3,7 +3,7 @@ from __future__ import annotations
 import contextlib
 import logging
 import random
-from typing import Union, Optional
+from typing import Optional, Union
 
 import torch
 from hivemind import DHT, P2P, get_logger, use_hivemind_log_handler
