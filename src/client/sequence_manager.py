@@ -80,7 +80,7 @@ class RemoteSequenceManager:
                 if peer_id not in active_spans:
                     active_spans[peer_id] = RemoteSpanInfo(start=block_index, end=block_index + 1, peer_id=peer_id)
                 else:  # peer_id in active_spans
-                    active_spans[peer_id] = active_spans[peer_id]._replace(end=block_index + 1)
+                    active_spans[peer_id].end = block_index + 1
 
             for peer_id in list(active_spans.keys()):
                 if (
