@@ -79,6 +79,8 @@ jobs:
           export PYTHONPATH=. REF_NAME=bloom-testing/test-bloomd-350m
           BLOCK_UID=bloom-testing/test-bloomd-350m.0 REF_INDEX=0 pytest tests/test_block_exact_match.py
           BLOCK_UID=bloom-testing/test-bloomd-350m.19 REF_INDEX=19 pytest tests/test_block_exact_match.py
+          unser REF_NAME
+          MODEL_NAME=bloom-testing/test-bloomd-350m REF_NAME=bigscience/bloom-350m pytest tests/test_full_model.py
           
           kill -s SIGINT $SERVER1_PID $SERVER2_PID
           echo "Done!"
