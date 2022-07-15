@@ -8,7 +8,7 @@ import os
 import hivemind
 import torch
 import transformers
-from hivemind.moe.expert_uid import ExpertInfo, UID_DELIMITER
+from hivemind.moe.expert_uid import UID_DELIMITER, ExpertInfo
 
 from src.bloom.from_pretrained import load_pretrained_block
 from src.client.remote_block import RemoteTransformerBlock
