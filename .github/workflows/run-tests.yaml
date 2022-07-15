@@ -58,19 +58,18 @@ jobs:
       - name: Test
         run: |
 
-          hivemind-dht &> dht.log &
+          hivemind-dht --host_maddrs /ip4/127.0.0.1/tcp/0 &> dht.log &
           INITIAL_PID=$$
           sleep 5
           export INITIAL_PEERS=$(python -c "with open('dht.log') as f: print(f.readlines()[1].split()[-1])" )
           echo "Initial peer: ${INITIAL_PEERS}"
           cat dht.log
  
-          python -m cli.run_server --converted_model_name_or_path bloom-testing/test-bloomd-350m \
-            --block_indices 0:12 --torch_dtype float32 --initial_peers $INITIAL_PEERS --throughput 1 &
+          python -m cli.run_server --converted_model_name_or_path bloom-testing/test-bloomd-350m --block_indices 0:12 \
+            --torch_dtype float32 --host_maddrs /ip4/127.0.0.1/tcp/0 --initial_peers $INITIAL_PEERS --throughput 1 &
           SERVER1_PID=$$
           
           sleep 60  # wait for server to download layers
-          ps aux | grep dht
           
           # test individual blocks
           export PYTHONPATH=. REF_NAME=bloom-testing/test-bloomd-350m
