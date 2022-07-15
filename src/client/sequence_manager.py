@@ -1,29 +1,26 @@
 from __future__ import annotations
 
 import threading
-from typing import List, NamedTuple, Optional, Sequence, Tuple
+from typing import List, Optional, Sequence, Tuple
 
 from hivemind import DHT, PeerID
 from hivemind.utils.logging import get_logger, use_hivemind_log_handler
 
-from src.data_structures import ModuleUID, RemoteModuleInfo, ServerState
+from src.data_structures import ModuleUID, RemoteModuleInfo, ServerState, RemoteSpanInfo
 from src.dht_utils import get_remote_module_infos
 
 use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
 
 
-Span = NamedTuple("Span", [("start", int), ("end", Optional[int]), ("peer_id", PeerID)])
-
-
-class RemoteSequenceInfo:
+class RemoteSequenceManager:
     """Keeps and updates the meta-information about which peers host which blocks"""
 
     dht: DHT
     block_uids: List[ModuleUID]
     block_infos: List[Optional[RemoteModuleInfo]]
-    spans_by_priority: List[Span]  # sorted from best to worst
-    spans_containing_block: Tuple[List[Span]]
+    spans_by_priority: List[RemoteSpanInfo]  # sorted from best to worst
+    spans_containing_block: Tuple[List[RemoteSpanInfo], ...]
     lock_changes: threading.Lock
 
     def __init__(self, dht: DHT, block_uids: Sequence[ModuleUID]):
