@@ -37,7 +37,7 @@ jobs:
     #needs: convert-model
     strategy:
       matrix:
-        python-version: [ 3.7, 3.8, 3.9 ]
+        python-version: [ 3.9 ]
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v2
@@ -60,11 +60,11 @@ jobs:
 
           hivemind-dht &> dht.log &
           INITIAL_PID=$$
-          sleep 3
+          sleep 5
           export INITIAL_PEERS=$(python -c "with open('dht.log') as f: print(f.readlines()[1].split()[-1])" )
           echo "Initial peer: ${INITIAL_PEERS}"
           cat dht.log
-          
+ 
           python -m cli.run_server --converted_model_name_or_path bloom-testing/test-bloomd-350m \
             --block_indices 0:12 --torch_dtype float32 --initial_peers $INITIAL_PEERS --throughput 1 &
           SERVER1_PID=$$
