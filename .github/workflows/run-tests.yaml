@@ -6,29 +6,52 @@ on:
   pull_request:
 
 jobs:
-  run_tests:
-
+  convert-model:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: [ 3.7, 3.8, 3.9 ]
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: 3.9
       - name: Cache dependencies
         uses: actions/cache@v2
         with:
           path: ~/.cache/pip
-          key: Key-v1-${{ matrix.python-version }}-${{ hashFiles('requirements.txt') }}-${{ hashFiles('requirements-dev.txt') }}
+          key: Key-v1-py3.9-${{ hashFiles('requirements.txt') }}-${{ hashFiles('requirements-dev.txt') }}
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install -r requirements-dev.txt
       - name: Test
         run: |
-          echo 123 
+          python -m cli.convert_model --model bigscience/bloom-350m  --output_path ./converted_model \
+            --output_repo testing/test-bloomd-350m   --use_auth_token $TESTING_WRITE_TOKEN
+
+#  run-tests:
+#    runs-on: ubuntu-latest
+#    strategy:
+#      matrix:
+#        python-version: [ 3.7, 3.8, 3.9 ]
+#    timeout-minutes: 15
+#    steps:
+#      - uses: actions/checkout@v2
+#      - name: Set up Python
+#        uses: actions/setup-python@v2
+#        with:
+#          python-version: ${{ matrix.python-version }}
+#      - name: Cache dependencies
+#        uses: actions/cache@v2
+#        with:
+#          path: ~/.cache/pip
+#          key: Key-v1-${{ matrix.python-version }}-${{ hashFiles('requirements.txt') }}-${{ hashFiles('requirements-dev.txt') }}
+#      - name: Install dependencies
+#        run: |
+#          python -m pip install --upgrade pip
+#          pip install -r requirements.txt
+#          pip install -r requirements-dev.txt
+#      - name: Test
+#        run: |
+#          python -m cli.convert_model --model bigscience/bloom-350m  --output_path ./converted_model \
+#            --output_repo testing/test-bloomd-350m   --use_auth_token $MY_WRITE_TOKEN
