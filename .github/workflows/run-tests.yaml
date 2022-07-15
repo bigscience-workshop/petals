@@ -22,14 +22,14 @@ jobs:
         with:
           path: ~/.cache/pip
           key: Key-v1-py3.9-${{ hashFiles('requirements.txt') }}-${{ hashFiles('requirements-dev.txt') }}
+      - name: Extract branch name
+        run: |
+          echo $GITHUB_REF
+          exit 255
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-      - name: Extract branch name
-        run: |
-          export BRANCH_NAME="##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
-          echo $BRANCH_NAME
       - name: Convert small model
         run: |
           python -m cli.convert_model --model bigscience/bloom-350m  --output_path ./converted_model \
