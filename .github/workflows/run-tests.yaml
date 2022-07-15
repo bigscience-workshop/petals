@@ -25,6 +25,7 @@ jobs:
       - name: Extract branch name
         run: |
           echo $(env)
+          python -c "import git; print(git.Repo('.').head.ref.name)"
           exit 255
       - name: Install dependencies
         run: |
