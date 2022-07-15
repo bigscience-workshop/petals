@@ -70,6 +70,7 @@ jobs:
           SERVER1_PID=$$
           
           sleep 60  # wait for server to download layers
+          ps aux | grep dht
           
           # test individual blocks
           export PYTHONPATH=. REF_NAME=bloom-testing/test-bloomd-350m
@@ -78,4 +79,3 @@ jobs:
 
           kill $INITIAL_PID $SERVER1_PID
           echo "Done!"
-          
