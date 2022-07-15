@@ -562,7 +562,7 @@ class BloomForSequenceClassification(BloomPreTrainedModel):
                     f"{self.__class__.__name__} will not detect padding tokens in `inputs_embeds`. Results may be "
                     "unexpected if using padding tokens in conjunction with `inputs_embeds.`"
                 )
-            
+
         pooled_logits = logits[torch.arange(batch_size, device=logits.device), sequence_lengths]
 
         loss = None
