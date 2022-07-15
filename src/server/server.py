@@ -98,7 +98,7 @@ class Server(threading.Thread):
         cls,
         prefix: Optional[str],
         converted_model_name_or_path: str,
-        throughput: Union[float, Literal["auto", "eval"]],
+        throughput: Union[float, str],
         num_blocks: Optional[int] = None,
         block_indices: Optional[str] = None,
         num_handlers: Optional[int] = None,
