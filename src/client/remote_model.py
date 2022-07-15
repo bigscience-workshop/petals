@@ -22,11 +22,12 @@ class DistributedBloomConfig(BloomConfig):
     initial_peers: Tuple[str, ...] = ()  # a list of initial peers for hivemind DHT
     dht_prefix: str  # a prefix for all dht keys that correspond to this model (usually equal to model name)
     dht: Optional[hivemind.DHT] = None  # a running DHT instance, e.g. when using the same DHT for multiple models
-    chunk_size_for_efficient_fp16_on_cpu: int = 10000 # a chunk size for a LM head for efficient half-precision on CPU 
+    chunk_size_for_efficient_fp16_on_cpu: int = 10000  # a chunk size for a LM head for efficient half-precision on CPU
 
 
 class DistributedBloomModel(BloomModel):
     """BloomModel, but all transformer layers are hosted by the swarm"""
+
     config_class = DistributedBloomConfig
 
     def __init__(self, config: DistributedBloomConfig):
@@ -45,7 +46,7 @@ class DistributedBloomModel(BloomModel):
         )
         assert isinstance(dht, hivemind.DHT) and dht.is_alive(), "dht must be a running hivemind.DHT instance"
         self.h = RemoteSequential(config, dht, config.dht_prefix)
-    
+
         # Forbid accumulate grads for embeddings and layernorm
         self.set_requires_grad(False)
 
@@ -56,6 +57,7 @@ class DistributedBloomModel(BloomModel):
 
 class DistributedBloomForCausalLM(BloomForCausalLM):
     """DistributedBloomForCausalLM, but all transformer layers are hosted by the swarm"""
+
     config_class = DistributedBloomConfig
 
     def __init__(self, config: DistributedBloomConfig):

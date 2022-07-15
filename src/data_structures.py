@@ -23,15 +23,16 @@ class ServerInfo:
 
 @dataclass
 class RemoteModuleInfo:
-    """ A remote module that is served by one or more servers """
+    """A remote module that is served by one or more servers"""
+
     uid: ModuleUID
     servers: Dict[PeerID, ServerInfo]
 
 
 @dataclass
 class RemoteSpanInfo:
-    """ A chain of remote blocks served by one specific remote peer """
+    """A chain of remote blocks served by one specific remote peer"""
+
     start: int
     end: int
     peer_id: PeerID
-

@@ -3,10 +3,10 @@ from __future__ import annotations
 import threading
 from typing import List, Optional, Sequence, Tuple
 
-from hivemind import DHT, PeerID
+from hivemind import DHT
 from hivemind.utils.logging import get_logger, use_hivemind_log_handler
 
-from src.data_structures import ModuleUID, RemoteModuleInfo, ServerState, RemoteSpanInfo
+from src.data_structures import ModuleUID, RemoteModuleInfo, RemoteSpanInfo, ServerState
 from src.dht_utils import get_remote_module_infos
 
 use_hivemind_log_handler("in_root_logger")
@@ -64,15 +64,15 @@ class RemoteSequenceManager:
                 if server.state != ServerState.ONLINE:
                     continue
                 if peer_id not in active_spans:
-                    active_spans[peer_id] = Span(start=block_index, end=block_index + 1, peer_id=peer_id)
+                    active_spans[peer_id] = RemoteSpanInfo(start=block_index, end=block_index + 1, peer_id=peer_id)
                 else:  # peer_id in active_spans
                     active_spans[peer_id] = active_spans[peer_id]._replace(end=block_index + 1)
 
             for peer_id in list(active_spans.keys()):
                 if (
-                    peer_id not in info.servers or
-                    info.servers[peer_id].state != ServerState.ONLINE or
-                    block_index == len(block_infos) - 1
+                    peer_id not in info.servers
+                    or info.servers[peer_id].state != ServerState.ONLINE
+                    or block_index == len(block_infos) - 1
                 ):
                     closed_spans.append(active_spans.pop(peer_id))
         assert not active_spans
