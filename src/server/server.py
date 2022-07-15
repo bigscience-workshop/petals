@@ -4,7 +4,7 @@ import multiprocessing as mp
 import random
 import threading
 import time
-from typing import Dict, Literal, Optional, Sequence, Union
+from typing import Dict, Optional, Sequence, Union
 
 import torch
 from hivemind import DHT, MAX_DHT_TIME_DISCREPANCY_SECONDS, BatchTensorDescriptor, get_dht_time
