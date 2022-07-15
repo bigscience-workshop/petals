@@ -1,38 +1,24 @@
-# bloom-demo
-Early dev prototype for decentralized bloom. Not for public eyes **yet**.
+# Distributed BLOOM
 
-Roadmap: [issue #12](https://github.com/learning-at-home/bloom-demo/issues/12)
+Run the largest open language model by collaborating over the internet.
 
-Latest news @ main branch (max 5):
-- [Jul 4] @dbaranchuk implemented chained rpc_forward and rpc_backward (for prompt tuning)
-- [Jul 3] @dbaranchuk optimized DistributedBloom to reduce embeddings/logits RAM usage
-- [Jul 1] @yozh added RemoteSequential and test for full model exact match
-- [June 28] @dbaranchunk added quick deployment scripts for testnet
+__[EARLY PROTOTYPE]__ - this project is a work in progress. Stuff breaks and gets fixed every day. Docs are nonexistent.
+If you want us to wake you up when it's ready, click Watch -> Custom and tick "Releases".
 
-### install
+Roadmap: [__issue #12__](https://github.com/learning-at-home/bloom-demo/issues/12)
 
+### Installation
 
 ```bash
-conda create -y --name bloom-demo python=3.8.12 pip
-conda activate bloom-demo
-
 conda install -y -c conda-forge cudatoolkit-dev==11.3.1 cudatoolkit==11.3.1 cudnn==8.2.1.32
-pip install torch==1.11.0+cu113 torchvision==0.12.0+cu113 -f https://download.pytorch.org/whl/torch_stable.html
-pip install accelerate==0.10.0 huggingface-hub==0.7.0 hivemind==1.1.0
-pip install bitsandbytes-cuda113==0.26.0
-pip install https://github.com/huggingface/transformers/archive/6589e510fa4e6c442059de2fab84752535de9b23.zip
+pip install torch==1.12.0+cu113 -f https://download.pytorch.org/whl/torch_stable.html
+pip install -r requirements.txt
 ```
 
 
-### run local inference:
-No networking whatsoever, used to verify architecture optimizations
+### Basic functionality
 
-```bash
-# run one bloom block for a few steps -- on a local machine
-python -m cli.inference_one_block --config cli/config.json  # see other args
-```
-
-### run distributed inference / training
+All tests is run on localhost
 
 First, run one or more servers like this:
 ```bash
@@ -72,7 +58,7 @@ with layer3.inference_session() as sess:
 ```
 
 
-### convert regular bloom to distributed
+### Convert regular BLOOM into distributed
 ```bash
 
 # convert model from HF hub to a distributed format (can take hours depending on your connection!)
@@ -83,7 +69,7 @@ python -m cli.convert_model --model bigscience/bloom-6b3  \
 ```
 
 
-### test local vs remote block (allclose)
+### Test local vs remote block (allclose)
 
 To test distributed inference, run one or more servers, then open a new shell and run pytest with environment variables:
 ```bash
