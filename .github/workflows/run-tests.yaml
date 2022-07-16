@@ -28,6 +28,7 @@ jobs:
           pip install -r requirements.txt
       - name: Delete previous model, if exists
         run: |
+          echo $(env)
           if [ -z "$GITHUB_HEAD_REF" ]
           then
             export GITHUB_HEAD_REF="main"
