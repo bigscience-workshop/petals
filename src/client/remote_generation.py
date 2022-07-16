@@ -56,8 +56,6 @@ class RemoteGenerationMixin:
         pad_token_id = pad_token_id if pad_token_id is not None else self.config.pad_token_id
         eos_token_id = eos_token_id if eos_token_id is not None else self.config.eos_token_id
 
-        word_embeddings = self.transformer.word_embeddings.weight
-
         if inputs is None:
             assert bos_token_id is not None, "You have to provide a bos_token_id if you do not provide inputs"
             inputs = torch.tensor([[bos_token_id]])
@@ -79,7 +77,7 @@ class RemoteGenerationMixin:
         with self.transformer.h.inference_session() as sess:
             outputs = []
             if torch.any(inputs == pad_token_id): # TODO: move to prepare_inputs
-                outputs += [inputs[:, :inputs.size(1) - (inputs == pad_token_id).sum(-1).min()]]
+                outputs += [inputs[:, :inputs.size(1) - (inputs == pad_token_id).sum(-1).max()]]
             else:
                 outputs += [inputs]
             last_token_id = None
@@ -87,19 +85,17 @@ class RemoteGenerationMixin:
             hypo_ids = torch.arange(outputs[0].size(0))
             while True:
                 embs = self.transformer.word_embeddings(outputs[-1])
-                print(embs.size())
                 embs = self.transformer.word_embeddings_layernorm(embs)
                 hidden_state = sess.step(embs)[:, -1]
                 hidden_state = self.transformer.ln_f(hidden_state)
-                lm_logits = F.linear(hidden_state, word_embeddings).float()
+                lm_logits = self.lm_head(hidden_state)
 
                 for constraint in constraints:
-                    print(lm_logits.size())
                     lm_logits = constraint(last_token_id, lm_logits, hypo_ids)
                 last_token_id, hypo_ids = decoding_algorithm(lm_logits)
                 if seq_idx < inputs.size(1): # TODO: why is it not a constraint?
-                    pad_token_mask = inputs[:, seq_idx] == pad_token_id
-                    last_token_id = (1 - pad_token_mask) * inputs[:, seq_idx] + pad_token_mask * last_token_id
+                    pad_token_mask = inputs[:, seq_idx:seq_idx + 1] == pad_token_id
+                    last_token_id = (~pad_token_mask) * inputs[:, seq_idx:seq_idx + 1] + pad_token_mask * last_token_id
 
                 if torch.all(last_token_id == eos_token_id):
                     break

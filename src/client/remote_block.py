@@ -61,12 +61,15 @@ class RemoteTransformerBlockInferenceSession:
 
     @classmethod
     async def _create(
-        cls, remote_module: RemoteTransformerBlock, timeout: Optional[float] = None
+        cls,
+        remote_module: RemoteTransformerBlock,
+        timeout: Optional[float] = None,
     ) -> RemoteTransformerBlockInferenceSession:
         """Create a new session for a given remote module. This code is meant to be run inside RemoteExpertWorker"""
         inputs_queue = asyncio.Queue()
         outputs_stream = await remote_module.stub.rpc_inference(
-            cls._read_inputs_from_queue(inputs_queue, timeout), timeout=timeout
+            cls._read_inputs_from_queue(inputs_queue, timeout),
+            timeout=timeout,
         )
         return cls(remote_module.uid, remote_module.info, inputs_queue, outputs_stream)
 
@@ -97,7 +100,7 @@ class RemoteTransformerBlockInferenceSession:
         )
         outputs = list(map(deserialize_torch_tensor, outputs_serialized.tensors))
         assert outputs[0].shape == inputs[0].shape, f"expected outputs[0] to be hidden states but got {outputs[0]}"
-        return outputs[0]
+        return outputs
 
     async def _step(self, inputs_serialized: runtime_pb2.ExpertRequest) -> runtime_pb2.ExpertResponse:
         """Inference step on serialized data. This code is meant to be run inside RemoteExpertWorker"""
