@@ -144,6 +144,7 @@ class DistributedBloomPrefix(DistributedBloomModel):
 
 class DistributedBloomForCausalLM(BloomForCausalLM, RemoteGenerationMixin):
     """DistributedBloomForCausalLM, but all transformer layers are hosted by the swarm"""
+
     config_class = DistributedBloomConfig
 
     def __init__(self, config: DistributedBloomConfig):

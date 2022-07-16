@@ -11,6 +11,7 @@ class DecodingAlgorithm(ABC):
     """
     An abstract class for decoding algorithms. Describe base function of those algorithms: they have to select new tokens and provide the corresponding hypothesis.
     """
+
     def __init__(self) -> None:
         pass
 
@@ -26,6 +27,7 @@ class GreedyAlgorithm(DecodingAlgorithm):
     """
     The simpliest algorithm for decoding. It selects the most probable token.
     """
+
     def __call__(self, logits: torch.Tensor) -> Tuple[TokenIds, HypoIds]:
         """
         Returns the most propable token. The second return object always are range of integers from 0 to batch_size - 1.
@@ -38,7 +40,7 @@ class SamplingAlgorithm(DecodingAlgorithm):
         """
         :param logits: A tensor of shape (batch_size * num_hypos, vocab_size)
         :param indices_to_remove: A bool tensor of shape (batch_size * num_hypos, vocab_size)
-        :return: A tuple of selected token ids and corresponding hypothesis. The shape of the token ids is (batch_size, seq_length) and the shape of the hypothesis is (batch_size). 
+        :return: A tuple of selected token ids and corresponding hypothesis. The shape of the token ids is (batch_size, seq_length) and the shape of the hypothesis is (batch_size).
         """
         logits[indices_to_remove] = -float("Inf")
         probs = torch.softmax(logits / self.temperature, -1)

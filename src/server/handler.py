@@ -39,7 +39,9 @@ class TransformerConnectionHandler(ConnectionHandler):
 
             batch_size = request.tensors[0].size[0] if request.tensors else 1
 
-            cache_metadata = torch.tensor([[-1, -1] for _ in range(batch_size)], dtype=torch.int64)  # [cache_handle, prefix_length]
+            cache_metadata = torch.tensor(
+                [[-1, -1] for _ in range(batch_size)], dtype=torch.int64
+            )  # [cache_handle, prefix_length]
             prefix_length = 0
 
             async with self._allocate_caches(requested_backends, batch_size) as cache_handles:
@@ -225,7 +227,9 @@ class TransformerConnectionHandler(ConnectionHandler):
                 num_heads = backend.module.self_attention.num_heads
                 head_dim = backend.module.self_attention.head_dim
 
-                cache_descriptor = TensorDescriptor(size=(2, batch_size, MAX_LENGTH, num_heads, head_dim), dtype=torch.float32)
+                cache_descriptor = TensorDescriptor(
+                    size=(2, batch_size, MAX_LENGTH, num_heads, head_dim), dtype=torch.float32
+                )
                 # [key_or_value, batch_size, max_length, num_heads, head_dim]
 
                 handles.append(await stack.enter_async_context(backend.memory_cache.allocate_cache(cache_descriptor)))
