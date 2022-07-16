@@ -28,12 +28,13 @@ jobs:
           pip install -r requirements.txt
       - name: Delete previous model, if exists
         run: |
+          export HF_TAG=$(python -c "import os; print(os.environ.get('GITHUB_BASE_REF') or os.environ.get('GITHUB_REF_NAME'))")
           python -c "from huggingface_hub import delete_repo; delete_repo(token='$BLOOM_TESTING_WRITE_TOKEN', \
-          name='test-bloomd-350m-$GITHUB_REF_NAME', organization='bloom-testing')" || true
+          name='test-bloomd-350m-$HF_TAG', organization='bloom-testing')" || true
       - name: Convert model and push to hub
         run: |
           python -m cli.convert_model --model bigscience/bloom-350m  --output_path ./converted_model \
-            --output_repo bloom-testing/test-bloomd-350m-$GITHUB_REF_NAME --use_auth_token $BLOOM_TESTING_WRITE_TOKEN
+            --output_repo bloom-testing/test-bloomd-350m-$HF_TAG --use_auth_token $BLOOM_TESTING_WRITE_TOKEN
 
 
   run-tests:
@@ -62,7 +63,8 @@ jobs:
           pip install -r requirements-dev.txt
       - name: Test
         run: |
-          export MODEL_NAME=bloom-testing/test-bloomd-350m-$GITHUB_REF_NAME
+          export HF_TAG=$(python -c "import os; print(os.environ.get('GITHUB_BASE_REF') or os.environ.get('GITHUB_REF_NAME'))")
+          export MODEL_NAME=bloom-testing/test-bloomd-350m-$HF_TAG
           python -m cli.run_server --converted_model_name_or_path $MODEL_NAME --block_indices 0:12 \
             --torch_dtype float32 --identity tests/test.id --host_maddrs /ip4/127.0.0.1/tcp/31337 --throughput 1 &
           SERVER1_PID=$!
