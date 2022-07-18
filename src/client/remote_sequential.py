@@ -85,7 +85,6 @@ class RemoteSequential(nn.Module):
                 self.config,
                 self.dht,
                 prefix=self.prefix,
-                max_retries=self.max_retries,
                 p2p=self.p2p,
                 sequence_manager=self.sequence_manager[ix],
             )
@@ -100,3 +99,6 @@ class RemoteSequential(nn.Module):
     def inference_session(self) -> RemoteSequentialInferenceSession:
         self.sequence_manager.update_()
         return RemoteSequentialInferenceSession(self.sequence_manager, self.p2p)
+
+    def extra_repr(self) -> str:
+        return f"{self.sequence_manager.block_uids[0]}..{self.sequence_manager.block_uids[-1]}"
