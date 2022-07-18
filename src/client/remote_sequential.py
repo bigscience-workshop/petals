@@ -3,7 +3,7 @@ from __future__ import annotations
 import contextlib
 import logging
 import random
-from typing import Optional, Union
+from typing import Optional, Union, List
 
 import torch
 from hivemind import DHT, P2P, get_logger, use_hivemind_log_handler
@@ -13,8 +13,9 @@ from torch import nn
 
 import src
 from src.client.remote_block import RemoteTransformerBlock
+from src import RemoteTransformerBlockInferenceSession
 from src.client.sequence_manager import RemoteSequenceManager
-from src.data_structures import UID_DELIMITER
+from src.data_structures import UID_DELIMITER, RemoteSpanInfo
 from src.dht_utils import _create_remote_modules_from_infos
 
 use_hivemind_log_handler("in_root_logger")
@@ -113,23 +114,26 @@ class RemoteSequentialInferenceSession:
         self.sequence_manager = sequence_manager
         self.p2p = p2p
         self.closed = False
+        self.chosen_spans: List[RemoteSpanInfo] = []
         self.stack = contextlib.ExitStack()
-        self.active_sessions = []
+        self.inference_sessions: List[RemoteTransformerBlockInferenceSession] = []
 
     def __enter__(self):
-        assert not self.closed
+        assert not self.closed and not self.chosen_spans
         self.stack.__enter__()
         # TODO(yozh) replace this code with a fault-tolerant chain that can be reconstructed if some peers fail
+        self.chosen_spans.extend(self.sequence_manager.make_sequence())
 
-        for chosen_span in self.sequence_manager.make_sequence():
+        for chosen_span in self.chosen_spans:
+            TransformerConnectionHandler.get_stub(self.p2p, self.peer_id)
 
             # TODO begin throwaway prototype code
             remote = RemoteTransformerBlock(self.sequence_manager.block_infos[current_block], self.p2p)
             _ = remote.info  # TODO fix
             span_uids = self.sequence_manager.block_uids[current_block : chosen_span.end]
             remote._info = ExpertInfo(" ".join(span_uids), chosen_span.peer_id)
-            self.active_sessions.append(remote.inference_session())
-            self.stack.enter_context(self.active_sessions[-1])
+            self.inference_sessions.append(remote.inference_session())
+            self.stack.enter_context(self.inference_sessions[-1])
             current_block = chosen_span.end
             # TODO end throwaway prototype code
 
@@ -137,7 +141,7 @@ class RemoteSequentialInferenceSession:
 
     def step(self, inputs: torch.Tensor):
         assert not self.closed
-        for session in self.active_sessions:
+        for session in self.inference_sessions:
             outputs = session.step(inputs)
             assert outputs.shape == inputs.shape, f"expected {inputs.shape}, got {outputs.shape}"
             inputs = outputs
@@ -147,7 +151,7 @@ class RemoteSequentialInferenceSession:
         """Finish a given inference session, close the underlying connection"""
         if not self.closed:
             self.stack.__exit__(*exc_details or (None, None, None))
-            self.active_sessions.clear()
+            self.inference_sessions.clear()
             self.closed = True
 
     def __exit__(self, *exc_details):
