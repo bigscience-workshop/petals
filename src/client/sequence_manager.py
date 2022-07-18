@@ -49,13 +49,13 @@ class RemoteSequenceManager:
         end_index = end_index if end_index is not None else len(self.block_uids)
         span_sequence = []
         current_index = start_index
-        while current_index != end_index - 1:
+        while current_index < end_index:
             candidate_spans = self.spans_containing_block[current_index]
-
             chosen_span = random.choice(candidate_spans)  # TODO this should be replaced with proper load balancing
 
             assert chosen_span.start <= current_index < chosen_span.end
             span_sequence.append(chosen_span)
+            current_index = chosen_span.end
 
         return span_sequence
 
