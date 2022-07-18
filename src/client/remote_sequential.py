@@ -8,7 +8,6 @@ from typing import List, Optional, Union
 import torch
 from hivemind import DHT, P2P, get_logger, use_hivemind_log_handler
 from hivemind.moe.client.remote_expert_worker import RemoteExpertWorker
-from hivemind.moe.expert_uid import ExpertInfo
 from torch import nn
 
 import src
