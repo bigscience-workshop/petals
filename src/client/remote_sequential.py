@@ -12,8 +12,7 @@ from hivemind.moe.expert_uid import ExpertInfo
 from torch import nn
 
 import src
-from src.client.remote_block import RemoteTransformerBlock
-from src import RemoteTransformerBlockInferenceSession
+from src.client.remote_block import RemoteTransformerBlock, RemoteTransformerBlockInferenceSession
 from src.client.sequence_manager import RemoteSequenceManager
 from src.data_structures import UID_DELIMITER, RemoteSpanInfo
 from src.dht_utils import _create_remote_modules_from_infos
