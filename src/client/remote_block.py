@@ -8,7 +8,6 @@ from typing import AsyncIterator, Optional
 import torch
 from hivemind import serialize_torch_tensor, nested_flatten, deserialize_torch_tensor, anext
 from hivemind.moe.client.expert import RemoteExpert, RemoteExpertWorker
-from hivemind.moe.client.remote_expert_worker import RemoteExpertWorker
 from hivemind.moe.expert_uid import ExpertInfo
 from hivemind.p2p import P2P, StubBase
 from hivemind.proto import runtime_pb2

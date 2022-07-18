@@ -4,34 +4,34 @@ import random
 import threading
 from typing import List, Optional, Sequence, Tuple, Union
 
-from hivemind import DHT, DHTExpiration
+from hivemind import DHT, DHTExpiration, P2P, MSGPackSerializer
+from hivemind.moe.client.remote_expert_worker import RemoteExpertWorker
+from hivemind.proto import runtime_pb2
 from hivemind.utils.logging import get_logger, use_hivemind_log_handler
 
 from src.data_structures import ModuleUID, RemoteModuleInfo, RemoteSpanInfo, ServerState
 from src.dht_utils import get_remote_module_infos
+from src.server.handler import TransformerConnectionHandler
 
 use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
 
 
 class RemoteSequenceManager:
-    """Keeps and updates the meta-information about which peers host which blocks"""
+    """
+    Keeps and updates the meta-information about which peers host which blocks.
+    In future, this class is intended to maintain latency statistics, ban non-responsive peers, etc.
+    """
 
-    dht: DHT
-    block_uids: List[ModuleUID]
-    block_infos: List[Optional[RemoteModuleInfo]]
-    spans_by_priority: List[RemoteSpanInfo]  # sorted from best to worst
-    spans_containing_block: Tuple[List[RemoteSpanInfo], ...]
-    last_update_time: DHTExpiration
-    lock_changes: threading.Lock
-
-    def __init__(self, dht: DHT, block_uids: Sequence[ModuleUID]):
-        self.dht = dht
-        self.block_uids = list(block_uids)
-        self.block_infos = [None] * len(self.block_uids)
-        self.spans_by_priority = []
-        self.spans_containing_block = tuple(list() for _ in range(len(self.block_uids)))
-        self.last_update_time = -float("inf")
+    def __init__(self, dht: DHT, block_uids: Sequence[ModuleUID], p2p: P2P, max_retries: int = 3):
+        self.dht, self.p2p = dht, p2p
+        self.block_uids: List[ModuleUID] = list(block_uids)
+        self.block_infos: List[Optional[RemoteModuleInfo]] = [None] * len(self.block_uids)
+        self.spans_by_priority: List[RemoteSpanInfo] = []  # sorted from best to worst
+        self.spans_containing_block: Tuple[List[RemoteSpanInfo], ...] = tuple([] for _ in range(len(self.block_uids)))
+        self.last_update_time: DHTExpiration = -float("inf")
+        self.max_retries = max_retries
+        self._rpc_info = None
         self.lock_changes = threading.Lock()
         self.update_()
 
@@ -65,7 +65,7 @@ class RemoteSequenceManager:
         if not isinstance(ix, slice):
             ix = slice(int(ix), int(ix) + 1, 1)
         with self.lock_changes:
-            subseq = RemoteSequenceManager(self.dht, self.block_uids[ix])
+            subseq = RemoteSequenceManager(self.dht, self.block_uids[ix], self.p2p)
             subseq.block_infos = self.block_infos[ix]
             subseq.spans_by_priority, subseq.spans_containing_block = subseq.compute_spans(subseq.block_infos)
             subseq.last_update_time = self.last_update_time
@@ -123,3 +123,25 @@ class RemoteSequenceManager:
 
     def __len__(self):
         return len(self.block_uids)
+
+    @property
+    def rpc_info(self):
+        """Return the rpc_info queried from one of the servers that hold the first block"""
+        if self._rpc_info is None:
+            retries = 0
+            for i in range(self.max_retries):
+                try:
+                    self.update_()
+                    peer_id = random.choice(list(self.block_infos[0].servers.keys()))
+                    stub = TransformerConnectionHandler.get_stub(self.p2p, peer_id)
+                    outputs = RemoteExpertWorker.run_coroutine(
+                        stub.rpc_info(runtime_pb2.ExpertUID(uid=self.block_uids[0]))
+                    )
+                    self._rpc_info = MSGPackSerializer.loads(outputs.serialized_info)
+                except Exception as e:
+                    retries += 1
+                    if retries >= self.max_retries:
+                        raise e
+                    else:
+                        logger.warning(f"Tried to call rpc_info, but caught {repr(e)}", exc_info=True)
+        return self._rpc_info
