@@ -1,9 +1,7 @@
 from __future__ import annotations
 
-import contextlib
 import logging
-import random
-from typing import List, Optional, Union
+from typing import Optional, Union
 
 import torch
 from hivemind import DHT, P2P, get_logger, use_hivemind_log_handler
@@ -11,11 +9,11 @@ from hivemind.moe.client.remote_expert_worker import RemoteExpertWorker
 from torch import nn
 
 import src
-from src.client.remote_block import RemoteTransformerBlock, RemoteTransformerBlockInferenceSession
+from src.client.inference_session import RemoteSequentialInferenceSession
+from src.client.remote_block import RemoteTransformerBlock
 from src.client.sequence_manager import RemoteSequenceManager
-from src.data_structures import CHAIN_DELIMITER, UID_DELIMITER, RemoteSpanInfo
+from src.data_structures import UID_DELIMITER
 from src.dht_utils import _create_remote_modules_from_infos
-from src.server.handler import TransformerConnectionHandler
 
 use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
@@ -102,56 +100,3 @@ class RemoteSequential(nn.Module):
     def inference_session(self) -> RemoteSequentialInferenceSession:
         self.sequence_manager.update_()
         return RemoteSequentialInferenceSession(self.sequence_manager, self.p2p)
-
-
-class RemoteSequentialInferenceSession:
-    """An interface to a multi-step *inference* session for a sequence of remote transformer blocks"""
-
-    def __init__(self, sequence_manager: RemoteSequenceManager, p2p: P2P, timeout: Optional[float] = None):
-        self.sequence_manager = sequence_manager
-        self.p2p = p2p
-        self.closed = False
-        self.chosen_spans: List[RemoteSpanInfo] = []
-        self.stack = contextlib.ExitStack()
-        self.inference_sessions: List[RemoteTransformerBlockInferenceSession] = []
-        self.timeout = timeout
-
-    def __enter__(self):
-        assert not self.closed and not self.chosen_spans
-        self.stack.__enter__()
-        # TODO(yozh) replace this code with a fault-tolerant chain that can be reconstructed if some peers fail
-        self.chosen_spans.extend(self.sequence_manager.make_sequence())
-
-        for chosen_span in self.chosen_spans:
-            stub = TransformerConnectionHandler.get_stub(self.p2p, chosen_span.peer_id)
-            span_uids: str = CHAIN_DELIMITER.join(self.sequence_manager.block_uids[chosen_span.start : chosen_span.end])
-            inference_session = RemoteExpertWorker.run_coroutine(
-                RemoteTransformerBlockInferenceSession._create(
-                    stub, span_uids, rpc_info=self.sequence_manager.rpc_info, timeout=self.timeout
-                )
-            )
-            self.inference_sessions.append(inference_session)
-            self.stack.enter_context(inference_session)
-
-        return self
-
-    def step(self, inputs: torch.Tensor):
-        assert not self.closed
-        for session in self.inference_sessions:
-            outputs = session.step(inputs)
-            assert outputs.shape == inputs.shape, f"expected {inputs.shape}, got {outputs.shape}"
-            inputs = outputs
-        return inputs
-
-    def close(self, *exc_details):
-        """Finish a given inference session, close the underlying connection"""
-        if not self.closed:
-            self.stack.__exit__(*exc_details or (None, None, None))
-            self.inference_sessions.clear()
-            self.closed = True
-
-    def __exit__(self, *exc_details):
-        self.close(*exc_details)
-
-    def __del__(self):
-        self.close()
