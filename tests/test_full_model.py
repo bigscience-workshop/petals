@@ -64,4 +64,3 @@ def test_full_model_exact_match(atol_forward=1e-3, atol_inference=1e-3):
             del ref_model, ref_outputs, dummy_mask
         else:
             logger.warning("Did not test exact match with local model: REF_NAME environment variable is not set")
-
