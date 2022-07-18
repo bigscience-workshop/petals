@@ -1,5 +1,4 @@
-from src.client.remote_block import RemoteTransformerBlock
-from src.client.remote_block_inference import RemoteTransformerBlockInferenceSession
+from src.client.remote_block import RemoteTransformerBlock, RemoteTransformerBlockInferenceSession
 from src.client.remote_model import DistributedBloomConfig, DistributedBloomForCausalLM, DistributedBloomModel
 from src.client.remote_sequential import RemoteSequential
 from src.client.sequence_manager import RemoteSequenceManager
