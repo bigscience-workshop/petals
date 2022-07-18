@@ -1,10 +1,10 @@
+from typing import List, Optional
+
 import torch
 import torch.nn.functional as F
 
-from typing import List, Optional
-
-from src.utils.generation_algorithms import DecodingAlgorithm, GreedyAlgorithm, TopKAlgorithm, NucleusAlgorithm
-from src.utils.generation_constraints import ABCBloomConstraint, MaxNewTokensConstraint, EosConstraint
+from src.utils.generation_algorithms import DecodingAlgorithm, GreedyAlgorithm, NucleusAlgorithm, TopKAlgorithm
+from src.utils.generation_constraints import ABCBloomConstraint, EosConstraint, MaxNewTokensConstraint
 
 
 class RemoteGenerationMixin:

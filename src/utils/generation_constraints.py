@@ -1,6 +1,6 @@
-import torch
-
 from abc import ABC
+
+import torch
 
 
 class ABCBloomConstraint(ABC):

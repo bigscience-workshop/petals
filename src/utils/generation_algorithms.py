@@ -1,7 +1,7 @@
-import torch
-
 from abc import ABC
 from typing import Tuple
+
+import torch
 
 TokenIds = torch.Tensor
 HypoIds = torch.Tensor

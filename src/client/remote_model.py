@@ -1,9 +1,7 @@
 # this code is in active development, interfaces may change
 import os
-import torch
 from typing import List, Optional, Tuple, Union
 
-import torch
 import hivemind
 import torch
 import torch.nn as nn
@@ -17,8 +15,8 @@ from src.bloom.model import (
     BloomPreTrainedModel,
     LMHead,
 )
-from src.client.remote_sequential import RemoteSequential
 from src.client.remote_generation import RemoteGenerationMixin
+from src.client.remote_sequential import RemoteSequential
 from src.utils.generation_algorithms import DecodingAlgorithm
 from src.utils.generation_constraints import ABCBloomConstraint
 
