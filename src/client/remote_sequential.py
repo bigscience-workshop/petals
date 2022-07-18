@@ -120,11 +120,8 @@ class RemoteSequentialInferenceSession:
         assert not self.closed
         self.stack.__enter__()
         # TODO(yozh) replace this code with a fault-tolerant chain that can be reconstructed if some peers fail
-        current_block = 0
-        while current_block != len(self.sequence_manager):
-            candidate_spans = self.sequence_manager.spans_containing_block[current_block]
-            chosen_span = random.choice(candidate_spans)  # TODO this is a temporary code
-            assert chosen_span.start <= current_block < chosen_span.end
+
+        for chosen_span in self.sequence_manager.make_sequence():
 
             # TODO begin throwaway prototype code
             remote = RemoteTransformerBlock(self.sequence_manager.block_infos[current_block], self.p2p)

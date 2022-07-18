@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import random
 import threading
 from typing import List, Optional, Sequence, Tuple, Union
 
@@ -37,6 +38,26 @@ class RemoteSequenceManager:
         for uid, info in zip(self.block_uids, self.block_infos):
             assert info is not None, f"Found no remote peers for block {uid}"
         assert self.spans_by_priority and self.spans_containing_block
+
+    def make_sequence(self, start_index: int = 0, end_index: Optional[int] = None) -> Sequence[RemoteSpanInfo]:
+        """
+        Form a sequence of remote servers that collectively serve all consecutive layers
+
+        :param start_index: optional index of the first module in a sequence, default = the first of block_uids
+        :param end_index: optional index of the last module (non-inclusive), default = after last of block uids
+        """
+        end_index = end_index if end_index is not None else len(self.block_uids)
+        span_sequence = []
+        current_index = start_index
+        while current_index != end_index - 1:
+            candidate_spans = self.spans_containing_block[current_index]
+
+            chosen_span = random.choice(candidate_spans)  # TODO this should be replaced with proper load balancing
+
+            assert chosen_span.start <= current_index < chosen_span.end
+            span_sequence.append(chosen_span)
+
+        return span_sequence
 
     def __getitem__(self, ix: Union[int, slice]) -> RemoteSequenceManager:
         """Get a RemoteSequenceManager for a sub-sequence of blocks"""

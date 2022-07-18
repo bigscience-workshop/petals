@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import Dict
+from typing import Any, Dict
 
 from hivemind import PeerID
 
@@ -36,3 +36,6 @@ class RemoteSpanInfo:
     start: int
     end: int
     peer_id: PeerID
+
+
+RPCInfo = Dict[str, Any]

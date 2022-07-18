@@ -39,9 +39,9 @@ class RemoteTransformerBlock(RemoteExpert):
 
     def inference_session(self) -> RemoteTransformerBlockInferenceSession:
         """Initialize a new inference session with the specified remote server"""
-        return RemoteExpertWorker.run_coroutine(RemoteTransformerBlockInferenceSession._create(
-            self.stub, self.uid, self.info
-        ))
+        return RemoteExpertWorker.run_coroutine(
+            RemoteTransformerBlockInferenceSession._create(self.stub, self.uid, self.info)
+        )
 
     def begin_inference_session(self):
         logger.warning("beging_inference_session was renamed to just inference_session")
@@ -66,9 +66,7 @@ class RemoteTransformerBlockInferenceSession:
     ) -> RemoteTransformerBlockInferenceSession:
         """Create a new session for a given remote module. This code is meant to be run inside RemoteExpertWorker"""
         inputs_queue = asyncio.Queue()
-        outputs_stream = await stub.rpc_inference(
-            cls._read_inputs_from_queue(inputs_queue, timeout), timeout=timeout
-        )
+        outputs_stream = await stub.rpc_inference(cls._read_inputs_from_queue(inputs_queue, timeout), timeout=timeout)
         return cls(uid, rpc_info, inputs_queue, outputs_stream)
 
     @staticmethod
