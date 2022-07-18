@@ -1,6 +1,6 @@
 # this code is in active development, interfaces may change
 import os
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
 import hivemind
 import torch
@@ -15,7 +15,10 @@ from src.bloom.model import (
     BloomPreTrainedModel,
     LMHead,
 )
+from src.client.remote_generation import RemoteGenerationMixin
 from src.client.remote_sequential import RemoteSequential
+from src.utils.generation_algorithms import DecodingAlgorithm
+from src.utils.generation_constraints import ABCBloomConstraint
 
 use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
@@ -137,8 +140,8 @@ class DistributedBloomPrefix(DistributedBloomModel):
         return transformer_outputs
 
 
-class DistributedBloomForCausalLM(BloomForCausalLM):
-    """Similar to BloomForCausalLM, but all transformer layers are hosted by the swarm"""
+class DistributedBloomForCausalLM(BloomForCausalLM, RemoteGenerationMixin):
+    """DistributedBloomForCausalLM, but all transformer layers are hosted by the swarm"""
 
     config_class = DistributedBloomConfig
 
@@ -170,6 +173,33 @@ class DistributedBloomForCausalLM(BloomForCausalLM):
         with torch.no_grad():
             self.lm_head.word_embeddings.weight[...] = new_lm_head.weight
             self.lm_head.bias[...] = new_lm_head.bias
+
+    def generate(
+        self,
+        inputs: Optional[torch.Tensor] = None,
+        do_sample: Optional[bool] = None,
+        temperature: float = 1.0,
+        top_k: Optional[int] = None,
+        top_p: Optional[float] = None,
+        eos_token_id: Optional[int] = None,
+        max_new_tokens: Optional[int] = None,
+        decoding_algorithm: Optional[DecodingAlgorithm] = None,
+        provided_constraints: List[ABCBloomConstraint] = [],
+        **model_kwargs,
+    ) -> torch.Tensor:
+        return RemoteGenerationMixin.generate(
+            self,
+            inputs=inputs,
+            do_sample=do_sample,
+            temperature=temperature,
+            top_k=top_k,
+            top_p=top_p,
+            eos_token_id=eos_token_id,
+            max_new_tokens=max_new_tokens,
+            decoding_algorithm=decoding_algorithm,
+            provided_constraints=provided_constraints,
+            **model_kwargs,
+        )
 
 
 class DistributedBloomForSequenceClassification(BloomForSequenceClassification):
