@@ -42,5 +42,3 @@ class RemoteTransformerBlock(RemoteExpert):
     def begin_inference_session(self):
         logger.warning("beging_inference_session was renamed to just inference_session")
         return self.inference_session()
-
-
