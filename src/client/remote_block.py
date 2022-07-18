@@ -39,8 +39,9 @@ class RemoteTransformerBlock(RemoteExpert):
 
     def inference_session(self) -> RemoteTransformerBlockInferenceSession:
         """Initialize a new inference session with the specified remote server"""
-        _ = self.info  # create _info manually since the built-in property will not work inside RemoteExpertWorker
-        return RemoteExpertWorker.run_coroutine(RemoteTransformerBlockInferenceSession._create(self))
+        return RemoteExpertWorker.run_coroutine(RemoteTransformerBlockInferenceSession._create(
+            self.stub, self.uid, self.info
+        ))
 
     def begin_inference_session(self):
         logger.warning("beging_inference_session was renamed to just inference_session")
