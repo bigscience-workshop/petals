@@ -4,7 +4,7 @@ import random
 import threading
 from typing import List, Optional, Sequence, Tuple, Union
 
-from hivemind import DHT, DHTExpiration, P2P, MSGPackSerializer
+from hivemind import DHT, P2P, DHTExpiration, MSGPackSerializer
 from hivemind.moe.client.remote_expert_worker import RemoteExpertWorker
 from hivemind.proto import runtime_pb2
 from hivemind.utils.logging import get_logger, use_hivemind_log_handler

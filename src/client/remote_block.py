@@ -6,14 +6,14 @@ import random
 from typing import AsyncIterator, Optional
 
 import torch
-from hivemind import serialize_torch_tensor, nested_flatten, deserialize_torch_tensor, anext
+from hivemind import anext, deserialize_torch_tensor, nested_flatten, serialize_torch_tensor
 from hivemind.moe.client.expert import RemoteExpert, RemoteExpertWorker
 from hivemind.moe.expert_uid import ExpertInfo
 from hivemind.p2p import P2P, StubBase
 from hivemind.proto import runtime_pb2
 from hivemind.utils import get_logger, use_hivemind_log_handler
 
-from src.data_structures import RemoteModuleInfo, ModuleUID, RPCInfo
+from src.data_structures import ModuleUID, RemoteModuleInfo, RPCInfo
 from src.server.handler import TransformerConnectionHandler
 
 use_hivemind_log_handler("in_root_logger")
