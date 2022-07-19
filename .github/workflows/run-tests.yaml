@@ -86,6 +86,7 @@ jobs:
 
           REF_NAME=$MODEL_NAME pytest tests/test_chained_calls.py
           
+          pytest tests/test_remote_sequential.py
           REF_NAME=bigscience/bloom-350m pytest tests/test_full_model.py
           
           kill -s SIGINT $SERVER1_PID $SERVER2_PID
