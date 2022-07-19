@@ -1,9 +1,9 @@
 import torch
 from hivemind import DHT, get_logger, use_hivemind_log_handler
+from test_utils import *
 
 from src import RemoteSequential
 from src.client.remote_model import DistributedBloomConfig
-from test_utils import *
 
 use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)

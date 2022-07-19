@@ -3,12 +3,12 @@ import random
 import hivemind
 import torch
 import transformers
+from test_utils import *
 
 from src.bloom.from_pretrained import load_pretrained_block
 from src.client.remote_block import RemoteTransformerBlock
 from src.data_structures import UID_DELIMITER
 from src.dht_utils import get_remote_module
-from test_utils import *
 
 
 def test_remote_block_exact_match(atol_forward=1e-5, atol_inference=1e-3):

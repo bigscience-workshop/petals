@@ -8,11 +8,11 @@ import hivemind
 import torch
 import transformers
 from hivemind.moe.expert_uid import UID_DELIMITER, ExpertInfo
+from test_utils import *
 
 from src.bloom.from_pretrained import load_pretrained_block
 from src.client.remote_block import RemoteTransformerBlock
 from src.dht_utils import get_remote_module
-from test_utils import *
 
 
 def test_forward_backward_exact_match(atol_forward=1e-4, atol_backward=1e-4, seq_length=1):
