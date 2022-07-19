@@ -1,3 +1,4 @@
+import pytest
 import torch
 from hivemind import DHT, get_logger, use_hivemind_log_handler
 from test_utils import *
@@ -9,6 +10,7 @@ use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
 
 
+@pytest.mark.forked
 def test_remote_sequential():
     config = DistributedBloomConfig.from_pretrained(MODEL_NAME, initial_peers=INITIAL_PEERS)
     dht = DHT(initial_peers=config.initial_peers, client_mode=True, start=True)

@@ -1,3 +1,4 @@
+import pytest
 import torch
 import transformers
 from hivemind import get_logger, use_hivemind_log_handler
@@ -9,6 +10,7 @@ use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
 
 
+@pytest.mark.forked
 def test_full_model_exact_match(atol_forward=1e-3, atol_inference=1e-3):
     tokenizer = transformers.BloomTokenizerFast.from_pretrained(MODEL_NAME)
     model = DistributedBloomForCausalLM.from_pretrained(MODEL_NAME, initial_peers=INITIAL_PEERS)
