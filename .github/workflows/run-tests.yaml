@@ -66,6 +66,8 @@ jobs:
         run: |
           export HF_TAG=$(python -c "import os; print(os.environ.get('GITHUB_BASE_REF') or os.environ.get('GITHUB_REF_NAME'))")
           export MODEL_NAME=bloom-testing/test-bloomd-350m-$HF_TAG
+          export REF_NAME=bigscience/bloom-350m
+
           python -m cli.run_server --converted_model_name_or_path $MODEL_NAME --block_indices 0:12 \
             --torch_dtype float32 --identity tests/test.id --host_maddrs /ip4/127.0.0.1/tcp/31337 --throughput 1 &
           SERVER1_PID=$!
@@ -79,14 +81,7 @@ jobs:
 
           sleep 30  # wait for server to download layers
           
-          # test individual blocks
-          export PYTHONPATH=.
-          BLOCK_UID=$MODEL_NAME.0 REF_NAME=$MODEL_NAME REF_INDEX=0 pytest tests/test_block_exact_match.py
-          BLOCK_UID=$MODEL_NAME.19 REF_NAME=$MODEL_NAME REF_INDEX=19 pytest tests/test_block_exact_match.py
-
-          REF_NAME=$MODEL_NAME pytest tests/test_chained_calls.py
-          
-          REF_NAME=bigscience/bloom-350m pytest tests/test_full_model.py
+          PYTHONPATH=. pytest tests
           
           kill -s SIGINT $SERVER1_PID $SERVER2_PID
           echo "Done!"
