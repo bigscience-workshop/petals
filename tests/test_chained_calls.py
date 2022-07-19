@@ -24,8 +24,6 @@ MODEL_NAME = os.environ.get("MODEL_NAME")
 if not MODEL_NAME:
     raise RuntimeError("Must specify MODEL_NAME as a name of a model to be tested")
 
-REF_NAME = os.environ.get("REF_NAME", "bigscience/test-bloomd-6b3")
-
 
 def test_forward_backward_exact_match(atol_forward=1e-4, atol_backward=1e-4, seq_length=1):
     dht = hivemind.DHT(initial_peers=INITIAL_PEERS, client_mode=True, start=True)
@@ -38,9 +36,9 @@ def test_forward_backward_exact_match(atol_forward=1e-4, atol_backward=1e-4, seq
     remote_block._info = ExpertInfo(f"{MODEL_NAME}.3 {MODEL_NAME}.4 {MODEL_NAME}.5", remote_block._info.peer_id)
 
     ref_blocks = [
-        load_pretrained_block(REF_NAME, 3, torch_dtype=torch.float32),
-        load_pretrained_block(REF_NAME, 4, torch_dtype=torch.float32),
-        load_pretrained_block(REF_NAME, 5, torch_dtype=torch.float32),
+        load_pretrained_block(MODEL_NAME, 3, torch_dtype=torch.float32),
+        load_pretrained_block(MODEL_NAME, 4, torch_dtype=torch.float32),
+        load_pretrained_block(MODEL_NAME, 5, torch_dtype=torch.float32),
     ]
     inputs = torch.randn(1, seq_length, config.hidden_size, requires_grad=True)
     outputs_rpc = remote_block.forward(inputs)[0]
@@ -78,8 +76,8 @@ def test_chained_inference_exact_match(atol_inference=1e-4):
     outputs_inference = torch.cat(outputs_inference, dim=1)
 
     ref_blocks = [
-        load_pretrained_block(REF_NAME, 3, torch_dtype=torch.float32),
-        load_pretrained_block(REF_NAME, 4, torch_dtype=torch.float32),
+        load_pretrained_block(MODEL_NAME, 3, torch_dtype=torch.float32),
+        load_pretrained_block(MODEL_NAME, 4, torch_dtype=torch.float32),
     ]
     outputs_ref = []
     caches = [None, None]
