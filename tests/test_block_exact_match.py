@@ -1,9 +1,6 @@
-# Note: this code is being actively modified by justheuristic. If you want to change anything about it, please warn me.
-import os
 import random
 
 import hivemind
-import pytest
 import torch
 import transformers
 
@@ -11,15 +8,7 @@ from src.bloom.from_pretrained import load_pretrained_block
 from src.client.remote_block import RemoteTransformerBlock
 from src.data_structures import UID_DELIMITER
 from src.dht_utils import get_remote_module
-
-INITIAL_PEERS = os.environ.get("INITIAL_PEERS")
-if not INITIAL_PEERS:
-    raise RuntimeError("Must specify INITIAL_PEERS environment variable with one or more peer ids")
-INITIAL_PEERS = INITIAL_PEERS.split()
-
-MODEL_NAME = os.environ.get("MODEL_NAME")
-if not MODEL_NAME:
-    raise RuntimeError("Must specify MODEL_NAME as a name of a model to be tested")
+from test_utils import *
 
 
 def test_remote_block_exact_match(atol_forward=1e-5, atol_inference=1e-3):

@@ -3,7 +3,6 @@
 # - if you want more stable tests, see test_block_exact_match
 # - if you want to figure out chained inference, ask yozh
 
-import os
 
 import hivemind
 import torch
@@ -13,16 +12,7 @@ from hivemind.moe.expert_uid import UID_DELIMITER, ExpertInfo
 from src.bloom.from_pretrained import load_pretrained_block
 from src.client.remote_block import RemoteTransformerBlock
 from src.dht_utils import get_remote_module
-
-INITIAL_PEERS = os.environ.get("INITIAL_PEERS")
-if not INITIAL_PEERS:
-    raise RuntimeError("Must specify INITIAL_PEERS environment variable with one or more peer ids")
-INITIAL_PEERS = INITIAL_PEERS.split()
-
-
-MODEL_NAME = os.environ.get("MODEL_NAME")
-if not MODEL_NAME:
-    raise RuntimeError("Must specify MODEL_NAME as a name of a model to be tested")
+from test_utils import *
 
 
 def test_forward_backward_exact_match(atol_forward=1e-4, atol_backward=1e-4, seq_length=1):
