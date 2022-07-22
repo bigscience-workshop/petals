@@ -1,22 +1,10 @@
 import logging
-from typing import Optional, Union, List, Sequence, Tuple, Dict
+from typing import Optional, List, Sequence, Tuple
 
 import torch
-from hivemind import DHT, P2P, get_logger, use_hivemind_log_handler
-from hivemind.moe.client.remote_expert_worker import RemoteExpertWorker
-from torch import nn
-
 import asyncio
-from src.client.sequence_manager import RemoteSequenceManager
 
-from hivemind import (
-    P2P,
-    get_logger,
-    nested_flatten,
-    serialize_torch_tensor,
-    use_hivemind_log_handler,
-)
-
+from hivemind import serialize_torch_tensor
 from hivemind.utils.nested import nested_compare, nested_flatten, nested_pack
 from hivemind.moe.client.expert import expert_forward, expert_backward
 from hivemind.moe.client.remote_expert_worker import RemoteExpertWorker
