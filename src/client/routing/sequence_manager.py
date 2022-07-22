@@ -77,10 +77,15 @@ class RemoteSequenceManager(threading.Thread):
 
     def run(self) -> None:
         self.ready.set()
+        threading.Event().wait()
         # TODO
 
     def make_sequence(
-        self, strategy: Union[str, RoutingStrategyBase], start_index: int = 0, end_index: Optional[int] = None, **kwargs
+        self,
+        strategy: Union[None, str, RoutingStrategyBase] = None,
+        start_index: int = 0,
+        end_index: Optional[int] = None,
+        **kwargs,
     ) -> Sequence[RemoteSpanInfo]:
         """
         Form a sequence of remote servers that collectively serve all consecutive layers
@@ -95,6 +100,8 @@ class RemoteSequenceManager(threading.Thread):
             logger.warning(f"{self.__class__.__name__} is still initializing, waiting until it's ready...")
             self.ready.wait()
             logger.warning(f"Finished waiting for {self.__class__.__name__} to initialize")
+        if strategy is None:
+            strategy = next(iter(self.routing_strategies))
         if not isinstance(strategy, RoutingStrategyBase):
             strategy = self.routing_strategies[strategy]
         return strategy.make_sequence(start_index, end_index, **kwargs)
