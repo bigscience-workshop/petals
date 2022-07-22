@@ -43,7 +43,7 @@ def main():
                         help='Use this many threads to pass results/exceptions from Runtime to Pools')
     parser.add_argument('--inference_max_length', type=int, default=16384,
                         help='Maximum total sequence length permitted per inference, defaults to 16384 tokens')
-    parser.add_argument('--cache_dir', type=str, default=None, 
+    parser.add_argument('--cache_dir', type=str, default=None,
                         help='Path to a directory in which a downloaded pretrained model configuration should be cached if the standard cache should not be used.')
     parser.add_argument('--device', type=str, default=None, required=False,
                         help='all blocks will use this device in torch notation; default: cuda if available else cpu')
@@ -104,7 +104,7 @@ def main():
     use_auth_token = args.pop("use_auth_token")
     args["use_auth_token"] = True if use_auth_token in ("True", "true", "") else use_auth_token
 
-    server = Server.create(**args, start=True, compression=compression, attn_cache_size=attn_cache_size)
+    server = Server(**args, compression=compression, attn_cache_size=attn_cache_size, start=True)
 
     try:
         server.join()
