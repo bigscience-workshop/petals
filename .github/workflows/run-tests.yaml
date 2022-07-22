@@ -72,7 +72,7 @@ jobs:
             --torch_dtype float32 --identity tests/test.id --host_maddrs /ip4/127.0.0.1/tcp/31337 --throughput 1 &
           SERVER1_PID=$!
           
-          sleep 5  # wait for the first server to initialize DHT
+          sleep 3  # wait for the first server to initialize DHT
           
           export INITIAL_PEERS=/ip4/127.0.0.1/tcp/31337/p2p/QmS9KwZptnVdB9FFV7uGgaTq4sEKBwcYeKZDfSpyKDUd1g
           # ^-- server 1 multiaddr is determined by --identity and --host_maddrs
@@ -81,7 +81,7 @@ jobs:
             --torch_dtype float32 --initial_peers $INITIAL_PEERS --throughput 1 &> server2.log &
           SERVER2_PID=$!
 
-          sleep 30  # wait for server to download layers
+          sleep 60  # wait for server to download layers
           
           PYTHONPATH=. pytest tests
           
