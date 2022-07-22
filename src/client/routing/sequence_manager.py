@@ -55,22 +55,22 @@ class RemoteSequenceManager(threading.Thread):
         p2p: Optional[P2P] = None,
         start: bool,
         update_period: float = 30,
-        routing_strategies: Collection[RoutingStrategyBase] = None,
+        routing_strategies: Dict[str, RoutingStrategyBase] = None,
     ):  # NB: if you add any more parameters, please make sure you pass them to sub-sequences in .__getitem__ below!
         super().__init__(daemon=True)
         self.dht, self.p2p = dht, (p2p if p2p is not None else dht.replicate_p2p())
         self.sequence_info = RemoteSequenceInfo.make_empty(block_uids)  # to be updated in a background thread
 
         if routing_strategies is None:
-            routing_strategies = [Strategy(self.sequence_info) for Strategy in ALL_ROUTING_STRATEGIES]
-        self.routing_strategies: Dict[str, RoutingStrategyBase] = {s.name: s for s in routing_strategies}
-
+            routing_strategies = {key: Strategy(self.sequence_info) for key, Strategy in ALL_ROUTING_STRATEGIES.items()}
+        self.routing_strategies = routing_strategies
         self.last_update_time: DHTExpiration = -float("inf")
         self.update_period = update_period
 
-        self._rpc_info = None
-        self._lock_changes = threading.Lock()
+        self._rpc_info = None  # TODO move to RemoteSequenceInfo
+        self._lock_changes = threading.Lock()  # TODO move to RemoteSequenceInfo
         self.ready = threading.Event()  # whether or not you are ready to make_sequence
+        self.update_()  # TODO replace with background thread and await ready
 
         if start:
             self.run_in_background()
@@ -115,7 +115,6 @@ class RemoteSequenceManager(threading.Thread):
                 start=False,
             )  # NB: if you've added more parameters to __init__, please forward them in the instantiation above
             subseq.sequence_info = self.sequence_info[ix]
-            subseq.spans_by_priority, subseq.spans_containing_block = subseq.compute_spans(subseq.block_infos)
             subseq._rpc_info = self._rpc_info
             subseq.last_update_time = self.last_update_time
             if self.is_alive():
@@ -125,7 +124,7 @@ class RemoteSequenceManager(threading.Thread):
     def update_(self):
         with self._lock_changes:
             self.sequence_info.update_(self.dht)
-            for name, strategy in self.routing_strategies:
+            for name, strategy in self.routing_strategies.items():
                 strategy.update_()
 
     def run_in_background(self, await_ready: bool = True, timeout: Optional[float] = None) -> None:

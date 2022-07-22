@@ -8,8 +8,6 @@ from src.data_structures import RemoteSpanInfo, ServerState
 
 
 class RoutingStrategyBase(ABC):
-    name: str  # used in RemoteSequenceManager.make_sequence(mode, **kwargs)
-
     def update_(self):
         """Called when sequence manager fetches new info from the dht"""
         raise NotImplementedError()
@@ -21,8 +19,6 @@ class RoutingStrategyBase(ABC):
 
 class RandomRoutingStrategy(RoutingStrategyBase):
     """choose a random compatible server at each branch and include all layers served by it"""
-
-    name = "RANDOM"
 
     def __init__(self, sequence_info: RemoteSequenceInfo):
         self.sequence_info = sequence_info
@@ -79,4 +75,4 @@ class RandomRoutingStrategy(RoutingStrategyBase):
         return span_sequence
 
 
-ALL_ROUTING_STRATEGIES = (RandomRoutingStrategy,)
+ALL_ROUTING_STRATEGIES = dict(RANDOM=RandomRoutingStrategy)

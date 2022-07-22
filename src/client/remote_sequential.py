@@ -40,7 +40,7 @@ class RemoteSequential(nn.Module):
         self.p2p = RemoteExpertWorker.run_coroutine(dht.replicate_p2p()) if p2p is None else p2p
 
         num_blocks = self.config.n_layer if sequence_manager is None else len(sequence_manager)
-        block_uids = [f"{config.dht_prefix}{UID_DELIMITER}{i}" for i in range(num_blocks)]
+        block_uids = tuple(f"{config.dht_prefix}{UID_DELIMITER}{i}" for i in range(num_blocks))
         if sequence_manager is None:
             logger.debug(f"Creating new sequence manager for block uids: {block_uids}")
             self.sequence_manager = RemoteSequenceManager(dht, block_uids, p2p=self.p2p, start=True)
@@ -48,7 +48,7 @@ class RemoteSequential(nn.Module):
         else:
             logger.debug(f"Reusing sequence manager with {len(sequence_manager)} modules")
             self.sequence_manager = sequence_manager
-            assert isinstance(sequence_manager.block_uids, list)
+            assert isinstance(sequence_manager.block_uids, tuple)
             self.is_subsequence = self.sequence_manager.block_uids != block_uids
 
     def forward(self, inputs: torch.Tensor):
