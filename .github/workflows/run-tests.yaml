@@ -40,7 +40,7 @@ jobs:
 
   run-tests:
     runs-on: ubuntu-latest
-    needs: convert-model
+    #needs: convert-model
     strategy:
       matrix:
         python-version: [ 3.7, 3.8, 3.9 ]
