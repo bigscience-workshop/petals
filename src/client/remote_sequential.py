@@ -11,7 +11,7 @@ from torch import nn
 import src
 from src.client.inference_session import RemoteSequentialInferenceSession
 from src.client.remote_block import RemoteTransformerBlock
-from src.client.sequence_manager import RemoteSequenceManager
+from src.client.routing.sequence_manager import RemoteSequenceManager
 from src.data_structures import UID_DELIMITER
 from src.dht_utils import _create_remote_modules_from_infos
 
