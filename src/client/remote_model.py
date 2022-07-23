@@ -1,11 +1,11 @@
 # this code is in active development, interfaces may change
-import os
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Tuple
 
 import hivemind
 import torch
 import torch.nn as nn
 from hivemind import get_logger, use_hivemind_log_handler
+from transformers.modeling_outputs import BaseModelOutputWithPastAndCrossAttentions
 
 from src.bloom.model import (
     BloomConfig,
@@ -66,13 +66,45 @@ class DistributedBloomModel(BloomModel):
         for p in self.parameters():
             p.requires_grad = value
 
-    def forward(self, *args, use_cache=None, **kwargs):
-        if use_cache:
-            raise ValueError(
-                "Distributed forward does not support use_cache; for efficient cache-aware generation, "
-                "please use model.transformer.inference_session() or model.generate(...)"
-            )
-        return super().forward(*args, use_cache=False, **kwargs)
+    def forward(
+        self,
+        input_ids: Optional[torch.LongTensor] = None,
+        inputs_embeds: Optional[torch.Tensor] = None,
+        attention_mask: Optional[torch.Tensor] = None,
+        **kwargs,
+    ):
+        assert attention_mask is None, "DistributedBloomModel does not support attention masks right now"
+
+        for k, v in kwargs.items():
+            if not (v is None or v is False):
+                logger.debug(f"Extra keyword arguments are not yet supported (got {k} = {v})")
+
+        if input_ids is not None and inputs_embeds is not None:
+            raise ValueError("You cannot specify both input_ids and inputs_embeds at the same time")
+        elif input_ids is not None:
+            input_shape = input_ids.size()
+            input_ids = input_ids.view(-1, input_shape[-1])
+        elif inputs_embeds is not None:
+            input_shape = inputs_embeds.size()[:-1]
+        else:
+            raise ValueError("You have to specify either input_ids or inputs_embeds")
+
+        if inputs_embeds is None:
+            inputs_embeds = self.word_embeddings(input_ids)
+
+        hidden_states = self.word_embeddings_layernorm(inputs_embeds.float())
+        output_shape = input_shape + (hidden_states.size(-1),)
+        hidden_states = self.h(hidden_states)
+
+        # Add last hidden state
+        hidden_states = self.ln_f(hidden_states)
+        hidden_states = hidden_states.view(output_shape)
+        return BaseModelOutputWithPastAndCrossAttentions(
+            last_hidden_state=hidden_states,
+            past_key_values=None,
+            hidden_states=None,
+            attentions=None,
+        )
 
 
 class DistributedBloomPrefix(DistributedBloomModel):
@@ -94,16 +126,10 @@ class DistributedBloomPrefix(DistributedBloomModel):
 
     def forward(
         self,
-        input_ids: Optional[torch.LongTensor],
-        inputs_embeds: Optional[torch.Tensor],
-        attention_mask: Optional[torch.Tensor],
-        past_key_values=None,
-        position_ids=None,
-        head_mask=None,
-        use_cache=None,
-        output_attentions=None,
-        output_hidden_states=None,
-        return_dict=None,
+        input_ids: Optional[torch.LongTensor] = None,
+        inputs_embeds: Optional[torch.Tensor] = None,
+        attention_mask: Optional[torch.Tensor] = None,
+        **kwargs,
     ):
         assert (
             input_ids is None or inputs_embeds is None
@@ -122,17 +148,7 @@ class DistributedBloomPrefix(DistributedBloomModel):
         prompts = self.get_prompt(batch_size)
         inputs_embeds = torch.cat([prompts, inputs_embeds], dim=1)
 
-        transformer_outputs = super().forward(
-            inputs_embeds=inputs_embeds,
-            attention_mask=attention_mask,
-            past_key_values=past_key_values,
-            position_ids=position_ids,
-            head_mask=head_mask,
-            use_cache=use_cache,
-            output_attentions=output_attentions,
-            output_hidden_states=output_hidden_states,
-            return_dict=return_dict,
-        )
+        transformer_outputs = super().forward(inputs_embeds=inputs_embeds, attention_mask=attention_mask, **kwargs)
 
         # Remove prefix
         last_hidden_state = transformer_outputs[0][:, self.prefix_length :]

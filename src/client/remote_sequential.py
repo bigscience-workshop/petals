@@ -12,6 +12,7 @@ import src
 from src.client.inference_session import RemoteSequentialInferenceSession
 from src.client.remote_block import RemoteTransformerBlock
 from src.client.sequence_manager import RemoteSequenceManager
+from src.client.sequential_autograd import _RemoteSequentialAutogradFunction
 from src.data_structures import UID_DELIMITER
 from src.dht_utils import _create_remote_modules_from_infos
 
@@ -52,21 +53,8 @@ class RemoteSequential(nn.Module):
             self.is_subsequence = self.sequence_manager.block_uids != block_uids
 
     def forward(self, inputs: torch.Tensor):
-        assert isinstance(inputs, torch.Tensor) and inputs.ndim == 3 and inputs.shape[-1] == self.config.n_embed
-        for block in iter(self):
-            for retry_index in range(self.sequence_manager.max_retries):
-                try:
-                    (outputs,) = block(inputs)
-                    assert isinstance(outputs, torch.Tensor)
-                    assert outputs.shape == inputs.shape, f"Expected {block} output {inputs.shape}, got {outputs.shape}"
-                    inputs = outputs
-                    break
-                except Exception as e:
-                    if retry_index == self.sequence_manager.max_retries - 1:
-                        raise e
-                    else:
-                        logging.debug(f"Caught {e} when running forward for block {block_index}", exc_info=True)
-        return inputs
+        outputs = _RemoteSequentialAutogradFunction.apply(inputs, self.sequence_manager)
+        return outputs
 
     def __getitem__(self, ix: Union[int, slice]) -> Union[RemoteTransformerBlock, RemoteSequential]:
         assert isinstance(ix, (int, slice))

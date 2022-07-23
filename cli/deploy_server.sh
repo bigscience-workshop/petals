@@ -62,22 +62,9 @@ else
     conda activate bloom-demo
 
     conda install -y -c conda-forge cudatoolkit-dev==11.3.1 cudatoolkit==11.3.1 cudnn==8.2.1.32
-    pip install -i https://pypi.org/simple torch==1.11.0+cu113 torchvision==0.12.0+cu113 -f https://download.pytorch.org/whl/torch_stable.html
-    pip install -i https://pypi.org/simple accelerate==0.10.0 huggingface-hub==0.7.0 hivemind==1.1.0
-    pip install -i https://pypi.org/simple bitsandbytes-cuda113==0.26.0
-    pip install -i https://pypi.org/simple https://github.com/huggingface/transformers/archive/6589e510fa4e6c442059de2fab84752535de9b23.zip
+    pip install -i https://pypi.org/simple torch==1.12.0+cu113 -f https://download.pytorch.org/whl/torch_stable.html
+    pip install -i https://pypi.org/simple -r requirements.txt
 fi
-
-
-##############
-# Local test #
-##############
-
-if [ "$RUN_LOCAL_TESTS" = true ] ; then
-    echo "Run test on your local machine"
-    python -m cli.inference_one_block --config cli/config.json --device ${DEVICE} # see other args
-fi
-
 
 ##############
 # Run server #
