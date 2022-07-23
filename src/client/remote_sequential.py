@@ -12,10 +12,9 @@ import src
 from src.client.inference_session import RemoteSequentialInferenceSession
 from src.client.remote_block import RemoteTransformerBlock
 from src.client.sequence_manager import RemoteSequenceManager
+from src.client.sequential_autograd import _RemoteSequentialAutogradFunction
 from src.data_structures import UID_DELIMITER
 from src.dht_utils import _create_remote_modules_from_infos
-
-from src.client.sequential_autograd import _RemoteSequentialAutogradFunction
 
 use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
