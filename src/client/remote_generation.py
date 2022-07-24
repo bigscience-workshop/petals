@@ -17,6 +17,7 @@ class RemoteGenerationMixin:
     This class is similar to transformer's [`generation_utils.GenerationMixin`], it can be used instead of it. However, it has some differences.
     """
 
+    @torch.no_grad()
     def generate(
         self,
         inputs: Optional[torch.Tensor] = None,
