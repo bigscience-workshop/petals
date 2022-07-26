@@ -17,7 +17,7 @@ def test_remote_block_exact_match(atol_forward=1e-5, atol_inference=1e-3):
     dht = hivemind.DHT(initial_peers=INITIAL_PEERS, client_mode=True, start=True)
     config = transformers.AutoConfig.from_pretrained(MODEL_NAME)
 
-    for block_index in random.sample(range(config.n_layer), 3):
+    for block_index in [3]:
         block_uid = f"{MODEL_NAME}{UID_DELIMITER}{block_index}"
         remote_block = get_remote_module(dht, block_uid)
         assert remote_block is not None, f"Could not find {block_uid} in DHT"
