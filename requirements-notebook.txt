@@ -1,0 +1,4 @@
+jupyter==1.0.0
+pandas==1.4.3
+matplotlib==3.5.2
+datasets==2.3.2
