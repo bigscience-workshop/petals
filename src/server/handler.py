@@ -46,7 +46,9 @@ class TransformerConnectionHandler(ConnectionHandler):
             async with self._allocate_caches(requested_backends, batch_size) as cache_handles:
                 assert len(cache_handles) == len(requested_backends)
                 while request.tensors:  # iterate while user is willing to supply tensors
-                    hidden_states = [deserialize_torch_tensor(tensor) for tensor in request.tensors]
+                    assert len(request.tensors) == 2, "Must specify hidden_states and input_ids" # TODO replace with schema
+                    hidden_states, hypo_ids = map(deserialize_torch_tensor, request.tensors)
+                    print('OLOLO OLOLO I GOT HYPO IDS: ', hypo_ids)
 
                     # run request tensors through all requested modules, update caches
                     for backend, cache_handle in zip(requested_backends, cache_handles):
