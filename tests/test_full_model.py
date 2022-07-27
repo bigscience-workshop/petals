@@ -4,6 +4,7 @@ import transformers
 from hivemind import get_logger, use_hivemind_log_handler
 from test_utils import *
 
+from src.bloom.model import BloomForCausalLM
 from src.client.remote_model import DistributedBloomForCausalLM
 
 use_hivemind_log_handler("in_root_logger")
@@ -54,3 +55,32 @@ def test_full_model_exact_match(atol_forward=1e-3, atol_inference=1e-3):
         else:
             logger.warning("Did not test exact match with local model: REF_NAME environment variable is not set")
             assert False
+
+
+@pytest.mark.forked
+def test_greedy_generation(max_new_tokens=4):
+    tokenizer = transformers.BloomTokenizerFast.from_pretrained(MODEL_NAME)
+    model = DistributedBloomForCausalLM.from_pretrained(
+        MODEL_NAME, initial_peers=INITIAL_PEERS, low_cpu_mem_usage=True, torch_dtype=torch.float32
+    )
+    inputs = tokenizer("A cat sat on a mat", return_tensors="pt")["input_ids"]
+    remote_outputs = model.generate(
+        inputs,
+        max_new_tokens=max_new_tokens,
+    )
+    hf_outputs = BloomForCausalLM.greedy_search(model, input_ids=inputs, max_length=inputs.size(1) + max_new_tokens)
+    assert torch.allclose(remote_outputs, hf_outputs), "Greedy search are not identical to HF"
+
+    inputs_batch = tokenizer(["A cat sat on a mat", "A dog sat on a mat"], return_tensors="pt", padding=True)[
+        "input_ids"
+    ]
+    remote_outputs_batch = model.generate(
+        inputs_batch,
+        max_new_tokens=max_new_tokens,
+    )
+    hf_outputs_batch = BloomForCausalLM.greedy_search(
+        model, input_ids=inputs_batch, max_length=inputs_batch.size(1) + max_new_tokens
+    )
+    assert torch.allclose(
+        remote_outputs_batch, hf_outputs_batch
+    ), "Greedy search are not identical to HF in multibatch mode"
