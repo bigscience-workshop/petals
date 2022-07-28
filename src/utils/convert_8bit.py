@@ -1,5 +1,5 @@
-import torch
 import bitsandbytes as bnb
+import torch
 
 
 def replace_8bit_linear(model, threshold=6.0):
