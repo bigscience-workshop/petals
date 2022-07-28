@@ -584,8 +584,7 @@ class BloomForSequenceClassification(BloomPreTrainedModel):
                 )
 
         pooled_logits = logits[torch.arange(batch_size, device=logits.device), sequence_lengths]
-        pooled_logits = self.pooled_dropout(pooled_logits)
-
+        
         loss = None
         if labels is not None:
             if self.config.problem_type is None:
