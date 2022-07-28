@@ -22,6 +22,7 @@ from src.server.block_selection import choose_best_blocks
 from src.server.cache import MemoryCache
 from src.server.handler import TransformerConnectionHandler
 from src.server.throughput import get_host_throughput
+from src.utils.convert_8bit import replace_8bit_linear
 
 use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
@@ -105,6 +106,7 @@ class Server(threading.Thread):
         min_batch_size: int = 1,
         max_batch_size: int = 4096,
         torch_dtype: str = "auto",
+        cache_dir: Optional[str] = None,
         cache_size_bytes: Optional[int] = None,
         device: Optional[Union[str, torch.device]] = None,
         initial_peers: Sequence[str] = (),
@@ -115,6 +117,7 @@ class Server(threading.Thread):
         expiration: Optional[float] = None,
         max_block_selection_delay: float = 1,
         use_auth_token: Optional[str] = None,
+        load_in_8bit: bool = False,
         *,
         start: bool,
         **kwargs,
@@ -148,7 +151,9 @@ class Server(threading.Thread):
             torch_dtype = DTYPE_MAP[torch_dtype]
         assert torch_dtype in DTYPE_MAP.values(), f"torch_dtype must be one of {list(DTYPE_MAP.values())}"
 
-        block_config = BloomConfig.from_pretrained(converted_model_name_or_path, use_auth_token=use_auth_token)
+        block_config = BloomConfig.from_pretrained(
+            converted_model_name_or_path, use_auth_token=use_auth_token, revision="client"
+        )
 
         if block_indices is not None:
             try:
@@ -186,7 +191,12 @@ class Server(threading.Thread):
                 block_config,
                 torch_dtype=torch_dtype,
                 use_auth_token=use_auth_token,
+                cache_dir=cache_dir,
             )
+
+            if load_in_8bit:
+                block = replace_8bit_linear(block)
+
             for param in block.parameters():
                 param.requires_grad = False
 
