@@ -1,6 +1,6 @@
 """Code for serving bloom blocks via hivemind-server"""
 from queue import Empty
-from typing import Sequence, Tuple, Optional
+from typing import Optional, Sequence, Tuple
 
 import torch
 from hivemind import use_hivemind_log_handler
