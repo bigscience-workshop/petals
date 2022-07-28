@@ -39,14 +39,17 @@ async def run_expert_forward(
     forward_inputs = nested_flatten(forward_inputs)
     inputs = tuple(tensor.cpu().detach() for tensor in forward_inputs)
 
-    # TODO: figure out whether we should use run_in_executor here
-    serialized_tensors = (
-        serialize_torch_tensor(tensor, proto.compression)
-        for tensor, proto in zip(inputs, nested_flatten(rpc_info["forward_schema"]))
+    # Asynchronous serialization
+    loop = asyncio.get_running_loop()
+    serialized_tensors = await asyncio.gather(
+        *(
+            loop.run_in_executor(None, serialize_torch_tensor, tensor.to(proto.dtype), proto.compression)
+            for tensor, proto in zip(inputs, nested_flatten(rpc_info["forward_schema"]))
+        )
     )
+
     deserialized_outputs = await expert_forward(uid, inputs, serialized_tensors, stub)
     flat_outputs = tuple(deserialized_outputs)
-
     return nested_pack(flat_outputs, structure=rpc_info["outputs_schema"])
 
 
@@ -67,10 +70,15 @@ async def run_expert_backward(
     inputs_and_grad_outputs = tuple(nested_flatten((intemediate_inputs, grad_outputs_cpu)))
     backward_schema = tuple(nested_flatten((rpc_info["forward_schema"], rpc_info["outputs_schema"])))
 
-    serialized_tensors = (
-        serialize_torch_tensor(tensor, proto.compression)
-        for tensor, proto in zip(inputs_and_grad_outputs, backward_schema)
+    # Asynchronous serialization
+    loop = asyncio.get_running_loop()
+    serialized_tensors = await asyncio.gather(
+        *(
+            loop.run_in_executor(None, serialize_torch_tensor, tensor.to(proto.dtype), proto.compression)
+            for tensor, proto in zip(inputs_and_grad_outputs, backward_schema)
+        )
     )
+
     deserialized_grad_inputs = await expert_backward(uid, inputs_and_grad_outputs, serialized_tensors, stub)
     return deserialized_grad_inputs
 
@@ -187,7 +195,7 @@ class _RemoteSequentialAutogradFunction(torch.autograd.Function):
     @staticmethod
     def forward(ctx, inputs: torch.Tensor, sequence_manager: RemoteSequenceManager):
         batch_size = max(MAX_TOKENS_IN_BATCH // inputs.shape[1], 1)
-        input_batches: Sequence[torch.Tensor] = inputs.split(batch_size)
+        input_batches: Sequence[torch.Tensor] = inputs.detach().split(batch_size)
 
         sequence_manager.rpc_info  # lazy init
         outputs = RemoteExpertWorker.run_coroutine(_gather_forward(input_batches, sequence_manager))
