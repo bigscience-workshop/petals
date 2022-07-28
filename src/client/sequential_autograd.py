@@ -3,8 +3,8 @@ import logging
 from typing import List, Optional, Sequence, Tuple
 
 import torch
-from hivemind import deserialize_torch_tensor, serialize_torch_tensor
-from hivemind.moe.client.expert import _forward_stream, expert_backward, expert_forward
+from hivemind import serialize_torch_tensor
+from hivemind.moe.client.expert import expert_backward, expert_forward
 from hivemind.moe.client.remote_expert_worker import RemoteExpertWorker
 from hivemind.p2p import StubBase
 from hivemind.utils.nested import nested_compare, nested_flatten, nested_pack
