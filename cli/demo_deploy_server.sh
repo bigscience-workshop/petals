@@ -1,0 +1,24 @@
+if conda env list | grep ".*bloom-demo-benchmark.*"  >/dev/null 2>/dev/null; then
+    conda activate bloom-demo-benchmark
+else
+    conda create -y --name bloom-demo-benchmark python=3.8.12 pip
+    conda activate bloom-demo-benchmark
+
+    conda install -y -c conda-forge cudatoolkit-dev==11.3.1 cudatoolkit==11.3.1 cudnn==8.2.1.32
+    pip install -i https://pypi.org/simple torch==1.12.0+cu113 -f https://download.pytorch.org/whl/torch_stable.html
+
+    pip install -i https://test.pypi.org/simple/ bitsandbytes-cuda113
+    pip install -i https://pypi.org/simple -r demo-requirements.txt
+
+# Please set up
+INITIAL_PEER="<DMITRY or YOZH WILL PROVIDE>"
+MODEL_NAME="bigscience/test-bloomd"
+HOST_MADDR="/ip4/0.0.0.0/tcp/30000"
+SERVER_ID_PATH="./server.id"
+GPU_ID="0"
+NUM_BLOCKS="3" # one converted block consumes ~3Gb 
+
+export OMP_NUM_THREADS="16" # just in case
+CUDA_VISIBLE_DEVICES=${GPU_ID} python -m cli.run_server --converted_model_name_or_path ${MODEL_NAME} --torch_dtype float16 --initial_peer ${INITIAL_PEER} \
+                                                        --compression BLOCKWISE_8BIT --identity_path ${SERVER_ID_PATH} --host_maddrs ${HOST_MADDR} \
+                                                        --num_blocks ${NUM_BLOCKS} --load_in_8bit
