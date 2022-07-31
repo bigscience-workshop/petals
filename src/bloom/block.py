@@ -65,9 +65,14 @@ class BloomAttention(nn.Module):
         head_mask=None,
         use_cache=False,
         output_attentions=False,
+        DEBUG_INPLACE_PAST: bool = True
     ):
+        if DEBUG_INPLACE_PAST:
+            past_key, past_value, past_length = layer_past
+            current_sequence_length = hidden_states.shape[1] + past_length
+        else:
+            current_sequence_length = hidden_states.shape[1] + (0 if layer_past is None else layer_past[0].shape[1])    
         if alibi is None:
-            current_sequence_length = hidden_states.shape[1] + (0 if layer_past is None else layer_past[0].shape[1])
             alibi = build_alibi_tensor(
                 current_sequence_length, n_head=self.num_heads, dtype=hidden_states.dtype, device=hidden_states.device
             )
@@ -89,7 +94,17 @@ class BloomAttention(nn.Module):
         # [batch_size, seq_length, num_heads, 3 x head_dim] --> 3  [batch_size, seq_length, num_heads, head_dim]
         (query_layer, key_layer, value_layer) = split_tensor_along_last_dim(mixed_x_layer, 3)
 
-        if layer_past is not None:
+        if DEBUG_INPLACE_PAST:
+            past_key, past_value, past_length = layer_past
+            assert past_key.dtype == key_layer.dtype
+            assert past_key.shape[1] == 2048
+            assert not torch.is_grad_enabled()
+            past_key[:, past_length: past_length + key_layer.shape[1]] = key_layer.type_as(past_key)
+            past_value[:, past_length: past_length + value_layer.shape[1]] = value_layer.type_as(past_value)
+            key_layer = past_key[:, :current_sequence_length, ...]
+            value_layer = past_value[:, :current_sequence_length, ...]
+        elif layer_past is not None:
+            assert False, "TODO ENABLE INPLACE"
             past_key, past_value = layer_past
             key_layer = torch.cat((past_key.type_as(key_layer), key_layer), dim=1)
             value_layer = torch.cat((past_value.type_as(value_layer), value_layer), dim=1)
@@ -208,6 +223,7 @@ class BloomBlock(nn.Module):
         use_cache=False,
         output_attentions=False,
         alibi=None,
+        DEBUG_INPLACE_PAST=True
     ):
         # hidden_states: [batch_size, seq_length, hidden_size]
 
@@ -230,6 +246,7 @@ class BloomBlock(nn.Module):
             head_mask=head_mask,
             use_cache=use_cache,
             output_attentions=output_attentions,
+            DEBUG_INPLACE_PAST=DEBUG_INPLACE_PAST
         )
 
         attention_output = attn_outputs[0]
