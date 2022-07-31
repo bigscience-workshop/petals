@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
 source ~/miniconda3/etc/profile.d/conda.sh
-# If you use anaconda: source ~/anaconda/etc/profile.d/conda.sh
+# If you use anaconda, uncomment:
+# source ~/anaconda3/etc/profile.d/conda.sh
 
 if conda env list | grep ".*bloom-demo-benchmark.*"  >/dev/null 2>/dev/null; then
     conda activate bloom-demo-benchmark
@@ -21,8 +22,8 @@ INITIAL_PEER="/ip4/172.27.77.65/tcp/38457/p2p/QmWCiRzNYhtSUdPT3toMjFpG9BWPMrrce4
 MODEL_NAME="bigscience/test-bloomd"
 HOST_MADDR="/ip4/0.0.0.0/tcp/30000"
 SERVER_ID_PATH="./server.id"
-GPU_ID="0"
-NUM_BLOCKS="3" # one converted block consumes ~3Gb 
+GPU_ID="0" # GPU must have Tensor Cores: RTX, Titan, A100, V100, ...
+NUM_BLOCKS="3" # one converted block consumes ~3.5Gb 
 
 export OMP_NUM_THREADS="16" # just in case
 CUDA_VISIBLE_DEVICES=${GPU_ID} python -m cli.run_server --converted_model_name_or_path ${MODEL_NAME} --torch_dtype float16 --initial_peer ${INITIAL_PEER} \
