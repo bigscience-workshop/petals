@@ -28,4 +28,4 @@ NUM_BLOCKS="3" # one converted block consumes ~3.5Gb
 export OMP_NUM_THREADS="16" # just in case
 CUDA_VISIBLE_DEVICES=${GPU_ID} python -m cli.run_server --converted_model_name_or_path ${MODEL_NAME} --torch_dtype float16 --initial_peer ${INITIAL_PEER} \
                                                         --compression BLOCKWISE_8BIT --identity_path ${SERVER_ID_PATH} --host_maddrs ${HOST_MADDR} \
-                                                        --num_blocks ${NUM_BLOCKS} --load_in_8bit --throughput 1
+                                                        --num_blocks ${NUM_BLOCKS} --load_in_8bit --throughput 1.0
