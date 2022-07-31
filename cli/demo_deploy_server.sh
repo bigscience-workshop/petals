@@ -14,6 +14,7 @@ else
 
     pip install -i https://test.pypi.org/simple/ bitsandbytes-cuda113
     pip install -i https://pypi.org/simple -r demo-requirements.txt
+fi
 
 # Please set up
 INITIAL_PEER="/ip4/172.27.77.65/tcp/38457/p2p/QmWCiRzNYhtSUdPT3toMjFpG9BWPMrrce4WYGWCaWqrESV"
