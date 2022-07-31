@@ -18,7 +18,7 @@ else
 fi
 
 # Please set up
-INITIAL_PEER="/ip4/172.27.77.65/tcp/38457/p2p/QmWCiRzNYhtSUdPT3toMjFpG9BWPMrrce4WYGWCaWqrESV"
+INITIAL_PEER="/ip4/193.106.95.184/tcp/44653/p2p/QmPz8gEuppboaKuF3kV245iqaGAWA9juhBqG9mV3e7KZvg"
 MODEL_NAME="bigscience/test-bloomd"
 HOST_MADDR="/ip4/0.0.0.0/tcp/30000"
 SERVER_ID_PATH="./server.id"
