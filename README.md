@@ -1,11 +1,11 @@
-# Distributed BLOOM
+# PETALS: Collaborative Inference of Large Models
 
-Run the largest open language model by collaborating over the internet.
+Run BLOOM-176B, the largest open language model, by collaborating over the Internet.
 
 __[EARLY PROTOTYPE]__ - this project is a work in progress. Stuff breaks and gets fixed every day. Docs are nonexistent.
 If you want us to wake you up when it's ready, click Watch -> Custom and tick "Releases".
 
-Roadmap: [__issue #12__](https://github.com/learning-at-home/bloom-demo/issues/12)
+Roadmap: [__Issue #12__](https://github.com/learning-at-home/bloom-demo/issues/12)
 
 ### Installation
 
