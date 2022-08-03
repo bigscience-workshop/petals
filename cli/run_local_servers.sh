@@ -41,6 +41,7 @@ else
     conda install -y -c conda-forge cudatoolkit-dev==11.3.1 cudatoolkit==11.3.1 cudnn==8.2.1.32
     pip install -i https://pypi.org/simple torch==1.12.0+cu113 -f https://download.pytorch.org/whl/torch_stable.html
     pip install -i https://pypi.org/simple -r requirements.txt
+    pip install -i https://test.pypi.org/simple/ bitsandbytes-cuda113
 fi
 
 

@@ -68,18 +68,12 @@ else
     conda install -y -c conda-forge cudatoolkit-dev==11.3.1 cudatoolkit==11.3.1 cudnn==8.2.1.32
     pip install -i https://pypi.org/simple torch==1.12.0+cu113 -f https://download.pytorch.org/whl/torch_stable.html
     pip install -i https://pypi.org/simple -r requirements.txt
+    pip install -i https://test.pypi.org/simple/ bitsandbytes-cuda113
 fi
 
 ##############
 # Run server #
 ##############
 
-# [('NONE', 0),
-#  ('MEANSTD_16BIT', 1),
-#  ('FLOAT16', 2),
-#  ('QUANTILE_8BIT', 3),
-#  ('UNIFORM_8BIT', 4),
-#  ('BLOCKWISE_8BIT', 5)]
-
 python -m cli.run_server --converted_model_name_or_path ${MODEL_NAME} --device ${DEVICE} --initial_peer ${INITIAL_PEER} \
-  --block_indices ${BLOCK_IDS} --compression UNIFORM_8BIT --identity_path ${SERVER_ID_PATH} --host_maddrs ${HOST_MADDR} --load_in_8bit # &> ${SERVER_ID_PATH}.log
+  --block_indices ${BLOCK_IDS} --compression UNIFORM_8BIT --identity_path ${SERVER_ID_PATH} --host_maddrs ${HOST_MADDR} --load_in_8bit &> ${SERVER_ID_PATH}.log
