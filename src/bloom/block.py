@@ -65,7 +65,7 @@ class BloomAttention(nn.Module):
         head_mask=None,
         use_cache=False,
         output_attentions=False,
-        DEBUG_INPLACE_PAST: bool = True
+        DEBUG_INPLACE_PAST: bool = False
     ):
         if DEBUG_INPLACE_PAST:
             past_key, past_value, past_length = layer_past
@@ -97,7 +97,7 @@ class BloomAttention(nn.Module):
         if DEBUG_INPLACE_PAST:
             past_key, past_value, past_length = layer_past
             assert past_key.dtype == key_layer.dtype
-            assert past_key.shape[1] == 2048
+            # assert past_key.shape[1] == 2048
             assert not torch.is_grad_enabled()
             past_key[:, past_length: past_length + key_layer.shape[1]] = key_layer.type_as(past_key)
             past_value[:, past_length: past_length + value_layer.shape[1]] = value_layer.type_as(past_value)
