@@ -81,5 +81,6 @@ fi
 #  ('UNIFORM_8BIT', 4),
 #  ('BLOCKWISE_8BIT', 5)]
 
-python -m cli.run_server --converted_model_name_or_path ${MODEL_NAME} --device ${DEVICE} --initial_peer ${INITIAL_PEER} \
-  --block_indices ${BLOCK_IDS} --compression UNIFORM_8BIT --identity_path ${SERVER_ID_PATH} --host_maddrs ${HOST_MADDR} --load_in_8bit # &> ${SERVER_ID_PATH}.log
+export OMP_NUM_THREADS=16
+CUDA_VISIBLE_DEVICES=${DEVICE} python -m cli.run_server --converted_model_name_or_path ${MODEL_NAME} --torch_dtype float16 --initial_peer ${INITIAL_PEER} --cache_dir '/extra_disk_1/dbaranchuk/test-bloomd' \
+  --block_indices ${BLOCK_IDS} --compression BLOCKWISE_8BIT --identity_path ${SERVER_ID_PATH} --host_maddrs ${HOST_MADDR} --load_in_8bit #&> logs/${SERVER_ID_PATH}.log

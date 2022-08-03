@@ -49,7 +49,7 @@ fi
 #######################
 
 hivemind-dht &> tmp.out &
-sleep 5
+sleep 20
 INITIAL_PEER=$(python -c "with open('tmp.out') as f: print(f.readlines()[1].split()[-1])" )
 echo "Initial peer: ${INITIAL_PEER}"
 
@@ -103,6 +103,6 @@ done
 # Kill initial peer #
 #####################
 
-sleep 10
+sleep 180
 pkill -f hivemind-dht # TODO: kill only particular pids of hivemind-dht
 rm tmp.out
