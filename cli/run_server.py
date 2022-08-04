@@ -27,12 +27,14 @@ def main():
 
     parser.add_argument('--compression', type=str, default='NONE', required=False, help='Tensor compression communication')
 
-    parser.add_argument('--num_handlers', type=int, default=16, required=False,
+    parser.add_argument('--num_handlers', type=int, default=8, required=False,
                         help='server will use this many processes to handle incoming requests')
     parser.add_argument('--min_batch_size', type=int, default=1,
                         help='Minimum required batch size for all expert operations')
     parser.add_argument('--max_batch_size', type=int, default=16384,
                         help='The total number of examples in the same batch will not exceed this value')
+    parser.add_argument('--cache_dir', type=str, default=None, 
+                        help='Path to a directory in which a downloaded pretrained model configuration should be cached if the standard cache should not be used.')
     parser.add_argument('--cache_size_bytes', type=int, default=None,
                         help='The size of memory cache for storing past attention keys/values between inference steps')
     parser.add_argument('--device', type=str, default=None, required=False,
@@ -40,6 +42,9 @@ def main():
     parser.add_argument("--torch_dtype", type=str, default="auto",
                         help="Use this dtype to store block weights and do computations. "
                              "By default, respect the dtypes in the pre-trained state dict.")
+    parser.add_argument('--revision', type=str, default='main',
+                        help="The specific model version to use. It can be a branch name, a tag name, or a commit id, since we use a git-based system for storing models"
+                             "and other artifacts on huggingface.co, so `revision` can be any identifier allowed by git.")
 
     parser.add_argument('--throughput',
                         type=lambda value: value if value in ['auto', 'eval'] else float(value),
@@ -64,6 +69,7 @@ def main():
                         help='Path of a file with custom nn.modules, wrapped into special decorator')
     parser.add_argument('--identity_path', type=str, required=False, help='Path to identity file to be used in P2P')
     parser.add_argument("--use_auth_token", type=str, default=None, help="auth token for from_pretrained")
+    parser.add_argument('--load_in_8bit', action='store_true', help='Convert the loaded model into mixed-8bit quantized model.')
 
     # fmt:on
     args = vars(parser.parse_args())

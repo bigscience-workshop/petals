@@ -13,6 +13,7 @@ Roadmap: [__Issue #12__](https://github.com/learning-at-home/bloom-demo/issues/1
 conda install -y -c conda-forge cudatoolkit-dev==11.3.1 cudatoolkit==11.3.1 cudnn==8.2.1.32
 pip install torch==1.12.0+cu113 -f https://download.pytorch.org/whl/torch_stable.html
 pip install -r requirements.txt
+pip install -i https://test.pypi.org/simple/ bitsandbytes-cuda113
 ```
 
 

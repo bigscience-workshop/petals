@@ -41,6 +41,7 @@ else
     conda install -y -c conda-forge cudatoolkit-dev==11.3.1 cudatoolkit==11.3.1 cudnn==8.2.1.32
     pip install -i https://pypi.org/simple torch==1.12.0+cu113 -f https://download.pytorch.org/whl/torch_stable.html
     pip install -i https://pypi.org/simple -r requirements.txt
+    pip install -i https://test.pypi.org/simple/ bitsandbytes-cuda113
 fi
 
 
@@ -49,7 +50,7 @@ fi
 #######################
 
 hivemind-dht &> tmp.out &
-sleep 3
+sleep 5
 INITIAL_PEER=$(python -c "with open('tmp.out') as f: print(f.readlines()[1].split()[-1])" )
 echo "Initial peer: ${INITIAL_PEER}"
 
@@ -96,9 +97,8 @@ do
     # Run server #
     ##############
 
-    tmux new-session -d -s "Server_${SERVER_ID}" bash cli/deploy_server.sh -i ${INITIAL_PEER} -d ${cfg[device]} -p ${cfg[id_path]} -b ${cfg[block_ids]} -a ${cfg[maddr]}
+    tmux new-session -d -s "Server_${SERVER_ID}" bash cli/deploy_server.sh -m "bigscience/test-bloomd" -i ${INITIAL_PEER} -d ${cfg[device]} -p ${cfg[id_path]} -b ${cfg[block_ids]} -a ${cfg[maddr]}
 done
-
 
 #####################
 # Kill initial peer #
