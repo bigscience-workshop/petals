@@ -101,7 +101,7 @@ def pre_process_alibi_for_pad(alibi: torch.Tensor, attention_mask: torch.Tensor)
         attention_mask: ([`torch.tensor`], *required*):
             attention mask to pre-process
     """
-    assert attention_mask.shape.ndim == 2, "mask should be [batch_size, seq_length]"
+    assert attention_mask.ndim == 2, "mask should be [batch_size, seq_length]"
     unpadded_indices = torch.relu(attention_mask.cumsum(dim=1) - 1)
     # ^-- [batch, max_len], values correspond to element indices after removing padding
     # We shift the alibi tensor + replace all the values where attention_mask==0.0 by 0

@@ -28,12 +28,12 @@ jobs:
           pip install -r requirements.txt
       - name: Delete previous model, if exists
         run: |
-          export HF_TAG=$(python -c "import os; print(os.environ.get('GITHUB_REF_NAME') or 'main')")
+          export HF_TAG=$(python -c "import os; print(os.environ.get('GITHUB_HEAD_REF') or os.environ.get('GITHUB_REF_NAME'))")
           python -c "from huggingface_hub import delete_repo; delete_repo(token='$BLOOM_TESTING_WRITE_TOKEN', \
           name='test-bloomd-350m-$HF_TAG', organization='bloom-testing')" || true
       - name: Convert model and push to hub
         run: |
-          export HF_TAG=$(python -c "import os; print(os.environ.get('GITHUB_BASE_REF') or os.environ.get('GITHUB_REF_NAME'))")
+          export HF_TAG=$(python -c "import os; print(os.environ.get('GITHUB_HEAD_REF') or os.environ.get('GITHUB_REF_NAME'))")
           python -m cli.convert_model --model bigscience/bloom-350m  --output_path ./converted_model \
             --output_repo bloom-testing/test-bloomd-350m-$HF_TAG --use_auth_token $BLOOM_TESTING_WRITE_TOKEN
 
@@ -62,15 +62,24 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
+      - name: Build bitsandbytes cpuonly
+        run: |
+          git clone https://github.com/TimDettmers/bitsandbytes.git
+          cd bitsandbytes
+          make cpuonly
+          pip install .
+          cd -
       - name: Test
         run: |
-          export HF_TAG=$(python -c "import os; print(os.environ.get('GITHUB_REF_NAME') or 'main')")
+          export HF_TAG=$(python -c "import os; print(os.environ.get('GITHUB_HEAD_REF') or os.environ.get('GITHUB_REF_NAME'))")
           export MODEL_NAME=bloom-testing/test-bloomd-350m-$HF_TAG
           export REF_NAME=bigscience/bloom-350m
 
           python -m cli.run_server --converted_model_name_or_path $MODEL_NAME --block_indices 0:12 \
             --torch_dtype float32 --identity tests/test.id --host_maddrs /ip4/127.0.0.1/tcp/31337 --throughput 1 &
           SERVER1_PID=$!
+          
+          sleep 5  # wait for the first server to initialize DHT
           
           export INITIAL_PEERS=/ip4/127.0.0.1/tcp/31337/p2p/QmS9KwZptnVdB9FFV7uGgaTq4sEKBwcYeKZDfSpyKDUd1g
           # ^-- server 1 multiaddr is determined by --identity and --host_maddrs
@@ -79,7 +88,7 @@ jobs:
             --torch_dtype float32 --initial_peers $INITIAL_PEERS --throughput 1 &> server2.log &
           SERVER2_PID=$!
 
-          sleep 30  # wait for server to download layers
+          sleep 60  # wait for server to download layers
           
           PYTHONPATH=. pytest tests
           

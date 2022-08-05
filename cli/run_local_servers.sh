@@ -32,17 +32,16 @@ done
 ###########################
 
 source ~/miniconda3/etc/profile.d/conda.sh
-if conda env list | grep ".*bloom-demo.*"  &>/dev/null; then
+if conda env list | grep ".*bloom-demo.*"  >/dev/null 2>/dev/null; then
     conda activate bloom-demo
 else
     conda create -y --name bloom-demo python=3.8.12 pip
     conda activate bloom-demo
 
     conda install -y -c conda-forge cudatoolkit-dev==11.3.1 cudatoolkit==11.3.1 cudnn==8.2.1.32
-    pip install -i https://pypi.org/simple torch==1.11.0+cu113 torchvision==0.12.0+cu113 -f https://download.pytorch.org/whl/torch_stable.html
-    pip install -i https://pypi.org/simple accelerate==0.10.0 huggingface-hub==0.7.0 hivemind==1.1.0
-    pip install -i https://pypi.org/simple bitsandbytes-cuda113==0.26.0
-    pip install -i https://pypi.org/simple https://github.com/huggingface/transformers/archive/6589e510fa4e6c442059de2fab84752535de9b23.zip
+    pip install -i https://pypi.org/simple torch==1.12.0+cu113 -f https://download.pytorch.org/whl/torch_stable.html
+    pip install -i https://pypi.org/simple -r requirements.txt
+    pip install -i https://test.pypi.org/simple/ bitsandbytes-cuda113
 fi
 
 
@@ -51,7 +50,7 @@ fi
 #######################
 
 hivemind-dht &> tmp.out &
-sleep 3
+sleep 5
 INITIAL_PEER=$(python -c "with open('tmp.out') as f: print(f.readlines()[1].split()[-1])" )
 echo "Initial peer: ${INITIAL_PEER}"
 
@@ -88,7 +87,7 @@ do
     done < ${CONFIG_PATH}/server_${SERVER_ID}.cfg
     
     echo "=== Server #${SERVER_ID} ==="
-    echo "Server ID: ${id_path}"
+    echo "Server ID: ${cfg[id_path]}"
     echo "Device: ${cfg[device]}"
     echo "Bloom block ids: ${cfg[block_ids]}"
     echo "Host maddr: ${cfg[maddr]}"
@@ -98,9 +97,8 @@ do
     # Run server #
     ##############
 
-    tmux new-session -d -s "Server_${SERVER_ID}" bash cli/deploy_server.sh -i ${INITIAL_PEER} -d ${cfg[device]} -p ${cfg[id_path]} -b ${cfg[block_ids]} -a ${cfg[maddr]}
+    tmux new-session -d -s "Server_${SERVER_ID}" bash cli/deploy_server.sh -m "bigscience/test-bloomd" -i ${INITIAL_PEER} -d ${cfg[device]} -p ${cfg[id_path]} -b ${cfg[block_ids]} -a ${cfg[maddr]}
 done
-
 
 #####################
 # Kill initial peer #
