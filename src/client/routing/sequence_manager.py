@@ -78,6 +78,7 @@ class RemoteSequenceManager(threading.Thread):
     def run(self) -> None:
         self.ready.set()
         threading.Event().wait()
+
         # TODO
 
     def make_sequence(
