@@ -17,6 +17,7 @@ from src.bloom.model import (
 )
 from src.client.remote_generation import RemoteGenerationMixin
 from src.client.remote_sequential import RemoteSequential
+from src.utils.misc import DUMMY
 
 use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
@@ -33,6 +34,9 @@ class DistributedBloomConfig(BloomConfig):
     dht: Optional[hivemind.DHT] = None  # a running DHT instance, e.g. when using the same DHT for multiple models
     chunk_size_for_efficient_fp16_on_cpu: int = 10000  # a chunk size for a LM head for efficient half-precision on CPU
     pre_seq_len: int = 0  # a number of tokens for prompt tuning.
+    tuning_mode: Optional[
+        str
+    ] = None  # One of the available options for fine-tuning: [None, 'shallow_ptune', 'deep_ptune', 'adapters']
 
 
 class DistributedBloomModel(BloomModel):
@@ -60,9 +64,39 @@ class DistributedBloomModel(BloomModel):
         # Forbid accumulate grads for embeddings and layernorm
         self.set_requires_grad(False)
 
+        self.tuning_mode = config.tuning_mode
+        if self.tuning_mode and "ptune" in config.tuning_mode:
+            assert config.pre_seq_len > 0, "The number of prefix tokens must be > 0"
+            self.pre_seq_len = config.pre_seq_len
+            self.prompt_embeddings = nn.Embedding(self.pre_seq_len, config.hidden_size)
+            self.prefix_tokens = torch.arange(self.pre_seq_len).long()
+
+            if config.tuning_mode == "deep_ptune":
+                self.intermediate_prompt_embeddings = nn.Embedding(
+                    self.pre_seq_len, (config.num_hidden_layers - 1) * config.hidden_size
+                )
+                self.intermediate_prompt_embeddings.weight.data.zero_()
+        elif self.tuning_mode:
+            raise NotImplementedError(f"TODO: {self.tuning_mode}")
+
     def set_requires_grad(self, value):
         for p in self.parameters():
             p.requires_grad = value
+
+    def get_prompt(self, batch_size):
+        prefix_tokens = self.prefix_tokens.unsqueeze(0).expand(batch_size, -1)
+        prefix_tokens = prefix_tokens.to(self.word_embeddings.weight.device)
+        prompts = self.prompt_embeddings(prefix_tokens)
+
+        if self.tuning_mode == "deep_ptune":
+            intermediate_prompts = self.intermediate_prompt_embeddings(prefix_tokens)
+            intermediate_prompts = intermediate_prompts.view(
+                batch_size, self.pre_seq_len, len(self.h) - 1, self.hidden_size
+            )
+            intermediate_prompts = intermediate_prompts.permute([2, 0, 1, 3])
+        else:
+            intermediate_prompts = DUMMY
+        return prompts, intermediate_prompts
 
     def forward(
         self,
@@ -90,10 +124,22 @@ class DistributedBloomModel(BloomModel):
         if inputs_embeds is None:
             inputs_embeds = self.word_embeddings(input_ids)
 
-        # Note: it supports only float32 or bfloat16 inputs
-        hidden_states = self.word_embeddings_layernorm(inputs_embeds)
+        if self.tuning_mode and "ptune" in self.tuning_mode:
+            batch_size = inputs_embeds.shape[0]
+            prompts, intermediate_prompts = self.get_prompt(batch_size)
+            inputs_embeds = torch.cat([prompts, inputs_embeds], dim=1)
+
+        hidden_states = self.word_embeddings_layernorm(inputs_embeds.float())
         output_shape = input_shape + (hidden_states.size(-1),)
-        hidden_states = self.h(hidden_states)
+
+        if "ptune" in self.tuning_mode:
+            hidden_states = self.h(hidden_states, prompts=intermediate_prompts)
+        else:
+            hidden_states = self.h(hidden_states)
+
+        # Remove prefix
+        if self.tuning_mode and "ptune" in self.tuning_mode:
+            hidden_states = hidden_states[:, self.pre_seq_len :]
 
         # Add last hidden state
         hidden_states = self.ln_f(hidden_states)
@@ -104,55 +150,6 @@ class DistributedBloomModel(BloomModel):
             hidden_states=None,
             attentions=None,
         )
-
-
-class DistributedBloomPrefix(DistributedBloomModel):
-    """DistributedBloomModel with prefix tokens for prompt tuning"""
-
-    def __init__(self, config):
-        super().__init__(config)
-        assert config.pre_seq_len > 0, "The number of prefix tokens must be > 0"
-        self.pre_seq_len = config.pre_seq_len
-
-        self.prompt_embeddings = nn.Embedding(self.pre_seq_len, config.hidden_size)
-        self.prefix_tokens = torch.arange(self.pre_seq_len).long()
-
-    def get_prompt(self, batch_size):
-        prefix_tokens = self.prefix_tokens.unsqueeze(0).expand(batch_size, -1)
-        prefix_tokens = prefix_tokens.to(self.word_embeddings.weight.device)
-        prompts = self.prompt_embeddings(prefix_tokens)
-        return prompts
-
-    def forward(
-        self,
-        input_ids: Optional[torch.LongTensor] = None,
-        inputs_embeds: Optional[torch.Tensor] = None,
-        attention_mask: Optional[torch.Tensor] = None,
-        **kwargs,
-    ):
-        assert (
-            input_ids is None or inputs_embeds is None
-        ), "You cannot specify both input_ids and inputs_embeds at the same time"
-        assert input_ids is not None or inputs_embeds is not None, "You must specify either input_ids or inputs_embeds"
-
-        if inputs_embeds is None:
-            inputs_embeds = self.word_embeddings(input_ids)
-
-        batch_size = inputs_embeds.shape[0]
-
-        if attention_mask is not None:
-            prefix_attention_mask = torch.ones(batch_size, self.prefix_length, device=attention_mask.device)
-            attention_mask = torch.cat((prefix_attention_mask, attention_mask), dim=1)
-
-        prompts = self.get_prompt(batch_size)
-        inputs_embeds = torch.cat([prompts, inputs_embeds], dim=1)
-
-        transformer_outputs = super().forward(inputs_embeds=inputs_embeds, attention_mask=attention_mask, **kwargs)
-
-        # Remove prefix
-        last_hidden_state = transformer_outputs[0][:, self.prefix_length :]
-        transformer_outputs["last_hidden_state"] = last_hidden_state
-        return transformer_outputs
 
 
 class DistributedBloomForCausalLM(RemoteGenerationMixin, BloomForCausalLM):

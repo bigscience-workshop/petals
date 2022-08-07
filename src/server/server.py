@@ -212,6 +212,9 @@ class Server(threading.Thread):
                     BatchTensorDescriptor(
                         1, 2048, block_config.hidden_size, dtype=torch.float32, compression=compression
                     ),
+                    BatchTensorDescriptor(
+                        1, 2048, block_config.hidden_size, dtype=torch.float32, compression=compression
+                    ),
                 ),
                 kwargs_schema={},
                 outputs_schema=(

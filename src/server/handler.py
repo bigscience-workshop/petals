@@ -12,6 +12,7 @@ from hivemind.utils.streaming import split_for_streaming
 
 from src.data_structures import CHAIN_DELIMITER, ModuleUID
 from src.server.backend import MAX_LENGTH, TransformerBackend
+from src.utils.misc import DUMMY, is_dummy
 
 
 class TransformerConnectionHandler(ConnectionHandler):
@@ -80,20 +81,11 @@ class TransformerConnectionHandler(ConnectionHandler):
 
     async def rpc_forward(self, request: runtime_pb2.ExpertRequest, context: P2PContext) -> runtime_pb2.ExpertResponse:
         # Parse request and prepare backends
-        hidden_states = [deserialize_torch_tensor(tensor) for tensor in request.tensors]
+        inputs = [deserialize_torch_tensor(tensor) for tensor in request.tensors]
         requested_uids = self._check_header(request)
         requested_backends = tuple(self.module_backends[uid] for uid in requested_uids)
 
-        # Cast inputs to backend dtype
-        hidden_states = [tensor.to(requested_backends[0].dtype) for tensor in hidden_states]
-
-        # Run a chain of requested backends
-        for backend in requested_backends:
-            assert isinstance(hidden_states, (list, tuple))
-            assert (
-                len(hidden_states) == 1 and hidden_states[0].ndim == 3
-            ), f"inputs to {type(backend)} must be a list with a single 3d tensor of hidden states"
-            hidden_states = await backend.forward_pool.submit_task(*hidden_states)
+        hidden_states = await _rpc_forward(inputs, requested_backends)
 
         # Serialize the overall output and respond
         assert len(hidden_states) == 1 and hidden_states[0].ndim == 3
@@ -108,20 +100,11 @@ class TransformerConnectionHandler(ConnectionHandler):
         self, requests: AsyncIterator[runtime_pb2.ExpertRequest], context: P2PContext
     ) -> AsyncIterator[runtime_pb2.ExpertRequest]:
         # Parse requests and prepare backends
-        uids_header, hidden_states = await self._gather_inputs(requests, context)
+        uids_header, inputs = await self._gather_inputs(requests, context)
         requested_uids = self._check_header_str(uids_header)
         requested_backends = tuple(self.module_backends[uid] for uid in requested_uids)
 
-        # Cast inputs to backend dtype
-        hidden_states = [tensor.to(requested_backends[0].dtype) for tensor in hidden_states]
-
-        # Run a chain of requested backends
-        for backend in requested_backends:
-            assert isinstance(hidden_states, (list, tuple))
-            assert (
-                len(hidden_states) == 1 and hidden_states[0].ndim == 3
-            ), f"inputs to {type(backend)} must be a list with a single 3d tensor of hidden states"
-            hidden_states = await backend.forward_pool.submit_task(*hidden_states)
+        hidden_states = await _rpc_forward(inputs, requested_backends)
 
         # Serialize the overall output
         assert len(hidden_states) == 1 and hidden_states[0].ndim == 3
@@ -139,36 +122,17 @@ class TransformerConnectionHandler(ConnectionHandler):
 
     async def rpc_backward(self, request: runtime_pb2.ExpertRequest, context: P2PContext) -> runtime_pb2.ExpertResponse:
         # Parse requests and prepare backends
-        inputs, grads = [deserialize_torch_tensor(tensor) for tensor in request.tensors]
+        inputs, prompts, grad_outputs = [deserialize_torch_tensor(tensor) for tensor in request.tensors]
         requested_uids = self._check_header(request)
         requested_backends = tuple(self.module_backends[uid] for uid in requested_uids)
 
-        # Cast inputs & grad outputs to backend dtype
-        inputs = inputs.to(requested_backends[0].dtype)
-        grads = grads.to(requested_backends[-1].dtype)
-
-        # Run a forward chain to collect intermediate inputs
-        # Note that we do not forward for the last module since we do not need its output
-        inter_inputs = [inputs]
-        for backend in requested_backends[:-1]:
-            assert inputs.ndim == 3, f"inputs to {type(backend)} must be a single 3d tensor of hidden states"
-            inputs = await backend.forward_pool.submit_task(inputs)
-            assert isinstance(inputs, (list, tuple)) and len(inputs) == 1
-            inputs = inputs[0]
-            inter_inputs.append(inputs)
-
-        # Run a chain of requested backends
-        for inp, backend in zip(inter_inputs[::-1], requested_backends[::-1]):
-            inputs_and_grads = [inp, grads]
-            grads = await backend.backward_pool.submit_task(*inputs_and_grads)
-            assert isinstance(grads, (list, tuple)) and len(grads) == 1
-            grads = grads[0]
+        grads = await _rpc_backward(inputs, prompts, grad_outputs, requested_backends)
 
         # Serialize the overall grad_input and respond
         return runtime_pb2.ExpertResponse(
             tensors=[
                 serialize_torch_tensor(result.to(proto.dtype), proto.compression, allow_inplace=True)
-                for result, proto in zip([grads], nested_flatten(requested_backends[0].grad_inputs_schema))
+                for result, proto in zip(grads, nested_flatten(requested_backends[0].grad_inputs_schema))
             ]
         )
 
@@ -176,36 +140,16 @@ class TransformerConnectionHandler(ConnectionHandler):
         self, requests: AsyncIterator[runtime_pb2.ExpertRequest], context: P2PContext
     ) -> AsyncIterator[runtime_pb2.ExpertResponse]:
 
-        uids_header, inputs_and_grads = await self._gather_inputs(requests, context)
-        inputs, grads = inputs_and_grads
+        uids_header, (inputs, prompts, grad_outputs) = await self._gather_inputs(requests, context)
         requested_uids = self._check_header_str(uids_header)
         requested_backends = tuple(self.module_backends[uid] for uid in requested_uids)
 
-        # Cast inputs & grad outputs to backend dtype
-        inputs = inputs.to(requested_backends[0].dtype)
-        grads = grads.to(requested_backends[-1].dtype)
-
-        # Run a forward chain to collect intermediate inputs
-        # Note that we do not forward for the last module since we do not need its outputs
-        inter_inputs = [inputs]
-        for backend in requested_backends[:-1]:
-            assert inputs.ndim == 3, f"inputs to {type(backend)} must be a single 3d tensor of hidden states"
-            inputs = await backend.forward_pool.submit_task(inputs)
-            assert isinstance(inputs, (list, tuple)) and len(inputs) == 1
-            inputs = inputs[0]
-            inter_inputs.append(inputs)
-
-        # Run a backward chain for requested backends
-        for inp, backend in zip(inter_inputs[::-1], requested_backends[::-1]):
-            inputs_and_grads = [inp, grads]
-            grads = await backend.backward_pool.submit_task(*inputs_and_grads)
-            assert isinstance(grads, (list, tuple)) and len(grads) == 1
-            grads = grads[0]
+        grads = await _rpc_backward(inputs, prompts, grad_outputs, requested_backends)
 
         # Serialize the overall grad_inputs
         serialized_grad_inputs = [
             serialize_torch_tensor(result.to(proto.dtype), proto.compression, allow_inplace=True)
-            for result, proto in zip([grads], nested_flatten(requested_backends[0].grad_inputs_schema))
+            for result, proto in zip(grads, nested_flatten(requested_backends[0].grad_inputs_schema))
         ]
         # Split the serialized_grad_inputs for streaming and respond
         output_split = [
@@ -252,3 +196,57 @@ class TransformerConnectionHandler(ConnectionHandler):
                 handles.append(await stack.enter_async_context(backend.memory_cache.allocate_cache(cache_descriptor)))
 
             yield handles
+
+
+async def _rpc_forward(inputs, requested_backends):
+    # Cast inputs to backend dtype
+    hidden_states = [tensor.to(requested_backends[0].dtype) for tensor in inputs]
+    assert len(hidden_states) == 2 and hidden_states[0].ndim == 3
+    hidden_states, prompts = hidden_states
+
+    if is_dummy(prompts):
+        prompts = [DUMMY] * len(requested_backends)
+
+    # Run a chain of requested backends
+    for backend, prompt in zip(requested_backends, prompts):
+        (hidden_states,) = await backend.forward_pool.submit_task(hidden_states, prompt)
+        assert isinstance(hidden_states, torch.Tensor)
+        assert (
+            hidden_states.ndim == 3
+        ), f"inputs to {type(backend)} must be a list with a single 3d tensor of hidden states"
+
+    # Serialize the overall output
+    return [hidden_states]
+
+
+async def _rpc_backward(inputs, prompts, grad_outputs, requested_backends):
+    # Cast inputs & grad outputs to backend dtype
+    inputs = inputs.to(requested_backends[0].dtype)
+    prompts = prompts.to(requested_backends[0].dtype)
+    grad_outputs = grad_outputs.to(requested_backends[-1].dtype)
+
+    if is_dummy(prompts):
+        prompts = [DUMMY] * len(requested_backends)
+
+    # Run a forward chain to collect intermediate inputs
+    # Note that we do not forward for the last module since we do not need its output
+    inter_inputs = [inputs]
+    for backend, prompt in zip(requested_backends[:-1], prompts[:-1]):
+        assert inputs.ndim == 3, f"inputs to {type(backend)} must be a single 3d tensor of hidden states"
+        inputs = await backend.forward_pool.submit_task(inputs, prompt)
+        assert isinstance(inputs, (list, tuple)) and len(inputs) == 1
+        inputs = inputs[0]
+        inter_inputs.append(inputs)
+
+    grad_prompts = []
+    # Run a chain of requested backends
+    for inp, prompt, backend in zip(inter_inputs[::-1], prompts[::-1], requested_backends[::-1]):
+        grads = await backend.backward_pool.submit_task(inp, prompt, grad_outputs)
+        assert isinstance(grads, (list, tuple)) and len(grads) == 2
+        grad_outputs, grad_prompt = grads
+        grad_prompts.append(grad_prompt)
+
+    is_dummy_grad_prompts = [is_dummy(grad_param) for grad_param in grad_prompts]
+    grad_prompts = torch.cat(grad_prompts, dim=0) if not any(is_dummy_grad_prompts) else DUMMY
+    grads = [grad_outputs, grad_prompts]
+    return grads

@@ -15,6 +15,7 @@ from src.client.sequence_manager import RemoteSequenceManager
 from src.client.sequential_autograd import _RemoteSequentialAutogradFunction
 from src.data_structures import UID_DELIMITER
 from src.dht_utils import _create_remote_modules_from_infos
+from src.utils.misc import DUMMY
 
 use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
@@ -52,8 +53,8 @@ class RemoteSequential(nn.Module):
             assert isinstance(sequence_manager.block_uids, list)
             self.is_subsequence = self.sequence_manager.block_uids != block_uids
 
-    def forward(self, inputs: torch.Tensor):
-        outputs = _RemoteSequentialAutogradFunction.apply(inputs, self.sequence_manager)
+    def forward(self, inputs: torch.Tensor, prompts: torch.Tensor = DUMMY):
+        outputs = _RemoteSequentialAutogradFunction.apply(inputs, prompts, self.sequence_manager)
         return outputs
 
     def __getitem__(self, ix: Union[int, slice]) -> Union[RemoteTransformerBlock, RemoteSequential]:
