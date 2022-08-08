@@ -12,7 +12,7 @@ from hivemind.utils.streaming import split_for_streaming
 
 from src.data_structures import CHAIN_DELIMITER, ModuleUID
 from src.server.backend import MAX_LENGTH, TransformerBackend
-from src.utils.misc import DUMMY, is_dummy
+from src.utils.misc import DUMMY, is_dummy, is_dummy_batch, make_dummy_batch
 
 
 class TransformerConnectionHandler(ConnectionHandler):
@@ -205,7 +205,8 @@ async def _rpc_forward(inputs, requested_backends):
     hidden_states, prompts = hidden_states
 
     if is_dummy(prompts):
-        prompts = [DUMMY] * len(requested_backends)
+        batch_size = hidden_states.shape[0]
+        prompts = [make_dummy_batch(batch_size)] * len(requested_backends)
 
     # Run a chain of requested backends
     for backend, prompt in zip(requested_backends, prompts):
@@ -224,29 +225,29 @@ async def _rpc_backward(inputs, prompts, grad_outputs, requested_backends):
     inputs = inputs.to(requested_backends[0].dtype)
     prompts = prompts.to(requested_backends[0].dtype)
     grad_outputs = grad_outputs.to(requested_backends[-1].dtype)
+    batch_size = inputs.shape[0]
 
     if is_dummy(prompts):
-        prompts = [DUMMY] * len(requested_backends)
+        prompts = [make_dummy_batch(batch_size)] * len(requested_backends)
 
     # Run a forward chain to collect intermediate inputs
     # Note that we do not forward for the last module since we do not need its output
     inter_inputs = [inputs]
     for backend, prompt in zip(requested_backends[:-1], prompts[:-1]):
         assert inputs.ndim == 3, f"inputs to {type(backend)} must be a single 3d tensor of hidden states"
-        inputs = await backend.forward_pool.submit_task(inputs, prompt)
-        assert isinstance(inputs, (list, tuple)) and len(inputs) == 1
-        inputs = inputs[0]
+        (inputs,) = await backend.forward_pool.submit_task(inputs, prompt)
+        assert isinstance(inputs, torch.Tensor)
         inter_inputs.append(inputs)
 
     grad_prompts = []
     # Run a chain of requested backends
-    for inp, prompt, backend in zip(inter_inputs[::-1], prompts[::-1], requested_backends[::-1]):
+    for inp, prompt, backend in zip(inter_inputs[::-1], prompts.flip(0), requested_backends[::-1]):
         grads = await backend.backward_pool.submit_task(inp, prompt, grad_outputs)
         assert isinstance(grads, (list, tuple)) and len(grads) == 2
         grad_outputs, grad_prompt = grads
-        grad_prompts.append(grad_prompt)
+        grad_prompts.append(grad_prompt[None])
 
-    is_dummy_grad_prompts = [is_dummy(grad_param) for grad_param in grad_prompts]
+    is_dummy_grad_prompts = [is_dummy_batch(grad_param, batch_size) for grad_param in grad_prompts]
     grad_prompts = torch.cat(grad_prompts, dim=0) if not any(is_dummy_grad_prompts) else DUMMY
     grads = [grad_outputs, grad_prompts]
     return grads

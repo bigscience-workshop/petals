@@ -101,8 +101,9 @@ async def sequential_forward(
 
     end_index = end_index if end_index is not None else len(sequence_manager.block_uids)
     assert start_index >= 0 and end_index <= len(sequence_manager.block_uids)
-    if not is_dummy(prompts):
-        assert len(prompts) == end_index - start_index + 1
+    assert is_dummy(prompts) or len(prompts) == len(
+        sequence_manager.block_uids
+    )  # should be n_layers - 1 but add extra prompts for convenience
 
     sequences = sequence_manager.make_sequence(start_index, end_index)
     intermediate_inputs = []
@@ -163,6 +164,7 @@ async def sequential_backward(
                 grad_outputs, span_grad_prompts = await run_expert_backward(
                     span_uids, stub, sequence_manager.rpc_info, inputs_and_prompts, grad_outputs
                 )
+                grad_outputs = [grad_outputs]
                 grad_prompts.append(span_grad_prompts)
                 break
             except Exception as e:
@@ -256,7 +258,7 @@ class _RemoteSequentialAutogradFunction(torch.autograd.Function):
                 ctx.sequence_manager,
             )
         )
-        grad_input_batches = [output[0] for output in outputs]
+        grad_input_batches = [output[0][0] for output in outputs]
         grad_prompt_batches = [output[1] for output in outputs]
 
         grad_inputs = torch.cat(grad_input_batches, dim=0)

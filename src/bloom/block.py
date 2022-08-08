@@ -18,7 +18,7 @@ from src.bloom.ops import (
     pre_process_alibi_for_pad,
     split_tensor_along_last_dim,
 )
-from src.utils.misc import DUMMY, is_dummy
+from src.utils.misc import is_dummy_batch
 
 
 class BloomAttention(nn.Module):
@@ -203,7 +203,7 @@ class BloomBlock(nn.Module):
     def forward(
         self,
         hidden_states,
-        prompts=DUMMY,
+        prompts=None,
         layer_past=None,
         attention_mask=None,
         head_mask=None,
@@ -249,7 +249,8 @@ class BloomBlock(nn.Module):
         # MLP.
         output = self.mlp(layernorm_output, residual)
 
-        if not is_dummy(prompts):
+        batch_size = hidden_states.shape[0]
+        if prompts is not None and not is_dummy_batch(prompts, batch_size):
             pre_seq_len = prompts.shape[1]
             output[:, :pre_seq_len] = output[:, :pre_seq_len] + prompts
 
