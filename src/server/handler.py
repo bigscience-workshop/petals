@@ -46,7 +46,8 @@ class TransformerConnectionHandler(ConnectionHandler):
             async with self._allocate_caches(requested_backends, batch_size) as cache_handles:
                 assert len(cache_handles) == len(requested_backends)
                 while request.tensors:  # iterate while user is willing to supply tensors
-                    hidden_states = [deserialize_torch_tensor(tensor) for tensor in request.tensors]
+                    assert len(request.tensors) == 2, "Must specify hidden_states and input_ids" # TODO replace with schema
+                    hidden_states, hypo_ids = map(deserialize_torch_tensor, request.tensors)
 
                     # run request tensors through all requested modules, update caches
                     for backend, cache_handle in zip(requested_backends, cache_handles):
@@ -55,7 +56,7 @@ class TransformerConnectionHandler(ConnectionHandler):
                             len(hidden_states) == 1 and hidden_states[0].ndim == 3
                         ), f"inputs to {type(backend)} must be a list with a single 3d tensor of hidden states"
 
-                        hidden_states = await backend.inference_pool.submit_task(cache_metadata, *hidden_states)
+                        hidden_states = await backend.inference_pool.submit_task(cache_metadata, hidden_states, hypo_ids)
                         assert isinstance(hidden_states, (list, tuple))
                         assert len(hidden_states) == 1 and hidden_states[0].ndim == 3
 
