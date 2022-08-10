@@ -142,7 +142,7 @@ async def sequential_forward(
                 inputs = outputs
                 break
             except Exception as e:
-                logging.warn(f"Caught {e} when running forward for chain {span.start}-{span.end}", exc_info=True)
+                logging.warning(f"Caught {e} when running forward for chain {span.start}-{span.end}", exc_info=True)
                 backup_sequences = sequence_manager.make_sequence(span.start)
                 assert backup_sequences[0].start == span.start
                 sequences = backup_sequences
