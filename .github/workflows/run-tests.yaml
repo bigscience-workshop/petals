@@ -90,7 +90,7 @@ jobs:
 
           sleep 60  # wait for server to download layers
           
-          PYTHONPATH=. pytest tests
+          PYTHONPATH=. pytest tests --durations=0 --durations-min=1.0 -v
           
           kill -s SIGINT $SERVER1_PID $SERVER2_PID
           echo "Done!"
