@@ -34,7 +34,13 @@ async def run_expert_forward(
     # Note: we put keyword arguments in the same order as on a server to prevent f(a=1, b=2) != f(b=2, a=1) errors
     forward_inputs = (inputs, kwargs)
 
-    if not nested_compare(forward_inputs, rpc_info["forward_schema"]):
+    # Modify forward_schema to support prompts
+    args_schema, kwargs_schema = rpc_info["forward_schema"]
+    # TODO: rm this assert when support arbitrary number of input tensors
+    assert len(args_schema) == 1 and len(inputs) == 2
+    forward_schema_with_prompts = (tuple(args_schema * len(inputs)), kwargs_schema)
+
+    if not nested_compare(forward_inputs, forward_schema_with_prompts):
         raise TypeError(f"Inputs do not match expert input schema. Did you pass the right number of parameters?")
 
     forward_inputs = nested_flatten(forward_inputs)
@@ -45,7 +51,7 @@ async def run_expert_forward(
     serialized_tensors = await asyncio.gather(
         *(
             loop.run_in_executor(None, serialize_torch_tensor, tensor.to(proto.dtype), proto.compression)
-            for tensor, proto in zip(inputs, nested_flatten(rpc_info["forward_schema"]))
+            for tensor, proto in zip(inputs, nested_flatten(forward_schema_with_prompts))
         )
     )
 
@@ -69,7 +75,14 @@ async def run_expert_backward(
 
     grad_outputs_cpu = tuple(tensor.cpu() for tensor in grad_outputs)
     inputs_and_grad_outputs = tuple(nested_flatten((inputs, grad_outputs_cpu)))
-    backward_schema = tuple(nested_flatten((rpc_info["forward_schema"], rpc_info["outputs_schema"])))
+
+    # Modify forward_schema to support prompts
+    args_schema, kwargs_schema = rpc_info["forward_schema"]
+    # TODO: rm this assert when support arbitrary number of input tensors
+    assert len(args_schema) == 1 and len(inputs) == 2
+    forward_schema_with_prompts = (tuple(args_schema * len(inputs)), kwargs_schema)
+
+    backward_schema = tuple(nested_flatten((forward_schema_with_prompts, rpc_info["outputs_schema"])))
 
     # Asynchronous serialization
     loop = asyncio.get_running_loop()
