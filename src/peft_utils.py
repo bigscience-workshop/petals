@@ -17,7 +17,7 @@ from src.utils.misc import DUMMY, is_dummy
 
 class TransformerBlockPEFT(nn.Module):
     """
-    Modular parameter-efficient finetuning adapters for a single transformer block.
+    Modular parameter-efficient fine-tuning adapters for a single transformer block.
     Contains a variable number of parameters that can provide soft prompts, adapters, IA3, or a combination thereof.
 
     :note: all unused trainable parameters will be represented with a special DUMMY tensor
