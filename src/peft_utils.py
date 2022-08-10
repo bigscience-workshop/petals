@@ -41,7 +41,7 @@ class TransformerBlockPEFT(nn.Module):
 # strategy: define
 # - check that LowRankAdapter works :)
 # - implement a function that converts lowrank adapter to [list_of_tensors, metadata]
-# - pass list of tensors and metadata in chained requests
+# - pass list of tensors and metadata to rpc_forward
 # - figure out how to handle layernorm, e.g. option to normalize before adapter(default=True, no rescale)
 # - check exact match with local layer
 
