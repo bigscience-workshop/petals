@@ -80,7 +80,7 @@ async def run_expert_backward(
     # Modify forward_schema to support prompts
     args_schema, kwargs_schema = rpc_info["forward_schema"]
     assert len(args_schema) == 1 and len(inputs) == 1
-    forward_schema_with_prompts = (tuple(args_schema * len(inputs)), kwargs_schema)  # TODO unfuck this
+    forward_schema_with_prompts = (tuple(args_schema * len(inputs)), kwargs_schema)  # TODO generalize this
 
     backward_schema = tuple(nested_flatten((forward_schema_with_prompts, rpc_info["outputs_schema"])))
 
