@@ -66,6 +66,7 @@ async def run_expert_backward(
     rpc_info: RPCInfo,
     inputs: List[torch.Tensor],
     grad_outputs: List[torch.Tensor],
+    *extra_tensors: torch.Tensor,
 ) -> Sequence[torch.Tensor]:
     """
     Serializes grad outputs and calls "expert_backward".
@@ -74,13 +75,12 @@ async def run_expert_backward(
     """
 
     grad_outputs_cpu = tuple(tensor.cpu() for tensor in grad_outputs)
-    inputs_and_grad_outputs = tuple(nested_flatten((inputs, grad_outputs_cpu)))
+    inputs_and_grad_outputs = tuple(nested_flatten((inputs, grad_outputs_cpu, *extra_tensors)))
 
     # Modify forward_schema to support prompts
     args_schema, kwargs_schema = rpc_info["forward_schema"]
-    # TODO: rm this assert when support arbitrary number of input tensors
-    assert len(args_schema) == 1 and len(inputs) == 2
-    forward_schema_with_prompts = (tuple(args_schema * len(inputs)), kwargs_schema)
+    assert len(args_schema) == 1 and len(inputs) == 1
+    forward_schema_with_prompts = (tuple(args_schema * len(inputs)), kwargs_schema)  # TODO unfuck this
 
     backward_schema = tuple(nested_flatten((forward_schema_with_prompts, rpc_info["outputs_schema"])))
 
@@ -173,9 +173,8 @@ async def sequential_backward(
                 span_uids: str = CHAIN_DELIMITER.join(sequence_manager.block_uids[span.start : span.end])
                 stub = TransformerConnectionHandler.get_stub(sequence_manager.p2p, span.peer_id)
 
-                inputs_and_prompts = [inputs, prompts[span.start : span.end]]
                 grad_outputs, span_grad_prompts = await run_expert_backward(
-                    span_uids, stub, sequence_manager.rpc_info, inputs_and_prompts, grad_outputs
+                    span_uids, stub, sequence_manager.rpc_info, inputs, grad_outputs, prompts
                 )
                 grad_outputs = [grad_outputs]
                 grad_prompts.append(span_grad_prompts)
