@@ -268,7 +268,7 @@ async def _rpc_backward(
             inputs[:, :pre_seq_len] += prompt
         (inputs,) = await backend.forward_pool.submit_task(inputs)
         assert isinstance(inputs, torch.Tensor)
-        inter_inputs.append(inputs.clone())  #TODO optimize: reduce the number of copies
+        inter_inputs.append(inputs.clone())  # TODO optimize: reduce the number of copies
 
     grad_prompts = []
     # Run a chain of requested backends
