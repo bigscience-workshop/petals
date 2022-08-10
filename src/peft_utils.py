@@ -1,6 +1,6 @@
 """
 
-Generalized parameter-efficient finetuning modules that support deep prompts and several types of adapters.
+Generalized parameter-efficient finetuning module that supports deep prompts, bitfit, and several types of adapters.
 Designed to be used on both client and server side.
 
 """
@@ -40,6 +40,7 @@ class TransformerBlockPEFT(nn.Module):
 
 # planned:
 # strategy: define
+# - remove the part that stacks multiplicative and additive adapter weights - it does not help!
 # - check that LowRankAdapter works :)
 # - implement a function that converts lowrank adapter to [list_of_tensors, metadata]
 # - pass list of tensors and metadata in chained requests
