@@ -202,7 +202,6 @@ class BloomBlock(nn.Module):
     def forward(
         self,
         hidden_states,
-        prompts=None,
         layer_past=None,
         attention_mask=None,
         head_mask=None,
