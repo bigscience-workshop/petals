@@ -225,10 +225,11 @@ async def _rpc_forward(*flat_tensors: torch.Tensor, requested_backends: Sequence
     # check parse input tensors and cast dtypes
     hidden_states = hidden_states.to(dtype)
     assert hidden_states.ndim == 3
-    if not prompts or len(prompts) == 1 and is_dummy(prompts[0]):
+    if not prompts or is_dummy(prompts[0]):
         prompts = [DUMMY] * len(requested_backends)
         pre_seq_len = 0
     else:
+        prompts = [prompts[0].to(requested_backends[0].dtype)]
         prompts = [p.squeeze(0) for p in prompts[0].split(1)]
         pre_seq_len = prompts[0].shape[-2]
 
@@ -253,12 +254,12 @@ async def _rpc_backward(
     # Cast inputs & grad outputs to backend dtype
     inputs = inputs.to(requested_backends[0].dtype)
     grad_outputs = grad_outputs.to(requested_backends[-1].dtype)
-    prompts = prompts.to(requested_backends[0].dtype) if prompts else DUMMY
 
-    if is_dummy(prompts):
+    if not prompts or is_dummy(prompts[0]):
         prompts = [DUMMY] * len(requested_backends)
         pre_seq_len = 0
     else:
+        prompts = [prompts[0].to(requested_backends[0].dtype)]
         prompts = [p.squeeze(0) for p in prompts[0].split(1)]
         pre_seq_len = prompts[0].shape[-2]
 
