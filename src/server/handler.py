@@ -112,7 +112,7 @@ class TransformerConnectionHandler(ConnectionHandler):
         requested_uids = self._check_uids(uid_str)
         requested_backends = tuple(self.module_backends[uid] for uid in requested_uids)
 
-        hidden_states = await _rpc_forward(flat_inputs, requested_backends)
+        hidden_states = await _rpc_forward(*flat_inputs, requested_backends=requested_backends)
         assert isinstance(hidden_states, torch.Tensor) and hidden_states.ndim == 3
 
         # Serialize the overall output
