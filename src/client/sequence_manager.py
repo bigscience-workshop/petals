@@ -54,7 +54,7 @@ class RemoteSequenceManager:
             chosen_span = random.choice(candidate_spans)  # TODO this should be replaced with proper load balancing
 
             assert chosen_span.start <= current_index < chosen_span.end
-            span_sequence.append(chosen_span)
+            span_sequence.append(RemoteSpanInfo(start=current_index, end=chosen_span.end, peer_id=chosen_span.peer_id))
             current_index = chosen_span.end
 
         return span_sequence
