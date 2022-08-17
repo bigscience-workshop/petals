@@ -72,7 +72,7 @@ jobs:
         run: |
           git clone https://github.com/TimDettmers/bitsandbytes.git
           cd bitsandbytes
-          git checkout 1ced47c5043ed88b78c288f55f43ec3e66a0f765
+          git checkout 4cd7ea62b2f51c68aacde2f62e7141765e476111
           make cpuonly
           pip install .
           cd -
@@ -108,10 +108,14 @@ jobs:
           python -m cli.run_server --converted_model_name_or_path $MODEL_NAME --num_blocks 3 \
             --torch_dtype float32 --initial_peers $INITIAL_PEERS --throughput 1 &> server4.log &
           SERVER5_PID=$!
-
-          sleep 30  # wait for server to download layers
+          
+          sleep 30  # wait for servers to download layers
+          
+          kill -0 $SERVER1_PID $SERVER2_PID $SERVER3_PID $SERVER4_PID $SERVER5_PID # ensure all servers survived init
           
           PYTHONPATH=. pytest tests --durations=0 --durations-min=1.0 -v
+          
+          kill -0 $SERVER1_PID $SERVER2_PID $SERVER3_PID $SERVER4_PID $SERVER5_PID # ensure all servers survived tests
           
           kill -s SIGINT $SERVER1_PID $SERVER2_PID $SERVER3_PID $SERVER4_PID $SERVER5_PID
           echo "Done!"
