@@ -15,7 +15,7 @@ if __name__ == "__main__":
     for model in list_models(author=args.author, full=True):
         last_modified = datetime.strptime(model.lastModified, "%Y-%m-%dT%H:%M:%S.%fZ")
 
-        if model.modelId.endswith("-main") or "/test-" not in model.Id:
+        if model.modelId.endswith("-main") or "/test-" not in model.modelId:
             continue  # remove only test models
 
         if (datetime.now() - last_modified).total_seconds() > args.seconds_since_last_updated:
