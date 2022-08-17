@@ -36,8 +36,8 @@ jobs:
           export HF_TAG=$(python -c "import os; print(os.environ.get('GITHUB_HEAD_REF') or os.environ.get('GITHUB_REF_NAME'))")
           python -m cli.convert_model --model bigscience/bloom-560m  --output_path ./converted_model \
             --output_repo bloom-testing/test-bloomd-560m-$HF_TAG --use_auth_token $BLOOM_TESTING_WRITE_TOKEN \
-            --resize_token_embeddings 10_000  # reduce embeddings size to save memory
-
+            --resize_token_embeddings 10000
+          
 
   run-tests:
     runs-on: ubuntu-latest
