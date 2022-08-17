@@ -126,7 +126,7 @@ class RemoteSequenceManager(threading.Thread):
             ix = slice(int(ix), int(ix) + 1, 1)
 
         self.ready.wait()
-        with self.sequence_info.lock_changes:
+        with self.lock_changes:
             subseq = RemoteSequenceManager(
                 self.dht,
                 self.block_uids[ix],
@@ -136,13 +136,12 @@ class RemoteSequenceManager(threading.Thread):
             )  # NB: if you've added more parameters to __init__, please forward them in the instantiation above
             subseq.sequence_info = self.sequence_info[ix]
             subseq._rpc_info = self._rpc_info
-            subseq.last_update_time = self.last_update_time
             if self.is_alive():
                 subseq.run_in_background()
         return subseq
 
     def update_(self):
-        with self.sequence_info.lock_changes:
+        with self.lock_changes:
             self.sequence_info.update_(self.dht)
             for name, strategy in self.routing_strategies.items():
                 strategy.update_()
