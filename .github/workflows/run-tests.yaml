@@ -90,7 +90,7 @@ jobs:
           export INITIAL_PEERS=/ip4/127.0.0.1/tcp/31337/p2p/QmS9KwZptnVdB9FFV7uGgaTq4sEKBwcYeKZDfSpyKDUd1g
           # ^-- server 1 multiaddr is determined by --identity and --host_maddrs
           
-          python -m cli.run_server --converted_model_name_or_path $MODEL_NAME --block_indices 12:24 \
+          python -m cli.run_server --converted_model_name_or_path $MODEL_NAME --block_indices 12:22 \
             --torch_dtype float32 --initial_peers $INITIAL_PEERS --throughput 1 &> server2.log &
           SERVER2_PID=$!
 
@@ -101,10 +101,16 @@ jobs:
           python -m cli.run_server --converted_model_name_or_path $MODEL_NAME --block_indices 4:16 \
             --torch_dtype float32 --initial_peers $INITIAL_PEERS --throughput 1 &> server4.log &
           SERVER4_PID=$!
+          
+          sleep 10 # wait for initial servers to declare blocks, then let server decide which blocks to serve
 
-          sleep 60  # wait for server to download layers
+          python -m cli.run_server --converted_model_name_or_path $MODEL_NAME --num_blocks 3 \
+            --torch_dtype float32 --initial_peers $INITIAL_PEERS --throughput 1 &> server4.log &
+          SERVER5_PID=$!
+
+          sleep 30  # wait for server to download layers
           
           PYTHONPATH=. pytest tests --durations=0 --durations-min=1.0 -v
           
-          kill -s SIGINT $SERVER1_PID $SERVER2_PID $SERVER3_PID $SERVER4_PID
+          kill -s SIGINT $SERVER1_PID $SERVER2_PID $SERVER3_PID $SERVER4_PID $SERVER5_PID
           echo "Done!"
