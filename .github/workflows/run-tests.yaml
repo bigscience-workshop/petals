@@ -72,6 +72,7 @@ jobs:
         run: |
           git clone https://github.com/TimDettmers/bitsandbytes.git
           cd bitsandbytes
+          git checkout de354f7ded52bfa857089769225cdf1ee694bfd6
           make cpuonly
           pip install .
           cd -
