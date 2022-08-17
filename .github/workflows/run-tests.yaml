@@ -90,14 +90,14 @@ jobs:
             --torch_dtype float32 --initial_peers $INITIAL_PEERS --throughput 1 &> server2.log &
           SERVER2_PID=$!
 
-#          python -m cli.run_server --converted_model_name_or_path $MODEL_NAME --block_indices 0:6 \
-#            --torch_dtype float32 --initial_peers $INITIAL_PEERS --throughput 1 &> server3.log &
-#          SERVER3_PID=$!
-#
-#          python -m cli.run_server --converted_model_name_or_path $MODEL_NAME --block_indices 4:16 \
-#            --torch_dtype float32 --initial_peers $INITIAL_PEERS --throughput 1 &> server4.log &
-#          SERVER4_PID=$!
-#
+          python -m cli.run_server --converted_model_name_or_path $MODEL_NAME --block_indices 0:6 \
+            --torch_dtype float32 --initial_peers $INITIAL_PEERS --throughput 1 &> server3.log &
+          SERVER3_PID=$!
+
+          python -m cli.run_server --converted_model_name_or_path $MODEL_NAME --block_indices 4:16 \
+            --torch_dtype float32 --initial_peers $INITIAL_PEERS --throughput 1 &> server4.log &
+          SERVER4_PID=$!
+
           tail -f server*.log &
           LOGS_PID=$!
 
@@ -105,5 +105,5 @@ jobs:
           
           PYTHONPATH=. pytest tests --durations=0 --durations-min=1.0 -v
           
-          kill -s SIGINT $SERVER1_PID $SERVER2_PID # $SERVER3_PID $SERVER4_PID $LOGS_PID
+          kill -s SIGINT $SERVER1_PID $SERVER2_PID $SERVER3_PID $SERVER4_PID $LOGS_PID
           echo "Done!"
