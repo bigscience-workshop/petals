@@ -60,6 +60,7 @@ if __name__ == "__main__":
     if args.resize_token_embeddings:
         logger.info(f"Resizing token embeddings, new size = {args.resize_token_embeddings}")
         model.resize_token_embeddings(args.resize_token_embeddings)
+        config.vocab_size = args.resize_token_embeddings
 
     tokenizer = transformers.AutoTokenizer.from_pretrained(
         args.model, use_auth_token=args.use_auth_token, revision=args.revision

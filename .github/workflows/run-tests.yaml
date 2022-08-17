@@ -98,9 +98,6 @@ jobs:
             --torch_dtype float32 --initial_peers $INITIAL_PEERS --throughput 1 &> server4.log &
           SERVER4_PID=$!
 
-          tail -f server*.log &
-          LOGS_PID=$!
-
           sleep 60  # wait for server to download layers
           
           PYTHONPATH=. pytest tests --durations=0 --durations-min=1.0 -v
