@@ -35,8 +35,7 @@ if __name__ == "__main__":
         "--commit_message", type=str, default="push-o-matic", help="Use this commit message for all parts"
     )
     parser.add_argument("--use_auth_token", type=str, default=None, help="auth token for from_pretrained")
-    parser.add_argument("--resize_token_embeddings", type=int, default=None,
-                        help="change the vocabulary size of the converted model to this value")
+    parser.add_argument("--resize_token_embeddings", type=int, default=None, help="change the vocabulary size")
     args = parser.parse_args()
 
     free_ram_gb = psutil.virtual_memory().available / 2**30
