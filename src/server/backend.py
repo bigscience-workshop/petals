@@ -1,20 +1,106 @@
 """Code for serving bloom blocks via hivemind-server"""
-from queue import Empty
+import multiprocessing as mp
+import os
+import threading
+from concurrent.futures import Future
+from dataclasses import dataclass, field
+from queue import Empty, PriorityQueue
 from typing import Optional, Sequence, Tuple
 
 import torch
 from hivemind import use_hivemind_log_handler
 from hivemind.moe.server.module_backend import ModuleBackend
-from hivemind.moe.server.task_pool import TaskPool
-from hivemind.utils import InvalidStateError, get_logger
+from hivemind.moe.server.task_pool import Task, TaskPool
+from hivemind.utils import InvalidStateError, MPFuture, get_logger
 
 from src.bloom.from_pretrained import BloomBlock
 from src.server.cache import MemoryCache
+from src.server.task_broker import SimpleBroker, TaskBrokerBase
 
 use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
 
 MAX_LENGTH = 2048
+
+
+@dataclass(order=True)
+class PrioritizedTask:
+    value: int
+    task: Task = field(compare=False)
+
+
+class PrioritizedTaskPool(TaskPool):
+    def __init__(self, *args, broker: TaskBrokerBase = SimpleBroker(), **kwargs):
+        super().__init__(*args, **kwargs)
+        self.broker = broker
+        self.pollen_queue = mp.Queue(maxsize=self.tasks.maxsize)
+        self.priority_queue = PriorityQueue(maxsize=self.tasks.maxsize)
+
+    def submit_task(self, *args: torch.Tensor, pollen: float = 0.0) -> Future:
+        f = super().submit_task(*args)
+        self.pollen_queue.put(pollen)
+        return f
+
+    def _priortize_tasks(self):
+        """Infinite loop prioritizing incoming tasks"""
+        while True:
+            task = self.tasks.get(block=True)
+            pollen = self.pollen_queue.get(block=True)
+            self.priority_queue.put(PrioritizedTask(-self.broker(task, pollen), task), block=True)
+
+    def run(self, *args, **kwargs):
+        torch.set_num_threads(1)
+        logger.info(f"{self.name} starting, pid={os.getpid()}")
+        pending_batches = {}  # Dict[batch uuid, List[MPFuture]] for each batch currently in runtime
+
+        output_thread = threading.Thread(
+            target=self._pool_output_loop, args=[pending_batches], name=f"{self.name}_output", daemon=True
+        )
+        priority_thread = threading.Thread(
+            target=self._priortize_tasks, args=[], name=f"{self.name}_priority", daemon=True
+        )
+
+        try:
+            output_thread.start()
+            priority_thread.start()
+            self._pool_input_loop(pending_batches, *args, **kwargs)
+        except KeyboardInterrupt:
+            logger.debug("Caught KeyboardInterrupt, shutting down")
+        finally:
+            output_thread.join()
+            priority_thread.join()
+
+    # TODO: this is a copy-paste of the original method, except that we use different queue
+    def iterate_minibatches(self, *args, **kwargs):
+        """Form minibatches by grouping one or more tasks together up to self.max_batch_size"""
+        batch = []
+        total_size = 0
+
+        while True:
+            if total_size >= self.min_batch_size and self.priority_queue.empty():
+                yield batch
+                batch = []
+                total_size = 0
+            try:
+                logger.debug(f"{self.name} getting next task")
+                task = self.priority_queue.get(timeout=self.timeout)
+            except Empty:
+                logger.warning(f"Timeout reached but batch doesn't contain >={self.min_batch_size} elements yet")
+                continue
+
+            task_size = self.get_task_size(task)
+
+            if total_size + task_size > self.max_batch_size:
+                yield batch
+                batch = []
+                total_size = 0
+
+            try:
+                if task.future.set_running_or_notify_cancel():
+                    batch.append(task)
+                    total_size += task_size
+            except InvalidStateError as e:
+                logger.debug(f"Failed to add task to batch: {task.future} raised {e}")
 
 
 class InferenceTaskPool(TaskPool):
