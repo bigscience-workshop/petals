@@ -33,20 +33,20 @@ class PrioritizedTaskPool(TaskPool):
     def __init__(self, *args, broker: TaskBrokerBase = SimpleBroker(), **kwargs):
         super().__init__(*args, **kwargs)
         self.broker = broker
-        self.pollen_queue = mp.Queue(maxsize=self.tasks.maxsize)
+        self.dust_queue = mp.Queue(maxsize=self.tasks.maxsize)
         self.priority_queue = PriorityQueue(maxsize=self.tasks.maxsize)
 
-    def submit_task(self, *args: torch.Tensor, pollen: float = 0.0) -> Future:
+    def submit_task(self, *args: torch.Tensor, dust: float = 0.0) -> Future:
         f = super().submit_task(*args)
-        self.pollen_queue.put(pollen)
+        self.dust_queue.put(dust)
         return f
 
     def _priortize_tasks(self):
         """Infinite loop prioritizing incoming tasks"""
         while True:
             task = self.tasks.get(block=True)
-            pollen = self.pollen_queue.get(block=True)
-            self.priority_queue.put(PrioritizedTask(-self.broker(task, pollen), task), block=True)
+            dust = self.dust_queue.get(block=True)
+            self.priority_queue.put(PrioritizedTask(-self.broker(task, dust), task), block=True)
 
     def run(self, *args, **kwargs):
         torch.set_num_threads(1)
