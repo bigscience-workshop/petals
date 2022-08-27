@@ -42,7 +42,7 @@ class DustyRemoteBlock(RemoteExpert):
                     is_meta_set = True
                 return chunk
 
-            return rpc_call(amap_in_executor(_metadata_setter, input), timeout)
+            return await rpc_call(amap_in_executor(_metadata_setter, input), timeout)
 
         return rpc
 
