@@ -107,7 +107,7 @@ def main():
     use_auth_token = args.pop("use_auth_token")
     args["use_auth_token"] = True if use_auth_token in ("True", "true", "") else use_auth_token
 
-    server = Server.create(**args, start=True, compression=compression, cache_size_bytes=attention_cache_bytes)
+    server = Server.create(**args, start=True, compression=compression, attention_cache_bytes=attention_cache_bytes)
 
     try:
         server.join()
