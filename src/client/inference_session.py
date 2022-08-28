@@ -12,7 +12,7 @@ from hivemind import (
     get_logger,
     nested_flatten,
     serialize_torch_tensor,
-    use_hivemind_log_handler,
+    use_hivemind_log_handler, MSGPackSerializer,
 )
 from hivemind.moe.client.remote_expert_worker import RemoteExpertWorker
 from hivemind.p2p import StubBase
@@ -33,23 +33,25 @@ class RemoteTransformerBlockInferenceSession:
     :note: this inference session is *not* fault-tolerant out of the box
     """
 
-    def __init__(self, uid: ModuleUID, rpc_info: RPCInfo, inputs_queue: asyncio.Queue, outputs_aiter: AsyncIterator):
+    def __init__(self, uid: ModuleUID, rpc_info: RPCInfo, inputs_queue: asyncio.Queue, outputs_aiter: AsyncIterator,
+                 *, max_length: int):
         self.uid, self.rpc_info = uid, rpc_info
         # warning: this code manages async objects that are only usable inside RemoteExpertWorker's background thread;
         # using them in any other EventLoop may cause side-effects including, headaches, diarrhea, and loss of sleep
         self._inputs_queue: asyncio.Queue[runtime_pb2.ExpertRequest] = inputs_queue
         self._outputs_stream: AsyncIterator[runtime_pb2.ExpertResponse] = outputs_aiter
+        self._serialized_metadata = MSGPackSerializer.dumps(dict(max_length=max_length))
         self.stepped = False
         self.closed = False
 
     @classmethod
     async def _create(
-        cls, stub: StubBase, uid: ModuleUID, rpc_info: RPCInfo, timeout: Optional[float] = None
+        cls, stub: StubBase, uid: ModuleUID, rpc_info: RPCInfo, timeout: Optional[float] = None, **metadata
     ) -> RemoteTransformerBlockInferenceSession:
         """Create a new session for a given remote module. This code is meant to be run inside RemoteExpertWorker"""
         inputs_queue = asyncio.Queue()
         outputs_stream = await stub.rpc_inference(cls._read_inputs_from_queue(inputs_queue, timeout), timeout=timeout)
-        return cls(uid, rpc_info, inputs_queue, outputs_stream)
+        return cls(uid, rpc_info, inputs_queue, outputs_stream, **metadata)
 
     @staticmethod
     async def _read_inputs_from_queue(queue: asyncio.Queue, timeout: Optional[float]) -> AsyncIterator:
@@ -73,6 +75,7 @@ class RemoteTransformerBlockInferenceSession:
                         serialize_torch_tensor(tensor.to(proto.dtype), proto.compression)
                         for tensor, proto in zip(inputs, nested_flatten(self.rpc_info["forward_schema"]))
                     ],
+                    metadata=self._serialized_metadata if not self.stepped else None
                 )
             )
         )
@@ -121,13 +124,14 @@ class RemoteSequentialInferenceSession:
     An interface to a multi-step *inference* session for a sequence of remote transformer blocks
     """
 
-    def __init__(self, sequence_manager: RemoteSequenceManager, p2p: P2P, timeout: Optional[float] = None):
+    def __init__(self, sequence_manager: RemoteSequenceManager, p2p: P2P, timeout: Optional[float] = None, **metadata):
         self.sequence_manager = sequence_manager
         self.p2p = p2p
         self.closed = False
         self.chosen_spans: List[RemoteSpanInfo] = []
         self.stack = contextlib.ExitStack()
         self.inference_sessions: List[RemoteTransformerBlockInferenceSession] = []
+        self.metadata = metadata
         self.timeout = timeout
 
     def __enter__(self):
@@ -141,7 +145,7 @@ class RemoteSequentialInferenceSession:
             span_uids: str = CHAIN_DELIMITER.join(self.sequence_manager.block_uids[chosen_span.start : chosen_span.end])
             inference_session = RemoteExpertWorker.run_coroutine(
                 RemoteTransformerBlockInferenceSession._create(
-                    stub, span_uids, rpc_info=self.sequence_manager.rpc_info, timeout=self.timeout
+                    stub, span_uids, rpc_info=self.sequence_manager.rpc_info, timeout=self.timeout,
                 )
             )
             self.inference_sessions.append(inference_session)

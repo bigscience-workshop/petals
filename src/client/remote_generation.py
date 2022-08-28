@@ -60,14 +60,20 @@ class RemoteGenerationMixin:
         assert (
             model_kwargs.get("stopping_criteria", None) is None
         ), "For RemoteGenerationMixin models use BloomConstraints instead of stopping_criteria"
+        if inputs is not None:
+            assert isinstance(inputs, torch.Tensor) and inputs.ndim == 3, "inputs must be a 3d tensor [batch, len, hid]"
+        prefix_length = (0 if inputs is None else inputs.size(1))
 
         bos_token_id = bos_token_id if bos_token_id is not None else self.config.bos_token_id
         pad_token_id = pad_token_id if pad_token_id is not None else self.config.pad_token_id
         eos_token_id = eos_token_id if eos_token_id is not None else self.config.eos_token_id
 
         if max_length is not None and max_new_tokens is None:
-            max_new_tokens = max_length - inputs.size(1)
+            max_new_tokens = max_length - prefix_length
             assert max_new_tokens > 0, f"Provided max_length is less than prefix size: {max_length} < {inputs.size(1)}"
+        elif max_length is None and max_new_tokens is not None:
+            max_length = prefix_length + max_new_tokens
+        assert max_length is not None and max_new_tokens is not None
 
         if inputs is None:
             assert bos_token_id is not None, "You have to provide a bos_token_id if you do not provide inputs"
@@ -87,7 +93,7 @@ class RemoteGenerationMixin:
             provided_constraints=provided_constraints,
         )
 
-        with self.transformer.h.inference_session() as sess:
+        with self.transformer.h.inference_session(max_length=max_length) as sess:
             outputs = []
             if torch.any(inputs == pad_token_id):  # TODO: move to prepare_inputs
                 outputs += [inputs[:, : inputs.size(1) - (inputs == pad_token_id).sum(-1).max()]]

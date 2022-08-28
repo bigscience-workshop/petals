@@ -33,12 +33,8 @@ class RemoteTransformerBlock(RemoteExpert):
             assert v is None or v is False, f"Extra keyword arguments are not yet supported (got {k} = {v})"
         return super().forward(inputs)
 
-    def inference_session(self) -> RemoteTransformerBlockInferenceSession:
+    def inference_session(self, **kwargs) -> RemoteTransformerBlockInferenceSession:
         """Initialize a new inference session with the specified remote server"""
         return RemoteExpertWorker.run_coroutine(
-            RemoteTransformerBlockInferenceSession._create(self.stub, self.uid, self.info)
+            RemoteTransformerBlockInferenceSession._create(self.stub, self.uid, self.info, **kwargs)
         )
-
-    def begin_inference_session(self):
-        logger.warning("beging_inference_session was renamed to just inference_session")
-        return self.inference_session()

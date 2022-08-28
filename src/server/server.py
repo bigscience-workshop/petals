@@ -36,6 +36,7 @@ class Server(threading.Thread):
         dht: DHT,
         module_backends: Dict[str, TransformerBackend],
         *,
+        inference_max_length: int,
         num_connection_handlers: int = 8,
         throughput: float,
         update_period: float = 30,
@@ -47,7 +48,8 @@ class Server(threading.Thread):
         self.dht, self.module_backends = dht, module_backends
         self.throughput, self.update_period, self.expiration = throughput, update_period, expiration
         self.conn_handlers = [
-            TransformerConnectionHandler(dht, self.module_backends) for _ in range(num_connection_handlers)
+            TransformerConnectionHandler(dht, self.module_backends, inference_max_length)
+            for _ in range(num_connection_handlers)
         ]
         self.runtime = Runtime(self.module_backends, **kwargs)
         self.dht_handler_thread = ModuleAnnouncerThread(
@@ -104,6 +106,7 @@ class Server(threading.Thread):
         num_handlers: int = 8,
         min_batch_size: int = 1,
         max_batch_size: int = 4096,
+        inference_max_length: Optional[int] = None,
         torch_dtype: str = "auto",
         revision: str = "main",
         cache_dir: Optional[str] = None,
@@ -135,6 +138,8 @@ class Server(threading.Thread):
         assert (block_indices is None) != (num_blocks is None), "please specify num_blocks or block_indices, not both"
         if expiration is None:
             expiration = max(2 * update_period, MAX_DHT_TIME_DISCREPANCY_SECONDS)
+        if inference_max_length is None:
+            inference_max_length = max_batch_size
 
         dht = DHT(initial_peers=initial_peers, start=True, **kwargs)
         visible_maddrs_str = [str(a) for a in dht.get_visible_maddrs()]

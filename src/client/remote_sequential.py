@@ -79,9 +79,9 @@ class RemoteSequential(nn.Module):
     def __len__(self):
         return len(self.sequence_manager)
 
-    def inference_session(self) -> RemoteSequentialInferenceSession:
+    def inference_session(self, **kwargs) -> RemoteSequentialInferenceSession:
         self.sequence_manager.update_()
-        return RemoteSequentialInferenceSession(self.sequence_manager, self.p2p)
+        return RemoteSequentialInferenceSession(self.sequence_manager, self.p2p, **kwargs)
 
     def extra_repr(self) -> str:
         return f"modules={self.sequence_manager.block_uids[0]}..{self.sequence_manager.block_uids[-1]}"
