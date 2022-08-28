@@ -180,7 +180,7 @@ async def sequential_backward(
             except Exception as e:
                 logging.warning(f"Caught {e} when running backward for chain {span.start}-{span.end}", exc_info=True)
                 _, backup_intermediate_inputs, backup_forward_sequences = await sequential_forward(
-                    inputs, prompts[span.start : span.end], sequence_manager, start_index=span.start, end_index=span.end
+                    inputs, prompts, sequence_manager, start_index=span.start, end_index=span.end
                 )
                 assert len(intermediate_inputs) == len(forward_sequences)
                 assert backup_forward_sequences[0].start == span.start
