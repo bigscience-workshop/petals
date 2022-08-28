@@ -153,10 +153,7 @@ class RemoteSequentialInferenceSession:
             span_uids: str = CHAIN_DELIMITER.join(self.sequence_manager.block_uids[chosen_span.start : chosen_span.end])
             inference_session = RemoteExpertWorker.run_coroutine(
                 RemoteTransformerBlockInferenceSession._create(
-                    stub,
-                    span_uids,
-                    rpc_info=self.sequence_manager.rpc_info,
-                    timeout=self.timeout,
+                    stub, span_uids, rpc_info=self.sequence_manager.rpc_info, timeout=self.timeout, **self.metadata
                 )
             )
             self.inference_sessions.append(inference_session)
