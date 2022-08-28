@@ -62,7 +62,7 @@ class RemoteGenerationMixin:
         ), "For RemoteGenerationMixin models use BloomConstraints instead of stopping_criteria"
         if inputs is not None:
             assert isinstance(inputs, torch.Tensor) and inputs.ndim == 3, "inputs must be a 3d tensor [batch, len, hid]"
-        prefix_length = (0 if inputs is None else inputs.size(1))
+        prefix_length = 0 if inputs is None else inputs.size(1)
 
         bos_token_id = bos_token_id if bos_token_id is not None else self.config.bos_token_id
         pad_token_id = pad_token_id if pad_token_id is not None else self.config.pad_token_id

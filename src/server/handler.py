@@ -68,8 +68,10 @@ class TransformerConnectionHandler(ConnectionHandler):
                     length_increment = hidden_states[0].shape[1]  # how many tokens are added this step (in each seq)
 
                     if prefix_length + length_increment > max_length:
-                        raise ValueError(f"Maximum length exceeded: prefix {prefix_length} + current {length_increment}"
-                                         f" exceeds pre-allocated maximum {max_length}")
+                        raise ValueError(
+                            f"Maximum length exceeded: prefix {prefix_length} + current {length_increment}"
+                            f" exceeds pre-allocated maximum {max_length}"
+                        )
 
                     # Cast inputs to backend dtype
                     hidden_states = [tensor.to(requested_backends[0].dtype) for tensor in hidden_states]
@@ -207,7 +209,9 @@ class TransformerConnectionHandler(ConnectionHandler):
         return tuple(uids)
 
     @contextlib.asynccontextmanager
-    async def _allocate_caches(self, backends: Sequence[TransformerBackend], batch_size: int, max_length: int) -> Sequence[int]:
+    async def _allocate_caches(
+        self, backends: Sequence[TransformerBackend], batch_size: int, max_length: int
+    ) -> Sequence[int]:
         """Allocate memory caches for each transformer block, return cache handles"""
         async with contextlib.AsyncExitStack() as stack:
             handles = []

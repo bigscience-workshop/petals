@@ -12,15 +12,15 @@ import re
 
 
 def parse_size_as_bytes(size: str) -> int:
-    """ parse human-readable data size e.g. 1.5GB, based on https://stackoverflow.com/a/42865957/2002471 """
-    units = {"B": 1, "KB": 2 ** 10, "MB": 2 ** 20, "GB": 2 ** 30, "TB": 2 ** 40, "PB": 2 ** 50}
+    """parse human-readable data size e.g. 1.5GB, based on https://stackoverflow.com/a/42865957/2002471"""
+    units = {"B": 1, "KB": 2**10, "MB": 2**20, "GB": 2**30, "TB": 2**40, "PB": 2**50}
     size = size.strip().upper().rstrip("IB ")
     if not size.endswith("B"):
         size += "B"
-    if not re.match(r' ', size):
-        size = re.sub(r'([KMGT]?)', r' \1', size)
+    if not re.match(r" ", size):
+        size = re.sub(r"([KMGT]?)", r" \1", size)
     number, unit = [string.strip() for string in size.split()]
-    return int(float(number)*units[unit])
+    return int(float(number) * units[unit])
 
 
 def main():
