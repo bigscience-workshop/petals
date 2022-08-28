@@ -101,8 +101,9 @@ def main():
     attention_cache_bytes = args.pop("attention_cache_bytes")
     if attention_cache_bytes is not None:
         attention_cache_bytes = parse_size_as_bytes(attention_cache_bytes)
-    assert isinstance(attention_cache_bytes, (int, type(None))), "unrecognized value for attention_cache_bytes," \
-                                                                 " examples: 1.5GB or 1500MB or 1572864000"
+    assert isinstance(attention_cache_bytes, (int, type(None))), (
+        "unrecognized value for attention_cache_bytes," " examples: 1.5GB or 1500MB or 1572864000"
+    )
 
     use_auth_token = args.pop("use_auth_token")
     args["use_auth_token"] = True if use_auth_token in ("True", "true", "") else use_auth_token
