@@ -192,7 +192,6 @@ class DistributedBloomForSequenceClassification(BloomForSequenceClassification):
 
         self.transformer = DistributedBloomModel(config)
         self.score = nn.Linear(config.hidden_size, config.num_labels, bias=False)
-        
+
         # Initialize weights and apply final processing
         self.post_init()
-
