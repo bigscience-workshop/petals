@@ -81,7 +81,7 @@ jobs:
 
           python -m cli.run_server --converted_model_name_or_path $MODEL_NAME --block_indices 0:12 \
             --torch_dtype float32 --identity tests/test.id --host_maddrs /ip4/127.0.0.1/tcp/31337 \
-            --throughput 1 --attention_cache_size 0.2GiB &> server1.log &
+            --throughput 1 --attn_cache_size 0.2GiB &> server1.log &
           SERVER1_PID=$!
           
           sleep 5  # wait for the first server to initialize DHT
