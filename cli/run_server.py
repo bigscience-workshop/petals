@@ -2,6 +2,7 @@ import configargparse
 from hivemind.proto.runtime_pb2 import CompressionType
 from hivemind.utils.limits import increase_file_limit
 from hivemind.utils.logging import get_logger, use_hivemind_log_handler
+from humanfriendly import parse_size
 
 from src.server.server import Server
 
@@ -32,16 +33,19 @@ def main():
     parser.add_argument('--min_batch_size', type=int, default=1,
                         help='Minimum required batch size for all expert operations')
     parser.add_argument('--max_batch_size', type=int, default=16384,
-                        help='The total number of examples in the same batch will not exceed this value')
+                        help='The total number of tokens in the same batch will not exceed this value')
+    parser.add_argument('--inference_max_length', type=int, default=16384,
+                        help='Maximum total sequence length permitted per inference, defaults to 16384 tokens')
     parser.add_argument('--cache_dir', type=str, default=None, 
                         help='Path to a directory in which a downloaded pretrained model configuration should be cached if the standard cache should not be used.')
-    parser.add_argument('--cache_size_bytes', type=int, default=None,
-                        help='The size of memory cache for storing past attention keys/values between inference steps')
     parser.add_argument('--device', type=str, default=None, required=False,
                         help='all experts will use this device in torch notation; default: cuda if available else cpu')
     parser.add_argument("--torch_dtype", type=str, default="auto",
                         help="Use this dtype to store block weights and do computations. "
                              "By default, respect the dtypes in the pre-trained state dict.")
+    parser.add_argument('--attn_cache_size', type=str, default=None,
+                        help='The size of GPU memory allocated for storing past attention keys/values between inference'
+                             ' steps; examples: 500MB or 1.2GB or 1073741824 (bytes); be warned: 1KB != 1KiB')
     parser.add_argument('--revision', type=str, default='main',
                         help="The specific model version to use. It can be a branch name, a tag name, or a commit id, since we use a git-based system for storing models"
                              "and other artifacts on huggingface.co, so `revision` can be any identifier allowed by git.")
@@ -81,10 +85,17 @@ def main():
     compression_type = args.pop("compression")
     compression = getattr(CompressionType, compression_type)
 
+    attn_cache_size = args.pop("attn_cache_size")
+    if attn_cache_size is not None:
+        attn_cache_size = parse_size(attn_cache_size)
+    assert isinstance(
+        attn_cache_size, (int, type(None))
+    ), "unrecognized value for attention_cache_bytes, examples: 1.5GB or 1500MB or 1572864000 (bytes)"
+
     use_auth_token = args.pop("use_auth_token")
     args["use_auth_token"] = True if use_auth_token in ("True", "true", "") else use_auth_token
 
-    server = Server.create(**args, start=True, compression=compression)
+    server = Server.create(**args, start=True, compression=compression, attn_cache_size=attn_cache_size)
 
     try:
         server.join()

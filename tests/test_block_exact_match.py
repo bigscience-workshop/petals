@@ -4,6 +4,7 @@ import hivemind
 import pytest
 import torch
 import transformers
+from hivemind import P2PHandlerError
 from test_utils import *
 
 from src.bloom.from_pretrained import load_pretrained_block
@@ -27,9 +28,15 @@ def test_remote_block_exact_match(atol_forward=1e-5, atol_inference=1e-3):
         (outputs_forward,) = remote_block(inputs)
 
         outputs_inference = []
-        with remote_block.inference_session() as sess:
+        with remote_block.inference_session(max_length=inputs.shape[1]) as sess:
             for i in range(inputs.shape[1]):
                 outputs_inference.append(sess.step(inputs[:, i : i + 1, :]))
+
+            # test that max length is respected
+            with pytest.raises(P2PHandlerError) as exc_info:
+                sess.step(inputs[:, -1:, :])
+            assert "Maximum length exceeded" in repr(exc_info.value)
+
         outputs_inference = torch.cat(outputs_inference, dim=1)
 
         ref_block = load_pretrained_block(MODEL_NAME, block_index, torch_dtype=torch.float32)

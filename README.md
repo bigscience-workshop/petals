@@ -53,7 +53,7 @@ loss = (outputs * torch.randn_like(outputs)).norm()
 loss.backward()
 
 # test inference, one block
-with layer3.inference_session() as sess:
+with layer3.inference_session(max_length=10) as sess:
     for i in range(10):
         res = sess.step(torch.ones(1, 1, 4096))
 ```
