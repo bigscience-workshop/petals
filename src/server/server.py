@@ -106,7 +106,7 @@ class Server(threading.Thread):
         num_handlers: int = 8,
         min_batch_size: int = 1,
         max_batch_size: int = 4096,
-        inference_max_length: Optional[int] = None,
+        inference_max_length: int = 4096,
         torch_dtype: str = "auto",
         revision: str = "main",
         cache_dir: Optional[str] = None,
@@ -138,8 +138,6 @@ class Server(threading.Thread):
         assert (block_indices is None) != (num_blocks is None), "please specify num_blocks or block_indices, not both"
         if expiration is None:
             expiration = max(2 * update_period, MAX_DHT_TIME_DISCREPANCY_SECONDS)
-        if inference_max_length is None:
-            inference_max_length = max_batch_size
 
         dht = DHT(initial_peers=initial_peers, start=True, **kwargs)
         visible_maddrs_str = [str(a) for a in dht.get_visible_maddrs()]

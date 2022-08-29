@@ -34,8 +34,8 @@ def main():
                         help='Minimum required batch size for all expert operations')
     parser.add_argument('--max_batch_size', type=int, default=16384,
                         help='The total number of tokens in the same batch will not exceed this value')
-    parser.add_argument('--inference_max_length', type=int, default=None,
-                        help='Maximum total sequence length permitted per inference, defaults to max_batch_size tokens')
+    parser.add_argument('--inference_max_length', type=int, default=16384,
+                        help='Maximum total sequence length permitted per inference, defaults to 16384 tokens')
     parser.add_argument('--cache_dir', type=str, default=None, 
                         help='Path to a directory in which a downloaded pretrained model configuration should be cached if the standard cache should not be used.')
     parser.add_argument('--device', type=str, default=None, required=False,
