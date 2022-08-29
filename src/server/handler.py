@@ -19,7 +19,7 @@ from hivemind.utils.asyncio import amap_in_executor, anext, as_aiter
 from hivemind.utils.streaming import split_for_streaming
 
 from src.data_structures import CHAIN_DELIMITER, ModuleUID
-from src.server.backend import MAX_LENGTH, PrioritizedTaskPool, TransformerBackend
+from src.server.backend import PrioritizedTaskPool, TransformerBackend
 from src.utils.misc import DUMMY, is_dummy
 
 
@@ -40,7 +40,7 @@ class TransformerConnectionHandler(ConnectionHandler):
         expert_uid, metadata = None, None
 
         def _unpack(req: runtime_pb2.ExpertRequest) -> Iterable[runtime_pb2.Tensor]:
-            nonlocal expert_uid
+            nonlocal expert_uid, metadata
 
             if expert_uid is None:
                 expert_uid = req.uid
