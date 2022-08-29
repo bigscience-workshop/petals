@@ -98,11 +98,10 @@ def main():
     compression_type = args.pop("compression")
     compression = getattr(CompressionType, compression_type)
 
-    attn_cache_size = args.pop("attention_cache_bytes")
+    attn_cache_size = args.pop("attn_cache_size")
     if attn_cache_size is not None:
-        attention_cache_bytes = parse_size_as_bytes(attn_cache_size)
-    assert isinstance(
-        attn_cache_size, (int, type(None))
+        attn_cache_size = parse_size_as_bytes(attn_cache_size)
+    assert isinstance(attn_cache_size, (int, type(None))
     ), "unrecognized value for attention_cache_bytes, examples: 1.5GB or 1500MB or 1572864000 (bytes)"
 
     use_auth_token = args.pop("use_auth_token")
