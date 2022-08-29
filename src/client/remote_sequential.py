@@ -10,7 +10,6 @@ from torch import nn
 
 import src
 from src.client.inference_session import RemoteSequentialInferenceSession
-from src.client.remote_block import RemoteTransformerBlock
 from src.client.sequence_manager import RemoteSequenceManager
 from src.client.sequential_autograd import _RemoteSequentialAutogradFunction
 from src.data_structures import UID_DELIMITER
@@ -57,12 +56,10 @@ class RemoteSequential(nn.Module):
         outputs = _RemoteSequentialAutogradFunction.apply(inputs, prompts, self.sequence_manager)
         return outputs
 
-    def __getitem__(self, ix: Union[int, slice]) -> Union[RemoteTransformerBlock, RemoteSequential]:
+    def __getitem__(self, ix: Union[int, slice]) -> Union["RemoteTransformerBlock", RemoteSequential]:
         assert isinstance(ix, (int, slice))
         if isinstance(ix, int):
-            assert 0 <= ix < len(self)
-            (module,) = _create_remote_modules_from_infos([self.sequence_manager.block_infos[ix]], self.p2p)
-            return module
+            return self.__getitem__((ix, ix + 1))
         else:
             return RemoteSequential(
                 self.config,
@@ -85,3 +82,11 @@ class RemoteSequential(nn.Module):
 
     def extra_repr(self) -> str:
         return f"modules={self.sequence_manager.block_uids[0]}..{self.sequence_manager.block_uids[-1]}"
+
+
+class RemoteTransformerBlock(RemoteSequential):
+    """Single transformer block hosted by swarm"""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        assert len(self) == 1, "Remote Block is a sequence size 1"

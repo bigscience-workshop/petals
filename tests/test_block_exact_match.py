@@ -7,10 +7,9 @@ import transformers
 from hivemind import P2PHandlerError
 from test_utils import *
 
+import src
 from src.bloom.from_pretrained import load_pretrained_block
-from src.client.remote_block import RemoteTransformerBlock
-from src.data_structures import UID_DELIMITER
-from src.dht_utils import get_remote_module
+from src.client.remote_sequential import RemoteSequential
 
 
 @pytest.mark.forked
@@ -18,11 +17,10 @@ def test_remote_block_exact_match(atol_forward=1e-5, atol_inference=1e-3):
     dht = hivemind.DHT(initial_peers=INITIAL_PEERS, client_mode=True, start=True)
     config = transformers.AutoConfig.from_pretrained(MODEL_NAME)
 
+    config = src.DistributedBloomConfig.from_pretrained(MODEL_NAME)
     for block_index in random.sample(range(config.n_layer), 3):
-        block_uid = f"{MODEL_NAME}{UID_DELIMITER}{block_index}"
-        remote_block = get_remote_module(dht, block_uid)
-        assert remote_block is not None, f"Could not find {block_uid} in DHT"
-        assert isinstance(remote_block, RemoteTransformerBlock)
+        remote_block = RemoteSequential(config, dht)[block_index]
+        assert isinstance(remote_block, RemoteSequential)
 
         inputs = torch.randn(1, 8, config.hidden_size)
         (outputs_forward,) = remote_block(inputs)
