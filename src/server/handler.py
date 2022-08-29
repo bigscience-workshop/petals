@@ -50,7 +50,7 @@ class TransformerConnectionHandler(ConnectionHandler):
 
             if not requested_uids:
                 raise ValueError("User must specify at least one block for inference, but got none")
-            assert isinstance(max_length, int), f"rpc_inference metadata must contain int seq_length, got {max_length}"
+            assert isinstance(max_length, int), f"rpc_inference metadata must contain int max_length, got {max_length}"
             if not 0 <= max_length <= self.inference_max_length:
                 raise ValueError(f"Cannot allocate KV cache for {max_length} tokens, max = {self.inference_max_length}")
 
