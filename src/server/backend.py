@@ -1,10 +1,6 @@
 """Code for serving bloom blocks via hivemind-server"""
 from queue import Empty
-<<<<<<< HEAD
-from typing import Optional, Sequence, Tuple
-=======
-from typing import Sequence, Tuple, Dict, Any
->>>>>>> introduce hypo_ids
+from typing import Sequence, Tuple, Dict, Any, Optional
 
 import torch
 from hivemind import use_hivemind_log_handler, BatchTensorDescriptor
