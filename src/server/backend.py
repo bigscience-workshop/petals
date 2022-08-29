@@ -14,8 +14,6 @@ from src.server.cache import MemoryCache
 use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
 
-MAX_LENGTH = 2048
-
 
 class InferenceTaskPool(TaskPool):
     def __init__(self, *args, **kwargs):

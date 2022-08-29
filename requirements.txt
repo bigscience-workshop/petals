@@ -1,5 +1,6 @@
 torch==1.12.0
 accelerate==0.10.0
 huggingface-hub==0.7.0
+humanfriendly
 https://github.com/learning-at-home/hivemind/archive/20b3b3d5f225ed525515a5383a008a8f9fad8173.zip
 https://github.com/huggingface/transformers/archive/6589e510fa4e6c442059de2fab84752535de9b23.zip
