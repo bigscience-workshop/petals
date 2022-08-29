@@ -110,7 +110,7 @@ class Server(threading.Thread):
         torch_dtype: str = "auto",
         revision: str = "main",
         cache_dir: Optional[str] = None,
-        b: Optional[int] = None,
+        attn_cache_size: Optional[int] = None,
         device: Optional[Union[str, torch.device]] = None,
         initial_peers: Sequence[str] = (),
         compression=CompressionType.NONE,
