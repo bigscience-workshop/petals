@@ -38,6 +38,7 @@ class RemoteBlockTest(DustyRemoteBlock):
         return HandlerStubTest()
 
 
+@pytest.mark.forked
 @pytest.mark.asyncio
 async def test_single():
     remote = RemoteBlockTest(DustBankTest(), None, None)
@@ -58,6 +59,7 @@ async def test_single():
     assert meta["__dust"] == 1
 
 
+@pytest.mark.forked
 @pytest.mark.asyncio
 async def test_stream():
     remote = RemoteBlockTest(DustBankTest(), None, None)
@@ -87,6 +89,7 @@ async def test_stream():
     assert torch.allclose(results[0], input)
 
 
+@pytest.mark.forked
 @pytest.mark.asyncio
 async def test_no_wrapper():
     remote = RemoteBlockTest(DustBankTest(), None, None)
