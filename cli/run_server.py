@@ -101,7 +101,8 @@ def main():
     attn_cache_size = args.pop("attn_cache_size")
     if attn_cache_size is not None:
         attn_cache_size = parse_size_as_bytes(attn_cache_size)
-    assert isinstance(attn_cache_size, (int, type(None))
+    assert isinstance(
+        attn_cache_size, (int, type(None))
     ), "unrecognized value for attention_cache_bytes, examples: 1.5GB or 1500MB or 1572864000 (bytes)"
 
     use_auth_token = args.pop("use_auth_token")
