@@ -37,18 +37,18 @@ Then open a python notebook or console and run:
 ```python
 import torch
 import hivemind
-from src import get_remote_module
+from src import DistributedBloomConfig, get_remote_module
 
 
 dht = hivemind.DHT(
     initial_peers=[TODO_COPY_FULL_ADDRESS_FROM_ANY_OF_THE_SERVERS],  # e.g. /ip4/127.0.0.1/...
     client_mode=True, start=True,
 )
-
-layer3, layer4 = get_remote_module(dht, ['bigscience/test-bloomd-6b3.3', 'bigscience/test-bloomd-6b3.4'])
+config = DistributedBloomConfig.from_pretrained("bigscience/test-bloom-6b3")
+layer3, layer4 = get_remote_module(dht, ['bigscience/test-bloomd-6b3.3', 'bigscience/test-bloomd-6b3.4'], config)
 assert layer3 is not None and layer4 is not None, "one or both layers were not found in DHT"
 # test forward/backward, two blocks
-outputs, = layer4(*layer3(torch.randn(1, 64, 4096)))
+outputs = layer4(layer3(torch.randn(1, 64, 4096)))
 loss = (outputs * torch.randn_like(outputs)).norm()
 loss.backward()
 

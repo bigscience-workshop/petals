@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 from typing import Optional, Union
 
 import torch
@@ -13,7 +12,6 @@ from src.client.inference_session import RemoteSequentialInferenceSession
 from src.client.sequence_manager import RemoteSequenceManager
 from src.client.sequential_autograd import _RemoteSequentialAutogradFunction
 from src.data_structures import UID_DELIMITER
-from src.dht_utils import _create_remote_modules_from_infos
 from src.utils.misc import DUMMY
 
 use_hivemind_log_handler("in_root_logger")
@@ -59,7 +57,13 @@ class RemoteSequential(nn.Module):
     def __getitem__(self, ix: Union[int, slice]) -> Union["RemoteTransformerBlock", RemoteSequential]:
         assert isinstance(ix, (int, slice))
         if isinstance(ix, int):
-            return self.__getitem__((ix, ix + 1))
+            return RemoteTransformerBlock(
+                self.config,
+                self.dht,
+                dht_prefix=self.dht_prefix,
+                p2p=self.p2p,
+                sequence_manager=self.sequence_manager[ix],
+            )
         else:
             return RemoteSequential(
                 self.config,
