@@ -72,13 +72,39 @@ async def _declare_active_modules(
     )
 
 
+def get_remote_sequence(
+    dht: DHT,
+    start: int,
+    stop: int,
+    config: src.DistributedBloomConfig,
+    dht_prefix: Optional[str] = None,
+    return_future: bool = False,
+) -> Union[src.RemoteSequential, MPFuture]:
+    return RemoteExpertWorker.run_coroutine(
+        _get_sequence_blocks(dht, start, stop, config, dht_prefix), return_future=return_future
+    )
+
+
+async def _get_sequence_blocks(
+    dht: DHT,
+    start: int,
+    stop: int,
+    config: src.DistributedBloomConfig,
+    dht_prefix: Optional[str] = None,
+) -> src.RemoteSequential:
+    uids = [f"{config.dht_prefix}{UID_DELIMITER}{i}" for i in range(start, stop)]
+    p2p = await dht.replicate_p2p()
+    manager = src.RemoteSequenceManager(dht, uids, p2p)
+    return src.RemoteSequential(config, dht, dht_prefix, p2p, manager)
+
+
 def get_remote_module(
     dht: DHT,
     uid_or_uids: Union[ModuleUID, List[ModuleUID]],
     config: src.DistributedBloomConfig,
     dht_prefix: Optional[str] = None,
     return_future: bool = False,
-) -> Union[src.RemoteTransformerBlock, List[src.RemoteTransformerBlock]]:
+) -> Union[Union[src.RemoteTransformerBlock, List[src.RemoteTransformerBlock]], MPFuture]:
     """
     :param uid_or_uids: find one or more modules with these ids from across the DHT
     :param config: model config, usualy taken by .from_pretrained(MODEL_NAME)
