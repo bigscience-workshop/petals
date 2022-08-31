@@ -74,18 +74,18 @@ python -m cli.convert_model --model bigscience/bloom-6b3  \
 
 To test distributed inference, run one or more servers, then open a new shell and run pytest with environment variables:
 ```bash
-# shell A: serve blocks 3 and 4
+# shell A: serve model
 python -m cli.run_server --converted_model_name_or_path bigscience/test-bloomd-6b3 \
-  --block_indices 3:5 --torch_dtype float32 --identity_path ./server1.id --host_maddrs /ip4/127.0.0.1/tcp/31337
+  --torch_dtype float32 --identity_path ./server1.id --host_maddrs /ip4/127.0.0.1/tcp/31337
 
-# shell B: connect to the swarm and test individual blocks for exact match
-export PYTHONPATH=. INITIAL_PEERS="/ip4/TODO_COPY_INITIAL_PEERS_FROM_SERVER_OUTPUT"
-BLOCK_UID=bigscience/test-bloomd-6b3.3 pytest tests/test_block_exact_match.py
-BLOCK_UID=bigscience/test-bloomd-6b3.4 pytest tests/test_block_exact_match.py
+# shell B:
+export PYTHONPATH=.
+export INITIAL_PEERS="/ip4/TODO_COPY_INITIAL_PEERS_FROM_SERVER_OUTPUT"
+export MODEL_NAME="bigscience/test-bloomd-6b3"
 
-# the test below will fail because there is no server that serves layer 7
-# BLOCK_UID=bigscience/test-bloomd-6b3.7 pytest tests/test_block_exact_match.py
+# test individual random blocks for exact match
+pytest tests/test_block_exact_match.py
 
-# test the full model (requires that servers collectively serve all model layers)
-REF_NAME=bigscience/bloom-6b3 pytest tests/test_full_model.py
+# test the full model
+pytest tests/test_full_model.py
 ```
