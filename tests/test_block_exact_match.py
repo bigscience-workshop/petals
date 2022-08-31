@@ -39,7 +39,7 @@ def test_remote_block_exact_match(atol_forward=1e-5, atol_inference=1e-3):
         outputs_inference = torch.cat(outputs_inference, dim=1)
 
         ref_block = load_pretrained_block(MODEL_NAME, block_index, torch_dtype=torch.float32)
-        outputs_local = ref_block(inputs)
+        (outputs_local,) = ref_block(inputs)
 
         assert torch.allclose(outputs_local, outputs_forward, rtol=0, atol=atol_forward)
         assert torch.allclose(outputs_local, outputs_inference, rtol=0, atol=atol_inference)
