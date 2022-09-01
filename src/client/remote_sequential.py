@@ -94,3 +94,6 @@ class RemoteTransformerBlock(RemoteSequential):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         assert len(self) == 1, "Remote Block is a sequence size 1"
+        
+    def extra_repr(self):
+        return f"{self.sequence_manager.block_uids[0]}"
