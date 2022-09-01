@@ -90,7 +90,7 @@ class RemoteSequential(nn.Module):
 
 class RemoteTransformerBlock(RemoteSequential):
     """Single transformer block hosted by swarm
-    
+
     This class is deprecated and kept for backward compatibility.
     It will be removed soon in favor of using ``RemoteSequential`` directly.
     """
@@ -98,6 +98,6 @@ class RemoteTransformerBlock(RemoteSequential):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         assert len(self) == 1, "Remote Block is a sequence size 1"
-        
+
     def extra_repr(self):
         return f"{self.sequence_manager.block_uids[0]}"
