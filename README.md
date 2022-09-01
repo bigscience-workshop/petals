@@ -1,6 +1,12 @@
 <p align="center">
     <img src="https://i.imgur.com/7eR7Pan.png" width="500"><br>
-    Decentralized platform for running 100B+ language models
+    Decentralized platform for running 100B+ language models<br><br>
+    <a href="https://github.com/bigscience-workshop/petals/actions">
+        <img src="https://github.com/bigscience-workshop/petals/actions/workflows/run-tests.yaml/badge.svg?branch=main">
+    </a>
+    <a href="https://github.com/psf/black">
+        <img src="https://img.shields.io/badge/code%20style-black-000000.svg">
+    </a>
 </p>
 
 ## Key features
