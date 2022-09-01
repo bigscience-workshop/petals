@@ -82,6 +82,7 @@ class RemoteSequenceManager:
         for block_index, (uid, info) in enumerate(zip(self.block_uids, new_block_infos)):
             if info is None:
                 logger.warning(f"Found no block info for block {uid}")
+                continue
             if not isinstance(info, RemoteModuleInfo):
                 logger.warning(f"Unexpected dht entry type for {uid}: {info}")
             if not info.servers:
@@ -95,22 +96,24 @@ class RemoteSequenceManager:
         closed_spans = []
         active_spans = {}
         for block_index, info in enumerate(block_infos):
-            for peer_id, server in info.servers.items():
-                if server.state != ServerState.ONLINE:
-                    continue
-                if peer_id not in active_spans:
-                    active_spans[peer_id] = RemoteSpanInfo(start=block_index, end=block_index + 1, peer_id=peer_id)
-                else:  # peer_id in active_spans
-                    active_spans[peer_id].end = block_index + 1
+            if info is not None:
+                for peer_id, server in info.servers.items():
+                    if server.state != ServerState.ONLINE:
+                        continue
+                    if peer_id not in active_spans:
+                        active_spans[peer_id] = RemoteSpanInfo(start=block_index, end=block_index + 1, peer_id=peer_id)
+                    else:  # peer_id in active_spans
+                        active_spans[peer_id].end = block_index + 1
 
             for peer_id in list(active_spans.keys()):
                 if (
-                    peer_id not in info.servers
+                    info is None
+                    or peer_id not in info.servers
                     or info.servers[peer_id].state != ServerState.ONLINE
                     or block_index == len(block_infos) - 1
                 ):
                     closed_spans.append(active_spans.pop(peer_id))
-        assert not active_spans
+        assert not active_spans, f"spans: {active_spans}"
 
         closed_spans.sort(key=lambda span: span.end - span.start, reverse=True)
 
