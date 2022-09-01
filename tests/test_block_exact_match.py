@@ -8,6 +8,7 @@ from hivemind import P2PHandlerError
 from test_utils import *
 
 import src
+from src import DistributedBloomConfig
 from src.bloom.from_pretrained import load_pretrained_block
 from src.client.remote_sequential import RemoteTransformerBlock
 from src.data_structures import UID_DELIMITER
