@@ -54,7 +54,7 @@ class RemoteSequential(nn.Module):
         outputs = _RemoteSequentialAutogradFunction.apply(inputs, prompts, self.sequence_manager)
         return outputs
 
-    def __getitem__(self, ix: Union[int, slice]) -> Union["RemoteTransformerBlock", RemoteSequential]:
+    def __getitem__(self, ix: Union[int, slice]) -> RemoteSequential:
         assert isinstance(ix, (int, slice))
         if isinstance(ix, int):
             return RemoteTransformerBlock(
