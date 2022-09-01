@@ -81,11 +81,11 @@ def get_remote_sequence(
     return_future: bool = False,
 ) -> Union[src.RemoteSequential, MPFuture]:
     return RemoteExpertWorker.run_coroutine(
-        _get_sequence_blocks(dht, start, stop, config, dht_prefix), return_future=return_future
+        _get_remote_sequence(dht, start, stop, config, dht_prefix), return_future=return_future
     )
 
 
-async def _get_sequence_blocks(
+async def _get_remote_sequence(
     dht: DHT,
     start: int,
     stop: int,
@@ -112,11 +112,11 @@ def get_remote_module(
     :returns: a list of [RemoteTransformerBlock]
     """
     return RemoteExpertWorker.run_coroutine(
-        _get_distinct_blocks(dht, uid_or_uids, config, dht_prefix), return_future=return_future
+        _get_remote_module(dht, uid_or_uids, config, dht_prefix), return_future=return_future
     )
 
 
-async def _get_distinct_blocks(
+async def _get_remote_module(
     dht: DHT,
     uid_or_uids: Union[ModuleUID, List[ModuleUID]],
     config: src.DistributedBloomConfig,
