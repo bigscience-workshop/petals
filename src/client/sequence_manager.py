@@ -141,6 +141,7 @@ class RemoteSequenceManager:
                         stub.rpc_info(runtime_pb2.ExpertUID(uid=self.block_uids[0]))
                     )
                     self._rpc_info = MSGPackSerializer.loads(outputs.serialized_info)
+                    break
                 except Exception as e:
                     retries += 1
                     if retries >= self.max_retries:
