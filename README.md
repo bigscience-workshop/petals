@@ -1,5 +1,5 @@
 <p align="center">
-    <img src="https://i.imgur.com/7eR7Pan.png" width="500"><br>
+    <img src="https://i.imgur.com/7eR7Pan.png" width="400"><br>
     Decentralized platform for running 100B+ language models<br><br>
     <a href="https://github.com/bigscience-workshop/petals/actions">
         <img src="https://github.com/bigscience-workshop/petals/actions/workflows/run-tests.yaml/badge.svg?branch=main">
@@ -22,7 +22,7 @@
 ## How it works?
 
 <p align="center">
-    <img src="https://i.imgur.com/75LFA0Y.png" width="800">
+    <img src="https://i.imgur.com/RTYF3yW.png" width="800">
 </p>
 
 ### 🚧 This project is in active development
