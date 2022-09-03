@@ -11,9 +11,10 @@
 
 ## Key features
 
-- Run inference or fine-tune [BLOOM-176B](https://huggingface.co/bigscience/bloom) by joining compute resources with people all over the Internet. No need to have high-end GPUs.
-- One inference step takes ≈ 1 sec — much faster than possible with offloading. Enough for chatbots and other interactive apps.
-- Employ any fine-tuning and sampling methods by accessing model's hidden states and changing its control flow — something you can't do in proprietary APIs.
+- Run inference or fine-tune large language models like [BLOOM-176B](https://huggingface.co/bigscience/bloom) by joining compute resources with people all over the Internet. No need to have high-end GPUs.
+- It's difficult to fit the whole BLOOM-176B into GPU memory [unless](https://twitter.com/Tim_Dettmers/status/1559892918395031552) you have multiple high-end GPUs. Instead, **Petals** allows to load and serve a small part of the model, then team up with people serving all the other parts to run inference or fine-tuning.
+- This way, one inference step takes ≈ 1 sec — much faster than possible with offloading. Enough for chatbots and other interactive apps.
+- Beyond traditional language model APIs — you can employ any fine-tuning and sampling methods by executing custom paths through the model or accessing its hidden states. This allows for the comforts of an API with the flexibility of PyTorch.
 
 <p align="center">
     <b><a href="https://petals.ml/petals.pdf">[Read paper]</a></b> | <b><a href="https://petals.ml/">[View website]</a></b>
