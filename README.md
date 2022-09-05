@@ -62,7 +62,7 @@ This is important because it's technically possible for peers serving model laye
 
 ## FAQ
 
-1. **What's the motivation for people to run servers hosting model layers in the public swarm?**
+1. **What's the motivation for people to host model layers in the public swarm?**
 
     People who run inference and fine-tuning themselves get a certain speedup if they host a part of the model locally. Some may be also motivated to "give back" to the community helping them to run the model (similarly to how [BitTorrent](https://en.wikipedia.org/wiki/BitTorrent) users help others by sharing data they have already downloaded).
 
