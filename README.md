@@ -17,7 +17,7 @@
 - Beyond traditional language model APIs — you can employ any fine-tuning and sampling methods by executing custom paths through the model or accessing its hidden states. This allows for the comforts of an API with the flexibility of PyTorch.
 
 <p align="center">
-    <b><a href="https://petals.ml/petals.pdf">[Read paper]</a></b> | <b><a href="https://petals.ml/">[View website]</a></b>
+    <b><a href="https://arxiv.org/pdf/2209.01188.pdf">[Read paper]</a></b> | <b><a href="https://petals.ml/">[View website]</a></b>
 </p>
 
 ## How it works?
@@ -26,35 +26,59 @@
     <img src="https://i.imgur.com/RTYF3yW.png" width="800">
 </p>
 
+### Examples
+
+Petals integrates seamlessly with PyTorch and the Hugging Face [Transformers](https://github.com/huggingface/transformers) library.
+
+This snippet shows how to **(a)** generate text with BLOOM and **(b)** solve a sequence classification task via soft prompt tuning:
+
+```python
+# Initialize distributed BLOOM and connect to the swarm
+model = DistributedBloomForCausalLM.from_pretrained(
+    "bigscience/distributed-bloom", tuning_mode="ptune", initial_peers=SEE_BELOW
+)  # Embeddings & prompts are on your device, BLOOM blocks are distributed
+
+print("Generated:", model.generate(tokenized_prefix, max_new_tokens=5))
+
+# Training (updates only local prompts / adapters)
+optimizer = torch.optim.AdamW(model.parameters())
+for input_ids, labels in data_loader:
+    outputs = model.forward(input_ids)
+    loss = cross_entropy(outputs.logits, labels)
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
+```
+
 ### 🚧 This project is in active development
 
 Be careful: some features may not work, interfaces may change, and we have no detailed docs yet (see [roadmap](https://github.com/bigscience-workshop/petals/issues/12)).
 
 A stable version of the code and a public swarm open to everyone will be released in November 2022. You can [subscribe](https://petals.ml/) to be emailed when it happens or fill in [this form](https://forms.gle/TV3wtRPeHewjZ1vH9) to help the public launch by donating GPU time. In the meantime, you can launch and use your own private swarm.
 
-## Code examples
+### 🔒 Privacy and security
 
-Solving a sequence classification task via soft prompt tuning of BLOOM-176B:
+If you work with sensitive data, you should only use a private swarm (or a subset of servers in the public swarm) hosted by people and institutions you trust, who are authorized to process this data.
 
-```python
-# Initialize distributed BLOOM with soft prompts
-model = AutoModelForPromptTuning.from_pretrained(
-       "bigscience/distributed-bloom")
-# Define optimizer for prompts and linear head
-optimizer = torch.optim.AdamW(model.parameters())
+This is important because it's technically possible for peers serving model layers to recover input data or model outputs. Also, if there are malicious peers, they may alter their outputs to influence the model outputs. See a more detailed discussion in Section 4 of our [paper](https://arxiv.org/pdf/2209.01188.pdf).
 
-for input_ids, labels in data_loader:
-    # Forward pass with local and remote layers
-    outputs = model.forward(input_ids)
-    loss = cross_entropy(outputs.logits, labels)
+## FAQ
 
-    # Distributed backward w.r.t. local params
-    loss.backward() # Compute model.prompts.grad
-    optimizer.step() # Update local params only
-    optimizer.zero_grad()
-```
+1. **What's the motivation for people to host model layers in the public swarm?**
+
+    People who run inference and fine-tuning themselves get a certain speedup if they host a part of the model locally. Some may be also motivated to "give back" to the community helping them to run the model (similarly to how [BitTorrent](https://en.wikipedia.org/wiki/BitTorrent) users help others by sharing data they have already downloaded).
+
+    Since it may be not enough for everyone, we are also working on introducing explicit __incentives__ ("bloom points") for people donating their GPU time to the public swarm. Once this system is ready, people who earned these points will be able to spend them on inference/fine-tuning with higher priority or increased security guarantees, or (maybe) exchange them for other rewards.
+
+2. **Why is the platform named "Petals"?**
+
+    "Petals" is a metaphor for people serving different parts of the model. Together, they host the entire language model &mdash; [BLOOM](https://huggingface.co/bigscience/bloom).
+
+    While our platform focuses on BLOOM now, we aim to support more [foundation models](https://arxiv.org/abs/2108.07258) in future.
 
 ## Installation
+
+__[To be updated soon]__
 
 ```bash
 conda install -y -c conda-forge cudatoolkit-dev==11.3.1 cudatoolkit==11.3.1 cudnn==8.2.1.32
