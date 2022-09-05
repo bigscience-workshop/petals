@@ -26,7 +26,7 @@
     <img src="https://i.imgur.com/RTYF3yW.png" width="800">
 </p>
 
-### Examples
+### 🛠️ Examples
 
 Petals integrates seamlessly with PyTorch and the Hugging Face [Transformers](https://github.com/huggingface/transformers) library.
 
@@ -78,7 +78,9 @@ This is important because it's technically possible for peers serving model laye
 
 ## Installation
 
-__[To be updated soon]__
+🚧 **Note:** These are short instructions for running a private swarm with a test 6B version of BLOOM. We will replace them with instructions involving the full 176B BLOOM and more detailed explanations soon (in a day or two).
+
+--------------------------------------------------------------------------------
 
 ```bash
 conda install -y -c conda-forge cudatoolkit-dev==11.3.1 cudatoolkit==11.3.1 cudnn==8.2.1.32
