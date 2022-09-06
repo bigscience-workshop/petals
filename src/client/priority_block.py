@@ -10,19 +10,20 @@ from hivemind.p2p import P2P, StubBase
 from hivemind.proto import runtime_pb2
 from hivemind.utils import MSGPackSerializer, amap_in_executor
 
-from src.client.dust_bank import DustBankBase
+from src.client.spending_policy import SpendingPolicyBase
 
 
+# TODO: (greenfatguy) remove later, left for now as example
 class DustyRemoteBlock(RemoteExpert):
-    def __init__(self, bank: DustBankBase, expert_info: ExpertInfo, p2p: P2P):
-        self._bank = bank
+    def __init__(self, bank: SpendingPolicyBase, expert_info: ExpertInfo, p2p: P2P):
+        self._spending_policy = bank
         super().__init__(expert_info, p2p)
 
     def _unary_request_wrapper(self, rpc_call: Callable, rpc_name: str):
         @wraps(rpc_call)
         async def rpc(input: runtime_pb2.ExpertRequest, timeout: Optional[float] = None):
             meta = MSGPackSerializer.loads(input.metadata) if input.metadata else {}
-            meta["__dust"] = self._bank.get_dust(input, rpc_name)
+            meta["__dust"] = self._spending_policy.get_points(input, rpc_name)
             input.metadata = MSGPackSerializer.dumps(meta)
             return await rpc_call(input, timeout)
 
@@ -37,7 +38,7 @@ class DustyRemoteBlock(RemoteExpert):
                 nonlocal is_meta_set
                 if not is_meta_set:
                     meta = MSGPackSerializer.loads(chunk.metadata) if chunk.metadata else {}
-                    meta["__dust"] = self._bank.get_dust(chunk, rpc_name)
+                    meta["__dust"] = self._spending_policy.get_points(chunk, rpc_name)
                     chunk.metadata = MSGPackSerializer.dumps(meta)
                     is_meta_set = True
                 return chunk
@@ -46,7 +47,7 @@ class DustyRemoteBlock(RemoteExpert):
 
         return rpc
 
-    def _dustify_handler_stub(self, stub: StubBase) -> StubBase:
+    def _prioritize_handler_stub_calls(self, stub: StubBase) -> StubBase:
         for name, method in inspect.getmembers(stub, predicate=inspect.ismethod):
             if name.startswith("rpc"):
                 spec = inspect.getfullargspec(method)
@@ -68,4 +69,4 @@ class DustyRemoteBlock(RemoteExpert):
 
     @property
     def stub(self) -> StubBase:
-        return self._dustify_handler_stub(self._stub)
+        return self._prioritize_handler_stub_calls(self._stub)

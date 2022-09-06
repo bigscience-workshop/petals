@@ -6,18 +6,18 @@ from hivemind.compression import deserialize_tensor_stream, deserialize_torch_te
 from hivemind.proto.runtime_pb2 import ExpertRequest
 from hivemind.utils import MSGPackSerializer, amap_in_executor, iter_as_aiter, split_for_streaming
 
-from src.client.dust_bank import DustBankBase
-from src.client.dusty_block import DustyRemoteBlock
+from src.client.priority_block import DustyRemoteBlock
+from src.client.spending_policy import SpendingPolicyBase
 
 
-class DustBankTest(DustBankBase):
+class SpendingPolicyTest(SpendingPolicyBase):
     def __init__(self):
         self._p = {
             "rpc_single": 1,
             "rpc_stream": 2,
         }
 
-    def get_dust(self, request: ExpertRequest, method_name: str) -> float:
+    def get_points(self, request: ExpertRequest, method_name: str) -> float:
         return self._p.get(method_name, -1)
 
 
@@ -41,7 +41,7 @@ class RemoteBlockTest(DustyRemoteBlock):
 @pytest.mark.forked
 @pytest.mark.asyncio
 async def test_single():
-    remote = RemoteBlockTest(DustBankTest(), None, None)
+    remote = RemoteBlockTest(SpendingPolicyTest(), None, None)
     stub = remote.stub
     input = torch.randn(1, 2)
     request = ExpertRequest(uid="expert1", tensors=[serialize_torch_tensor(input)])
@@ -62,7 +62,7 @@ async def test_single():
 @pytest.mark.forked
 @pytest.mark.asyncio
 async def test_stream():
-    remote = RemoteBlockTest(DustBankTest(), None, None)
+    remote = RemoteBlockTest(SpendingPolicyTest(), None, None)
     stub = remote.stub
     input = torch.randn(2**21, 2)
 
@@ -92,7 +92,7 @@ async def test_stream():
 @pytest.mark.forked
 @pytest.mark.asyncio
 async def test_no_wrapper():
-    remote = RemoteBlockTest(DustBankTest(), None, None)
+    remote = RemoteBlockTest(SpendingPolicyTest(), None, None)
     stub = remote.stub
 
     test = await stub.rpc_info("Test")
