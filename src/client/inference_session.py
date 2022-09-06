@@ -43,6 +43,7 @@ class RemoteTransformerBlockInferenceSession:
         outputs_aiter: AsyncIterator,
         *,
         max_length: int,
+        points: int,
     ):
         self.uid, self.rpc_info = uid, rpc_info
         self.num_blocks = uid.count(CHAIN_DELIMITER) + 1
@@ -50,7 +51,7 @@ class RemoteTransformerBlockInferenceSession:
         # using them in any other EventLoop may cause side-effects including, headaches, diarrhea, and loss of sleep
         self._inputs_queue: asyncio.Queue[runtime_pb2.ExpertRequest] = inputs_queue
         self._outputs_stream: AsyncIterator[runtime_pb2.ExpertResponse] = outputs_aiter
-        self._serialized_metadata = MSGPackSerializer.dumps(dict(max_length=max_length))
+        self._serialized_metadata = MSGPackSerializer.dumps(dict(max_length=max_length, points=points))
         self.stepped = False
         self.closed = False
 

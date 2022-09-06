@@ -77,7 +77,7 @@ class TransformerConnectionHandler(ConnectionHandler):
             metadata = MSGPackSerializer.loads(request.metadata) if request.metadata else {}
             requested_backends = tuple(self.module_backends[uid] for uid in requested_uids)
             max_length = metadata.get("max_length")
-            points = metadata.get("__points", 0.0)
+            points = metadata.get("points", 0.0)
 
             if not requested_uids:
                 raise ValueError("User must specify at least one block for inference, but got none")
@@ -170,7 +170,7 @@ class TransformerConnectionHandler(ConnectionHandler):
         requested_uids = self._check_uids(request.uid)
         requested_backends = tuple(self.module_backends[uid] for uid in requested_uids)
         metadata = MSGPackSerializer.loads(request.metadata) if request.metadata else {}
-        points = metadata.get("__points", 0.0)
+        points = metadata.get("points", 0.0)
         assert isinstance(
             points, (float, int)
         ), f"rpc_forward should have number of points as number or None, got {points}"
@@ -195,7 +195,7 @@ class TransformerConnectionHandler(ConnectionHandler):
         uid_str, flat_inputs, metadata = await self._gather_inputs(requests, context)
         requested_uids = self._check_uids(uid_str)
         requested_backends = tuple(self.module_backends[uid] for uid in requested_uids)
-        points = metadata.get("__points", 0.0)
+        points = metadata.get("points", 0.0)
         assert isinstance(
             points, (float, int)
         ), f"rpc_forward_stream should have number of points as number or None, got {points}"
@@ -224,7 +224,7 @@ class TransformerConnectionHandler(ConnectionHandler):
         requested_uids = self._check_uids(request.uid)
         requested_backends = tuple(self.module_backends[uid] for uid in requested_uids)
         metadata = MSGPackSerializer.loads(request.metadata) if request.metadata else {}
-        points = metadata.get("__points", 0.0)
+        points = metadata.get("points", 0.0)
         assert isinstance(
             points, (float, int)
         ), f"rpc_backward should have number of points as number or None, got {points}"
