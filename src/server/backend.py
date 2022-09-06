@@ -1,50 +1,19 @@
 """Code for serving bloom blocks via hivemind-server"""
 from queue import Empty
-<<<<<<< HEAD
-from typing import Sequence, Tuple, Dict, Any, Optional
-=======
-from typing import Sequence, Tuple, Dict, Any
->>>>>>> 79a9ff2b2ea0c2601e3670f9a28e84e8a511247d
+from typing import Any, Dict, Optional, Sequence, Tuple
 
 import torch
-from hivemind import use_hivemind_log_handler, BatchTensorDescriptor
+from hivemind import BatchTensorDescriptor, use_hivemind_log_handler
 from hivemind.moe.server.module_backend import ModuleBackend
 from hivemind.moe.server.task_pool import TaskPool
 from hivemind.utils import InvalidStateError, get_logger
 
 from src.bloom.from_pretrained import BloomBlock
 from src.server.cache import MemoryCache
+from src.utils.misc import is_dummy
 
 use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
-
-<<<<<<< HEAD
-
-class InferenceTaskPool(TaskPool):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        assert self.min_batch_size == 1, "min_batch_size in InferenceTaskPool cannot be greater 1"
-
-    def iterate_minibatches(self, *args, **kwargs):
-        """Form minibatches by grouping one or more tasks together up to self.max_batch_size"""
-
-        while True:
-            try:
-                logger.debug(f"{self.name} getting next task")
-                task = self.tasks.get(timeout=self.timeout)
-            except Empty:
-                logger.warning(f"Timeout reached but batch doesn't contain >={self.min_batch_size} elements yet")
-                continue
-
-            try:
-                if task.future.set_running_or_notify_cancel():
-                    yield [task]
-            except InvalidStateError as e:
-                logger.debug(f"Failed to add task to batch: {task.future} raised {e}")
-=======
-MAX_LENGTH = 2048
->>>>>>> 79a9ff2b2ea0c2601e3670f9a28e84e8a511247d
 
 
 class InferenceTaskPool(TaskPool):
@@ -100,18 +69,19 @@ class TransformerBackend(ModuleBackend):
         with torch.inference_mode():
             attention_cache_handle = int(cache_metadata[0, 0].item())
             prefix_length = int(cache_metadata[0, 1].item())
-            hidden_states, hypo_ids, prompts = inputs  # todo: in future, it would be best to support attention mask here
+            (hidden_states, hypo_ids) = inputs
             assert (
                 hidden_states.ndim == 3
             ), "expected hidden states to be 3-dimensional: [batch_size, seq_len, hid_size]"
 
             with self.memory_cache.use_cache(attention_cache_handle) as cache:
                 assert isinstance(self.module, BloomBlock) and cache.shape[0] == 2 and cache.ndim == 5
-                arange = torch.arange(prefix_length)
-                layer_past = past_k, past_v = cache[0, hypo_ids, arange], cache[1, hypo_ids, arange]
+                if not is_dummy(hypo_ids):
+                    cache[:, :] = cache[:, hypo_ids]  # in-place reorder cache by hypo ids
+                layer_past = past_k, past_v = cache[0, :, :prefix_length], cache[1, :, :prefix_length]
                 print("METADATA:", cache_metadata, past_k.shape, past_v.shape)
                 hidden_states, (new_k, new_v) = self.module.forward(
-                    hidden_states, layer_past=layer_past, use_cache=True, prompts=prompts
+                    hidden_states, layer_past=layer_past, use_cache=True
                 )
 
                 # todo remove these asserts once we pass all tests
