@@ -29,7 +29,7 @@ class MemoryCache:
     def __init__(self, device: Union[str, torch.device], max_size_bytes: Optional[int]):
         self.max_size_bytes = max_size_bytes if max_size_bytes is not None else (2**64 - 1)
         self.device = device
-        self.lock_metadata, self.size_decreased_event = mp.Lock(), mp.Event()
+        self._lock_metadata, self.size_decreased_event = mp.Lock(), mp.Event()
         self._current_size = mp.Value(ctypes.c_int64, 0, lock=False)
         self._handle_counter = mp.Value(ctypes.c_int64, 0, lock=False)
         self._active_handles: Optional[Dict[Handle, TensorDescriptor]] = None
@@ -76,7 +76,7 @@ class MemoryCache:
             async with hivemind.utils.enter_asynchronously(self._lock_acquire_memory):
                 if self.current_size_bytes + allocated_size_bytes > self.max_size_bytes:
                     await loop.run_in_executor(None, self._wait_until_available, allocated_size_bytes)
-                async with hivemind.utils.enter_asynchronously(self.lock_metadata):
+                async with hivemind.utils.enter_asynchronously(self._lock_metadata):
                     allocated_handle = int(self.handle_counter)
                     self.current_size_bytes += allocated_size_bytes
                     self.handle_counter += 1  # note: this will eventually overflow and it is okay
@@ -86,7 +86,7 @@ class MemoryCache:
             yield allocated_handle
         finally:
             if allocated_handle is not None:
-                async with hivemind.utils.enter_asynchronously(self.lock_metadata):
+                async with hivemind.utils.enter_asynchronously(self._lock_metadata):
                     self._pending_messages.value += 1
                     self._pipe_send.send((allocated_handle, None))  # signal runtime to free that handle
                     self.current_size_bytes -= allocated_size_bytes
@@ -116,7 +116,7 @@ class MemoryCache:
         assert os.getpid() == self.runtime_pid
         # note: this specific function is not concurrent, so you can safely allocate/offload/defragment data here
 
-        with self.lock_metadata:
+        with self._lock_metadata:
             if self._allocated_tensors is None:
                 self._allocated_tensors = {}
 
