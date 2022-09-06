@@ -19,7 +19,8 @@ from hivemind.utils.asyncio import amap_in_executor, anext, as_aiter
 from hivemind.utils.streaming import split_for_streaming
 
 from src.data_structures import CHAIN_DELIMITER, ModuleUID
-from src.server.backend import PrioritizedTaskPool, TransformerBackend
+from src.server.backend import TransformerBackend
+from src.server.task_pool import PrioritizedTaskPool
 from src.server.task_prioritizer import DummyTaskPrioritizer, TaskPrioritizerBase
 from src.utils.misc import DUMMY, is_dummy
 
