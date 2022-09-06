@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 from typing import Optional, Union
 
 import torch
@@ -10,11 +9,9 @@ from torch import nn
 
 import src
 from src.client.inference_session import RemoteSequentialInferenceSession
-from src.client.remote_block import RemoteTransformerBlock
 from src.client.sequence_manager import RemoteSequenceManager
 from src.client.sequential_autograd import _RemoteSequentialAutogradFunction
 from src.data_structures import UID_DELIMITER
-from src.dht_utils import _create_remote_modules_from_infos
 from src.utils.misc import DUMMY
 
 use_hivemind_log_handler("in_root_logger")
@@ -57,12 +54,16 @@ class RemoteSequential(nn.Module):
         outputs = _RemoteSequentialAutogradFunction.apply(inputs, prompts, self.sequence_manager)
         return outputs
 
-    def __getitem__(self, ix: Union[int, slice]) -> Union[RemoteTransformerBlock, RemoteSequential]:
+    def __getitem__(self, ix: Union[int, slice]) -> RemoteSequential:
         assert isinstance(ix, (int, slice))
         if isinstance(ix, int):
-            assert 0 <= ix < len(self)
-            (module,) = _create_remote_modules_from_infos([self.sequence_manager.block_infos[ix]], self.p2p)
-            return module
+            return RemoteTransformerBlock(
+                self.config,
+                self.dht,
+                dht_prefix=self.dht_prefix,
+                p2p=self.p2p,
+                sequence_manager=self.sequence_manager[ix],
+            )
         else:
             return RemoteSequential(
                 self.config,
@@ -79,9 +80,24 @@ class RemoteSequential(nn.Module):
     def __len__(self):
         return len(self.sequence_manager)
 
-    def inference_session(self) -> RemoteSequentialInferenceSession:
+    def inference_session(self, **kwargs) -> RemoteSequentialInferenceSession:
         self.sequence_manager.update_()
-        return RemoteSequentialInferenceSession(self.sequence_manager, self.p2p)
+        return RemoteSequentialInferenceSession(self.sequence_manager, self.p2p, **kwargs)
 
     def extra_repr(self) -> str:
         return f"modules={self.sequence_manager.block_uids[0]}..{self.sequence_manager.block_uids[-1]}"
+
+
+class RemoteTransformerBlock(RemoteSequential):
+    """Single transformer block hosted by swarm
+
+    This class is deprecated and kept for backward compatibility.
+    It will be removed soon in favor of using ``RemoteSequential`` directly.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        assert len(self) == 1, "Remote Block is a sequence size 1"
+
+    def extra_repr(self):
+        return f"{self.sequence_manager.block_uids[0]}"

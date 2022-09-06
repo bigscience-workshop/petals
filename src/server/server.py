@@ -36,6 +36,7 @@ class Server(threading.Thread):
         dht: DHT,
         module_backends: Dict[str, TransformerBackend],
         *,
+        inference_max_length: int,
         num_connection_handlers: int = 8,
         throughput: float,
         update_period: float = 30,
@@ -47,7 +48,8 @@ class Server(threading.Thread):
         self.dht, self.module_backends = dht, module_backends
         self.throughput, self.update_period, self.expiration = throughput, update_period, expiration
         self.conn_handlers = [
-            TransformerConnectionHandler(dht, self.module_backends) for _ in range(num_connection_handlers)
+            TransformerConnectionHandler(dht, self.module_backends, inference_max_length)
+            for _ in range(num_connection_handlers)
         ]
         self.runtime = Runtime(self.module_backends, **kwargs)
         self.dht_handler_thread = ModuleAnnouncerThread(
@@ -104,10 +106,11 @@ class Server(threading.Thread):
         num_handlers: int = 8,
         min_batch_size: int = 1,
         max_batch_size: int = 4096,
+        inference_max_length: int = 4096,
         torch_dtype: str = "auto",
         revision: str = "main",
         cache_dir: Optional[str] = None,
-        cache_size_bytes: Optional[int] = None,
+        attn_cache_size: Optional[int] = None,
         device: Optional[Union[str, torch.device]] = None,
         initial_peers: Sequence[str] = (),
         compression=CompressionType.NONE,
@@ -141,7 +144,7 @@ class Server(threading.Thread):
         logger.info(f"Running DHT node on {visible_maddrs_str}, initial peers = {initial_peers}")
 
         device = device or ("cuda" if torch.cuda.is_available() else "cpu")
-        memory_cache = MemoryCache(device, cache_size_bytes)
+        memory_cache = MemoryCache(device, attn_cache_size)
 
         assert isinstance(throughput, float) or throughput in ["auto", "eval"]
         if throughput in ["auto", "eval"]:
@@ -228,6 +231,7 @@ class Server(threading.Thread):
             blocks,
             throughput=throughput,
             num_connection_handlers=num_handlers,
+            inference_max_length=inference_max_length,
             device=device,
             stats_report_interval=stats_report_interval,
             update_period=update_period,

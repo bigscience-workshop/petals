@@ -7,25 +7,20 @@
 import hivemind
 import pytest
 import torch
-import transformers
-from hivemind.moe.expert_uid import UID_DELIMITER, ExpertInfo
 from test_utils import *
 
+import src
 from src.bloom.from_pretrained import load_pretrained_block
-from src.client.remote_block import RemoteTransformerBlock
-from src.dht_utils import get_remote_module
+from src.client.remote_sequential import RemoteSequential
+from src.dht_utils import get_remote_sequence
 
 
 @pytest.mark.forked
 def test_forward_backward_exact_match(atol_forward=1e-4, atol_backward=1e-4, seq_length=1):
     dht = hivemind.DHT(initial_peers=INITIAL_PEERS, client_mode=True, start=True)
-    config = transformers.AutoConfig.from_pretrained(MODEL_NAME)
-    remote_block = get_remote_module(dht, f"{MODEL_NAME}{UID_DELIMITER}0")
-    assert remote_block is not None, f"Could not find {MODEL_NAME}{UID_DELIMITER}0 in DHT"
-    assert isinstance(remote_block, RemoteTransformerBlock)
-
-    _ = remote_block.info  # lazy-init info now, because otherwise we will _break_ info init by chaning _info
-    remote_block._info = ExpertInfo(f"{MODEL_NAME}.3 {MODEL_NAME}.4 {MODEL_NAME}.5", remote_block._info.peer_id)
+    config = src.DistributedBloomConfig.from_pretrained(MODEL_NAME)
+    remote_blocks = get_remote_sequence(dht, 3, 6, config)
+    assert isinstance(remote_blocks, RemoteSequential)
 
     ref_blocks = [
         load_pretrained_block(MODEL_NAME, 3, torch_dtype=torch.float32),
@@ -33,7 +28,7 @@ def test_forward_backward_exact_match(atol_forward=1e-4, atol_backward=1e-4, seq
         load_pretrained_block(MODEL_NAME, 5, torch_dtype=torch.float32),
     ]
     inputs = torch.randn(1, seq_length, config.hidden_size, requires_grad=True)
-    outputs_rpc = remote_block.forward(inputs)[0]
+    outputs_rpc = remote_blocks.forward(inputs)
     outputs_rpc.sum().backward()
     grads_rpc = inputs.grad
 
@@ -52,18 +47,14 @@ def test_forward_backward_exact_match(atol_forward=1e-4, atol_backward=1e-4, seq
 @pytest.mark.forked
 def test_chained_inference_exact_match(atol_inference=1e-4):
     dht = hivemind.DHT(initial_peers=INITIAL_PEERS, client_mode=True, start=True)
-    config = transformers.AutoConfig.from_pretrained(MODEL_NAME)
-    remote_block = get_remote_module(dht, f"{MODEL_NAME}{UID_DELIMITER}0")
-    assert remote_block is not None, f"Could not find {MODEL_NAME}{UID_DELIMITER}0 in DHT"
-    assert isinstance(remote_block, RemoteTransformerBlock)
-
-    _ = remote_block.info  # lazy-init info now, because otherwise we will _break_ info init by chaning _info
-    remote_block._info = ExpertInfo(f"{MODEL_NAME}.3 {MODEL_NAME}.4", remote_block._info.peer_id)
+    config = src.DistributedBloomConfig.from_pretrained(MODEL_NAME)
+    remote_blocks = get_remote_sequence(dht, 3, 5, config)
+    assert isinstance(remote_blocks, RemoteSequential)
 
     inputs = torch.randn(1, 8, config.hidden_size)
 
     outputs_inference = []
-    with remote_block.inference_session() as sess:
+    with remote_blocks.inference_session(max_length=inputs.shape[1]) as sess:
         for i in range(inputs.shape[1]):
             outputs_inference.append(sess.step(inputs[:, i : i + 1, :]))
     outputs_inference = torch.cat(outputs_inference, dim=1)

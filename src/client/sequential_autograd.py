@@ -110,7 +110,7 @@ async def sequential_forward(
     If some subsequence fails, reconstructs the remaining path and tries to finish the forward.
     """
 
-    assert isinstance(inputs, torch.Tensor) and inputs.ndim == 3
+    assert isinstance(inputs, torch.Tensor) and inputs.ndim == 3, f"{type(inputs)}: {inputs.ndim}"
 
     end_index = end_index if end_index is not None else len(sequence_manager.block_uids)
     assert start_index >= 0 and end_index <= len(sequence_manager.block_uids)
