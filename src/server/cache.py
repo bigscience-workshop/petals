@@ -96,12 +96,12 @@ class MemoryCache:
         # note: this function should only be called inside _lock_acquire_memory!
         if allocated_size_bytes > self.max_size_bytes:
             raise AllocationFailed(
-                f"Could not allocate {allocated_size_bytes} bytes in cache; cache size = "
-                f"{self.max_size_bytes} bytes; {self.current_size_bytes} already allocated"
+                f"Could not allocate {allocated_size_bytes} bytes, max cache size = {self.max_size_bytes} bytes"
             )
         deadline = None if timeout is None else time.perf_counter() + timeout
         while self.current_size_bytes + allocated_size_bytes > self.max_size_bytes:
-            if not self._memory_freed_event.wait(deadline - time.perf_counter() if timeout is not None else None):
+            remaining_time = deadline - time.perf_counter() if timeout is not None else None
+            if not self._memory_freed_event.wait(remaining_time):
                 raise AllocationFailed(f"Could not allocate {allocated_size_bytes} bytes in {timeout} seconds")
             self._memory_freed_event.clear()
 
