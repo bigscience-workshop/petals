@@ -84,8 +84,9 @@ class TransformerBackend(ModuleBackend):
                 assert new_k.shape[0] == past_k.shape[0] and new_v.shape[0] == past_v.shape[0]
                 assert new_k.shape[1] == new_length and new_v.shape[1] == new_length
                 assert new_k.shape[2:] == past_k.shape[2:] and new_v.shape[2:] == past_v.shape[2:]
-                cache[0, :, prefix_length:new_length, :] = new_k[:, prefix_length:new_length]
-                cache[1, :, prefix_length:new_length, :] = new_v[:, prefix_length:new_length]
+                if new_length < cache.shape[1]:
+                    cache[0, :, prefix_length:new_length, :] = new_k[:, prefix_length:new_length]
+                    cache[1, :, prefix_length:new_length, :] = new_v[:, prefix_length:new_length]
                 return (hidden_states,)
 
     def get_pools(self) -> Sequence[TaskPool]:
