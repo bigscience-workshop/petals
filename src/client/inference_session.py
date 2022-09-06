@@ -70,7 +70,7 @@ class RemoteTransformerBlockInferenceSession:
                 break  # this message means "done sending"
 
     def step(self, new_hidden_states: torch.Tensor, prompts: Optional[torch.Tensor] = None):
-        """Inference step: send a chunk of input tensors and receive a chunk of outputs"""
+        """Inference step: send a chunk of input tesors and receive a chunk of outputs"""
         if self.closed:
             raise Exception("Session is closed, cannot perform step")
         # serialize inputs and put them into the queue
