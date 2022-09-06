@@ -90,8 +90,11 @@ class RemoteTransformerBlockInferenceSession:
             assert prompts.shape[2] <= new_hidden_states.shape[1]
             assert prompts.shape[3] == new_hidden_states.shape[2]
 
-        assert hypo_ids is None, "TODO implement hypo_ids here"
-        hypo_ids = torch.arange(len(new_hidden_states))
+        if hypo_ids is None or is_dummy(hypo_ids):
+            hypo_ids = torch.arange(len(new_hidden_states))
+        else:
+            assert len(hypo_ids) == len(new_hidden_states)
+            assert hypo_ids.dtype == torch.int64
 
         # serialize inputs and put them into the queue
         inputs = (new_hidden_states, prompts, hypo_ids)
