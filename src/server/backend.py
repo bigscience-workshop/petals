@@ -130,7 +130,7 @@ class PrioritizedTaskPool(TaskPool):
 
             try:
                 if task.task.future.set_running_or_notify_cancel():
-                    yield [task]
+                    yield [task.task]
             except InvalidStateError as e:
                 logger.debug(f"Failed to add task to batch: {task.task.future} raised {e}")
 
