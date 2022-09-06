@@ -93,7 +93,7 @@ class MemoryCache:
                 self._memory_freed_event.set()
 
     def _wait_until_available(self, allocated_size_bytes: int, timeout: Optional[float] = None):
-        # note: this function should only be called inside lock_metadata!
+        # note: this function should only be called inside _lock_acquire_memory!
         if allocated_size_bytes > self.max_size_bytes:
             raise AllocationFailed(
                 f"Could not allocate {allocated_size_bytes} bytes in cache; cache size = "
