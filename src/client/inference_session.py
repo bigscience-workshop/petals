@@ -91,7 +91,7 @@ class RemoteTransformerBlockInferenceSession:
             assert prompts.shape[3] == new_hidden_states.shape[2]
 
         if hypo_ids is None or is_dummy(hypo_ids):
-            hypo_ids = torch.arange(len(new_hidden_states))
+            hypo_ids = DUMMY
         else:
             assert len(hypo_ids) == len(new_hidden_states)
             assert hypo_ids.dtype == torch.int64

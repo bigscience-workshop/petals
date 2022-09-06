@@ -10,6 +10,7 @@ from hivemind.utils import InvalidStateError, get_logger
 
 from src.bloom.from_pretrained import BloomBlock
 from src.server.cache import MemoryCache
+from src.utils.misc import is_dummy
 
 use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
@@ -73,8 +74,9 @@ class TransformerBackend(ModuleBackend):
 
             with self.memory_cache.use_cache(attention_cache_handle) as cache:
                 assert isinstance(self.module, BloomBlock) and cache.shape[0] == 2 and cache.ndim == 5
-                cache[:, :] = cache[:, hypo_ids]  # in-place reorder cache by hypo ids
-                layer_past = past_k, past_v = cache[0, :prefix_length], cache[1, :prefix_length]
+                if not is_dummy(hypo_ids):
+                    cache[:, :] = cache[:, hypo_ids]  # in-place reorder cache by hypo ids
+                layer_past = past_k, past_v = cache[0, :, :prefix_length], cache[1, :, :prefix_length]
                 print("METADATA:", cache_metadata, past_k.shape, past_v.shape)
                 hidden_states, (new_k, new_v) = self.module.forward(hidden_states, layer_past=layer_past, use_cache=True)
 

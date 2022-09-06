@@ -95,9 +95,7 @@ class TransformerConnectionHandler(ConnectionHandler):
                         assert isinstance(
                             hidden_states, torch.Tensor
                         ), f"hidden states must be tensor, got {type(hidden_states)}"
-                        assert (
-                            hidden_states.ndim == 3
-                        ), f"inputs to {type(backend)} must be a list with a single 3d tensor of hidden states"
+                        assert hidden_states.ndim == 3, f"inputs to {type(backend)} must be a list with a single 3d tensor of hidden states"
                         (hidden_states,) = await backend.inference_pool.submit_task(cache_metadata, hidden_states, hypo_ids)
 
                     # serialize and send last layer outputs
@@ -105,13 +103,13 @@ class TransformerConnectionHandler(ConnectionHandler):
                         tensors=[
                             serialize_torch_tensor(result.to(proto.dtype), proto.compression, allow_inplace=True)
                             for result, proto in zip(
-                                hidden_states, nested_flatten(requested_backends[-1].outputs_schema)
+                                (hidden_states,), nested_flatten(requested_backends[-1].outputs_schema)
                             )
                         ]
                     )
 
                     # prepare for next step
-                    prefix_length += hidden_states[0].shape[1]
+                    prefix_length += hidden_states.shape[1]
                     request = await (anext(requests))
         finally:
             print("CLOSED RPC_INFERENCE")
