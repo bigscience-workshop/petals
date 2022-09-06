@@ -95,8 +95,12 @@ class TransformerConnectionHandler(ConnectionHandler):
                         assert isinstance(
                             hidden_states, torch.Tensor
                         ), f"hidden states must be tensor, got {type(hidden_states)}"
-                        assert hidden_states.ndim == 3, f"inputs to {type(backend)} must be a list with a single 3d tensor of hidden states"
-                        (hidden_states,) = await backend.inference_pool.submit_task(cache_metadata, hidden_states, hypo_ids)
+                        assert (
+                            hidden_states.ndim == 3
+                        ), f"inputs to {type(backend)} must be a list with a single 3d tensor of hidden states"
+                        (hidden_states,) = await backend.inference_pool.submit_task(
+                            cache_metadata, hidden_states, hypo_ids
+                        )
 
                     # serialize and send last layer outputs
                     yield runtime_pb2.ExpertResponse(

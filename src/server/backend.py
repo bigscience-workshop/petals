@@ -70,7 +70,9 @@ class TransformerBackend(ModuleBackend):
             attention_cache_handle = int(cache_metadata[0, 0].item())
             prefix_length = int(cache_metadata[0, 1].item())
             (hidden_states, hypo_ids) = inputs
-            assert (hidden_states.ndim == 3), "expected hidden states to be 3-dimensional: [batch_size, seq_len, hid_size]"
+            assert (
+                hidden_states.ndim == 3
+            ), "expected hidden states to be 3-dimensional: [batch_size, seq_len, hid_size]"
 
             with self.memory_cache.use_cache(attention_cache_handle) as cache:
                 assert isinstance(self.module, BloomBlock) and cache.shape[0] == 2 and cache.ndim == 5
@@ -78,7 +80,9 @@ class TransformerBackend(ModuleBackend):
                     cache[:, :] = cache[:, hypo_ids]  # in-place reorder cache by hypo ids
                 layer_past = past_k, past_v = cache[0, :, :prefix_length], cache[1, :, :prefix_length]
                 print("METADATA:", cache_metadata, past_k.shape, past_v.shape)
-                hidden_states, (new_k, new_v) = self.module.forward(hidden_states, layer_past=layer_past, use_cache=True)
+                hidden_states, (new_k, new_v) = self.module.forward(
+                    hidden_states, layer_past=layer_past, use_cache=True
+                )
 
                 # todo remove these asserts once we pass all tests
                 new_length = new_v.shape[1]
