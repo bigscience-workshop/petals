@@ -65,7 +65,7 @@ class TransformerConnectionHandler(ConnectionHandler):
                 assert len(cache_handles) == len(requested_backends)
                 while request.tensors:  # iterate while user is willing to supply tensors
                     assert len(request.tensors) == 2, "Must specify hidden_states and input_ids" # TODO replace with schema
-                    hidden_states, hypo_ids = map(deserialize_torch_tensor, request.tensors)
+                    hidden_states, intermediate_prompts, hypo_ids = map(deserialize_torch_tensor, request.tensors)
 
                     if prefix_length + length_increment > max_length:
                         raise ValueError(
