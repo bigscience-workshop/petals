@@ -64,7 +64,7 @@ class TransformerConnectionHandler(ConnectionHandler):
             async with self._allocate_caches(requested_backends, batch_size, max_length) as cache_handles:
                 assert len(cache_handles) == len(requested_backends)
                 while request.tensors:  # iterate while user is willing to supply tensors
-                    hidden_states, *prompts = [deserialize_torch_tensor(tensor) for tensor in request.tensors]
+                    hidden_states, prompts, hypo_ids = [deserialize_torch_tensor(tensor) for tensor in request.tensors]
 
                     # parse deep prompts (optional argument)
                     if not prompts or is_dummy(prompts[0]):
@@ -77,7 +77,6 @@ class TransformerConnectionHandler(ConnectionHandler):
                         raise ValueError(f"Received {len(prompts)} prompts for {len(requested_backends)} backends")
 
                     length_increment = hidden_states.shape[1]  # how many tokens are added this step (in each seq)
-
                     if prefix_length + length_increment > max_length:
                         raise ValueError(
                             f"Maximum length exceeded: prefix {prefix_length} + current {length_increment}"
