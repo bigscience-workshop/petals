@@ -96,8 +96,7 @@ class MemoryCache:
         # note: this function should only be called inside lock_metadata!
         if allocated_size_bytes > self.max_size_bytes:
             raise AllocationFailed(
-                f"Could not allocate {allocated_size_bytes} bytes in cache; cache size = "
-                f"{self.max_size_bytes} bytes; {self.current_size_bytes} already allocated"
+                f"Could not allocate {allocated_size_bytes} bytes, max cache size = {self.max_size_bytes} bytes"
             )
         deadline = None if timeout is None else time.perf_counter() + timeout
         while self.current_size_bytes + allocated_size_bytes > self.max_size_bytes:
