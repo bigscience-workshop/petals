@@ -1,11 +1,12 @@
 """Code for serving bloom blocks via hivemind-server"""
+import ctypes
 import multiprocessing as mp
 import os
 import threading
 from concurrent.futures import Future
 from dataclasses import dataclass, field
 from queue import Empty, PriorityQueue
-from typing import Any, Dict, Optional, Sequence, Tuple
+from typing import Any, Dict, Optional, Sequence, Tuple, List
 
 import torch
 from hivemind import BatchTensorDescriptor, use_hivemind_log_handler
