@@ -118,6 +118,8 @@ class Server(threading.Thread):
         custom_module_path=None,
         update_period: float = 30,
         expiration: Optional[float] = None,
+        prefetch_batches: int = 1,
+        sender_threads: int = 1,
         max_block_selection_delay: float = 1,
         use_auth_token: Optional[str] = None,
         load_in_8bit: bool = False,
@@ -236,6 +238,8 @@ class Server(threading.Thread):
             stats_report_interval=stats_report_interval,
             update_period=update_period,
             expiration=expiration,
+            prefetch_batches=prefetch_batches,
+            sender_threads=sender_threads,
             start=start,
         )
 
