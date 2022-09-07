@@ -96,7 +96,7 @@ class PrioritizedTaskPool(TaskPoolBase):
         self.terminate()
         self._prioritizer_thread.join(timeout)
 
-    def submit_task(self, *args: torch.Tensor, priority: float = 0.0) -> Future:
+    def submit_task(self, *args: torch.Tensor, priority: float = 0.0) -> MPFuture:
         """Add task to this pool's queue, return Future for its output"""
         task = Task(priority, time.monotonic(), MPFuture(), args)
         if self.get_task_size(task) > self.max_batch_size:
