@@ -138,7 +138,12 @@ class TransformerConnectionHandler(ConnectionHandler):
                             backend.inference_pool, PrioritizedTaskPool
                         ), "petals support only prioritized pools"
                         priority = self._prioritizer.prioritize(
-                            cache_metadata, hidden_states, hypo_ids, points=point_per_piece / len(requested_backends)
+                            cache_metadata,
+                            hidden_states,
+                            hypo_ids,
+                            points=point_per_piece / len(requested_backends),
+                            backend=backend,
+                            type="inference",
                         )
                         (hidden_states,) = await backend.inference_pool.submit_task(
                             cache_metadata, hidden_states, hypo_ids, priority=priority

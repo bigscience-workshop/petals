@@ -5,16 +5,16 @@ from hivemind.moe.server.task_pool import Task
 
 
 class TaskPrioritizerBase(ABC):
-    """Abstract class for DustBroker whose reponsibility is to evaluate task profit"""
+    """Abstract class for TaskPrioritizer whose reponsibility is to evaluate task priority"""
 
     @abstractmethod
     def prioritize(self, *input: torch.Tensor, points: float = 0.0, **kwargs) -> float:
-        """Evaluates task value by the amout of points given"""
+        """Evaluates task value by the amout of points given, task input and additional kwargs. Lower priority is better"""
         pass
 
 
 class DummyTaskPrioritizer(TaskPrioritizerBase):
-    """Simple implementation of DustBroker which counts amount of dust per task size"""
+    """Simple implementation of TaskPrioritizer which gives constant zero priority for every task"""
 
     def prioritize(self, *input: torch.Tensor, points: float = 0.0, **kwargs) -> float:
         return 0.0
