@@ -60,3 +60,12 @@ def test_priority_pools():
         ordered_outputs.append(outputs_queue.get()[0].item())
 
     assert ordered_outputs == [0, 5, 1, 2, 6, 8, 3, 4, 7]
+    #                          0 - first batch is loaded immediately, before everything else
+    #                             5 - highest priority task overall
+    #                                1 - first of several tasks with equal lowest priority (1)
+    #                                   2 - second earliest task with priority 1, fetched from pool B
+    #                                      6 - third earliest task with priority 1, fetched from pool A again
+    #                                         8 - last priority-1 task, pool B
+    #                                            3 - task with priority 2 from pool A
+    #                                               4 - task with priority 10 from pool A
+    #                                                  7 - task with priority 11 from pool B
