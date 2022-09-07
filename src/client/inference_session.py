@@ -43,7 +43,7 @@ class RemoteTransformerBlockInferenceSession:
         outputs_aiter: AsyncIterator,
         *,
         max_length: int,
-        points: int,
+        points: int = 0,
     ):
         self.uid, self.rpc_info = uid, rpc_info
         self.num_blocks = uid.count(CHAIN_DELIMITER) + 1
