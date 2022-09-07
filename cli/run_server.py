@@ -34,6 +34,10 @@ def main():
                         help='Minimum required batch size for all expert operations')
     parser.add_argument('--max_batch_size', type=int, default=16384,
                         help='The total number of tokens in the same batch will not exceed this value')
+    parser.add_argument('--prefetch_batches', type=int, default=1, required=False,
+                        help='Pre-form this many subsequent batches while GPU is processing the current one')
+    parser.add_argument('--sender_threads', type=int, default=1, required=False,
+                        help='Use this many threads to pass results/exceptions from Runtime to Pools')
     parser.add_argument('--inference_max_length', type=int, default=16384,
                         help='Maximum total sequence length permitted per inference, defaults to 16384 tokens')
     parser.add_argument('--cache_dir', type=str, default=None, 

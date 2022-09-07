@@ -4,7 +4,6 @@ from typing import Any, Dict, Optional, Sequence, Tuple
 import torch
 from hivemind import BatchTensorDescriptor, use_hivemind_log_handler
 from hivemind.moe.server.module_backend import ModuleBackend
-from hivemind.moe.server.task_pool import TaskPool
 from hivemind.utils import get_logger
 
 from src.bloom.from_pretrained import BloomBlock
@@ -72,7 +71,7 @@ class TransformerBackend(ModuleBackend):
                 cache[1, :, prefix_length:new_length, :] = new_v[:, prefix_length:new_length]
                 return (hidden_states,)
 
-    def get_pools(self) -> Sequence[TaskPool]:
+    def get_pools(self) -> Sequence[PrioritizedTaskPool]:
         return self.forward_pool, self.backward_pool, self.inference_pool
 
     def get_info(self) -> Dict[str, Any]:
