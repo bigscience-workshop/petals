@@ -1,12 +1,10 @@
 import ctypes
 import multiprocessing as mp
-import os
 import threading
 import time
-from concurrent.futures import Future, InvalidStateError
 from dataclasses import dataclass, field
-from queue import Empty, PriorityQueue
-from typing import Any, Dict, Generator, List, Optional, Sequence, Tuple
+from queue import PriorityQueue
+from typing import Any, Generator, List, Optional, Sequence, Tuple
 
 import torch
 from hivemind import MPFuture, get_logger, use_hivemind_log_handler
