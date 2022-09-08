@@ -24,19 +24,19 @@ class Runtime(threading.Thread):
 
     For debugging, you can start runtime manually with .start() or .run()
 
-    >>> module_backends = {'expert_name': ModuleBackend(**kwargs)}
+    >>> module_backends = {'block_uid': ModuleBackend(**kwargs)}
     >>> runtime = Runtime(module_backends)
     >>> runtime.start()  # start runtime in background thread. To start in current thread, use runtime.run()
-    >>> runtime.ready.wait()  # await for runtime to load all experts on device and create request pools
-    >>> future = runtime.module_backends['expert_name'].forward_pool.submit_task(*module_inputs)
+    >>> runtime.ready.wait()  # await for runtime to load all blocks on device and create request pools
+    >>> future = runtime.module_backends['block_uid'].forward_pool.submit_task(*module_inputs)
     >>> print("Returned:", future.result())
     >>> runtime.shutdown()
 
-    :param module_backends: a dict [expert uid -> ModuleBackend]
+    :param module_backends: a dict [block uid -> ModuleBackend]
     :param prefetch_batches: form up to this many batches in advance
     :param sender_threads: dispatches outputs from finished batches using this many asynchronous threads
-    :param device: if specified, moves all experts and data to this device via .to(device=device).
-      If you want to manually specify devices for each expert (in their forward pass), leave device=None (default)
+    :param device: if specified, moves all blocks and data to this device via .to(device=device).
+      If you want to manually specify devices for each block (in their forward pass), leave device=None (default)
 
     :param stats_report_interval: interval to collect and log statistics about runtime performance
     """
