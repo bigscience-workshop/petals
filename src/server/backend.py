@@ -80,5 +80,5 @@ class TransformerBackend(ModuleBackend):
         return self.forward_pool, self.backward_pool, self.inference_pool
 
     def get_info(self) -> Dict[str, Any]:
-        """Get expert parameters and stats. Used by RemoteExpert to check shapes and for DMoE orchestration."""
+        """Get module parameters and stats. Used by RemoteExpert to check shapes and for DMoE orchestration."""
         return dict(super().get_info(), inference_schema=self.inference_schema)
