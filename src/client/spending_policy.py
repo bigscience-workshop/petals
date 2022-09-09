@@ -9,6 +9,6 @@ class SpendingPolicyBase(ABC):
         pass
 
 
-class DummySpendingPolicy(SpendingPolicyBase):
+class NoSpendingPolicy(SpendingPolicyBase):
     def get_points(self, request: ExpertRequest, method_name: str, *args, **kwargs) -> float:
         return 0.0

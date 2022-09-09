@@ -9,6 +9,7 @@ from hivemind.moe.client.remote_expert_worker import RemoteExpertWorker
 from hivemind.proto import runtime_pb2
 from hivemind.utils.logging import get_logger, use_hivemind_log_handler
 
+from src import NoSpendingPolicy
 from src.data_structures import ModuleUID, RemoteModuleInfo, RemoteSpanInfo, ServerState
 from src.dht_utils import get_remote_module_infos
 from src.server.handler import TransformerConnectionHandler
@@ -30,6 +31,7 @@ class RemoteSequenceManager:
         self.spans_by_priority: List[RemoteSpanInfo] = []  # sorted from best to worst
         self.spans_containing_block: Tuple[List[RemoteSpanInfo], ...] = tuple([] for _ in range(len(self.block_uids)))
         self.last_update_time: DHTExpiration = -float("inf")
+        self.spending_policy = NoSpendingPolicy()
         self.max_retries = max_retries
         self._rpc_info = None
         self.lock_changes = threading.Lock()
@@ -39,7 +41,7 @@ class RemoteSequenceManager:
             assert info is not None, f"Found no remote peers for block {uid}"
         assert self.spans_by_priority and self.spans_containing_block
 
-    def make_sequence(self, start_index: int = 0, end_index: Optional[int] = None) -> Sequence[RemoteSpanInfo]:
+    def make_sequence(self, start_index: int = 0, end_index: Optional[int] = None) -> List[RemoteSpanInfo]:
         """
         Form a sequence of remote servers that collectively serve all consecutive layers
 
