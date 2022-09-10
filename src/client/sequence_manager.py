@@ -25,6 +25,7 @@ class RemoteSequenceManager:
     """
 
     def __init__(self, dht: DHT, block_uids: Sequence[ModuleUID], p2p: P2P, max_retries: int = 3):
+        assert len(block_uids) > 0, "Sequences must contain at least one block"
         self.dht, self.p2p = dht, p2p
         self.block_uids: List[ModuleUID] = list(block_uids)
         self.block_infos: List[Optional[RemoteModuleInfo]] = [None] * len(self.block_uids)
