@@ -2,7 +2,7 @@
 Utility functions that call RPC forward or backward on a single remote server
 """
 import asyncio
-from typing import Iterable, List, Sequence, Tuple, Optional
+from typing import Iterable, List, Sequence, Tuple
 
 import torch
 from hivemind import nested_compare, nested_flatten, serialize_torch_tensor, nested_pack
