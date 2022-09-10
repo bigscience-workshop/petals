@@ -8,7 +8,7 @@ from typing import List, Optional, Sequence, Tuple
 import torch
 from hivemind.moe.client.remote_expert_worker import RemoteExpertWorker
 
-from src.client.remote_forward_backward import run_remote_forward, run_remote_backward
+from src.client.remote_forward_backward import run_remote_backward, run_remote_forward
 from src.client.sequence_manager import RemoteSequenceManager
 from src.data_structures import CHAIN_DELIMITER, RemoteSpanInfo
 from src.server.handler import TransformerConnectionHandler
@@ -41,6 +41,7 @@ async def sequential_forward(
     sequences = sequence_manager.make_sequence(start_index, end_index)
     intermediate_inputs = []
     done_sequences = []
+    outputs = inputs
 
     while len(sequences) > 0:
         while True:

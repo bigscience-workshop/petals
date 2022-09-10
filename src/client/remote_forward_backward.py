@@ -5,7 +5,7 @@ import asyncio
 from typing import Iterable, List, Sequence, Tuple
 
 import torch
-from hivemind import nested_compare, nested_flatten, serialize_torch_tensor, nested_pack
+from hivemind import nested_compare, nested_flatten, nested_pack, serialize_torch_tensor
 from hivemind.compression.serialization import deserialize_tensor_stream, deserialize_torch_tensor
 from hivemind.p2p import StubBase
 from hivemind.p2p.p2p_daemon_bindings.control import DEFAULT_MAX_MSG_SIZE, MAX_UNARY_PAYLOAD_SIZE
