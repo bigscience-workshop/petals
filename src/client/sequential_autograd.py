@@ -1,100 +1,20 @@
+"""
+A PyTorch autograd function that runs forward/backward on a sequence of remote servers in a fault-tolerant manner
+"""
 import asyncio
 import logging
 from typing import List, Optional, Sequence, Tuple
 
 import torch
-from hivemind import serialize_torch_tensor
-from hivemind.moe.client.expert import expert_backward, expert_forward
 from hivemind.moe.client.remote_expert_worker import RemoteExpertWorker
-from hivemind.p2p import StubBase
-from hivemind.utils.nested import nested_compare, nested_flatten, nested_pack
 
+from src.client.remote_forward_backward import run_remote_backward, run_remote_forward
 from src.client.sequence_manager import RemoteSequenceManager
-from src.data_structures import CHAIN_DELIMITER, ModuleUID, RemoteSpanInfo, RPCInfo
+from src.data_structures import CHAIN_DELIMITER, RemoteSpanInfo
 from src.server.handler import TransformerConnectionHandler
 from src.utils.misc import DUMMY, is_dummy
 
 MAX_TOKENS_IN_BATCH = 1024
-
-
-async def run_expert_forward(
-    uid: ModuleUID, stub: StubBase, rpc_info: RPCInfo, *inputs: torch.Tensor, **kwargs
-) -> Tuple[torch.Tensor, ...]:
-    """
-    Serializes input tensors and calls "expert_forward".
-    Mostly adapted from https://github.com/learning-at-home/hivemind/blob/7a7c93aefffc9494c39e7b170c07cb06d8c09c4c/hivemind/moe/client/expert.py#L198
-    but without RemoteExpertWorker.run_coroutine() call that leads to deadlock here.
-    """
-
-    # Note: *inputs are flattened input tensors that follow the expert's info['input_schema']
-    # detach to avoid pickling the computation graph
-    assert len(kwargs) == len(rpc_info["keyword_names"]), f"Keyword args should be {rpc_info['keyword_names']}"
-    kwargs = {key: kwargs[key] for key in rpc_info["keyword_names"]}
-
-    # Note: we put keyword arguments in the same order as on a server to prevent f(a=1, b=2) != f(b=2, a=1) errors
-    forward_inputs = (inputs, kwargs)
-
-    # Modify forward_schema to support prompts
-    args_schema, kwargs_schema = rpc_info["forward_schema"]
-    # TODO: rm this assert when support arbitrary number of input tensors
-    assert len(args_schema) == 1 and len(inputs) == 2
-    forward_schema_with_prompts = (tuple(args_schema * len(inputs)), kwargs_schema)
-
-    if not nested_compare(forward_inputs, forward_schema_with_prompts):
-        raise TypeError(f"Inputs do not match expert input schema. Did you pass the right number of parameters?")
-
-    forward_inputs = nested_flatten(forward_inputs)
-    inputs = tuple(tensor.cpu().detach() for tensor in forward_inputs)
-
-    # Asynchronous serialization
-    loop = asyncio.get_running_loop()
-    serialized_tensors = await asyncio.gather(
-        *(
-            loop.run_in_executor(None, serialize_torch_tensor, tensor.to(proto.dtype), proto.compression)
-            for tensor, proto in zip(inputs, nested_flatten(forward_schema_with_prompts))
-        )
-    )
-
-    deserialized_outputs = await expert_forward(uid, inputs, serialized_tensors, stub)
-    flat_outputs = tuple(deserialized_outputs)
-    return nested_pack(flat_outputs, structure=rpc_info["outputs_schema"])
-
-
-async def run_expert_backward(
-    uid: ModuleUID,
-    stub: StubBase,
-    rpc_info: RPCInfo,
-    inputs: torch.Tensor,
-    grad_outputs: List[torch.Tensor],
-    *extra_tensors: torch.Tensor,
-) -> Sequence[torch.Tensor]:
-    """
-    Serializes grad outputs and calls "expert_backward".
-    Mostly adapted from https://github.com/learning-at-home/hivemind/blob/7a7c93aefffc9494c39e7b170c07cb06d8c09c4c/hivemind/moe/client/expert.py#L221
-    but without RemoteExpertWorker.run_coroutine() call that leads to deadlock here.
-    """
-
-    grad_outputs_cpu = tuple(tensor.cpu() for tensor in grad_outputs)
-    inputs_and_grad_outputs = tuple(nested_flatten((inputs, grad_outputs_cpu, *extra_tensors)))
-
-    # Modify forward_schema to support prompts
-    args_schema, kwargs_schema = rpc_info["forward_schema"]
-    assert len(args_schema) == 1 and isinstance(inputs, torch.Tensor)
-    # TODO generalize this
-    prompts_schema = next(iter(args_schema))
-    backward_schema = tuple(nested_flatten((rpc_info["forward_schema"], rpc_info["outputs_schema"], prompts_schema)))
-
-    # Asynchronous serialization
-    loop = asyncio.get_running_loop()
-    serialized_tensors = await asyncio.gather(
-        *(
-            loop.run_in_executor(None, serialize_torch_tensor, tensor.to(proto.dtype), proto.compression)
-            for tensor, proto in zip(inputs_and_grad_outputs, backward_schema)
-        )
-    )
-
-    deserialized_grad_inputs = await expert_backward(uid, inputs_and_grad_outputs, serialized_tensors, stub)
-    return deserialized_grad_inputs
 
 
 async def sequential_forward(
@@ -121,16 +41,17 @@ async def sequential_forward(
     sequences = sequence_manager.make_sequence(start_index, end_index)
     intermediate_inputs = []
     done_sequences = []
+    outputs = inputs
 
     while len(sequences) > 0:
         while True:
+            span = sequences.pop(0)
+            span_uids: str = CHAIN_DELIMITER.join(sequence_manager.block_uids[span.start : span.end])
             try:
-                span = sequences.pop(0)
-                span_uids: str = CHAIN_DELIMITER.join(sequence_manager.block_uids[span.start : span.end])
                 stub = TransformerConnectionHandler.get_stub(sequence_manager.p2p, span.peer_id)
                 inputs_and_prompts = [inputs, prompts[span.start : span.end]]
 
-                (outputs,) = await run_expert_forward(span_uids, stub, sequence_manager.rpc_info, *inputs_and_prompts)
+                (outputs,) = await run_remote_forward(span_uids, stub, sequence_manager.rpc_info, *inputs_and_prompts)
 
                 assert isinstance(outputs, torch.Tensor)
                 assert outputs.shape == inputs.shape, f"Expected output {inputs.shape}, got {outputs.shape}"
@@ -171,7 +92,7 @@ async def sequential_backward(
             span_uids: str = CHAIN_DELIMITER.join(sequence_manager.block_uids[span.start : span.end])
             try:
                 stub = TransformerConnectionHandler.get_stub(sequence_manager.p2p, span.peer_id)
-                grad_outputs, *span_grad_prompts = await run_expert_backward(
+                grad_outputs, *span_grad_prompts = await run_remote_backward(
                     span_uids, stub, sequence_manager.rpc_info, inputs, grad_outputs, prompts[span.start : span.end]
                 )
                 grad_outputs = [grad_outputs]
