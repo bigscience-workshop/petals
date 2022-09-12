@@ -73,7 +73,7 @@ class Server(threading.Thread):
         logger.info(f"Serving {len(self.module_backends)} blocks:")
         for block_name, backend in self.module_backends.items():
             num_parameters = sum(p.numel() for p in backend.module.parameters() if p.requires_grad)
-            parameter_msg = f'{num_parameters} trainable parameters' if num_parameters else "frozen"
+            parameter_msg = f"{num_parameters} trainable parameters" if num_parameters else "frozen"
             logger.info(f"{block_name}: {backend.module.__class__.__name__}, {parameter_msg}")
 
         if not self.dht.is_alive():
