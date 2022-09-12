@@ -2,6 +2,6 @@ torch==1.12.0
 bitsandbytes==0.33.0
 accelerate==0.10.0
 huggingface-hub==0.7.0
-humanfriendly
-transformers>=4.21.3
+transformers==4.21.3
 https://github.com/learning-at-home/hivemind/archive/131f82c97ea67510d552bb7a68138ad27cbfa5d4.zip
+humanfriendly
