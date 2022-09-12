@@ -170,6 +170,3 @@ class PrioritizedTaskPool(TaskPoolBase):
         assert len(item) == 2
         self._priority.value = float(item[0])
         self._oldest_undispatched_timestamp.value = float(item[1])
-
-    def iterate_minibatches(self, *args, **kwargs) -> Generator[List[Task], None, None]:
-        raise NotImplementedError()
