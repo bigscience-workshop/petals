@@ -65,14 +65,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
-      - name: Build bitsandbytes cpuonly
-        run: |
-          git clone https://github.com/TimDettmers/bitsandbytes.git
-          cd bitsandbytes
-          git checkout main
-          make cpuonly
-          pip install .
-          cd -
       - name: Test
         run: |
           export HF_TAG=$(python -c "import os; print(os.environ.get('GITHUB_HEAD_REF') or os.environ.get('GITHUB_REF_NAME'))")
