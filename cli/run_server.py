@@ -86,7 +86,7 @@ def main():
     if args.pop("increase_file_limit"):
         increase_file_limit()
 
-    compression_type = args.pop("compression")
+    compression_type = args.pop("compression").upper()
     compression = getattr(CompressionType, compression_type)
 
     attn_cache_size = args.pop("attn_cache_size")

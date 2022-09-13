@@ -72,8 +72,8 @@ jobs:
           export REF_NAME=bigscience/bloom-560m
 
           python -m cli.run_server --converted_model_name_or_path $MODEL_NAME --block_indices 0:12 \
-            --torch_dtype float32 --identity tests/test.id --host_maddrs /ip4/127.0.0.1/tcp/31337 \
-            --throughput 1 --attn_cache_size 0.2GiB &> server1.log &
+            --identity tests/test.id --host_maddrs /ip4/127.0.0.1/tcp/31337 --throughput 1 \
+            --torch_dtype float32 --compression NONE --attn_cache_size 0.2GiB &> server1.log &
           SERVER1_PID=$!
           
           sleep 5  # wait for the first server to initialize DHT
@@ -82,13 +82,13 @@ jobs:
           # ^-- server 1 multiaddr is determined by --identity and --host_maddrs
           
           python -m cli.run_server --converted_model_name_or_path $MODEL_NAME --block_indices 12:22 \
-            --torch_dtype float32 --initial_peers $INITIAL_PEERS --throughput 1 &> server2.log &
+            --initial_peers $INITIAL_PEERS --throughput 1 --torch_dtype float32 &> server2.log &
           SERVER2_PID=$!
 
           sleep 10 # wait for initial servers to declare blocks, then let server decide which blocks to serve
 
           python -m cli.run_server --converted_model_name_or_path $MODEL_NAME --block_indices 0:6 \
-            --torch_dtype float32 --initial_peers $INITIAL_PEERS --throughput 1 &> server3.log &
+            --initial_peers $INITIAL_PEERS --throughput 1 --torch_dtype float32 &> server3.log &
           SERVER3_PID=$!
 
           python -m cli.run_server --converted_model_name_or_path $MODEL_NAME --block_indices 4:16 \
@@ -96,7 +96,7 @@ jobs:
           SERVER4_PID=$!
           
           python -m cli.run_server --converted_model_name_or_path $MODEL_NAME --num_blocks 3 \
-            --torch_dtype float32 --initial_peers $INITIAL_PEERS --throughput 1 &> server5.log &
+            --initial_peers $INITIAL_PEERS --throughput 1 --torch_dtype float32 &> server5.log &
           SERVER5_PID=$!
           
           tail -n 100 -f server*.log &
