@@ -1,0 +1,4 @@
+recommonmark==0.5.0
+sphinx_rtd_theme==0.4.3
+docutils==0.16
+sphinx==4.2.0
