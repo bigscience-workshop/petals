@@ -1,43 +1,18 @@
 """Code for serving bloom blocks via hivemind-server"""
-from queue import Empty
 from typing import Any, Dict, Optional, Sequence, Tuple
 
 import torch
 from hivemind import BatchTensorDescriptor, use_hivemind_log_handler
 from hivemind.moe.server.module_backend import ModuleBackend
-from hivemind.moe.server.task_pool import TaskPool
-from hivemind.utils import InvalidStateError, get_logger
+from hivemind.utils import get_logger
 
 from src.bloom.from_pretrained import BloomBlock
 from src.server.cache import MemoryCache
+from src.server.task_pool import PrioritizedTaskPool
 from src.utils.misc import is_dummy
 
 use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
-
-
-class InferenceTaskPool(TaskPool):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        assert self.min_batch_size == 1, "min_batch_size in InferenceTaskPool cannot be greater 1"
-
-    def iterate_minibatches(self, *args, **kwargs):
-        """Form minibatches by grouping one or more tasks together up to self.max_batch_size"""
-
-        while True:
-            try:
-                logger.debug(f"{self.name} getting next task")
-                task = self.tasks.get(timeout=self.timeout)
-            except Empty:
-                logger.warning(f"Timeout reached but batch doesn't contain >={self.min_batch_size} elements yet")
-                continue
-
-            try:
-                if task.future.set_running_or_notify_cancel():
-                    yield [task]
-            except InvalidStateError as e:
-                logger.debug(f"Failed to add task to batch: {task.future} raised {e}")
 
 
 class TransformerBackend(ModuleBackend):
@@ -52,8 +27,15 @@ class TransformerBackend(ModuleBackend):
         for name, buf in self.module.named_buffers():
             assert not buf.requires_grad, f"Bloom layer parameters must not accumulate gradients, but {name} does"
 
-        self.inference_pool = InferenceTaskPool(
-            self.inference_step, max_batch_size=self.forward_pool.max_batch_size, name=f"{self.name}_inference"
+        max_batch_size = self.forward_pool.max_batch_size
+        self.inference_pool = PrioritizedTaskPool(
+            self.inference_step, max_batch_size=max_batch_size, name=f"{self.name}_inference"
+        )
+        self.forward_pool = PrioritizedTaskPool(
+            self.forward, max_batch_size=max_batch_size, name=f"{self.name}_forward"
+        )
+        self.backward_pool = PrioritizedTaskPool(
+            self.backward, max_batch_size=max_batch_size, name=f"{self.name}_backward"
         )
         self.dtype = backend_dtype if backend_dtype else self.module.input_layernorm.weight.dtype
         self.inference_schema = (
@@ -94,9 +76,9 @@ class TransformerBackend(ModuleBackend):
                 cache[1, :, prefix_length:new_length, :] = new_v[:, prefix_length:new_length]
                 return (hidden_states,)
 
-    def get_pools(self) -> Sequence[TaskPool]:
+    def get_pools(self) -> Sequence[PrioritizedTaskPool]:
         return self.forward_pool, self.backward_pool, self.inference_pool
 
     def get_info(self) -> Dict[str, Any]:
-        """Get expert parameters and stats. Used by RemoteExpert to check shapes and for DMoE orchestration."""
+        """Get module parameters and stats. Used by RemoteExpert to check shapes and for DMoE orchestration."""
         return dict(super().get_info(), inference_schema=self.inference_schema)
