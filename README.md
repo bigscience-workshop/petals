@@ -162,6 +162,37 @@ Of course, this is a simplified code snippet. For actual training, see our examp
 
 Here's a [more advanced tutorial](https://github.com/bigscience-workshop/petals/wiki/Launch-your-own-swarm) that covers 8-bit quantization and best practices for running PETALS.
 
+### Development
+
+PETALS uses pytest with a few plugins. To install them, run `pip install -r requirements-dev.txt`
+
+To run minimalistic tests, spin up some servers:
+```bash
+export MODEL_NAME=bloom-testing/test-bloomd-560m-main
+export INITIAL_PEERS=/ip4/127.0.0.1/tcp/31337/p2p/QmS9KwZptnVdB9FFV7uGgaTq4sEKBwcYeKZDfSpyKDUd1g
+python -m cli.run_server $MODEL_NAME --block_indices 0:12 --throughput 1 --torch_dtype float32 \
+  --identity tests/test.id --host_maddrs /ip4/127.0.0.1/tcp/31337  &> server1.log &
+sleep 5  # wait for the first server to initialize DHT
+python -m cli.run_server $MODEL_NAME --block_indices 12:24 --throughput 1 --torch_dtype float32 \
+  --initial_peers /ip4/127.0.0.1/tcp/31337/p2p/QmS9KwZptnVdB9FFV7uGgaTq4sEKBwcYeKZDfSpyKDUd1g &> server2.log &
+
+tail -f server1.log server2.log  # view logs for both servers
+# after you're done, kill servers with 'pkill -f cli.run_server'
+```
+
+Then launch pytest:
+```
+export MODEL_NAME=bloom-testing/test-bloomd-560m-main REF_NAME=bigscience/bloom-560m
+export INITIAL_PEERS=/ip4/127.0.0.1/tcp/31337/p2p/QmS9KwZptnVdB9FFV7uGgaTq4sEKBwcYeKZDfSpyKDUd1g
+PYTHONPATH=. pytest tests --durations=0 --durations-min=1.0 -v
+```
+
+The automated tests use a more complex server configuration that can be found [here](https://github.com/bigscience-workshop/petals/blob/main/.github/workflows/run-tests.yaml)  
+
+We use [black](https://black.readthedocs.io/en/stable/the_black_code_style/current_style.html) and [isort](https://pycqa.github.io/isort/) for all pull requests.
+Before commiting your code, simply run `black . && isort .` and you will be fine.
+
+
 
 --------------------------------------------------------------------------------
 
