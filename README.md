@@ -81,7 +81,6 @@ This is important because it's technically possible for peers serving model laye
 Here's how to install the dependencies with conda:
 ```
 conda install pytorch torchvision torchaudio cudatoolkit=11.3 -c pytorch
-pip install bitsandbytes==0.33.2  # for 8-bit quantization
 pip install -r requirements.txt
 ```
 
@@ -94,12 +93,12 @@ __OS support:__ currently, PETALS only supports Linux operating systems. On Wind
 For macOS, you can *probably* run everything normally if you manage to install dependencies, but we do not guarantee this.
 
 
-### Getting Started
+## Getting Started
 
 This is a toy example running on a local machine without GPU and with a tiny model. 
 For a more detailed instruction with larger models, see ["Launch your own swarm"](https://github.com/bigscience-workshop/petals/wiki/Launch-your-own-swarm).
 
-First, run a couple of servers, each in a separate shell. First server runs like this
+First, run a couple of servers, each in a separate shell. To launch your first server, run:
 ```bash
 python -m cli.run_server bloom-testing/test-bloomd-560m-main --num_blocks 8 --torch_dtype float32 \
   --host_maddrs /ip4/127.0.0.1/tcp/31337   # use port 31337, local connections only
@@ -145,10 +144,6 @@ model = DistributedBloomForCausalLM.from_pretrained(
 inputs = tokenizer("a cat sat", return_tensors="pt")["input_ids"]
 remote_outputs = model.generate(inputs, max_length=10)
 print(tokenizer.decode(remote_outputs[0]))  # "a cat sat in the back of the car,"
-
-model = DistributedBloomForCausalLM.from_pretrained(
-  "bloom-testing/test-bloomd-560m-main", initial_peers=initial_peers, low_cpu_mem_usage=True, torch_dtype=torch.float32
-)  # this model has only embeddings / logits, all transformer blocks rely on remote servers 
 
 # "train" input embeddings by backprop through distributed transformer blocks
 model.transformer.word_embeddings.weight.requires_grad = True

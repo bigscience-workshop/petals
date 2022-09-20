@@ -1,5 +1,5 @@
 torch>=1.12
-bitsandbytes==0.33.0  #TODO update this to 0.33.2 asap
+bitsandbytes==0.34.0
 accelerate==0.10.0
 huggingface-hub==0.7.0
 transformers==4.21.3
