@@ -1,7 +1,7 @@
-import bitsandbytes as bnb
 import os
-import torch
 
+import bitsandbytes as bnb
+import torch
 
 PETALS_8BIT_BACKWARD = bool(int(os.environ.get("PETALS_8BIT_BACKWARD", 0)))
 
