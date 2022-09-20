@@ -99,13 +99,13 @@ For macOS, you can *probably* run everything normally if you manage to install d
 This is a toy example running on a local machine without GPU and with a tiny model. 
 For a more detailed instruction with larger models, see ["Launch your own swarm"](https://github.com/bigscience-workshop/petals/wiki/Launch-your-own-swarm).
 
-First, run a couple of servers, each in a separate shell. First server runs like this
+First, run a couple of servers, each in a separate shell. Here's the first server:
 ```bash
 python -m cli.run_server bloom-testing/test-bloomd-560m-main --num_blocks 8 --torch_dtype float32 \
   --host_maddrs /ip4/127.0.0.1/tcp/31337   # use port 31337, local connections only
 ```
 
-This server will host 8 (out of 24) layers for [this tiny bloom model](https://huggingface.co/bloom-testing/test-bloomd-560m-main) that was converted for PETALS.
+This will host 8 (out of 24) layers for [this tiny bloom model](https://huggingface.co/bloom-testing/test-bloomd-560m-main) that was converted for PETALS.
 To run a different model, please see [this wiki page](https://github.com/bigscience-workshop/petals/wiki/Run-a-custom-model-with-PETALS).
 
 
