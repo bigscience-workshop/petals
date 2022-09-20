@@ -94,9 +94,9 @@ __OS support:__ currently, PETALS only supports Linux operating systems. On Wind
 For macOS, you can *probably* run everything normally if you manage to install dependencies, but we do not guarantee this.
 
 
-### Basic functionality
+### Getting Started
 
-This is a toy example running on a local machine without GPU with a small bloom model.
+This is a toy example running on a local machine without GPU and with a tiny model. 
 For a more detailed instruction with larger models, see ["Launch your own swarm"](https://github.com/bigscience-workshop/petals/wiki/Launch-your-own-swarm).
 
 First, run a couple of servers, each in a separate shell. First server runs like this
@@ -105,7 +105,11 @@ python -m cli.run_server bloom-testing/test-bloomd-560m-main --num_blocks 8 --to
   --host_maddrs /ip4/127.0.0.1/tcp/31337   # use port 31337, local connections only
 ```
 
-Once you run the server, it will print out a ton of information, including a line like this:
+This server will host 8 (out of 24) layers for [this tiny bloom model](https://huggingface.co/bloom-testing/test-bloomd-560m-main) that was converted for PETALS.
+To run a different model, please see [this wiki page](https://github.com/bigscience-workshop/petals/wiki/Run-a-custom-model-with-PETALS).
+
+
+Once the server has started, it will print out a ton of information, including an (important) line like this:
 ```bash
 Mon Day 01:23:45.678 [INFO] Running DHT node on ['/ip4/127.0.0.1/tcp/31337/p2p/ALongStringOfCharacters'], initial peers = []
 ```
@@ -133,10 +137,11 @@ from src import DistributedBloomForCausalLM
 
 initial_peers = [TODO_put_one_or_more_server_addresses_here]  # e.g. ["/ip4/127.0.0.1/tcp/more/stuff/here"]
 tokenizer = transformers.BloomTokenizerFast.from_pretrained("bloom-testing/test-bloomd-560m-main")
-
 model = DistributedBloomForCausalLM.from_pretrained(
   "bloom-testing/test-bloomd-560m-main", initial_peers=initial_peers, low_cpu_mem_usage=True, torch_dtype=torch.float32
-)  # this model has only embeddings / logits, all transformer blocks rely on remote servers 
+)  # this model has only embeddings / logits, all transformer blocks rely on remote servers
+
+
 inputs = tokenizer("a cat sat", return_tensors="pt")["input_ids"]
 remote_outputs = model.generate(inputs, max_length=10)
 print(tokenizer.decode(remote_outputs[0]))  # "a cat sat in the back of the car,"
