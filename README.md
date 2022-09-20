@@ -106,7 +106,7 @@ python -m cli.run_server bloom-testing/test-bloomd-560m-main --num_blocks 8 --to
 
 This server will host 8 (out of 24) blocks of a [tiny 560M version](https://huggingface.co/bloom-testing/test-bloomd-560m-main) of the BLOOM model that was converted for Petals.
 
-> If you'd like to run the full BLOOM straight away, please see [this instruction](https://github.com/bigscience-workshop/petals/wiki/Launch-your-own-swarm) (you'll need several GPUs!). To run a different model, see [this wiki page](https://github.com/bigscience-workshop/petals/wiki/Run-a-custom-model-with-PETALS).
+> If you'd like to run a swarm of servers with the full BLOOM straight away, please see [this instruction](https://github.com/bigscience-workshop/petals/wiki/Launch-your-own-swarm) (you'll need several GPUs!). To run a different model, see [this wiki page](https://github.com/bigscience-workshop/petals/wiki/Run-a-custom-model-with-PETALS).
 
 Once the server has started, it will print out a ton of information, including an important line like this:
 
@@ -124,7 +124,7 @@ python -m cli.run_server bloom-testing/test-bloomd-560m-main --num_blocks 8 --to
 ```
 
 You can assign `--initial_peers` to one or multiple addresses of other servers, not necessarily the first one.
-The only requirement is that at least one of them is alive, i.e. running at the time.
+The only requirement is that at least one of them is running at the time.
 
 Before you proceed, __please run 3 servers__ for a total of 24 blocks (3x8). If you are running a different model,
 make sure your servers have enough total `--num_blocks` to cover that model. 
