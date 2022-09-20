@@ -89,14 +89,14 @@ If you don't have anaconda, you can get it from [here](https://www.anaconda.com/
 If you don't want anaconda, you can install PyTorch [any other way](https://pytorch.org/get-started/locally/).
 If you want to run models with 8-bit weights, please install **PyTorch with CUDA 11** or newer for compatility with [bitsandbytes](https://github.com/timDettmers/bitsandbytes).
 
-__OS support:__ currently, PETALS only supports Linux operating systems. On Windows 11, you can run PETALS with GPU enabled inside WSL2 ([read more](https://learn.microsoft.com/en-us/windows/ai/directml/gpu-cuda-in-wsl).
+__OS support:__ Currently, Petals only supports Linux operating systems. On Windows 11, you can run Petals with GPU enabled inside WSL2 ([read more](https://learn.microsoft.com/en-us/windows/ai/directml/gpu-cuda-in-wsl)).
 For macOS, you can *probably* run everything normally if you manage to install dependencies, but we do not guarantee this.
 
 
-## Getting Started
+## 🚀 Getting Started
 
 This is a toy example running on a local machine without GPU and with a tiny model. 
-For a more detailed instruction with larger models, see ["Launch your own swarm"](https://github.com/bigscience-workshop/petals/wiki/Launch-your-own-swarm).
+For a detailed instruction with larger models, see ["Launch your own swarm"](https://github.com/bigscience-workshop/petals/wiki/Launch-your-own-swarm).
 
 First, run a couple of servers, each in a separate shell. To launch your first server, run:
 ```bash
@@ -104,19 +104,22 @@ python -m cli.run_server bloom-testing/test-bloomd-560m-main --num_blocks 8 --to
   --host_maddrs /ip4/127.0.0.1/tcp/31337   # use port 31337, local connections only
 ```
 
-This server will host 8 (out of 24) layers for [this tiny bloom model](https://huggingface.co/bloom-testing/test-bloomd-560m-main) that was converted for PETALS.
-To run a different model, please see [this wiki page](https://github.com/bigscience-workshop/petals/wiki/Run-a-custom-model-with-PETALS).
+This server will host 8 (out of 24) blocks of a [tiny 560M version](https://huggingface.co/bloom-testing/test-bloomd-560m-main) of the BLOOM model that was converted for Petals.
 
+> If you'd like to run the full BLOOM straight away, please see [this instruction](https://github.com/bigscience-workshop/petals/wiki/Launch-your-own-swarm) (you'll need several GPUs!). To run a different model, see [this wiki page](https://github.com/bigscience-workshop/petals/wiki/Run-a-custom-model-with-PETALS).
 
-Once the server has started, it will print out a ton of information, including an (important) line like this:
+Once the server has started, it will print out a ton of information, including an important line like this:
+
 ```bash
 Mon Day 01:23:45.678 [INFO] Running DHT node on ['/ip4/127.0.0.1/tcp/31337/p2p/ALongStringOfCharacters'], initial peers = []
 ```
 
-You can use this address (/ip4/whatever/else) to connect additional servers. Open another terminal and run:
+You can use this address (`/ip4/whatever/else`) to connect additional servers. Open another terminal and run:
+
 ```bash
 python -m cli.run_server bloom-testing/test-bloomd-560m-main --num_blocks 8 --torch_dtype float32 \
-  --host_maddrs /ip4/127.0.0.1/tcp/0 --initial_peers /ip4/127.0...<TODO! copy the address of another server>
+  --host_maddrs /ip4/127.0.0.1/tcp/0 \
+  --initial_peers /ip4/127.0... # <-- TODO: Copy the address of another server here
 # e.g. --initial_peers /ip4/127.0.0.1/tcp/31337/p2p/QmS1GecIfYouAreReadingThisYouNeedToCopyYourServerAddressCBBq
 ```
 
@@ -125,7 +128,6 @@ The only requirement is that at least one of them is alive, i.e. running at the 
 
 Before you proceed, __please run 3 servers__ for a total of 24 blocks (3x8). If you are running a different model,
 make sure your servers have enough total `--num_blocks` to cover that model. 
-
 
 Once your have enough servers, you can use them to train and/or inference the model:
 ```python
@@ -155,13 +157,14 @@ print("Gradients (norm):", model.transformer.word_embeddings.weight.grad.norm())
 
 Of course, this is a simplified code snippet. For actual training, see our example on "deep" prompt-tuning here: [examples/prompt-tuning-personachat.ipynb](./examples/prompt-tuning-personachat.ipynb).
 
-Here's a [more advanced tutorial](https://github.com/bigscience-workshop/petals/wiki/Launch-your-own-swarm) that covers 8-bit quantization and best practices for running PETALS.
+Here's a [more advanced tutorial](https://github.com/bigscience-workshop/petals/wiki/Launch-your-own-swarm) that covers 8-bit quantization and best practices for running Petals.
 
-### Development
+## 🛠️ Development
 
-PETALS uses pytest with a few plugins. To install them, run `pip install -r requirements-dev.txt`
+Petals uses pytest with a few plugins. To install them, run `pip install -r requirements-dev.txt`
 
 To run minimalistic tests, spin up some servers:
+
 ```bash
 export MODEL_NAME=bloom-testing/test-bloomd-560m-main
 export INITIAL_PEERS=/ip4/127.0.0.1/tcp/31337/p2p/QmS9KwZptnVdB9FFV7uGgaTq4sEKBwcYeKZDfSpyKDUd1g
@@ -176,18 +179,19 @@ tail -f server1.log server2.log  # view logs for both servers
 ```
 
 Then launch pytest:
+
 ```
 export MODEL_NAME=bloom-testing/test-bloomd-560m-main REF_NAME=bigscience/bloom-560m
 export INITIAL_PEERS=/ip4/127.0.0.1/tcp/31337/p2p/QmS9KwZptnVdB9FFV7uGgaTq4sEKBwcYeKZDfSpyKDUd1g
 PYTHONPATH=. pytest tests --durations=0 --durations-min=1.0 -v
 ```
 
-The automated tests use a more complex server configuration that can be found [here](https://github.com/bigscience-workshop/petals/blob/main/.github/workflows/run-tests.yaml)  
+The automated tests use a more complex server configuration that can be found [here](https://github.com/bigscience-workshop/petals/blob/main/.github/workflows/run-tests.yaml).
+
+### Code style
 
 We use [black](https://black.readthedocs.io/en/stable/the_black_code_style/current_style.html) and [isort](https://pycqa.github.io/isort/) for all pull requests.
 Before commiting your code, simply run `black . && isort .` and you will be fine.
-
-
 
 --------------------------------------------------------------------------------
 
