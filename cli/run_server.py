@@ -15,8 +15,11 @@ def main():
     parser = configargparse.ArgParser(default_config_files=["config.yml"])
     parser.add('-c', '--config', required=False, is_config_file=True, help='config file path')
 
-    parser.add_argument('--converted_model_name_or_path', type=str, default='bigscience/test-bloomd-6b3',
-                        help="path or name of a pretrained model, converted with cli/convert_model.py (see README.md)")
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('--converted_model_name_or_path', type=str, default=None,
+                       help="path or name of a pretrained model, converted with cli/convert_model.py")
+    group.add_argument('model', nargs='?', type=str, help="same as --converted_model_name_or_path")
+
     parser.add_argument('--num_blocks', type=int, default=None, help="The number of blocks to serve")
     parser.add_argument('--block_indices', type=str, default=None, help="Specific block indices to serve")
     parser.add_argument('--prefix', type=str, default=None, help="Announce all blocks with this prefix. By default,"
@@ -82,6 +85,8 @@ def main():
     # fmt:on
     args = vars(parser.parse_args())
     args.pop("config", None)
+
+    args["converted_model_name_or_path"] = args.pop("model") or args["converted_model_name_or_path"]
 
     if args.pop("increase_file_limit"):
         increase_file_limit()
