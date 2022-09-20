@@ -81,7 +81,6 @@ This is important because it's technically possible for peers serving model laye
 Here's how to install the dependencies with conda:
 ```
 conda install pytorch torchvision torchaudio cudatoolkit=11.3 -c pytorch
-pip install bitsandbytes==0.33.0  # note: for now, you need to build 0.33.2 from source for 8-bit **training**
 pip install -r requirements.txt
 ```
 
