@@ -30,8 +30,8 @@ logger = get_logger(__file__)
 
 class Server(threading.Thread):
     """
-    Runs Server, periodically checks that the network is balanced,
-    restarts the Server with other layers if the imbalance is significant
+    Runs ModuleContainer, periodically checks that the network is balanced,
+    restarts the ModuleContainer with other layers if the imbalance is significant
     """
 
     def __init__(
@@ -243,7 +243,7 @@ class ModuleContainer(threading.Thread):
     def run(self):
         """
         Runs ModuleContainer in the current thread. Initializes dht if necessary, starts connection handlers,
-        runs Runtime (self.runtime) to process incoming requests.
+        runs hivemind.Runtime (self.runtime) to process incoming requests.
         """
         logger.info(f"Serving {len(self.module_backends)} blocks:")
         for expert_name, backend in self.module_backends.items():
