@@ -41,6 +41,7 @@ class Server(threading.Thread):
         throughput: Union[float, str],
         num_blocks: Optional[int] = None,
         block_indices: Optional[str] = None,
+        allow_rebalancing: bool = True,
         num_handlers: int = 8,
         min_batch_size: int = 1,
         max_batch_size: int = 4096,
@@ -133,6 +134,7 @@ class Server(threading.Thread):
                 raise
             block_indices = range(first_block_index, last_block_index)
         self.block_indices, self.num_blocks = block_indices, num_blocks
+        self.allow_rebalancing = allow_rebalancing
         self.mean_block_selection_delay = mean_block_selection_delay
         self.mean_balance_check_period = mean_balance_check_period
 
@@ -194,7 +196,11 @@ class Server(threading.Thread):
         return choose_best_blocks(self.num_blocks, module_infos)
 
     def _should_choose_other_blocks(self) -> bool:
-        return False
+        if not self.allow_rebalancing:
+            return False
+
+        # TODO: Implement actual algorithm here
+        return True
 
     def shutdown(self):
         self.stop.set()
