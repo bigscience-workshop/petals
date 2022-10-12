@@ -59,9 +59,9 @@ class Server(threading.Thread):
         expiration: Optional[float] = None,
         prefetch_batches: int = 1,
         sender_threads: int = 1,
-        mean_block_selection_delay: float = 0.5,
-        mean_balance_check_period: float = 150,
         min_balance_quality: float = 0.0,
+        mean_balance_check_period: float = 150,
+        mean_block_selection_delay: float = 0.5,
         use_auth_token: Optional[str] = None,
         load_in_8bit: bool = False,
         *,
@@ -136,9 +136,9 @@ class Server(threading.Thread):
                 raise
             block_indices = range(first_block_index, last_block_index)
         self.strict_block_indices, self.num_blocks = block_indices, num_blocks
-        self.mean_block_selection_delay = mean_block_selection_delay
-        self.mean_balance_check_period = mean_balance_check_period
         self.min_balance_quality = min_balance_quality
+        self.mean_balance_check_period = mean_balance_check_period
+        self.mean_block_selection_delay = mean_block_selection_delay
 
         self.stop = threading.Event()
         if start:

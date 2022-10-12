@@ -79,6 +79,13 @@ def main():
     parser.add_argument('--custom_module_path', type=str, required=False,
                         help='Path of a file with custom nn.modules, wrapped into special decorator')
     parser.add_argument('--identity_path', type=str, required=False, help='Path to identity file to be used in P2P')
+
+    parser.add_argument("--min_balance_quality", type=float, default=0.0,
+                        help="Rebalance the swarm if its balance quality (a number in [0.0, 1.0]) "
+                             "goes below this threshold. Default: rebalancing is disabled")
+    parser.add_argument("--mean_balance_check_period", type=float, default=150,
+                        help="Check the swarm's balance every N seconds (and rebalance it if necessary)")
+
     parser.add_argument("--use_auth_token", type=str, default=None, help="auth token for from_pretrained")
     parser.add_argument('--load_in_8bit', action='store_true', help='Convert the loaded model into mixed-8bit quantized model.')
 
