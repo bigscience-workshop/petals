@@ -61,7 +61,7 @@ class Server(threading.Thread):
         sender_threads: int = 1,
         mean_block_selection_delay: float = 0.5,
         mean_balance_check_period: float = 150,
-        min_balance_quality: float = 0.8,
+        min_balance_quality: float = 0.0,
         use_auth_token: Optional[str] = None,
         load_in_8bit: bool = False,
         *,
