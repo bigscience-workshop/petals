@@ -266,7 +266,7 @@ class RemoteGenerationMixin:
         """
         decoding_algorithm = BeamSearchAlgorithm(
             num_beams=num_beams,
-            bath_size=input_ids.size(0),
+            batch_size=input_ids.size(0),
         )
         return self.generate(
             inputs=input_ids,
