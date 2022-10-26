@@ -30,6 +30,8 @@ RUN pip install --no-cache-dir -r petals/requirements.txt && \
 COPY . petals/
 WORKDIR petals/
 
+RUN printf '%s\n' 41m42 w q | ed -s /opt/conda/lib/python3.10/site-packages/bitsandbytes/cextension.py && \
+    sed -i '42s/^/    /' file
 RUN PYTHONPATH=. pytest tests/ --durations=0 --durations-min=1.0 -v
 
 CMD bash
