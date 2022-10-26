@@ -18,7 +18,7 @@ RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -
 ENV PATH="/opt/conda/bin:${PATH}"
 
 RUN conda install python~=3.10 pip && \
-    pip install --no-cache-dir "torch>=1.12"" torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu116 && \
+    pip install --no-cache-dir "torch>=1.12" torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu116 && \
     conda clean --all && rm -rf ~/.cache/pip
 
 COPY requirements.txt petals/requirements.txt
