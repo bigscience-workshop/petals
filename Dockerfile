@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends --force-yes \
   build-essential \
   wget \
   git \
+  ed \
   && apt-get clean autoclean && rm -rf /var/lib/apt/lists/{apt,dpkg,cache,log} /tmp/* /var/tmp/*
 
 RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O install_miniconda.sh && \
