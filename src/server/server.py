@@ -61,8 +61,8 @@ class Server(threading.Thread):
         expiration: Optional[float] = None,
         prefetch_batches: int = 1,
         sender_threads: int = 1,
-        min_balance_quality: float = 0.0,
-        mean_balance_check_period: float = 150,
+        balance_quality: float = 0.75,
+        mean_balance_check_period: float = 60,
         mean_block_selection_delay: float = 0.5,
         use_auth_token: Optional[str] = None,
         load_in_8bit: bool = False,
@@ -138,7 +138,7 @@ class Server(threading.Thread):
                 raise
             block_indices = range(first_block_index, last_block_index)
         self.strict_block_indices, self.num_blocks = block_indices, num_blocks
-        self.min_balance_quality = min_balance_quality
+        self.balance_quality = balance_quality
         self.mean_balance_check_period = mean_balance_check_period
         self.mean_block_selection_delay = mean_block_selection_delay
 
@@ -215,7 +215,7 @@ class Server(threading.Thread):
             return False
 
         module_infos = get_remote_module_infos(self.dht, self.module_uids, expiration_time=np.inf)
-        return block_selection.should_choose_other_blocks(self.dht.peer_id, module_infos, self.min_balance_quality)
+        return block_selection.should_choose_other_blocks(self.dht.peer_id, module_infos, self.balance_quality)
 
     def shutdown(self):
         self.stop.set()

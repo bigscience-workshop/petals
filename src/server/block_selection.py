@@ -62,9 +62,9 @@ def choose_best_blocks(num_blocks: int, module_infos: List[Optional[RemoteModule
 
 
 def should_choose_other_blocks(
-    local_peer_id: PeerID, module_infos: List[Optional[RemoteModuleInfo]], min_balance_quality: float
+    local_peer_id: PeerID, module_infos: List[Optional[RemoteModuleInfo]], balance_quality: float
 ) -> bool:
-    if min_balance_quality > 1.0:
+    if balance_quality > 1.0:
         return True  # Forces rebalancing on each check (may be used for debugging purposes)
 
     spans, throughputs = _compute_spans(module_infos)
@@ -99,8 +99,8 @@ def should_choose_other_blocks(
             throughputs[span.start : span.end] += span.throughput
 
     new_throughput = throughputs.min()
-    balance_quality = initial_throughput / new_throughput
-    logger.info(f"Swarm balance quality: {balance_quality * 100:.1f}%")
+    actual_quality = initial_throughput / new_throughput
+    logger.info(f"Swarm balance quality: {actual_quality * 100:.1f}%")
 
     eps = 1e-6
-    return balance_quality < min_balance_quality - eps
+    return actual_quality < balance_quality - eps
