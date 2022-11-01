@@ -25,7 +25,6 @@ from src.server.task_pool import PrioritizedTaskPool
 from src.server.task_prioritizer import DummyTaskPrioritizer, TaskPrioritizerBase
 from src.utils.misc import DUMMY, is_dummy
 
-
 logger = get_logger(__file__)
 
 
