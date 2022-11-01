@@ -29,8 +29,11 @@ RUN pip install --no-cache-dir -r petals/requirements.txt && \
     rm -rf ~/.cache/pip
 
 COPY . petals/
-WORKDIR petals/
 
-RUN PYTHONPATH=. pytest tests/ --durations=0 --durations-min=1.0 -v
+WORKDIR /home
+RUN git clone --depth 1 --branch 1.1.2 https://github.com/learning-at-home/hivemind.git && \
+    hivemind/tests/test_compression.py && rm -rf hivemind
+
+WORKDIR /home/petals/
 
 CMD bash
