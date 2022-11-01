@@ -61,7 +61,7 @@ class TransformerBackend(ModuleBackend):
                 if not is_dummy(hypo_ids):
                     cache[:, :] = cache[:, hypo_ids]  # in-place reorder cache by hypo ids
                 layer_past = past_k, past_v = cache[0, :, :prefix_length], cache[1, :, :prefix_length]
-                print("METADATA:", cache_metadata, past_k.shape, past_v.shape)
+                logger.debug(f"Metadata: {cache_metadata}, past_k.shape={past_k.shape}, past_v.shape={past_v.shape}")
                 hidden_states, (new_k, new_v) = self.module.forward(
                     hidden_states, layer_past=layer_past, use_cache=True
                 )
