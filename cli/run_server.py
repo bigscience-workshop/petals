@@ -83,7 +83,7 @@ def main():
                         help='Path of a file with custom nn.modules, wrapped into special decorator')
     parser.add_argument('--identity_path', type=str, required=False, help='Path to identity file to be used in P2P')
 
-    parser.add_argument("--min_balance_quality", type=float, default=0.75,
+    parser.add_argument("--balance_quality", type=float, default=0.75,
                         help="Rebalance the swarm if its throughput is worse than this share of the optimal "
                              "throughput. Use 0.0 to disable rebalancing, values > 1.0 to force rebalancing "
                              "on each check for debugging purposes.")
