@@ -70,6 +70,8 @@ class PrioritizedTaskPool(TaskPoolBase):
         self.batch_receiver, self.batch_sender = mp.Pipe(duplex=False)
         self._oldest_undispatched_timestamp = mp.Value(ctypes.c_double, 1.0)
         self.priority = float("inf"), float("inf")  # (first task priority, first task timestamp)
+
+        self._stop = mp.Event()
         if start:
             self.start()
 
@@ -89,10 +91,14 @@ class PrioritizedTaskPool(TaskPoolBase):
         self._prioritizer_thread.start()
         super().start()
 
-    def shutdown(self, timeout: Optional[float] = None):
-        self.submitted_tasks.put(None)
-        self.terminate()
-        self._prioritizer_thread.join(timeout)
+    def shutdown(self, timeout: float = 3):
+        self.submitted_tasks.put(None)  # Shuts down self._prioritizer_thread
+        self._stop.set()
+
+        self.join(timeout)
+        if self.is_alive():
+            logger.warning(f"{self.__class__.__name__} failed to shut down gracefully, sending SIGTERM")
+            self.terminate()
 
     def submit_task(self, *args: torch.Tensor, priority: float = 0.0) -> MPFuture:
         """Add task to this pool's queue, return Future for its output"""
@@ -154,7 +160,7 @@ class PrioritizedTaskPool(TaskPoolBase):
             task.future.set_exception(exception)
 
     def run(self, *args, **kwargs):
-        mp.Event().wait()
+        self._stop.wait()
 
     @property
     def empty(self):

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import gc
 import multiprocessing as mp
 import random
 import threading
@@ -7,6 +8,7 @@ import time
 from typing import Dict, List, Optional, Sequence, Union
 
 import numpy as np
+import psutil
 import torch
 from hivemind import DHT, MAX_DHT_TIME_DISCREPANCY_SECONDS, BatchTensorDescriptor, get_dht_time
 from hivemind.moe.server.layers import add_custom_models_from_file
@@ -186,6 +188,16 @@ class Server(threading.Thread):
                         break  # Stop serving this set of modules
             finally:
                 self.module_container.shutdown()
+
+            self._clean_memory_and_fds()
+
+    def _clean_memory_and_fds(self):
+        del self.module_container
+        gc.collect()  # In particular, this closes unused file descriptors
+
+        cur_proc = psutil.Process()
+        num_fds = [proc.num_fds() for proc in [cur_proc] + psutil.Process().children(recursive=True)]
+        logger.info(f"Cleanup complete, {sum(num_fds)} open file descriptors left")
 
     def _choose_blocks(self) -> List[int]:
         if self.strict_block_indices is not None:
@@ -417,6 +429,11 @@ class ModuleContainer(threading.Thread):
         if self.checkpoint_saver is not None:
             self.checkpoint_saver.stop.set()
             self.checkpoint_saver.join()
+
+        logger.debug(f"Shutting down pools")
+        for pool in self.runtime.pools:
+            if pool.is_alive():
+                pool.shutdown()
 
         logger.debug(f"Shutting down runtime")
         self.runtime.shutdown()
