@@ -64,6 +64,9 @@ def choose_best_blocks(num_blocks: int, module_infos: List[Optional[RemoteModule
 def should_choose_other_blocks(
     local_peer_id: PeerID, module_infos: List[Optional[RemoteModuleInfo]], min_balance_quality: float
 ) -> bool:
+    if min_balance_quality > 1.0:
+        return True  # Forces rebalancing on each check (may be used for debugging purposes)
+
     spans, throughputs = _compute_spans(module_infos)
     initial_throughput = throughputs.min()
 
