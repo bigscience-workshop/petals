@@ -61,7 +61,7 @@ class Server(threading.Thread):
         expiration: Optional[float] = None,
         prefetch_batches: int = 1,
         sender_threads: int = 1,
-        min_balance_quality: float = 0.0,
+        min_balance_quality: float = 0.75,
         mean_balance_check_period: float = 150,
         mean_block_selection_delay: float = 0.5,
         use_auth_token: Optional[str] = None,
