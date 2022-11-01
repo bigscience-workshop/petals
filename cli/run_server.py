@@ -87,7 +87,7 @@ def main():
                         help="Rebalance the swarm if its throughput is worse than this share of the optimal "
                              "throughput. Use 0.0 to disable rebalancing, values > 1.0 to force rebalancing "
                              "on each check for debugging purposes.")
-    parser.add_argument("--mean_balance_check_period", type=float, default=150,
+    parser.add_argument("--mean_balance_check_period", type=float, default=60,
                         help="Check the swarm's balance every N seconds (and rebalance it if necessary)")
 
     parser.add_argument("--use_auth_token", type=str, default=None, help="auth token for from_pretrained")
