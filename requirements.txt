@@ -4,5 +4,5 @@ accelerate==0.10.0
 huggingface-hub==0.7.0
 transformers==4.21.3
 protobuf>=3.12.2,<4.0.0
-hivemind==1.1.2
+git+https://github.com/learning-at-home/hivemind@94c985d2dc7a79a091e46c755e9f2f4469b164c7
 humanfriendly
