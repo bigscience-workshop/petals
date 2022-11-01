@@ -1,3 +1,5 @@
+import argparse
+
 import configargparse
 from hivemind.proto.runtime_pb2 import CompressionType
 from hivemind.utils.limits import increase_file_limit
@@ -12,7 +14,8 @@ logger = get_logger(__file__)
 
 def main():
     # fmt:off
-    parser = configargparse.ArgParser(default_config_files=["config.yml"])
+    parser = configargparse.ArgParser(default_config_files=["config.yml"],
+                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add('-c', '--config', required=False, is_config_file=True, help='config file path')
 
     group = parser.add_mutually_exclusive_group(required=True)
@@ -81,10 +84,9 @@ def main():
     parser.add_argument('--identity_path', type=str, required=False, help='Path to identity file to be used in P2P')
 
     parser.add_argument("--min_balance_quality", type=float, default=0.75,
-                        help="Rebalance the swarm if its throughput is worse than "
-                             "this share of the optimal throughput. Default: 0.75 (means 75%). "
-                             "Use 0.0 to disable rebalancing, values > 1.0 to force rebalancing on each check "
-                             "for debugging purposes.")
+                        help="Rebalance the swarm if its throughput is worse than this share of the optimal "
+                             "throughput. Use 0.0 to disable rebalancing, values > 1.0 to force rebalancing "
+                             "on each check for debugging purposes.")
     parser.add_argument("--mean_balance_check_period", type=float, default=150,
                         help="Check the swarm's balance every N seconds (and rebalance it if necessary)")
 
