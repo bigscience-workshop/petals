@@ -32,7 +32,7 @@ COPY . petals/
 
 WORKDIR /home
 RUN git clone --depth 1 --branch 1.1.2 https://github.com/learning-at-home/hivemind.git && \
-    pytest hivemind/tests/test_compression.py && rm -rf hivemind
+    pytest -s hivemind/tests/test_compression.py && rm -rf hivemind
 
 WORKDIR /home/petals/
 
