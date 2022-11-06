@@ -8,7 +8,7 @@ from src.utils.generation_algorithms import (
     DecodingAlgorithm,
     GreedyAlgorithm,
     NucleusAlgorithm,
-    TopKAlgorithm
+    TopKAlgorithm,
 )
 from src.utils.generation_constraints import ABCBloomConstraint, EosConstraint
 
