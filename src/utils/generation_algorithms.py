@@ -77,23 +77,27 @@ class NucleusAlgorithm(SamplingAlgorithm):
 class BeamSearchAlgorithm(DecodingAlgorithm):
     def __init__(self, num_beams: int, batch_size: int) -> None:
         self.num_beams = num_beams
+        self._cur_num_beams = 1
         self.batch_size = batch_size
 
-        self._logits = torch.zeros((self.num_beams * self.batch_size))
+        self._logits = torch.zeros((self.batch_size, self._cur_num_beams,))
     
     def __call__(self, logits: torch.Tensor) -> Tuple[TokenIds, HypoIds]:
         sorted_logits, sorted_indices = torch.sort(logits, descending=True, dim=-1)
         probs = torch.softmax(sorted_logits, -1)
-        # self.batch_zise == 1
+        
         new_logits = torch.cat([self._logits] * self.num_beams, dim=-1)
-        for beam_idx in range(self.num_beams):
-            for token_idx in range(self.num_beams):
-                new_logits[beam_idx * self.num_beam + token_idx] += probs[beam_idx, token_idx]
+        for batch_idx in range(self.batch_size):
+            for cur_beam_idx in range(self._cur_num_beams):
+                for new_beam_idx in range(self.num_beams):
+                    logit = probs[cur_beam_idx * self.batch_size + batch_idx, new_beam_idx]
+                    new_logits[batch_idx, cur_beam_idx * self.num_beams + new_beam_idx] += logit
+        self._cur_num_beams = self.num_beams
+
         new_sorted_logits, new_sorted_indices = torch.sort(new_logits, descending=True, dim=-1)
-        self._logits = new_sorted_logits[:self.num_beams]
-        result_tokens = []
-        result_hypos = []
-        for beam_idx in range(self.num_beams):
-            result_tokens.append(sorted_indices[new_sorted_indices[beam_idx] % self.num_beams])
-            result_hypos.append(new_sorted_indices[beam_idx] // self.num_beams)
-        return torch.stack(result_tokens, dim=1), torch.stack(result_hypos, dim=1)
+        new_sorted_indices = new_sorted_indices[:, :self.num_beams].T.flatten()
+        self._logits = new_sorted_logits[:, :self.num_beams]
+        result_tokens = sorted_indices[torch.arange(self.num_beams * self.batch_size), new_sorted_indices]
+        result_hypos = torch.div(new_sorted_indices, self.num_beams, rounding_mode='floor')
+
+        return result_tokens.unsqueeze(-1), result_hypos
