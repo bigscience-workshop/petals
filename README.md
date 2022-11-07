@@ -155,7 +155,7 @@ loss.backward()
 print("Gradients (norm):", model.transformer.word_embeddings.weight.grad.norm())
 ```
 
-Of course, this is a simplified code snippet. For actual training, see our example on "deep" prompt-tuning here.
+Of course, this is a simplified code snippet. For actual training, see the example notebooks with "deep" prompt-tuning:
 - Simple text semantic classification: [examples/prompt-tuning-sst2.ipynb](./examples/prompt-tuning-sst2.ipynb).
 - A personified chatbot: [examples/prompt-tuning-personachat.ipynb](./examples/prompt-tuning-personachat.ipynb).
 
