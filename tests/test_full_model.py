@@ -98,7 +98,8 @@ def test_beam_search_generation(max_new_tokens=4, num_beams=2):
     model = DistributedBloomForCausalLM.from_pretrained(
         MODEL_NAME, initial_peers=INITIAL_PEERS, low_cpu_mem_usage=True, torch_dtype=torch.float32
     )
-    inputs = tokenizer("A cat sat on a mat", return_tensors="pt")["input_ids"]
+    text = "A cat sat on a mat"
+    inputs = tokenizer(text, return_tensors="pt")["input_ids"]
     remote_outputs = model.generate(
         inputs,
         max_new_tokens=max_new_tokens,
@@ -110,9 +111,8 @@ def test_beam_search_generation(max_new_tokens=4, num_beams=2):
         device=inputs.device,
         length_penalty=0,
         do_early_stopping=False,
-        num_beam_hyps_to_keep=2,
     )
-    hf_inputs = tokenizer(["A cat sat on a mat"] * 2, return_tensors="pt")["input_ids"]
+    hf_inputs = tokenizer([text] * 2, return_tensors="pt")["input_ids"]
     hf_outputs = BloomForCausalLM.beam_search(
         model, input_ids=hf_inputs, max_length=inputs.size(1) + max_new_tokens, beam_scorer=beam_scorer
     )

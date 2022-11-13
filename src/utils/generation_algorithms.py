@@ -1,5 +1,6 @@
 from abc import ABC
 from typing import Tuple
+from heapq import heappush, heappop
 
 import torch
 
@@ -81,32 +82,42 @@ class BeamSearchAlgorithm(DecodingAlgorithm):
         self.batch_size = batch_size
 
         self._beams = []
-
-    def __call__(self, logits: torch.Tensor) -> Tuple[TokenIds, HypoIds]:
+    
+    def __call__(self, logits: torch.Tensor):
         sorted_logits, sorted_indices = torch.sort(logits, descending=True, dim=-1)
         probs = torch.log_softmax(sorted_logits, -1)
-
+        
+        self._beams = [(beam[0], beam[1] % self.num_beams) for beam in self._beams]
         if len(self._beams) > 0:
             new_beams = []
             for batch_idx in range(self.batch_size):
                 for beam_idx in range(self.num_beams):
-                    new_beam = self._beams[beam_idx]
+                    probs_idx = batch_idx + beam_idx * self.batch_size
+                    new_beam = self._beams[probs_idx]
                     for hypo_idx in range(self.num_beams):
-                        probs_idx = batch_idx + beam_idx * self.batch_size
-                        new_beams.append((beam_idx, new_beam[1] + probs[probs_idx, hypo_idx].item()))
-            new_beams = sorted(new_beams, key=lambda x: x[1], reverse=True)
-            self._beams = new_beams[: self.batch_size * self.num_beams]
+                        heappush(
+                            new_beams,
+                            (
+                                new_beam[0] + probs[probs_idx, hypo_idx].item(),
+                                beam_idx * self.num_beams + hypo_idx
+                            )
+                        )
+                        if len(new_beams) > self.batch_size * self.num_beams:
+                            heappop(new_beams)
+            self._beams = new_beams
         else:
             for batch_idx in range(self.batch_size):
                 for beam_idx in range(self.num_beams):
-                    self._beams.append((beam_idx, probs[batch_idx, beam_idx].item()))
-
+                    self._beams.append((probs[batch_idx, beam_idx].item(), beam_idx))
+                    
         return_hypos = []
         return_tokens = []
         for batch_idx in range(self.batch_size):
             for beam_idx in range(self.num_beams):
-                hypo_idx = batch_idx + beam_idx * self.batch_size
-                return_hypos.append(self._beams[hypo_idx][0])
-                return_tokens.append([sorted_indices[batch_idx, beam_idx].item()])
+                beam = self._beams[batch_idx + beam_idx * self.batch_size]
+                hypo_idx = beam[1] // self.num_beams
+                token_idx = beam[1] % self.num_beams
+                return_hypos.append(hypo_idx)
+                return_tokens.append([sorted_indices[hypo_idx, token_idx].item()])
 
         return torch.tensor(return_tokens), torch.tensor(return_hypos)
