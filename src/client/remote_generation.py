@@ -168,11 +168,10 @@ class RemoteGenerationMixin:
                     break
 
         outputs = torch.cat(outputs, dim=-1)
-        
+
         if num_beams > 1:
             pre_return_idx = [
-                torch.arange(idx, num_return_sequences * batch_size, batch_size)
-                for idx in range(batch_size)
+                torch.arange(idx, num_return_sequences * batch_size, batch_size) for idx in range(batch_size)
             ]
             return_idx = torch.cat(pre_return_idx, dim=0)
             outputs = outputs[return_idx]
