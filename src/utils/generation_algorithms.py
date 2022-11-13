@@ -1,6 +1,5 @@
 from abc import ABC
 from typing import Tuple
-from heapq import heappush, heappop
 
 import torch
 
