@@ -140,11 +140,13 @@ class RemoteGenerationMixin:
                         :, seq_idx : seq_idx + 1
                     ] + pad_token_mask * last_token_id
 
-                if torch.all(last_token_id == eos_token_id) or len(outputs) >= max_new_tokens:
-                    break
+                if num_beams > 1:
+                    outputs[-1] = outputs[-1][hypo_ids]
 
                 outputs.append(last_token_id)
                 seq_idx += 1
+                if torch.all(last_token_id == eos_token_id) or len(outputs) > max_new_tokens:
+                    break
 
         return torch.cat(outputs, dim=-1)
 
