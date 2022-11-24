@@ -69,7 +69,7 @@ def should_choose_other_blocks(
 
     spans, throughputs = _compute_spans(module_infos)
     initial_throughput = throughputs.min()
-    eps = 1e-6
+    eps = 1e-3
 
     assert local_peer_id in spans, "Span served by this server is not present in the DHT"
     local_span = spans[local_peer_id]
