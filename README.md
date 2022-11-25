@@ -17,7 +17,9 @@
 - Beyond traditional language model APIs — you can employ any fine-tuning and sampling methods by executing custom paths through the model or accessing its hidden states. This allows for the comforts of an API with the flexibility of PyTorch.
 
 <p align="center">
-    <b><a href="https://arxiv.org/pdf/2209.01188.pdf">[Read paper]</a></b> | <b><a href="https://petals.ml/">[View website]</a></b>
+    📜 &nbsp;<b><a href="https://arxiv.org/pdf/2209.01188.pdf">Read paper</a></b>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    🖥️ &nbsp;<b><a href="https://petals.ml/">View website</a></b>
 </p>
 
 ## How it works?
@@ -55,6 +57,10 @@ for input_ids, labels in data_loader:
 Be careful: some features may not work, interfaces may change, and we have no detailed docs yet (see [roadmap](https://github.com/bigscience-workshop/petals/issues/12)).
 
 A stable version of the code and a public swarm open to everyone will be released in November 2022. You can [subscribe](https://petals.ml/) to be emailed when it happens or fill in [this form](https://forms.gle/TV3wtRPeHewjZ1vH9) to help the public launch by donating GPU time. In the meantime, you can launch and use your own private swarm.
+
+### 📋 Terms of use
+
+Before using Petals to run a language model, please make sure that you are familiar with its terms of use, risks, and limitations. In case of BLOOM, they are described in its [model card](https://huggingface.co/bigscience/bloom) and [license](https://huggingface.co/spaces/bigscience/license).
 
 ### 🔒 Privacy and security
 
@@ -95,7 +101,7 @@ For macOS, you can *probably* run everything normally if you manage to install d
 
 ## 🚀 Getting Started
 
-This is a toy example running on a local machine without GPU and with a tiny model. 
+This is a toy example running on a local machine without GPU and with a tiny model.
 For a detailed instruction with larger models, see ["Launch your own swarm"](https://github.com/bigscience-workshop/petals/wiki/Launch-your-own-swarm).
 
 First, run a couple of servers, each in a separate shell. To launch your first server, run:
@@ -127,7 +133,7 @@ You can assign `--initial_peers` to one or multiple addresses of other servers, 
 The only requirement is that at least one of them is running at the time.
 
 Before you proceed, __please run 3 servers__ for a total of 24 blocks (3x8). If you are running a different model,
-make sure your servers have enough total `--num_blocks` to cover that model. 
+make sure your servers have enough total `--num_blocks` to cover that model.
 
 Once your have enough servers, you can use them to train and/or inference the model:
 ```python
@@ -156,8 +162,8 @@ print("Gradients (norm):", model.transformer.word_embeddings.weight.grad.norm())
 ```
 
 Of course, this is a simplified code snippet. For actual training, see the example notebooks with "deep" prompt-tuning:
-- Simple text semantic classification: [examples/prompt-tuning-sst2.ipynb](./examples/prompt-tuning-sst2.ipynb).
-- A personified chatbot: [examples/prompt-tuning-personachat.ipynb](./examples/prompt-tuning-personachat.ipynb).
+- Simple text semantic classification: [examples/prompt-tuning-sst2.ipynb](./examples/prompt-tuning-sst2.ipynb)
+- A personified chatbot: [examples/prompt-tuning-personachat.ipynb](./examples/prompt-tuning-personachat.ipynb)
 
 Here's a [more advanced tutorial](https://github.com/bigscience-workshop/petals/wiki/Launch-your-own-swarm) that covers 8-bit quantization and best practices for running Petals.
 
