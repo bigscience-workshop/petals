@@ -24,7 +24,15 @@ class RemoteSequenceManager:
     In future, this class is intended to maintain latency statistics, ban non-responsive peers, etc.
     """
 
-    def __init__(self, dht: DHT, block_uids: Sequence[ModuleUID], p2p: P2P, max_retries: int = 3):
+    def __init__(
+        self,
+        dht: DHT,
+        block_uids: Sequence[ModuleUID],
+        p2p: P2P,
+        max_retries: int = 3,
+        timeout: float = 5,
+        min_backoff: float = 1,
+    ):
         assert len(block_uids) > 0, "Sequences must contain at least one block"
         self.dht, self.p2p = dht, p2p
         self.block_uids: List[ModuleUID] = list(block_uids)
@@ -33,6 +41,7 @@ class RemoteSequenceManager:
         self.spans_containing_block: Tuple[List[RemoteSpanInfo], ...] = tuple([] for _ in range(len(self.block_uids)))
         self.last_update_time: DHTExpiration = -float("inf")
         self.max_retries = max_retries
+        self.timeout, self.min_backoff = timeout, min_backoff
         self._rpc_info = None
         self.lock_changes = threading.Lock()
         self.update_()

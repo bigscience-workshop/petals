@@ -24,7 +24,6 @@ async def sequential_forward(
     sequence_manager: RemoteSequenceManager,
     start_index: int = 0,
     end_index: Optional[int] = None,
-    min_backoff: float = 1.0,
 ) -> Tuple[torch.Tensor, Sequence[torch.Tensor], Sequence[RemoteSpanInfo]]:
     """
     Constructs a routing path from <start_index> to <end_index>.
@@ -53,7 +52,9 @@ async def sequential_forward(
                 stub = TransformerConnectionHandler.get_stub(sequence_manager.p2p, span.peer_id)
                 inputs_and_prompts = [inputs, prompts[span.start : span.end]]
 
-                (outputs,) = await run_remote_forward(span_uids, stub, sequence_manager.rpc_info, *inputs_and_prompts)
+                (outputs,) = await run_remote_forward(
+                    span_uids, stub, sequence_manager.rpc_info, *inputs_and_prompts, timeout=sequence_manager.timeout
+                )
 
                 assert isinstance(outputs, torch.Tensor)
                 assert outputs.shape == inputs.shape, f"Expected output {inputs.shape}, got {outputs.shape}"
@@ -66,7 +67,7 @@ async def sequential_forward(
                 break
             except Exception as e:
                 logging.warning(f"Caught {e} when running forward for chain {span.start}-{span.end}", exc_info=True)
-                await asyncio.sleep(min_backoff * 2**attempt_no)
+                await asyncio.sleep(sequence_manager.min_backoff * 2**attempt_no)
 
                 backup_sequences = sequence_manager.make_sequence(span.start)
                 assert backup_sequences[0].start == span.start
@@ -81,7 +82,6 @@ async def sequential_backward(
     prompts: torch.Tensor,
     forward_sequences: List[RemoteSpanInfo],
     sequence_manager: RemoteSequenceManager,
-    min_backoff: float = 1.0,
 ) -> Sequence[torch.Tensor]:
     """
     Performs chained backward for each forward subsequence.
@@ -98,14 +98,20 @@ async def sequential_backward(
             try:
                 stub = TransformerConnectionHandler.get_stub(sequence_manager.p2p, span.peer_id)
                 grad_outputs, *span_grad_prompts = await run_remote_backward(
-                    span_uids, stub, sequence_manager.rpc_info, inputs, grad_outputs, prompts[span.start : span.end]
+                    span_uids,
+                    stub,
+                    sequence_manager.rpc_info,
+                    inputs,
+                    grad_outputs,
+                    prompts[span.start : span.end],
+                    timeout=sequence_manager.timeout,
                 )
                 grad_outputs = [grad_outputs]
                 grad_prompts_reversed.extend(span_grad_prompts)
                 break
             except Exception as e:
                 logging.warning(f"Caught {e} when running backward for chain {span.start}-{span.end}", exc_info=True)
-                await asyncio.sleep(min_backoff * 2**attempt_no)
+                await asyncio.sleep(sequence_manager.min_backoff * 2**attempt_no)
 
                 _, backup_intermediate_inputs, backup_forward_sequences = await sequential_forward(
                     inputs, prompts, sequence_manager, start_index=span.start, end_index=span.end
