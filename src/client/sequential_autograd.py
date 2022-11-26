@@ -48,7 +48,7 @@ async def sequential_forward(
     outputs = inputs
 
     block_idx = start_index
-    while block_idx < len(sequence_manager):
+    while block_idx < end_index:
         for attempt_no in itertools.count():
             logger.debug(f"Forward: block {block_idx}, attempt {attempt_no}")
             try:
