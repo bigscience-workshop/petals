@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import itertools
-import logging
 import time
 from typing import AsyncIterator, List, Optional
 
@@ -192,13 +191,12 @@ class InferenceSession:
             session.__enter__()
         return server_sessions
 
-    def _exit_server_sessions(self, server_sessions: List[_ServerInferenceSession], *, verbose: bool) -> None:
-        exc_loglevel = logging.WARNING if verbose else logging.DEBUG
+    def _exit_server_sessions(self, server_sessions: List[_ServerInferenceSession]) -> None:
         for session in reversed(server_sessions):
             try:
                 session.__exit__(None, None, None)
             except Exception:
-                logger.log(exc_loglevel, "Caught exception while closing connection to server:", exc_info=True)
+                logger.debug("Caught exception while closing connection to server:", exc_info=True)
 
     def __enter__(self):
         assert not self._closed and not self._chosen_spans
@@ -223,7 +221,7 @@ class InferenceSession:
                 try:
                     if not self._chosen_spans or not self._server_sessions or attempt_no >= 1:
                         if attempt_no >= 1:
-                            self._exit_server_sessions(self._server_sessions[server_idx:], verbose=False)
+                            self._exit_server_sessions(self._server_sessions[server_idx:])
                             self._server_sessions[server_idx:] = []
                             self._chosen_spans[server_idx:] = []
                             self._server_inputs[server_idx + 1 :] = []
@@ -272,7 +270,7 @@ class InferenceSession:
         """Finish a given inference session, close the underlying connection"""
         if not self._closed:
             self._server_inputs.clear()
-            self._exit_server_sessions(self._server_sessions, verbose=True)
+            self._exit_server_sessions(self._server_sessions)
             self._server_sessions.clear()
             self._chosen_spans.clear()
             self._closed = True
