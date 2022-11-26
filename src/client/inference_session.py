@@ -181,8 +181,11 @@ class InferenceSession:
             span_uids = CHAIN_DELIMITER.join(self._sequence_manager.block_uids[span.start : span.end])
             session = RemoteExpertWorker.run_coroutine(
                 _ServerInferenceSession.create(
-                    stub, span_uids, rpc_info=self._sequence_manager.rpc_info, timeout=self._sequence_manager.timeout,
-                    **self._metadata
+                    stub,
+                    span_uids,
+                    rpc_info=self._sequence_manager.rpc_info,
+                    timeout=self._sequence_manager.timeout,
+                    **self._metadata,
                 )
             )
             server_sessions.append(session)
@@ -223,7 +226,7 @@ class InferenceSession:
                             self._exit_server_sessions(self._server_sessions[server_idx:], verbose=False)
                             self._server_sessions[server_idx:] = []
                             self._chosen_spans[server_idx:] = []
-                            self._server_inputs[server_idx + 1:] = []
+                            self._server_inputs[server_idx + 1 :] = []
 
                             self._sequence_manager.update_()
                             recovery_mode = True
