@@ -33,7 +33,7 @@ def test_remote_block_exact_match(atol_forward=1e-5, atol_inference=1e-3):
                 outputs_inference.append(sess.step(inputs[:, i : i + 1, :]))
 
             # test that max length is respected
-            with pytest.raises(P2PHandlerError) as exc_info:
+            with pytest.raises(ValueError, match=r"Maximum length exceeded") as exc_info:
                 sess.step(inputs[:, -1:, :])
             assert "Maximum length exceeded" in repr(exc_info.value)
 
