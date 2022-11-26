@@ -81,7 +81,7 @@ async def sequential_forward(
                 block_idx = span.end
                 break
             except Exception as e:
-                delay = sequence_manager.min_backoff * 2**attempt_no
+                delay = sequence_manager.get_retry_delay(attempt_no)
                 logger.warning(
                     f"Caught exception when running forward from block {block_idx} "
                     f"(retry in {delay:.0f} sec): {repr(e)}"
@@ -141,7 +141,7 @@ async def sequential_backward(
                 grad_prompts_reversed.extend(span_grad_prompts)
                 break
             except Exception as e:
-                delay = sequence_manager.min_backoff * 2**attempt_no
+                delay = sequence_manager.get_retry_delay(attempt_no)
                 logger.warning(
                     f"Caught exception when running backward between blocks {span.start}-{span.end} "
                     f"(retry in {delay:.0f} sec): {repr(e)}"
