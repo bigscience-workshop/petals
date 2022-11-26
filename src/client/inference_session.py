@@ -14,7 +14,6 @@ from hivemind import (
     get_logger,
     nested_flatten,
     serialize_torch_tensor,
-    use_hivemind_log_handler,
 )
 from hivemind.moe.client.remote_expert_worker import RemoteExpertWorker
 from hivemind.p2p import StubBase
@@ -26,7 +25,6 @@ from src.data_structures import CHAIN_DELIMITER, ModuleUID, RemoteSpanInfo, RPCI
 from src.server.handler import TransformerConnectionHandler
 from src.utils.misc import DUMMY, is_dummy
 
-use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
 
 
@@ -219,18 +217,18 @@ class InferenceSession:
             for attempt_no in itertools.count():
                 logger.debug(f"Inference: block {block_idx}, attempt {attempt_no}")
                 try:
+                    if attempt_no >= 1:
+                        self._exit_server_sessions(self._server_sessions[server_idx:])
+                        self._server_sessions[server_idx:] = []
+                        self._chosen_spans[server_idx:] = []
+                        self._server_inputs[server_idx + 1 :] = []
+
+                        self._sequence_manager.update_()
+                        recovery_mode = True
+                        if attempt_no == 1:
+                            logger.info("Entering recovery mode, remote attention caches will be regenerated")
+
                     if not self._chosen_spans or not self._server_sessions or attempt_no >= 1:
-                        if attempt_no >= 1:
-                            self._exit_server_sessions(self._server_sessions[server_idx:])
-                            self._server_sessions[server_idx:] = []
-                            self._chosen_spans[server_idx:] = []
-                            self._server_inputs[server_idx + 1 :] = []
-
-                            self._sequence_manager.update_()
-                            recovery_mode = True
-                            if attempt_no == 1:
-                                logger.info("Entering recovery mode, remote attention caches will be regenerated")
-
                         backup_spans = self._sequence_manager.make_sequence(block_idx)
                         self._chosen_spans.extend(backup_spans)
                         self._server_sessions.extend(self._enter_server_sessions(backup_spans))
@@ -249,8 +247,8 @@ class InferenceSession:
                         inputs = self._server_inputs[server_idx]  # Take full inputs including prefix
                     outputs = session.step(inputs, prompts[span.start : span.end], **kwargs)
                     assert outputs.shape == inputs.shape, f"expected {inputs.shape}, got {outputs.shape}"
-                    inputs = outputs
 
+                    inputs = outputs
                     server_idx += 1
                     block_idx = span.end
                     break
