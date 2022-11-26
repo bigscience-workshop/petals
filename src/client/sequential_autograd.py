@@ -56,7 +56,9 @@ async def sequential_forward(
                     sequence_manager.update_()
                 if not sequences or attempt_no >= 1:
                     sequences = deque(sequence_manager.make_sequence(block_idx, end_index))
-                    logger.debug(f"Found path from block {block_idx} via {len(sequences)} servers")
+                    # make_sequence() could return a longer sequence
+                    sequences[-1].end = min(sequences[-1].end, end_index)
+                    logger.debug(f"Found path from block {block_idx} to {end_index} via {len(sequences)} servers")
 
                 span = sequences.popleft()
 
