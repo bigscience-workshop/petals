@@ -123,7 +123,6 @@ async def sequential_backward(
                     forward_sequences.extend(backup_sequences)
                     inputs = intermediate_inputs.pop()
                     span = forward_sequences.pop()
-                    break
 
                 span_uids = CHAIN_DELIMITER.join(sequence_manager.block_uids[span.start : span.end])
                 stub = TransformerConnectionHandler.get_stub(sequence_manager.p2p, span.peer_id)
