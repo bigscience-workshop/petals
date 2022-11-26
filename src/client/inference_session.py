@@ -159,7 +159,7 @@ class _ServerInferenceSession:
         self.close()
 
 
-class RemoteSequentialInferenceSession:
+class InferenceSession:
     """
     An interface to a multi-step *inference* session for a sequence of remote transformer blocks
     """
