@@ -1,5 +1,5 @@
 # this code is in active development, interfaces may change
-from typing import Optional, Tuple
+from typing import Optional, List
 
 import hivemind
 import torch
@@ -15,6 +15,7 @@ from src.bloom.model import (
     BloomPreTrainedModel,
     LMHead,
 )
+from src.constants import PUBLIC_INITIAL_PEERS
 from src.client.remote_generation import RemoteGenerationMixin
 from src.client.remote_sequential import RemoteSequential
 from src.utils.misc import DUMMY
@@ -29,7 +30,7 @@ class DistributedBloomConfig(BloomConfig):
     To create a distributed model, one must provide dht_prefix and either initial_peers or dht.
     """
 
-    initial_peers: Tuple[str, ...] = ()  # a list of initial peers for hivemind DHT
+    initial_peers: List[str] = PUBLIC_INITIAL_PEERS  # a list of initial peers for hivemind DHT
     dht_prefix: str  # a prefix for all dht keys that correspond to this model (usually equal to model name)
     dht: Optional[hivemind.DHT] = None  # a running DHT instance, e.g. when using the same DHT for multiple models
     chunk_size_for_efficient_fp16_on_cpu: int = 10000  # a chunk size for a LM head for efficient half-precision on CPU

@@ -6,6 +6,7 @@ from hivemind.utils.limits import increase_file_limit
 from hivemind.utils.logging import get_logger, use_hivemind_log_handler
 from humanfriendly import parse_size
 
+from src.constants import PUBLIC_INITIAL_PEERS
 from src.server.server import Server
 
 use_hivemind_log_handler("in_root_logger")
@@ -27,10 +28,10 @@ def main():
     parser.add_argument('--block_indices', type=str, default=None, help="Specific block indices to serve")
     parser.add_argument('--prefix', type=str, default=None, help="Announce all blocks with this prefix. By default,"
                                                                  "use the same name as in the converted model.")
-    parser.add_argument('--host_maddrs', nargs='+', default=['/ip4/0.0.0.0/tcp/0'], required=False,
-                        help='Multiaddrs to listen for external connections from other p2p instances; default: all IPv4 and TCP: /ip4/0.0.0.0/tcp/0')
+    parser.add_argument('--host_maddrs', nargs='+', default=['/ip4/0.0.0.0/tcp/0', '/ip6/::/tcp/0'], required=False,
+                        help='Multiaddrs to listen for external connections from other peers. Default: all IPv4/IPv6 interfaces, a random free TCP port')
     parser.add_argument('--announce_maddrs', nargs='+', default=None, required=False,
-                        help='Visible multiaddrs the host announces for external connections from other p2p instances')
+                        help='Visible multiaddrs the host announces for external connections from other peers')
 
     parser.add_argument('--compression', type=str, default='NONE', required=False, help='Tensor compression communication')
 
@@ -71,8 +72,13 @@ def main():
                         help='Server will report blocks to DHT once in this many seconds')
     parser.add_argument('--expiration', type=float, required=False, default=None,
                         help='DHT entries will expire after this many seconds')
-    parser.add_argument('--initial_peers', type=str, nargs='*', required=False, default=[],
-                        help='multiaddrs of one or more active DHT peers (if you want to join an existing DHT)')
+
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('--initial_peers', type=str, nargs='*', required=False, default=PUBLIC_INITIAL_PEERS,
+                       help='Multiaddrs of one or more DHT peers from the target swarm. Default: connects to the public swarm')
+    group.add_argument('--new_swarm', action='store_true',
+                       help='Start a new private swarm (i.e., do not connect to any initial peers)')
+
     parser.add_argument('--increase_file_limit', action='store_true',
                         help='On *nix, this will increase the max number of processes '
                              'a server can spawn before hitting "Too many open files"; Use at your own risk.')
@@ -111,6 +117,9 @@ def main():
     assert isinstance(
         attn_cache_size, (int, type(None))
     ), "unrecognized value for attention_cache_bytes, examples: 1.5GB or 1500MB or 1572864000 (bytes)"
+
+    if args.pop("new_swarm"):
+        args.initial_peers = []
 
     use_auth_token = args.pop("use_auth_token")
     args["use_auth_token"] = True if use_auth_token in ("True", "true", "") else use_auth_token

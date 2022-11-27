@@ -39,6 +39,8 @@ class Server(threading.Thread):
 
     def __init__(
         self,
+        *,
+        initial_peers: List[str],
         prefix: Optional[str],
         converted_model_name_or_path: str,
         throughput: Union[float, str],
@@ -53,7 +55,6 @@ class Server(threading.Thread):
         cache_dir: Optional[str] = None,
         attn_cache_size: Optional[int] = None,
         device: Optional[Union[str, torch.device]] = None,
-        initial_peers: Sequence[str] = (),
         compression=CompressionType.NONE,
         stats_report_interval: Optional[int] = None,
         custom_module_path=None,
@@ -66,7 +67,6 @@ class Server(threading.Thread):
         mean_block_selection_delay: float = 0.5,
         use_auth_token: Optional[str] = None,
         load_in_8bit: bool = False,
-        *,
         start: bool,
         **kwargs,
     ):
