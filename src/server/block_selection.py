@@ -106,6 +106,9 @@ def should_choose_other_blocks(
             throughputs[span.start : span.end] += span.throughput
 
     new_throughput = throughputs.min()
+    if new_throughput < initial_throughput or new_throughput < eps:
+        return False
+
     actual_quality = initial_throughput / new_throughput
     logger.info(f"Swarm balance quality: {actual_quality * 100:.1f}%")
 
