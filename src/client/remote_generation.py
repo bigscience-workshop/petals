@@ -1,7 +1,7 @@
 from typing import List, Optional
 
 import torch
-import torch.nn.functional as F
+from hivemind import get_logger
 
 from src.utils.generation_algorithms import (
     BeamSearchAlgorithm,
@@ -11,6 +11,8 @@ from src.utils.generation_algorithms import (
     TopKAlgorithm,
 )
 from src.utils.generation_constraints import ABCBloomConstraint, EosConstraint
+
+logger = get_logger(__file__)
 
 
 class RemoteGenerationMixin:
@@ -102,6 +104,11 @@ class RemoteGenerationMixin:
 
         if num_beams > 1:
             inputs = torch.cat([inputs] * num_beams, dim=0)
+            if batch_size > 1:
+                # TODO: resolve padding problem
+                logger.warning(
+                    f"You set batch_size {batch_size} within beam search generation. Be carefull, results on sequences with different length may be padded wrong way"
+                )
 
         if num_return_sequences is None:
             num_return_sequences = 1
@@ -129,7 +136,6 @@ class RemoteGenerationMixin:
             last_token_id = None
             seq_idx = outputs[0].size(1)
             hypo_ids = torch.arange(outputs[0].size(0))
-            hypo_ids_map = dict()
             while True:
                 embs = self.transformer.word_embeddings(outputs[-1])
                 intermediate_prompts = None
@@ -152,15 +158,10 @@ class RemoteGenerationMixin:
                         :, seq_idx : seq_idx + 1
                     ] + pad_token_mask * last_token_id
 
+                # TODO: refactor outputs
                 if num_beams > 1:
-                    outputs[-1] = outputs[-1][hypo_ids]
-
-                if num_beams > 1:
-                    hypo_ids_map[len(outputs)] = hypo_ids
-                    cur_hypo_ids = torch.tensor(hypo_ids)
                     for i in range(len(outputs), 1, -1):
-                        outputs[i - 1] = outputs[i - 1][cur_hypo_ids]
-                        cur_hypo_ids = hypo_ids[hypo_ids_map[i]]
+                        outputs[i - 1] = outputs[i - 1][hypo_ids]
 
                 outputs.append(last_token_id)
                 seq_idx += 1
