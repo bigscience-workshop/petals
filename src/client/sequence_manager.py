@@ -160,3 +160,8 @@ class RemoteSequenceManager:
                     else:
                         logger.warning(f"Tried to call rpc_info, but caught {repr(e)}", exc_info=True)
         return self._rpc_info
+
+    def get_retry_delay(self, attempt_no: int) -> float:
+        if attempt_no == 0:
+            return 0
+        return self.min_backoff * 2 ** (attempt_no - 1)
