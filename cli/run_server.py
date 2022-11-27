@@ -119,7 +119,7 @@ def main():
     ), "unrecognized value for attention_cache_bytes, examples: 1.5GB or 1500MB or 1572864000 (bytes)"
 
     if args.pop("new_swarm"):
-        args.initial_peers = []
+        args["initial_peers"] = []
 
     use_auth_token = args.pop("use_auth_token")
     args["use_auth_token"] = True if use_auth_token in ("True", "true", "") else use_auth_token
