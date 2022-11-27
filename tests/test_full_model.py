@@ -116,4 +116,4 @@ def test_beam_search_generation(max_new_tokens=4, num_beams=2):
     hf_outputs = BloomForCausalLM.beam_search(
         model, input_ids=hf_inputs, max_length=inputs.size(1) + max_new_tokens, beam_scorer=beam_scorer
     )
-    assert torch.allclose(remote_outputs, hf_outputs), "Beam search are not identical to HF"
+    assert torch.allclose(remote_outputs, hf_outputs), "Beam search results are not identical to HF"
