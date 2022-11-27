@@ -1,5 +1,5 @@
 # this code is in active development, interfaces may change
-from typing import Optional, List
+from typing import List, Optional
 
 import hivemind
 import torch
