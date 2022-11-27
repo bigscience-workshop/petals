@@ -61,6 +61,7 @@ class RemoteGenerationMixin:
         :param decoding_algorithm: The decoding algorithm to use.
         :param provided_constraints: A list of constraints to use.
         :param model_kwargs: Additional arguments to pass to the model.
+        :param num_return_sequences: How many hypothesis from the beam will be in output.
         """
 
         assert (
