@@ -3,6 +3,7 @@ import torch
 import transformers
 from hivemind import get_logger, use_hivemind_log_handler
 from test_utils import *
+from transformers.generation_utils import BeamSearchScorer
 
 from src.bloom.model import BloomForCausalLM
 from src.client.remote_model import DistributedBloomForCausalLM
@@ -89,3 +90,30 @@ def test_greedy_generation(max_new_tokens=4):
     assert torch.allclose(
         remote_outputs_batch, hf_outputs_batch
     ), "Greedy search are not identical to HF in multibatch mode"
+
+
+@pytest.mark.forked
+def test_beam_search_generation(max_new_tokens=4, num_beams=2):
+    tokenizer = transformers.BloomTokenizerFast.from_pretrained(MODEL_NAME)
+    model = DistributedBloomForCausalLM.from_pretrained(
+        MODEL_NAME, initial_peers=INITIAL_PEERS, low_cpu_mem_usage=True, torch_dtype=torch.float32
+    )
+    text = "A cat sat on a mat"
+    inputs = tokenizer(text, return_tensors="pt")["input_ids"]
+    remote_outputs = model.generate(
+        inputs,
+        max_new_tokens=max_new_tokens,
+        num_beams=num_beams,
+    )
+    beam_scorer = BeamSearchScorer(
+        batch_size=inputs.size(0),
+        num_beams=num_beams,
+        device=inputs.device,
+        length_penalty=0,
+        do_early_stopping=False,
+    )
+    hf_inputs = tokenizer([text] * 2, return_tensors="pt")["input_ids"]
+    hf_outputs = BloomForCausalLM.beam_search(
+        model, input_ids=hf_inputs, max_length=inputs.size(1) + max_new_tokens, beam_scorer=beam_scorer
+    )
+    assert torch.allclose(remote_outputs, hf_outputs), "Beam search results are not identical to HF"
