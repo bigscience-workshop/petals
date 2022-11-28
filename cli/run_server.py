@@ -124,10 +124,9 @@ def main():
     use_auth_token = args.pop("use_auth_token")
     args["use_auth_token"] = True if use_auth_token in ("True", "true", "") else use_auth_token
 
-    server = Server(**args, compression=compression, attn_cache_size=attn_cache_size, start=True)
-
+    server = Server(**args, compression=compression, attn_cache_size=attn_cache_size)
     try:
-        server.join()
+        server.run()
     except KeyboardInterrupt:
         logger.info("Caught KeyboardInterrupt, shutting down")
     finally:
