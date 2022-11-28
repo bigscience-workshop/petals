@@ -3,6 +3,6 @@ bitsandbytes==0.34.0
 accelerate==0.10.0
 huggingface-hub==0.7.0
 transformers==4.21.3
-protobuf==3.12.2
+protobuf==3.19.0
 git+https://github.com/learning-at-home/hivemind@1e4af434f35ad43208e7e5df569c5ff5eb79681b
 humanfriendly
