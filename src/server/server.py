@@ -231,65 +231,6 @@ class Server(threading.Thread):
 class ModuleContainer(threading.Thread):
     """Serves a set of specific Bloom layers for inference, forward, and backward. Announces itself over the DHT."""
 
-    def __init__(
-        self,
-        dht: DHT,
-        module_backends: Dict[str, TransformerBackend],
-        *,
-        inference_max_length: int,
-        num_connection_handlers: int,
-        throughput: float,
-        update_period: float,
-        expiration: Optional[float] = None,
-        start: bool,
-        **kwargs,
-    ):
-        super().__init__()
-
-        self.dht, self.module_backends = dht, module_backends
-        self.throughput, self.update_period, self.expiration = throughput, update_period, expiration
-        self.conn_handlers = [
-            TransformerConnectionHandler(dht, self.module_backends, inference_max_length)
-            for _ in range(num_connection_handlers)
-        ]
-        self.runtime = Runtime(self.module_backends, **kwargs)
-        self.dht_handler_thread = ModuleAnnouncerThread(
-            self.module_backends,
-            dht,
-            throughput=throughput,
-            update_period=update_period,
-            expiration=expiration,
-            daemon=True,
-        )
-        self.checkpoint_saver = None  # no need to save checkpoints since we do not change model state
-
-        if start:
-            self.run_in_background(await_ready=True)
-
-    def run(self):
-        """
-        Runs ModuleContainer in the current thread. Initializes dht if necessary, starts connection handlers,
-        runs Runtime (self.runtime) to process incoming requests.
-        """
-        logger.info(f"Serving {len(self.module_backends)} blocks:")
-        for expert_name, backend in self.module_backends.items():
-            num_parameters = sum(p.numel() for p in backend.module.parameters() if p.requires_grad)
-            logger.info(f"{expert_name}: {backend.module.__class__.__name__}, {num_parameters} parameters")
-
-        if not self.dht.is_alive():
-            self.dht.run_in_background(await_ready=True)
-
-        if self.module_backends:
-            self.dht_handler_thread.start()
-
-        if self.checkpoint_saver is not None:
-            self.checkpoint_saver.start()
-
-        for handler in self.conn_handlers:
-            handler.run_in_background()
-
-        self.runtime.run()
-
     # noinspection PyMethodOverriding
     @classmethod
     def create(
@@ -320,53 +261,60 @@ class ModuleContainer(threading.Thread):
         start: bool,
     ) -> ModuleContainer:
         module_uids = [f"{prefix}.{block_index}" for block_index in block_indices]
-        declare_active_modules(
-            dht,
+        joining_announcer = ModuleAnnouncerThread(
             module_uids,
-            expiration_time=get_dht_time() + expiration,
-            state=ServerState.JOINING,
+            dht,
+            ServerState.JOINING,
             throughput=throughput,
+            update_period=update_period,
+            expiration=expiration,
+            daemon=True,
         )
+        joining_announcer.start()
         logger.info(f"Announced that blocks {block_indices} are joining")
 
-        blocks = {}
-        for module_uid, block_index in zip(module_uids, block_indices):
-            block = load_pretrained_block(
-                converted_model_name_or_path,
-                block_index,
-                block_config,
-                torch_dtype=torch_dtype,
-                use_auth_token=use_auth_token,
-                cache_dir=cache_dir,
-            )
+        try:
+            blocks = {}
+            for module_uid, block_index in zip(module_uids, block_indices):
+                block = load_pretrained_block(
+                    converted_model_name_or_path,
+                    block_index,
+                    block_config,
+                    torch_dtype=torch_dtype,
+                    use_auth_token=use_auth_token,
+                    cache_dir=cache_dir,
+                )
 
-            if load_in_8bit:
-                dtype = block.input_layernorm.weight.dtype
-                block = replace_8bit_linear(block)
+                if load_in_8bit:
+                    dtype = block.input_layernorm.weight.dtype
+                    block = replace_8bit_linear(block)
 
-            block = block.to(device)
-            for param in block.parameters():
-                param.requires_grad = False
+                block = block.to(device)
+                for param in block.parameters():
+                    param.requires_grad = False
 
-            blocks[module_uid] = TransformerBackend(
-                module_uid,
-                block,
-                memory_cache=memory_cache,
-                backend_dtype=None if torch_dtype == "auto" else torch_dtype,
-                args_schema=(
-                    BatchTensorDescriptor(
-                        1, 2048, block_config.hidden_size, dtype=torch.float32, compression=compression
+                blocks[module_uid] = TransformerBackend(
+                    module_uid,
+                    block,
+                    memory_cache=memory_cache,
+                    backend_dtype=None if torch_dtype == "auto" else torch_dtype,
+                    args_schema=(
+                        BatchTensorDescriptor(
+                            1, 2048, block_config.hidden_size, dtype=torch.float32, compression=compression
+                        ),
                     ),
-                ),
-                kwargs_schema={},
-                outputs_schema=(
-                    BatchTensorDescriptor(
-                        1, 2048, block_config.hidden_size, dtype=torch.float32, compression=compression
+                    kwargs_schema={},
+                    outputs_schema=(
+                        BatchTensorDescriptor(
+                            1, 2048, block_config.hidden_size, dtype=torch.float32, compression=compression
+                        ),
                     ),
-                ),
-                min_batch_size=min_batch_size,
-                max_batch_size=max_batch_size,
-            )
+                    min_batch_size=min_batch_size,
+                    max_batch_size=max_batch_size,
+                )
+        finally:
+            joining_announcer.stop.set()
+            joining_announcer.join()
 
         return cls(
             dht,
@@ -382,6 +330,65 @@ class ModuleContainer(threading.Thread):
             sender_threads=sender_threads,
             start=start,
         )
+
+    def __init__(
+        self,
+        dht: DHT,
+        module_backends: Dict[str, TransformerBackend],
+        *,
+        inference_max_length: int,
+        num_connection_handlers: int,
+        throughput: float,
+        update_period: float,
+        expiration: Optional[float] = None,
+        start: bool,
+        **kwargs,
+    ):
+        super().__init__()
+
+        self.dht, self.module_backends = dht, module_backends
+        self.throughput, self.update_period, self.expiration = throughput, update_period, expiration
+        self.conn_handlers = [
+            TransformerConnectionHandler(dht, self.module_backends, inference_max_length)
+            for _ in range(num_connection_handlers)
+        ]
+        self.runtime = Runtime(self.module_backends, **kwargs)
+        self.online_announcer = ModuleAnnouncerThread(
+            list(self.module_backends.keys()),
+            dht,
+            ServerState.ONLINE,
+            throughput=throughput,
+            update_period=update_period,
+            expiration=expiration,
+            daemon=True,
+        )
+        self.checkpoint_saver = None  # no need to save checkpoints since we do not change model state
+
+        if start:
+            self.run_in_background(await_ready=True)
+
+    def run(self):
+        """
+        Runs ModuleContainer in the current thread. Initializes dht if necessary, starts connection handlers,
+        runs Runtime (self.runtime) to process incoming requests.
+        """
+        logger.info(f"Serving {len(self.module_backends)} blocks:")
+        for expert_name, backend in self.module_backends.items():
+            num_parameters = sum(p.numel() for p in backend.module.parameters() if p.requires_grad)
+            logger.info(f"{expert_name}: {backend.module.__class__.__name__}, {num_parameters} parameters")
+
+        if not self.dht.is_alive():
+            self.dht.run_in_background(await_ready=True)
+
+        self.online_announcer.start()
+
+        if self.checkpoint_saver is not None:
+            self.checkpoint_saver.start()
+
+        for handler in self.conn_handlers:
+            handler.run_in_background()
+
+        self.runtime.run()
 
     def run_in_background(self, await_ready=True, timeout=None):
         """
@@ -411,18 +418,17 @@ class ModuleContainer(threading.Thread):
         Please note that terminating container otherwise (e.g. by killing processes) may result in zombie processes.
         If you did already cause a zombie outbreak, your only option is to kill them with -9 (SIGKILL).
         """
-        if self.module_backends:
-            self.dht_handler_thread.stop.set()
-            self.dht_handler_thread.join()
+        self.online_announcer.stop.set()
+        self.online_announcer.join()
 
-            declare_active_modules(
-                self.dht,
-                self.module_backends.keys(),
-                expiration_time=get_dht_time() + self.expiration,
-                state=ServerState.OFFLINE,
-                throughput=self.throughput,
-            )
-            logger.info(f"Announced that blocks {list(self.module_backends.keys())} are offline")
+        declare_active_modules(
+            self.dht,
+            self.module_backends.keys(),
+            expiration_time=get_dht_time() + self.expiration,
+            state=ServerState.OFFLINE,
+            throughput=self.throughput,
+        )
+        logger.info(f"Announced that blocks {list(self.module_backends.keys())} are offline")
 
         self.ready.clear()
 
@@ -450,8 +456,9 @@ class ModuleAnnouncerThread(threading.Thread):
 
     def __init__(
         self,
-        module_backends: Dict[str, TransformerBackend],
+        module_uids: List[str],
         dht: DHT,
+        state: ServerState,
         *,
         throughput: float,
         update_period: float = 30,
@@ -459,8 +466,9 @@ class ModuleAnnouncerThread(threading.Thread):
         **kwargs,
     ):
         super().__init__(**kwargs)
-        self.module_backends = module_backends
+        self.module_uids = module_uids
         self.dht = dht
+        self.state = state
         self.throughput = throughput
         self.update_period = update_period
         self.expiration = expiration
@@ -470,9 +478,9 @@ class ModuleAnnouncerThread(threading.Thread):
         while True:
             declare_active_modules(
                 self.dht,
-                self.module_backends.keys(),
+                self.module_uids,
                 expiration_time=get_dht_time() + self.expiration,
-                state=ServerState.ONLINE,
+                state=self.state,
                 throughput=self.throughput,
             )
             if self.stop.wait(self.update_period):
