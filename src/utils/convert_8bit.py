@@ -3,7 +3,7 @@ import os
 import bitsandbytes as bnb
 import torch
 
-PETALS_8BIT_BACKWARD = bool(int(os.environ.get("PETALS_8BIT_BACKWARD", 0)))
+PETALS_8BIT_BACKWARD = bool(int(os.environ.get("PETALS_8BIT_BACKWARD", 1)))
 
 
 def replace_8bit_linear(model, threshold=6.0):
