@@ -44,6 +44,7 @@ class RemoteSequenceManager:
         self.timeout, self.min_backoff = timeout, min_backoff
         self._rpc_info = None
         self.lock_changes = threading.Lock()
+        self.policy = NoSpendingPolicy()
         self.update_()
 
         for uid, info in zip(self.block_uids, self.block_infos):
@@ -165,3 +166,12 @@ class RemoteSequenceManager:
         if attempt_no == 0:
             return 0
         return self.min_backoff * 2 ** (attempt_no - 1)
+
+    def get_request_metadata(self, protocol: str, *args, **kwargs) -> Optional[bytes]:
+        """
+        :param protocol: one of "rpc_forward", "rpc_backward" or "rpc_inference"
+        :param args: request-specific inputs, typicall block uids and input tensors
+        :param kwargs: additional request context, such as remote peer ID
+        :returns: msgpack-serialized metadata dict that will be passed alongside a given request
+        """
+        return MSGPackSerializer.dumps(dict(points=self.policy.get_points(protocol, *args, **kwargs)))
