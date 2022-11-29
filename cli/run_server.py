@@ -39,13 +39,13 @@ def main():
                         help='server will use this many processes to handle incoming requests')
     parser.add_argument('--min_batch_size', type=int, default=1,
                         help='Minimum required batch size for all operations (in total tokens)')
-    parser.add_argument('--max_batch_size', type=int, default=16384,
+    parser.add_argument('--max_batch_size', type=int, default=2048,
                         help='The total number of tokens in the same batch will not exceed this value')
     parser.add_argument('--prefetch_batches', type=int, default=1, required=False,
                         help='Pre-form this many subsequent batches while GPU is processing the current one')
     parser.add_argument('--sender_threads', type=int, default=1, required=False,
                         help='Use this many threads to pass results/exceptions from Runtime to Pools')
-    parser.add_argument('--inference_max_length', type=int, default=16384,
+    parser.add_argument('--inference_max_length', type=int, default=2048,
                         help='Maximum total sequence length permitted per inference, defaults to 16384 tokens')
     parser.add_argument('--cache_dir', type=str, default=None,
                         help='Path to a directory in which a downloaded pretrained model configuration should be cached if the standard cache should not be used.')
