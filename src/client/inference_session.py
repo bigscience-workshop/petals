@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import itertools
+import logging
 import time
 from typing import AsyncIterator, List, Optional
 
@@ -18,7 +19,6 @@ from hivemind import (
 from hivemind.moe.client.remote_expert_worker import RemoteExpertWorker
 from hivemind.p2p import StubBase
 from hivemind.proto import runtime_pb2
-from hivemind.utils.asyncio import aiter_with_timeout
 
 from src.client.sequence_manager import RemoteSequenceManager
 from src.data_structures import CHAIN_DELIMITER, ModuleUID, RemoteSpanInfo, RPCInfo
@@ -218,6 +218,11 @@ class InferenceSession:
         else:
             assert prompts.ndim == 4 and prompts.shape[0] == n_blocks
 
+        inputs_device = inputs.device
+        inputs_dtype = inputs.dtype
+        inputs = inputs.cpu()
+        prompts = prompts.cpu()
+
         n_input_tokens = inputs.shape[1]
         if self._position + n_input_tokens > self._max_length:
             raise ValueError(
@@ -300,11 +305,14 @@ class InferenceSession:
                         f"Caught exception when running inference from block {block_idx} "
                         f"(retry in {delay:.0f} sec): {repr(e)}"
                     )
-                    logger.debug("See detailed traceback below:", exc_info=True)
+                    traceback_level = logging.DEBUG if str(e) else logging.WARNING
+                    logger.log(traceback_level, "See detailed traceback below:", exc_info=True)
                     time.sleep(delay)
 
         self._position += n_input_tokens
-        return inputs
+
+        outputs = inputs.to(device=inputs_device, dtype=inputs_dtype)
+        return outputs
 
     def close(self, *exc_details):
         """Finish a given inference session, close the underlying connection"""
