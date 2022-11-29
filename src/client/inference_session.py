@@ -218,6 +218,11 @@ class InferenceSession:
         else:
             assert prompts.ndim == 4 and prompts.shape[0] == n_blocks
 
+        inputs_device = inputs.device
+        inputs_dtype = inputs.dtype
+        inputs = inputs.cpu()
+        prompts = prompts.cpu()
+
         n_input_tokens = inputs.shape[1]
         if self._position + n_input_tokens > self._max_length:
             raise ValueError(
@@ -300,12 +305,14 @@ class InferenceSession:
                         f"Caught exception when running inference from block {block_idx} "
                         f"(retry in {delay:.0f} sec): {repr(e)}"
                     )
-                    traceback_level = logging.DEBUG if e.message else logging.WARNING
+                    traceback_level = logging.DEBUG if str(e) else logging.WARNING
                     logger.log(traceback_level, "See detailed traceback below:", exc_info=True)
                     time.sleep(delay)
 
         self._position += n_input_tokens
-        return inputs
+
+        outputs = inputs.to(device=inputs_device, dtype=inputs_dtype)
+        return outputs
 
     def close(self, *exc_details):
         """Finish a given inference session, close the underlying connection"""
