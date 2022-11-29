@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import itertools
+import logging
 import time
 from typing import AsyncIterator, List, Optional
 
@@ -18,7 +19,6 @@ from hivemind import (
 from hivemind.moe.client.remote_expert_worker import RemoteExpertWorker
 from hivemind.p2p import StubBase
 from hivemind.proto import runtime_pb2
-from hivemind.utils.asyncio import aiter_with_timeout
 
 from src.client.sequence_manager import RemoteSequenceManager
 from src.data_structures import CHAIN_DELIMITER, ModuleUID, RemoteSpanInfo, RPCInfo
@@ -300,7 +300,8 @@ class InferenceSession:
                         f"Caught exception when running inference from block {block_idx} "
                         f"(retry in {delay:.0f} sec): {repr(e)}"
                     )
-                    logger.debug("See detailed traceback below:", exc_info=True)
+                    traceback_level = logging.DEBUG if e.message else logging.WARNING
+                    logger.log(traceback_level, "See detailed traceback below:", exc_info=True)
                     time.sleep(delay)
 
         self._position += n_input_tokens
