@@ -55,6 +55,7 @@ class Server:
         revision: str = "main",
         cache_dir: Optional[str] = None,
         attn_cache_size: Optional[int] = None,
+        alloc_timeout: float = 60,
         device: Optional[Union[str, torch.device]] = None,
         compression=CompressionType.NONE,
         stats_report_interval: Optional[int] = None,
@@ -110,7 +111,7 @@ class Server:
         device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         self.device = device
 
-        self.memory_cache = MemoryCache(device, attn_cache_size)
+        self.memory_cache = MemoryCache(device, attn_cache_size, alloc_timeout)
 
         assert isinstance(throughput, float) or throughput in ["auto", "eval"]
         if throughput in ["auto", "eval"]:
