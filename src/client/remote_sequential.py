@@ -31,7 +31,6 @@ class RemoteSequential(nn.Module):
         p2p: Optional[P2P] = None,
         sequence_manager: Optional[RemoteSequenceManager] = None,
     ):
-        logger.warning(f"{self.__class__.__name__} is in active development; expect adventures")
         super().__init__()
         self.config = config
         self.dht = dht

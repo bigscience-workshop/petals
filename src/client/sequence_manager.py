@@ -30,7 +30,7 @@ class RemoteSequenceManager:
         block_uids: Sequence[ModuleUID],
         p2p: P2P,
         max_retries: int = 3,
-        timeout: float = 5,
+        timeout: float = 20,
         min_backoff: float = 1,
     ):
         assert len(block_uids) > 0, "Sequences must contain at least one block"
