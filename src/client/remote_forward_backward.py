@@ -2,7 +2,7 @@
 Utility functions that call RPC forward or backward on a single remote server
 """
 import asyncio
-from typing import Iterable, List, Sequence, Tuple, Optional
+from typing import Iterable, List, Optional, Sequence, Tuple
 
 import torch
 from hivemind import nested_compare, nested_flatten, nested_pack, serialize_torch_tensor
@@ -63,8 +63,13 @@ async def _backward_stream(
 
 
 async def run_remote_forward(
-    uid: ModuleUID, stub: StubBase, rpc_info: RPCInfo, *inputs: torch.Tensor, timeout: float,
-        metadata: Optional[bytes] = None, **kwargs
+    uid: ModuleUID,
+    stub: StubBase,
+    rpc_info: RPCInfo,
+    *inputs: torch.Tensor,
+    timeout: float,
+    metadata: Optional[bytes] = None,
+    **kwargs,
 ) -> Tuple[torch.Tensor, ...]:
     """
     Serializes input tensors and calls "rpc_forward" on a remote server.
