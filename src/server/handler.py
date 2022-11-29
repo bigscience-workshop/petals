@@ -362,7 +362,7 @@ class TransformerConnectionHandler(ConnectionHandler):
 
             yield handles
 
-    def _log_request(self, method: str, uids: List[ModuleUID], context: P2PContext) -> None:
+    def _log_request(self, method: str, uids: Sequence[ModuleUID], context: P2PContext) -> None:
         friendly_uids = [uid.split(".")[-1] for uid in uids if "." in uid]
         friendly_uids = [int(uid) for uid in friendly_uids if uid.isdigit()]
         friendly_uids = f"{min(friendly_uids)}:{max(friendly_uids) + 1}" if friendly_uids else uids
