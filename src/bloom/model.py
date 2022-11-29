@@ -113,7 +113,7 @@ class _BloomPreTrainedModelWithModifiedDefaults(BloomPreTrainedModel):
     def from_pretrained(cls, *args, low_cpu_mem_usage: Optional[bool] = None, **kwargs):
         if low_cpu_mem_usage is None:
             low_cpu_mem_usage = True
-        return super().from_pretrained(*args, **kwargs)
+        return super().from_pretrained(*args, low_cpu_mem_usage=low_cpu_mem_usage, **kwargs)
 
     from_pretrained.__doc__ = BloomPreTrainedModel.from_pretrained.__doc__.replace(
         "low_cpu_mem_usage(`bool`, *optional*)",
