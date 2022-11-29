@@ -62,6 +62,9 @@ class Server:
         custom_module_path=None,
         update_period: float = 30,
         expiration: Optional[float] = None,
+        request_timeout: float = 3 * 60,
+        session_timeout: float = 30 * 60,
+        step_timeout: float = 5 * 60,
         prefetch_batches: int = 1,
         sender_threads: int = 1,
         balance_quality: float = 0.75,
@@ -100,6 +103,9 @@ class Server:
         if expiration is None:
             expiration = max(2 * update_period, MAX_DHT_TIME_DISCREPANCY_SECONDS)
         self.expiration = expiration
+
+        self.request_timeout = request_timeout
+        self.session_timeout, self.step_timeout = session_timeout, step_timeout
 
         self.dht = DHT(initial_peers=initial_peers, start=True, **kwargs)
         visible_maddrs_str = [str(a) for a in self.dht.get_visible_maddrs()]
@@ -168,6 +174,9 @@ class Server:
                 stats_report_interval=self.stats_report_interval,
                 update_period=self.update_period,
                 expiration=self.expiration,
+                request_timeout=self.request_timeout,
+                session_timeout=self.session_timeout,
+                step_timeout=self.step_timeout,
                 prefetch_batches=self.prefetch_batches,
                 sender_threads=self.sender_threads,
                 use_auth_token=self.use_auth_token,
@@ -239,22 +248,17 @@ class ModuleContainer(threading.Thread):
         memory_cache: MemoryCache,
         throughput: float,
         block_indices: List[int],
-        num_handlers: Optional[int],
         min_batch_size: int,
         max_batch_size: int,
-        inference_max_length: int,
         torch_dtype: torch.dtype,
         cache_dir: Optional[str],
         device: Union[str, torch.device],
         compression: CompressionType,
-        stats_report_interval: Optional[int],
         update_period: float,
         expiration: Optional[float],
-        prefetch_batches: int,
-        sender_threads: int,
         use_auth_token: Optional[str],
         load_in_8bit: bool,
-        start: bool,
+        **kwargs,
     ) -> ModuleContainer:
         module_uids = [f"{prefix}.{block_index}" for block_index in block_indices]
         joining_announcer = ModuleAnnouncerThread(
@@ -328,15 +332,10 @@ class ModuleContainer(threading.Thread):
             dht,
             blocks,
             throughput=throughput,
-            num_connection_handlers=num_handlers,
-            inference_max_length=inference_max_length,
             device=device,
-            stats_report_interval=stats_report_interval,
             update_period=update_period,
             expiration=expiration,
-            prefetch_batches=prefetch_batches,
-            sender_threads=sender_threads,
-            start=start,
+            **kwargs,
         )
 
     def __init__(
@@ -345,10 +344,13 @@ class ModuleContainer(threading.Thread):
         module_backends: Dict[str, TransformerBackend],
         *,
         inference_max_length: int,
-        num_connection_handlers: int,
+        num_handlers: int,
         throughput: float,
         update_period: float,
         expiration: Optional[float] = None,
+        request_timeout: float,
+        session_timeout: float,
+        step_timeout: float,
         start: bool,
         **kwargs,
     ):
@@ -357,8 +359,15 @@ class ModuleContainer(threading.Thread):
         self.dht, self.module_backends = dht, module_backends
         self.throughput, self.update_period, self.expiration = throughput, update_period, expiration
         self.conn_handlers = [
-            TransformerConnectionHandler(dht, self.module_backends, inference_max_length)
-            for _ in range(num_connection_handlers)
+            TransformerConnectionHandler(
+                dht,
+                self.module_backends,
+                inference_max_length=inference_max_length,
+                request_timeout=request_timeout,
+                session_timeout=session_timeout,
+                step_timeout=step_timeout,
+            )
+            for _ in range(num_handlers)
         ]
         self.runtime = Runtime(self.module_backends, **kwargs)
         self.online_announcer = ModuleAnnouncerThread(

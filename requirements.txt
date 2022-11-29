@@ -6,3 +6,4 @@ transformers==4.21.3
 protobuf>=3.20.3,<4.0dev
 git+https://github.com/learning-at-home/hivemind@be88b4280cdd87432168e1da238e532f1364078b
 humanfriendly
+async-timeout>=4.0.2

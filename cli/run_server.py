@@ -75,6 +75,12 @@ def main():
                         help='Server will report blocks to DHT once in this many seconds')
     parser.add_argument('--expiration', type=float, required=False, default=None,
                         help='DHT entries will expire after this many seconds')
+    parser.add_argument('--request_timeout', type=float, required=False, default=3 * 60,
+                        help='Timeout for the whole rpc_forward/rpc_backward/rpc_forward_stream/rpc_backward_stream request')
+    parser.add_argument('--session_timeout', type=float, required=False, default=30 * 60,
+                        help='Timeout for the whole inference session')
+    parser.add_argument('--step_timeout', type=float, required=False, default=5 * 60,
+                        help="Timeout for waiting the next step's inputs inside an inference session")
 
     group = parser.add_mutually_exclusive_group()
     group.add_argument('--initial_peers', type=str, nargs='*', required=False, default=PUBLIC_INITIAL_PEERS,

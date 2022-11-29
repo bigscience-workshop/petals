@@ -76,7 +76,9 @@ class MemoryCache:
         try:
             async with hivemind.utils.enter_asynchronously(self._lock_acquire_memory):
                 if self.current_size_bytes + allocated_size_bytes > self.max_size_bytes:
-                    await loop.run_in_executor(None, self._wait_until_available, allocated_size_bytes, timeout=self.alloc_timeout)
+                    await loop.run_in_executor(
+                        None, self._wait_until_available, allocated_size_bytes, timeout=self.alloc_timeout
+                    )
                 async with hivemind.utils.enter_asynchronously(self._lock_metadata):
                     allocated_handle = int(self.handle_counter)
                     self.current_size_bytes += allocated_size_bytes
@@ -93,17 +95,19 @@ class MemoryCache:
                     self.current_size_bytes -= allocated_size_bytes
                 self._memory_freed_event.set()
 
-    def _wait_until_available(self, allocated_size_bytes: int, timeout: Optional[float] = None):
+    def _wait_until_available(self, allocated_size: int, timeout: Optional[float] = None):
         # note: this function should only be called inside _lock_acquire_memory!
-        if allocated_size_bytes > self.max_size_bytes:
+        if allocated_size > self.max_size_bytes:
             raise AllocationFailed(
-                f"Could not allocate {allocated_size_bytes} bytes, max cache size = {self.max_size_bytes} bytes"
+                f"Could not allocate {allocated_size} bytes, max cache size = {self.max_size_bytes} bytes"
             )
         deadline = None if timeout is None else time.perf_counter() + timeout
-        while self.current_size_bytes + allocated_size_bytes > self.max_size_bytes:
+        while self.current_size_bytes + allocated_size > self.max_size_bytes:
             remaining_time = deadline - time.perf_counter() if timeout is not None else None
             if not self._memory_freed_event.wait(remaining_time):
-                raise AllocationFailed(f"Could not allocate {allocated_size_bytes} bytes in {timeout} seconds")
+                raise AllocationFailed(
+                    f"Server's attention cache is full, failed to allocate {allocated_size} bytes in {timeout} seconds"
+                )
             self._memory_freed_event.clear()
 
     @contextlib.contextmanager
