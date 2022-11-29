@@ -39,13 +39,13 @@ def main():
                         help='server will use this many processes to handle incoming requests')
     parser.add_argument('--min_batch_size', type=int, default=1,
                         help='Minimum required batch size for all operations (in total tokens)')
-    parser.add_argument('--max_batch_size', type=int, default=16384,
+    parser.add_argument('--max_batch_size', type=int, default=2048,
                         help='The total number of tokens in the same batch will not exceed this value')
     parser.add_argument('--prefetch_batches', type=int, default=1, required=False,
                         help='Pre-form this many subsequent batches while GPU is processing the current one')
     parser.add_argument('--sender_threads', type=int, default=1, required=False,
                         help='Use this many threads to pass results/exceptions from Runtime to Pools')
-    parser.add_argument('--inference_max_length', type=int, default=16384,
+    parser.add_argument('--inference_max_length', type=int, default=2048,
                         help='Maximum total sequence length permitted per inference, defaults to 16384 tokens')
     parser.add_argument('--cache_dir', type=str, default=None,
                         help='Path to a directory in which a downloaded pretrained model configuration should be cached if the standard cache should not be used.')
@@ -57,6 +57,9 @@ def main():
     parser.add_argument('--attn_cache_size', type=str, default=None,
                         help='The size of GPU memory allocated for storing past attention keys/values between inference'
                              ' steps; examples: 500MB or 1.2GB or 1073741824 (bytes); be warned: 1KB != 1KiB')
+    parser.add_argument('--alloc_timeout', type=float, default=60,
+                        help='If the cache is full, the server will wait for this number of seconds hoping that some memory will be freed '
+                             'before rejecting the request')
     parser.add_argument('--revision', type=str, default='main',
                         help="The specific model version to use. It can be a branch name, a tag name, or a commit id, since we use a git-based system for storing models"
                              "and other artifacts on huggingface.co, so `revision` can be any identifier allowed by git.")
@@ -72,6 +75,12 @@ def main():
                         help='Server will report blocks to DHT once in this many seconds')
     parser.add_argument('--expiration', type=float, required=False, default=None,
                         help='DHT entries will expire after this many seconds')
+    parser.add_argument('--request_timeout', type=float, required=False, default=3 * 60,
+                        help='Timeout for the whole rpc_forward/rpc_backward/rpc_forward_stream/rpc_backward_stream request')
+    parser.add_argument('--session_timeout', type=float, required=False, default=30 * 60,
+                        help='Timeout for the whole inference session')
+    parser.add_argument('--step_timeout', type=float, required=False, default=5 * 60,
+                        help="Timeout for waiting the next step's inputs inside an inference session")
 
     group = parser.add_mutually_exclusive_group()
     group.add_argument('--initial_peers', type=str, nargs='*', required=False, default=PUBLIC_INITIAL_PEERS,
