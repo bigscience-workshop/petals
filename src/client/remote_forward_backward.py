@@ -66,7 +66,7 @@ async def run_remote_forward(
     uid: ModuleUID, stub: StubBase, rpc_info: RPCInfo, *inputs: torch.Tensor, timeout: float, **kwargs
 ) -> Tuple[torch.Tensor, ...]:
     """
-    Serializes input tensors and calls "rpc_forward" on a remote server.
+    Serializes input tensors and calls "rpc_forward" on a remote server, return block outputs (including residuals)
     Mostly adapted from https://github.com/learning-at-home/hivemind/blob/7a7c93aefffc9494c39e7b170c07cb06d8c09c4c/hivemind/moe/client/expert.py#L198
     but without RemoteExpertWorker.run_coroutine() call that leads to deadlock here.
     """
@@ -100,13 +100,16 @@ async def run_remote_forward(
         )
     )
 
-    # call RPC on remote server
+    # call RPC on remote server, receive last hidden states *without* the residual component
     size = sum(t.element_size() * t.nelement() for t in inputs)
     if size > MAX_UNARY_PAYLOAD_SIZE:
         deserialized_outputs = await _forward_stream(uid, serialized_tensors, stub, timeout, **kwargs)
     else:
         deserialized_outputs = await _forward_unary(uid, serialized_tensors, stub, timeout, **kwargs)
 
+    input_was_compressed = serialized_tensors[0].compression == runtime_pb2.CompressionType.NONE
+    residual = deserialize_torch_tensor(serialized_tensors[0]) if input_was_compressed else inputs[0]
+    deserialized_outputs[0].add_(residual)
     return nested_pack(deserialized_outputs, structure=rpc_info["outputs_schema"])
 
 
@@ -121,7 +124,7 @@ async def run_remote_backward(
     **kwargs,
 ) -> Sequence[torch.Tensor]:
     """
-    Serializes grad outputs and calls "rpc_backward" on a remote server.
+    Serializes grad outputs and calls "rpc_backward" on a remote server, returns grad w.r.t. inputs (with residuals)
     Mostly adapted from https://github.com/learning-at-home/hivemind/blob/7a7c93aefffc9494c39e7b170c07cb06d8c09c4c/hivemind/moe/client/expert.py#L221
     but without RemoteExpertWorker.run_coroutine() call that leads to deadlock here.
     """
@@ -146,9 +149,13 @@ async def run_remote_backward(
     )
 
     size = sum(t.element_size() * t.nelement() for t in inputs_and_grad_outputs)
+    # remote server backward returns gradients without the residual component
     if size > MAX_UNARY_PAYLOAD_SIZE:
         deserialized_grad_inputs = await _backward_stream(uid, serialized_tensors, stub, timeout, **kwargs)
     else:
         deserialized_grad_inputs = await _backward_unary(uid, serialized_tensors, stub, timeout, **kwargs)
 
+    grad_output_was_compressed = serialized_tensors[0].compression == runtime_pb2.CompressionType.NONE
+    residual_grad = deserialize_torch_tensor(serialized_tensors[0]) if grad_output_was_compressed else inputs[0]
+    deserialized_grad_inputs[0].add_(residual_grad)
     return deserialized_grad_inputs
