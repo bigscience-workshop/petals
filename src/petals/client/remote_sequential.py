@@ -7,8 +7,8 @@ from hivemind import DHT, P2P, get_logger, use_hivemind_log_handler
 from hivemind.moe.client.remote_expert_worker import RemoteExpertWorker
 from torch import nn
 
+import petals.client
 from petals.client.inference_session import InferenceSession
-from petals.client.remote_model import DistributedBloomConfig
 from petals.client.sequence_manager import RemoteSequenceManager
 from petals.client.sequential_autograd import _RemoteSequentialAutogradFunction
 from petals.data_structures import UID_DELIMITER
@@ -25,7 +25,7 @@ class RemoteSequential(nn.Module):
 
     def __init__(
         self,
-        config: DistributedBloomConfig,
+        config: petals.client.DistributedBloomConfig,
         dht: DHT,
         dht_prefix: Optional[str] = None,
         p2p: Optional[P2P] = None,
