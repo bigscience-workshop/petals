@@ -27,11 +27,8 @@ COPY requirements-dev.txt petals/requirements-dev.txt
 RUN pip install --no-cache-dir -r petals/requirements.txt && \
     pip install --no-cache-dir -r petals/requirements-dev.txt
 
-COPY pyproject.toml petals/pyproject.toml
-COPY setup.cfg petals/setup.cfg
-RUN pip install -e petals[dev]
-
 COPY . petals/
+RUN pip install -e petals[dev]
 
 WORKDIR /home/petals/
 CMD bash
