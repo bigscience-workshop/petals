@@ -18,10 +18,25 @@ use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
 
 
-class RemoteSequenceManager:
+class RemoteSequenceManager(threading.Thread):
     """
-    Keeps and updates the meta-information about which peers host which blocks.
-    In future, this class is intended to maintain latency statistics, ban non-responsive peers, etc.
+    Sequence manager is a thread that keeps track of remote servers that hold the specified sequence of blocks.
+    TL;DR it tells you, which peers you should ask to get a specific layer. It is used in RemoteSequential.
+    When created, RemoteSequenceManager looks up which servers serve necessary layers by reading from DHT.
+    Using this information, sequence manager can form sequences of servers that collectively have the full sequence.
+    To form such a sequence, call .make_sequence with the appropriate optimization policy (see make_sequence docstr).
+
+    :param dht: a running hivemind.DHT instance, connected to peers that serve the corresponding blocks
+    :param block_uids: a sequence of DHT keys (strings) corresponding to remote layers
+    :param p2p: an optional P2P replica (if not specified, create one via dht.replicate_p2p())
+    :param update_period: by default, refresh DHT information once in this many seconds
+    :param timeout: float, in seconds, default timeout for RPC forwad/backward/inference requests
+    :param min_backoff: after a repeated failure, sleep for this many seconds times 2 ^ (num_failures - 1)
+    :param max_retries: DEPRECATED. If you are reading this, yozh needs to fix the PR
+    :param start: start the background thread (see the note below). If false, you will need to start it manually.
+    :note: RemoteSequenceManager takes up some CPU and network I/O to operate in background. It is recommended to avoid
+      running redundant sequence managers for the same set of layers.
+
     """
 
     def __init__(
@@ -30,9 +45,13 @@ class RemoteSequenceManager:
         block_uids: Sequence[ModuleUID],
         p2p: P2P,
         max_retries: int = 3,
+        update_period: float = 30,  # TODO actually use this
         timeout: float = 20,
         min_backoff: float = 1,
+        *,  # dear dev, if you add more parameters to this class, please make sure to handle them in __getitem__ (below)
+        start: bool,
     ):
+        super().__init__(daemon=True)
         assert len(block_uids) > 0, "Sequences must contain at least one block"
         self.dht, self.p2p = dht, p2p
         self.block_uids: List[ModuleUID] = list(block_uids)
@@ -41,15 +60,49 @@ class RemoteSequenceManager:
         self.spans_containing_block: Tuple[List[RemoteSpanInfo], ...] = tuple([] for _ in range(len(self.block_uids)))
         self.last_update_time: DHTExpiration = -float("inf")
         self.max_retries = max_retries
+        self.update_period = update_period
         self.timeout, self.min_backoff = timeout, min_backoff
         self._rpc_info = None
-        self.lock_changes = threading.Lock()
+        self._should_shutdown = False
         self.policy = NoSpendingPolicy()
         self.update_()
 
         for uid, info in zip(self.block_uids, self.block_infos):
             assert info is not None, f"Found no remote peers for block {uid}"
         assert self.spans_by_priority and self.spans_containing_block
+
+        self.ready = threading.Event()  # TODO-USED? # whether or not you are ready to make_sequence
+        self.lock_changes = threading.Lock()  # TODO-USED? # internal lock on sequence_info and strategies
+        self.update_trigger = threading.Event()  # TODO-USED?
+
+        if start:
+            self.run_in_background()
+
+    def run_in_background(self, await_ready: bool = True, timeout: Optional[float] = None) -> None:
+        """
+        Starts averager in a background process. if await_ready, this method will wait until background dht
+        is ready to process incoming requests or for :timeout: seconds max.
+        """
+        self.start()
+        if await_ready:
+            self.ready.wait(timeout)
+
+    def run(self) -> None:
+        self.ready.set()
+
+        while not self._should_shutdown:
+            self.update_trigger.wait(self.update_period)
+            if self._should_shutdown:
+                logger.debug(f"{self.__class__.__name__} is shutting down")
+                break
+
+            try:
+                self.update_()
+            except Exception as e:
+                logger.exception(e)
+            self.update_trigger.clear()
+
+        logger.info(f"{self.__class__.__name__} thread exited")
 
     def make_sequence(self, start_index: int = 0, end_index: Optional[int] = None) -> List[RemoteSpanInfo]:
         """
@@ -77,7 +130,21 @@ class RemoteSequenceManager:
         if not isinstance(ix, slice):
             ix = slice(int(ix), int(ix) + 1, 1)
         with self.lock_changes:
-            subseq = RemoteSequenceManager(self.dht, self.block_uids[ix], self.p2p)
+            #         max_retries: int = 3,
+            #         update_period: float = 30, # TODO actually use this
+            #         timeout: float = 20,
+            #         min_backoff: float = 1,
+
+            subseq = RemoteSequenceManager(
+                self.dht,
+                self.block_uids[ix],
+                self.p2p,
+                max_retries=self.max_retries,
+                update_period=self.update_period,
+                timeout=self.timeout,
+                min_backoff=self.min_backoff,
+                start=True,
+            )
             subseq.block_infos = self.block_infos[ix]
             subseq.spans_by_priority, subseq.spans_containing_block = subseq.compute_spans(subseq.block_infos)
             subseq.last_update_time = self.last_update_time
@@ -147,6 +214,7 @@ class RemoteSequenceManager:
         if self._rpc_info is None:
             retries = 0
             for i in range(self.max_retries):
+                # TODO remove max_retries and introduce backoff
                 try:
                     self.update_()
                     peer_id = random.choice(list(self.block_infos[0].servers.keys()))
