@@ -3,8 +3,8 @@ import torch
 from hivemind import DHT, get_logger, use_hivemind_log_handler
 from test_utils import *
 
-from petals.client import RemoteSequential
 from petals.bloom.from_pretrained import load_pretrained_block
+from petals.client import RemoteSequential
 from petals.client.remote_model import DistributedBloomConfig
 
 use_hivemind_log_handler("in_root_logger")

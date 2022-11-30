@@ -12,7 +12,7 @@ from hivemind.moe.client.remote_expert_worker import RemoteExpertWorker
 from hivemind.p2p import PeerID
 from hivemind.utils import DHTExpiration, MPFuture, get_dht_time, get_logger, use_hivemind_log_handler
 
-from petals.client import DistributedBloomConfig, RemoteSequential, RemoteSequenceManager, RemoteTransformerBlock
+from petals.client import DistributedBloomConfig, RemoteSequenceManager, RemoteSequential, RemoteTransformerBlock
 from petals.data_structures import CHAIN_DELIMITER, UID_DELIMITER, ModuleUID, RemoteModuleInfo, ServerInfo, ServerState
 
 use_hivemind_log_handler("in_root_logger")

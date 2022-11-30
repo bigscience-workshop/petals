@@ -5,8 +5,8 @@ import pytest
 import torch
 from test_utils import *
 
-from petals.client import DistributedBloomConfig
 from petals.bloom.from_pretrained import load_pretrained_block
+from petals.client import DistributedBloomConfig
 from petals.client.remote_sequential import RemoteTransformerBlock
 from petals.data_structures import UID_DELIMITER
 from petals.dht_utils import get_remote_module
