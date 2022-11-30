@@ -1,5 +1,5 @@
-FROM nvcr.io/nvidia/cuda:11.6.1-devel-ubuntu20.04
-LABEL maintainer="bigscience-worksop"
+FROM nvcr.io/nvidia/cuda:11.6.2-cudnn8-devel-ubuntu20.04
+LABEL maintainer="bigscience-workshop"
 LABEL repository="petals"
 
 WORKDIR /home
@@ -7,7 +7,7 @@ WORKDIR /home
 RUN echo "LC_ALL=en_US.UTF-8" >> /etc/environment
 
 # Install packages
-RUN apt-get update && apt-get install -y --no-install-recommends --force-yes \
+RUN apt-get update && apt-get install -y --no-install-recommends \
   build-essential \
   wget \
   git \
@@ -19,21 +19,19 @@ RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -
 ENV PATH="/opt/conda/bin:${PATH}"
 
 RUN conda install python~=3.10 pip && \
-    pip install --no-cache-dir "torch>=1.12" torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu116 && \
+    pip install --no-cache-dir "torch>=1.12" torchvision torchaudio && \
     conda clean --all && rm -rf ~/.cache/pip
 
 COPY requirements.txt petals/requirements.txt
 COPY requirements-dev.txt petals/requirements-dev.txt
 RUN pip install --no-cache-dir -r petals/requirements.txt && \
-    pip install --no-cache-dir -r petals/requirements-dev.txt && \
-    rm -rf ~/.cache/pip
+    pip install --no-cache-dir -r petals/requirements-dev.txt
+
+COPY pyproject.toml petals/pyproject.toml
+COPY setup.cfg petals/setup.cfg
+RUN pip install -e petals[dev]
 
 COPY . petals/
 
-WORKDIR /home
-RUN git clone --depth 1 --branch 1.1.2 https://github.com/learning-at-home/hivemind.git && \
-    pytest -s hivemind/tests/test_compression.py && rm -rf hivemind
-
 WORKDIR /home/petals/
-
 CMD bash
