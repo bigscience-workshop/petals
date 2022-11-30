@@ -75,7 +75,6 @@ class RemoteSequenceManager(threading.Thread):
             assert info is not None, f"Found no remote peers for block {uid}"
         assert self.spans_by_priority and self.spans_containing_block
 
-
         if start:
             self.run_in_background()
 
