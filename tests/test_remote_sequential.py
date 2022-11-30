@@ -1,7 +1,6 @@
 import pytest
 import torch
-from hivemind import DHT, BatchTensorDescriptor, MSGPackSerializer, get_logger, use_hivemind_log_handler
-from hivemind.proto import runtime_pb2
+from hivemind import DHT, get_logger, use_hivemind_log_handler
 from test_utils import *
 
 from petals.bloom.from_pretrained import load_pretrained_block
