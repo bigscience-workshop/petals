@@ -22,8 +22,6 @@ logger = get_logger(__file__)
 DEFAULT_CACHE_PATH = Path(Path.home(), ".cache", "petals", "throughput.json")
 DEFAULT_LOCK_PATH = Path(tempfile.gettempdir(), "petals", "throughput.lock")
 
-SPEED_TEST_PATH = Path(Path(__file__).absolute().parents[2], "cli", "speed_test.py")
-
 
 @dataclass
 class ThroughputInfo:
@@ -89,7 +87,7 @@ def measure_throughput_info() -> ThroughputInfo:
 
 
 def measure_network_rps(config: BloomConfig) -> float:
-    proc = subprocess.run([SPEED_TEST_PATH, "--json"], capture_output=True)
+    proc = subprocess.run("python3 -m petals.cli.speed_test --json", shell=True, capture_output=True)
     if proc.returncode != 0:
         raise RuntimeError(f"Failed to measure network throughput (stdout: {proc.stdout}, stderr: {proc.stderr})")
     network_info = json.loads(proc.stdout)
