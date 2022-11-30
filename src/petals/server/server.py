@@ -286,27 +286,27 @@ class ModuleContainer(threading.Thread):
                 )
 
                 if load_in_8bit:
-                    dtype = block.input_layernorm.weight.dtype
                     block = replace_8bit_linear(block)
 
                 block = block.to(device)
                 for param in block.parameters():
                     param.requires_grad = False
 
+                backend_dtype = block.input_layernorm.weight.dtype if torch_dtype == "auto" else torch_dtype
                 blocks[module_uid] = TransformerBackend(
                     module_uid,
                     block,
                     memory_cache=memory_cache,
-                    backend_dtype=None if torch_dtype == "auto" else torch_dtype,
+                    backend_dtype=backend_dtype,
                     args_schema=(
                         BatchTensorDescriptor(
-                            1, 2048, block_config.hidden_size, dtype=torch.float32, compression=compression
+                            1, 2048, block_config.hidden_size, dtype=backend_dtype, compression=compression
                         ),
                     ),
                     kwargs_schema={},
                     outputs_schema=(
                         BatchTensorDescriptor(
-                            1, 2048, block_config.hidden_size, dtype=torch.float32, compression=compression
+                            1, 2048, block_config.hidden_size, dtype=backend_dtype, compression=compression
                         ),
                     ),
                     min_batch_size=min_batch_size,

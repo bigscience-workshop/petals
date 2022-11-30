@@ -2,7 +2,7 @@
 Utility functions that call RPC forward or backward on a single remote server
 """
 import asyncio
-from typing import Iterable, List, Sequence, Tuple
+from typing import Iterable, List, Optional, Sequence, Tuple
 
 import torch
 from hivemind import nested_compare, nested_flatten, nested_pack, serialize_torch_tensor
@@ -63,7 +63,13 @@ async def _backward_stream(
 
 
 async def run_remote_forward(
-    uid: ModuleUID, stub: StubBase, rpc_info: RPCInfo, *inputs: torch.Tensor, timeout: float, **kwargs
+    uid: ModuleUID,
+    stub: StubBase,
+    rpc_info: RPCInfo,
+    *inputs: torch.Tensor,
+    timeout: float,
+    metadata: Optional[bytes] = None,
+    **kwargs,
 ) -> Tuple[torch.Tensor, ...]:
     """
     Serializes input tensors and calls "rpc_forward" on a remote server.
@@ -102,11 +108,8 @@ async def run_remote_forward(
 
     # call RPC on remote server
     size = sum(t.element_size() * t.nelement() for t in inputs)
-    if size > MAX_UNARY_PAYLOAD_SIZE:
-        deserialized_outputs = await _forward_stream(uid, serialized_tensors, stub, timeout, **kwargs)
-    else:
-        deserialized_outputs = await _forward_unary(uid, serialized_tensors, stub, timeout, **kwargs)
-
+    forward_fn = _forward_stream if size > MAX_UNARY_PAYLOAD_SIZE else _forward_unary
+    deserialized_outputs = await forward_fn(uid, serialized_tensors, stub, timeout, metadata=metadata, **kwargs)
     return nested_pack(deserialized_outputs, structure=rpc_info["outputs_schema"])
 
 
@@ -118,6 +121,7 @@ async def run_remote_backward(
     grad_outputs: List[torch.Tensor],
     *extra_tensors: torch.Tensor,
     timeout: float,
+    metadata: Optional[bytes] = None,
     **kwargs,
 ) -> Sequence[torch.Tensor]:
     """
@@ -146,9 +150,6 @@ async def run_remote_backward(
     )
 
     size = sum(t.element_size() * t.nelement() for t in inputs_and_grad_outputs)
-    if size > MAX_UNARY_PAYLOAD_SIZE:
-        deserialized_grad_inputs = await _backward_stream(uid, serialized_tensors, stub, timeout, **kwargs)
-    else:
-        deserialized_grad_inputs = await _backward_unary(uid, serialized_tensors, stub, timeout, **kwargs)
-
+    backward_fn = _backward_stream if size > MAX_UNARY_PAYLOAD_SIZE else _backward_unary
+    deserialized_grad_inputs = await backward_fn(uid, serialized_tensors, stub, timeout, metadata=metadata, **kwargs)
     return deserialized_grad_inputs
