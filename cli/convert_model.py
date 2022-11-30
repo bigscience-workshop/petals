@@ -9,9 +9,9 @@ from hivemind.utils.logging import get_logger, use_hivemind_log_handler
 from huggingface_hub import Repository
 from tqdm.auto import tqdm
 
-from src import BloomModel
-from src.bloom.from_pretrained import BLOCK_BRANCH_PREFIX, CLIENT_BRANCH
-from src.client import DistributedBloomConfig
+from petals.import BloomModel
+from petals.bloom.from_pretrained import BLOCK_BRANCH_PREFIX, CLIENT_BRANCH
+from petals.client import DistributedBloomConfig
 
 use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)

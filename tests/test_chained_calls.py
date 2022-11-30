@@ -10,9 +10,9 @@ import torch
 from test_utils import *
 
 import src
-from src.bloom.from_pretrained import load_pretrained_block
-from src.client.remote_sequential import RemoteSequential
-from src.dht_utils import get_remote_sequence
+from petals.bloom.from_pretrained import load_pretrained_block
+from petals.client.remote_sequential import RemoteSequential
+from petals.dht_utils import get_remote_sequence
 
 
 @pytest.mark.forked
