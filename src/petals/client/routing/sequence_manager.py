@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import random
 import threading
+import time
 from typing import List, Optional, Sequence, Tuple, Union
 
 from hivemind import DHT, P2P, DHTExpiration, MSGPackSerializer
@@ -45,7 +46,7 @@ class RemoteSequenceManager(threading.Thread):
         block_uids: Sequence[ModuleUID],
         p2p: P2P,
         max_retries: int = 3,
-        update_period: float = 30,  # TODO actually use this
+        update_period: float = 30,
         timeout: float = 20,
         min_backoff: float = 1,
         *,  # dear dev, if you add more parameters to this class, please make sure to handle them in __getitem__ (below)
@@ -69,7 +70,7 @@ class RemoteSequenceManager(threading.Thread):
         self.lock_changes = threading.Lock()  # TODO-USED? # internal lock on sequence_info and strategies
         self.update_trigger = threading.Event()  # TODO-USED?
 
-        self.update_()
+        self.update_() #TODO switch away to async update and await?
 
         for uid, info in zip(self.block_uids, self.block_infos):
             assert info is not None, f"Found no remote peers for block {uid}"
@@ -91,16 +92,20 @@ class RemoteSequenceManager(threading.Thread):
         self.ready.set()
 
         while not self._should_shutdown:
-            self.update_trigger.wait(self.update_period)
+            self.update_trigger.wait(max(0.0, min(self.update_period, time.perf_counter() - self.last_update_time)))
+
             if self._should_shutdown:
                 logger.debug(f"{self.__class__.__name__} is shutting down")
                 break
 
+            if not self.update_trigger.is_set() and time.perf_counter() - self.last_update_time >= self.update_period:
+                continue  # waited for update_period, but found that our info was already updated in the meantime
+
             try:
                 self.update_()
+                self.update_trigger.clear()
             except Exception as e:
                 logger.exception(e)
-            self.update_trigger.clear()
 
         logger.info(f"{self.__class__.__name__} thread exited")
 
@@ -111,6 +116,8 @@ class RemoteSequenceManager(threading.Thread):
         :param start_index: optional index of the first module in a sequence, default = the first of block_uids
         :param end_index: optional index of the last module (non-inclusive), default = after last of block uids
         """
+        if not self.is_alive():
+            logger.error("Using a sequence manager that is not running: it has either crashed or never started")
         end_index = end_index if end_index is not None else len(self.block_uids)
         span_sequence = []
         current_index = start_index
@@ -145,10 +152,16 @@ class RemoteSequenceManager(threading.Thread):
             subseq.last_update_time = self.last_update_time
         return subseq
 
+    def trigger_update(self):
+        """Run an asynchronous update in background as soon as possible"""
+        self.update_trigger.set()
+
     def update_(self):
+        """Perform an immediate and synchronous refresh"""
         with self.lock_changes:
             self.update_block_infos_()
             self.spans_by_priority, self.spans_containing_block = self.compute_spans(self.block_infos)
+            self.last_update_time = time.perf_counter()
 
     def update_block_infos_(self):
         new_block_infos = petals.dht_utils.get_remote_module_infos(
@@ -240,3 +253,11 @@ class RemoteSequenceManager(threading.Thread):
         :returns: msgpack-serialized metadata dict that will be passed alongside a given request
         """
         return MSGPackSerializer.dumps(dict(points=self.policy.get_points(protocol, *args, **kwargs)))
+
+    def shutdown(self):
+        self._should_shutdown = True
+        self.update_trigger.set()
+
+    def __del__(self):
+        if self.is_alive():
+            self.shutdown()

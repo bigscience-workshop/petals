@@ -80,7 +80,6 @@ class RemoteSequential(nn.Module):
         return len(self.sequence_manager)
 
     def inference_session(self, **kwargs) -> InferenceSession:
-        self.sequence_manager.update_()
         return InferenceSession(self.sequence_manager, self.p2p, **kwargs)
 
     def extra_repr(self) -> str:
