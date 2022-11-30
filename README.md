@@ -1,6 +1,7 @@
 <p align="center">
     <img src="https://i.imgur.com/7eR7Pan.png" width="400"><br>
-    Decentralized platform for running 100B+ language models<br><br>
+    Easy way to efficiently run 100B+ language models<br>
+    without high-end GPUs<br><br>
     <a href="https://github.com/bigscience-workshop/petals/actions">
         <img src="https://github.com/bigscience-workshop/petals/actions/workflows/run-tests.yaml/badge.svg?branch=main">
     </a>
@@ -11,10 +12,10 @@
 
 ## Key features
 
-- Run inference or fine-tune large language models like [BLOOM-176B](https://huggingface.co/bigscience/bloom) by joining compute resources with people all over the Internet. No need to have high-end GPUs.
-- It's difficult to fit the whole BLOOM-176B into GPU memory [unless](https://twitter.com/Tim_Dettmers/status/1559892918395031552) you have multiple high-end GPUs. Instead, **Petals** allows to load and serve a small part of the model, then team up with people serving all the other parts to run inference or fine-tuning.
-- This way, one inference step takes ≈ 1 sec — much faster than possible with offloading. Enough for chatbots and other interactive apps.
-- Beyond traditional language model APIs — you can employ any fine-tuning and sampling methods by executing custom paths through the model or accessing its hidden states. This allows for the comforts of an API with the flexibility of PyTorch.
+- Run inference or fine-tune large language models like [BLOOM-176B](https://huggingface.co/bigscience/bloom) by joining compute resources with people all over the Internet.
+- **Petals** allows to load and serve a small part of the model, then team up with people serving the other parts to run inference or fine-tuning.
+- This way, one inference step takes ≈ 1 sec — 10x faster than possible with offloading. Enough for chatbots and other interactive apps.
+- Beyond classic language model APIs — you can employ any fine-tuning and sampling methods by executing custom paths through the model or accessing its hidden states. This combines the comforts of an API with the flexibility of PyTorch.
 
 <p align="center">
     📜 &nbsp;<b><a href="https://arxiv.org/pdf/2209.01188.pdf">Read paper</a></b>
@@ -84,10 +85,10 @@ This is important because it's technically possible for peers serving model laye
 
 ## Installation
 
-Here's how to install the dependencies with conda:
+Here's how to install Petals with conda:
 ```
 conda install pytorch torchvision torchaudio cudatoolkit=11.3 -c pytorch
-pip install -r requirements.txt
+pip install git+https://github.com/bigscience-workshop/petals
 ```
 
 This script uses Anaconda to install cuda-enabled PyTorch.
@@ -106,7 +107,7 @@ For a detailed instruction with larger models, see ["Launch your own swarm"](htt
 
 First, run a couple of servers, each in a separate shell. To launch your first server, run:
 ```bash
-python -m cli.run_server bloom-testing/test-bloomd-560m-main --num_blocks 8 --torch_dtype float32 \
+python -m petals.cli.run_server bloom-testing/test-bloomd-560m-main --num_blocks 8 --torch_dtype float32 \
   --host_maddrs /ip4/127.0.0.1/tcp/31337   # use port 31337, local connections only
 ```
 
@@ -123,7 +124,7 @@ Mon Day 01:23:45.678 [INFO] Running DHT node on ['/ip4/127.0.0.1/tcp/31337/p2p/A
 You can use this address (`/ip4/whatever/else`) to connect additional servers. Open another terminal and run:
 
 ```bash
-python -m cli.run_server bloom-testing/test-bloomd-560m-main --num_blocks 8 --torch_dtype float32 \
+python -m petals.cli.run_server bloom-testing/test-bloomd-560m-main --num_blocks 8 --torch_dtype float32 \
   --host_maddrs /ip4/127.0.0.1/tcp/0 \
   --initial_peers /ip4/127.0... # <-- TODO: Copy the address of another server here
 # e.g. --initial_peers /ip4/127.0.0.1/tcp/31337/p2p/QmS1GecIfYouAreReadingThisYouNeedToCopyYourServerAddressCBBq
@@ -139,11 +140,11 @@ Once your have enough servers, you can use them to train and/or inference the mo
 ```python
 import torch
 import torch.nn.functional as F
-import transformers
-from src import DistributedBloomForCausalLM
+from transformers import BloomTokenizerFast
+from petals.client import DistributedBloomForCausalLM
 
 initial_peers = [TODO_put_one_or_more_server_addresses_here]  # e.g. ["/ip4/127.0.0.1/tcp/more/stuff/here"]
-tokenizer = transformers.BloomTokenizerFast.from_pretrained("bloom-testing/test-bloomd-560m-main")
+tokenizer = BloomTokenizerFast.from_pretrained("bloom-testing/test-bloomd-560m-main")
 model = DistributedBloomForCausalLM.from_pretrained(
   "bloom-testing/test-bloomd-560m-main", initial_peers=initial_peers, low_cpu_mem_usage=True, torch_dtype=torch.float32
 )  # this model has only embeddings / logits, all transformer blocks rely on remote servers
@@ -169,21 +170,26 @@ Here's a [more advanced tutorial](https://github.com/bigscience-workshop/petals/
 
 ## 🛠️ Development
 
-Petals uses pytest with a few plugins. To install them, run `pip install -r requirements-dev.txt`
+Petals uses pytest with a few plugins. To install them, run:
+
+```python
+git clone https://github.com/bigscience-workshop/petals.git && cd petals
+pip install -e .[dev]
+```
 
 To run minimalistic tests, spin up some servers:
 
 ```bash
 export MODEL_NAME=bloom-testing/test-bloomd-560m-main
 export INITIAL_PEERS=/ip4/127.0.0.1/tcp/31337/p2p/QmS9KwZptnVdB9FFV7uGgaTq4sEKBwcYeKZDfSpyKDUd1g
-python -m cli.run_server $MODEL_NAME --block_indices 0:12 --throughput 1 --torch_dtype float32 \
+python -m petals.cli.run_server $MODEL_NAME --block_indices 0:12 --throughput 1 --torch_dtype float32 \
   --identity tests/test.id --host_maddrs /ip4/127.0.0.1/tcp/31337  &> server1.log &
 sleep 5  # wait for the first server to initialize DHT
-python -m cli.run_server $MODEL_NAME --block_indices 12:24 --throughput 1 --torch_dtype float32 \
+python -m petals.cli.run_server $MODEL_NAME --block_indices 12:24 --throughput 1 --torch_dtype float32 \
   --initial_peers /ip4/127.0.0.1/tcp/31337/p2p/QmS9KwZptnVdB9FFV7uGgaTq4sEKBwcYeKZDfSpyKDUd1g &> server2.log &
 
 tail -f server1.log server2.log  # view logs for both servers
-# after you're done, kill servers with 'pkill -f cli.run_server'
+# after you're done, kill servers with 'pkill -f petals.cli.run_server'
 ```
 
 Then launch pytest:

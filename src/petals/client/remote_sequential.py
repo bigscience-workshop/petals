@@ -7,12 +7,12 @@ from hivemind import DHT, P2P, get_logger, use_hivemind_log_handler
 from hivemind.moe.client.remote_expert_worker import RemoteExpertWorker
 from torch import nn
 
-import src
-from src.client.inference_session import InferenceSession
-from src.client.sequence_manager import RemoteSequenceManager
-from src.client.sequential_autograd import _RemoteSequentialAutogradFunction
-from src.data_structures import UID_DELIMITER
-from src.utils.misc import DUMMY
+import petals.client
+from petals.client.inference_session import InferenceSession
+from petals.client.sequence_manager import RemoteSequenceManager
+from petals.client.sequential_autograd import _RemoteSequentialAutogradFunction
+from petals.data_structures import UID_DELIMITER
+from petals.utils.misc import DUMMY
 
 use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
@@ -25,7 +25,7 @@ class RemoteSequential(nn.Module):
 
     def __init__(
         self,
-        config: src.DistributedBloomConfig,
+        config: petals.client.DistributedBloomConfig,
         dht: DHT,
         dht_prefix: Optional[str] = None,
         p2p: Optional[P2P] = None,

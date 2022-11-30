@@ -13,7 +13,7 @@ from hivemind.proto import runtime_pb2
 from hivemind.utils.asyncio import aiter_with_timeout, iter_as_aiter
 from hivemind.utils.streaming import split_for_streaming
 
-from src.data_structures import ModuleUID, RPCInfo
+from petals.data_structures import ModuleUID, RPCInfo
 
 
 async def _forward_unary(

@@ -6,10 +6,10 @@ from hivemind import BatchTensorDescriptor, use_hivemind_log_handler
 from hivemind.moe.server.module_backend import ModuleBackend
 from hivemind.utils import get_logger
 
-from src.bloom.from_pretrained import BloomBlock
-from src.server.cache import MemoryCache
-from src.server.task_pool import PrioritizedTaskPool
-from src.utils.misc import is_dummy
+from petals.bloom.from_pretrained import BloomBlock
+from petals.server.cache import MemoryCache
+from petals.server.task_pool import PrioritizedTaskPool
+from petals.utils.misc import is_dummy
 
 use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
