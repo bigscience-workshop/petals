@@ -90,7 +90,7 @@ def measure_throughput_info() -> ThroughputInfo:
 
 
 def measure_network_rps(config: BloomConfig) -> float:
-    proc = subprocess.run([SPEED_TEST_PATH, "--json"], capture_output=True)
+    proc = subprocess.run("python -m petals.cli.speed_test --json", shell=True, capture_output=True)
     if proc.returncode != 0:
         raise RuntimeError(f"Failed to measure network throughput (stdout: {proc.stdout}, stderr: {proc.stderr})")
     network_info = json.loads(proc.stdout)
