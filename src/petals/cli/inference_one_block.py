@@ -4,9 +4,9 @@ import torch
 from hivemind.utils.logging import get_logger, use_hivemind_log_handler
 from tqdm.auto import trange
 
-from src.bloom.block import BloomBlock
-from src.bloom.model import BloomConfig
-from src.bloom.ops import build_alibi_tensor
+from petals.bloom.block import BloomBlock
+from petals.bloom.model import BloomConfig
+from petals.bloom.ops import build_alibi_tensor
 
 use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)

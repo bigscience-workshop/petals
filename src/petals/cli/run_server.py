@@ -6,8 +6,8 @@ from hivemind.utils.limits import increase_file_limit
 from hivemind.utils.logging import get_logger, use_hivemind_log_handler
 from humanfriendly import parse_size
 
-from src.constants import PUBLIC_INITIAL_PEERS
-from src.server.server import Server
+from petals.constants import PUBLIC_INITIAL_PEERS
+from petals.server.server import Server
 
 use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)

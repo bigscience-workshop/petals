@@ -5,8 +5,8 @@ from hivemind import get_logger, use_hivemind_log_handler
 from test_utils import *
 from transformers.generation_utils import BeamSearchScorer
 
-from src.bloom.model import BloomForCausalLM
-from src.client.remote_model import DistributedBloomForCausalLM
+from petals.bloom.model import BloomForCausalLM
+from petals.client.remote_model import DistributedBloomForCausalLM
 
 use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
