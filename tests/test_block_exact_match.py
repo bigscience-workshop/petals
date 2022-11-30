@@ -7,8 +7,8 @@ import transformers
 from hivemind import P2PHandlerError
 from test_utils import *
 
-import src
-from petals.import DistributedBloomConfig
+import petals
+from petals import DistributedBloomConfig
 from petals.bloom.from_pretrained import load_pretrained_block
 from petals.client.remote_sequential import RemoteTransformerBlock
 from petals.data_structures import UID_DELIMITER

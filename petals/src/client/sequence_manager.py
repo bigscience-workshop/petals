@@ -9,10 +9,10 @@ from hivemind.moe.client.remote_expert_worker import RemoteExpertWorker
 from hivemind.proto import runtime_pb2
 from hivemind.utils.logging import get_logger, use_hivemind_log_handler
 
-from src.client.spending_policy import NoSpendingPolicy
-from src.data_structures import ModuleUID, RemoteModuleInfo, RemoteSpanInfo, ServerState
-from src.dht_utils import get_remote_module_infos
-from src.server.handler import TransformerConnectionHandler
+from petals.client.spending_policy import NoSpendingPolicy
+from petals.data_structures import ModuleUID, RemoteModuleInfo, RemoteSpanInfo, ServerState
+from petals.dht_utils import get_remote_module_infos
+from petals.server.handler import TransformerConnectionHandler
 
 use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)

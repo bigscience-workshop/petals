@@ -11,7 +11,7 @@ from typing import Dict, Union
 import torch
 from hivemind.utils.logging import get_logger, use_hivemind_log_handler
 
-from petals.import project_name
+from petals import project_name
 from petals.bloom.block import BloomBlock
 from petals.bloom.model import BloomConfig
 from petals.bloom.ops import build_alibi_tensor
