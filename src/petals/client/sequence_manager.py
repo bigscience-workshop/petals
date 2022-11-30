@@ -10,6 +10,7 @@ from hivemind.proto import runtime_pb2
 from hivemind.utils.logging import get_logger, use_hivemind_log_handler
 
 import petals.dht_utils
+from petals.client import NoSpendingPolicy
 from petals.data_structures import ModuleUID, RemoteModuleInfo, RemoteSpanInfo, ServerState
 from petals.server.handler import TransformerConnectionHandler
 
