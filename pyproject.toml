@@ -1,28 +1,9 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = [
+    "setuptools>=42",
+    "wheel"
+]
 build-backend = "setuptools.build_meta"
-
-[project]
-name = "petals"
-version = "1.0alpha1"
-authors = [
-  { name="Petals Developers", email="petals-dev@googlegroups.com" },
-]
-description = "Easy way to efficiently run 100B+ language models without high-end GPUs"
-readme = "README.md"
-requires-python = ">=3.7"
-classifiers = [
-    "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
-]
-dynamic = ["dependencies"]
-
-[project.urls]
-"Homepage" = "https://github.com/bigscience-workshop/petals"
-"Bug Tracker" = "https://github.com/bigscience-workshop/petals/issues"
-
-[tool.setuptools.dynamic]
-dependencies = {file = ["requirements.txt"]}
 
 [tool.black]
 line-length = 120
