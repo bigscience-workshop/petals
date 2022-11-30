@@ -85,7 +85,7 @@ class DistributedBloomModel(BloomModel):
             else hivemind.DHT(initial_peers=config.initial_peers, client_mode=True, start=True)
         )
         assert isinstance(dht, hivemind.DHT) and dht.is_alive(), "dht must be a running hivemind.DHT instance"
-        self.h = RemoteSequential(config, dht, config.dht_prefix, sequence_manager_timeout=config.request_timeout)
+        self.h = RemoteSequential(config, dht, config.dht_prefix, request_timeout=config.request_timeout)
 
         # Forbid accumulate grads for embeddings and layernorm
         self.set_requires_grad(False)

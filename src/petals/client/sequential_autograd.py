@@ -78,7 +78,7 @@ async def sequential_forward(
                     stub,
                     sequence_manager.rpc_info,
                     *inputs_and_prompts,
-                    timeout=sequence_manager.timeout,
+                    timeout=sequence_manager.request_timeout,
                     metadata=metadata,
                 )
 
@@ -162,7 +162,7 @@ async def sequential_backward(
                     inputs,
                     grad_outputs,
                     prompts[span.start : span.end],
-                    timeout=sequence_manager.timeout,
+                    timeout=sequence_manager.request_timeout,
                     metadata=metadata,
                 )
                 grad_outputs = [grad_outputs]
