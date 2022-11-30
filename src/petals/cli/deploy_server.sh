@@ -32,7 +32,7 @@ while getopts ":m:i:d:p:b:a:t:" option; do
             ;;
         b)  BLOCK_IDS=${OPTARG}
             ;;
-        a)  HOST_MADDR=${OPTARG} # TODO: allow several maddrs 
+        a)  HOST_MADDR=${OPTARG} # TODO: allow several maddrs
             ;;
         t)  RUN_LOCAL_TESTS=true
             ;;
@@ -67,7 +67,7 @@ else
 
     conda install -y -c conda-forge cudatoolkit-dev==11.3.1 cudatoolkit==11.3.1 cudnn==8.2.1.32
     pip install -i https://pypi.org/simple torch==1.12.0+cu113 -f https://download.pytorch.org/whl/torch_stable.html
-    pip install -i https://pypi.org/simple -r requirements.txt
+    pip install -i https://pypi.org/simple -r .
     pip install -i https://test.pypi.org/simple/ bitsandbytes-cuda113
 fi
 
@@ -75,5 +75,5 @@ fi
 # Run server #
 ##############
 
-python -m cli.run_server --converted_model_name_or_path ${MODEL_NAME} --device ${DEVICE} --initial_peer ${INITIAL_PEER} \
+python -m petals.cli.run_server --converted_model_name_or_path ${MODEL_NAME} --device ${DEVICE} --initial_peer ${INITIAL_PEER} \
   --block_indices ${BLOCK_IDS} --compression UNIFORM_8BIT --identity_path ${SERVER_ID_PATH} --host_maddrs ${HOST_MADDR} --load_in_8bit &> ${SERVER_ID_PATH}.log
