@@ -26,7 +26,7 @@ from transformers.models.bloom.configuration_bloom import BloomConfig
 from transformers.models.bloom.modeling_bloom import BloomPreTrainedModel
 from transformers.utils import logging
 
-from src.bloom.block import BloomBlock
+from petals.bloom.block import BloomBlock
 
 use_hivemind_log_handler("in_root_logger")
 logger = logging.get_logger(__file__)

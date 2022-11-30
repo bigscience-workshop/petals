@@ -3,16 +3,13 @@ import random
 import hivemind
 import pytest
 import torch
-import transformers
-from hivemind import P2PHandlerError
 from test_utils import *
 
-import src
-from src import DistributedBloomConfig
-from src.bloom.from_pretrained import load_pretrained_block
-from src.client.remote_sequential import RemoteTransformerBlock
-from src.data_structures import UID_DELIMITER
-from src.dht_utils import get_remote_module
+from petals.client import DistributedBloomConfig
+from petals.bloom.from_pretrained import load_pretrained_block
+from petals.client.remote_sequential import RemoteTransformerBlock
+from petals.data_structures import UID_DELIMITER
+from petals.dht_utils import get_remote_module
 
 
 @pytest.mark.forked

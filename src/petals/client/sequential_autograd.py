@@ -11,11 +11,11 @@ import torch
 from hivemind.moe.client.remote_expert_worker import RemoteExpertWorker
 from hivemind.utils.logging import get_logger
 
-from src.client.remote_forward_backward import run_remote_backward, run_remote_forward
-from src.client.sequence_manager import RemoteSequenceManager
-from src.data_structures import CHAIN_DELIMITER, RemoteSpanInfo
-from src.server.handler import TransformerConnectionHandler
-from src.utils.misc import DUMMY, is_dummy
+from petals.client.remote_forward_backward import run_remote_backward, run_remote_forward
+from petals.client.sequence_manager import RemoteSequenceManager
+from petals.data_structures import CHAIN_DELIMITER, RemoteSpanInfo
+from petals.server.handler import TransformerConnectionHandler
+from petals.utils.misc import DUMMY, is_dummy
 
 logger = get_logger(__file__)
 

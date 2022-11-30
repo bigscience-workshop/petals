@@ -3,14 +3,14 @@ from typing import List, Optional
 import torch
 from hivemind.utils.logging import get_logger
 
-from src.utils.generation_algorithms import (
+from petals.utils.generation_algorithms import (
     BeamSearchAlgorithm,
     DecodingAlgorithm,
     GreedyAlgorithm,
     NucleusAlgorithm,
     TopKAlgorithm,
 )
-from src.utils.generation_constraints import ABCBloomConstraint, EosConstraint
+from petals.utils.generation_constraints import ABCBloomConstraint, EosConstraint
 
 logger = get_logger(__file__)
 

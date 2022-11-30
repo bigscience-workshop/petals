@@ -4,8 +4,8 @@ import time
 import pytest
 import torch
 
-from src.server.runtime import Runtime
-from src.server.task_pool import PrioritizedTaskPool
+from petals.server.runtime import Runtime
+from petals.server.task_pool import PrioritizedTaskPool
 
 
 @pytest.mark.forked
