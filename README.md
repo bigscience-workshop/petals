@@ -170,7 +170,12 @@ Here's a [more advanced tutorial](https://github.com/bigscience-workshop/petals/
 
 ## 🛠️ Development
 
-Petals uses pytest with a few plugins. To install them, run `pip install -r requirements-dev.txt`
+Petals uses pytest with a few plugins. To install them, run:
+
+```python
+git clone https://github.com/bigscience-workshop/petals.git && cd petals
+pip install -e .[dev]
+```
 
 To run minimalistic tests, spin up some servers:
 
