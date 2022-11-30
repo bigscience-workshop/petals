@@ -9,7 +9,7 @@ from torch import nn
 
 import petals.client
 from petals.client.inference_session import InferenceSession
-from petals.client.sequence_manager import RemoteSequenceManager
+from petals.client.routing.sequence_manager import RemoteSequenceManager
 from petals.client.sequential_autograd import _RemoteSequentialAutogradFunction
 from petals.data_structures import UID_DELIMITER
 from petals.utils.misc import DUMMY
