@@ -37,7 +37,7 @@ jobs:
       - name: Convert model and push to hub
         run: |
           export HF_TAG=$(python -c "import os; print(os.environ.get('GITHUB_HEAD_REF') or os.environ.get('GITHUB_REF_NAME'))")
-          python -m cli.convert_model --model bigscience/bloom-560m  --output_path ./converted_model \
+          python -m petals.cli.convert_model --model bigscience/bloom-560m  --output_path ./converted_model \
             --output_repo bloom-testing/test-bloomd-560m-$HF_TAG --use_auth_token $BLOOM_TESTING_WRITE_TOKEN \
             --resize_token_embeddings 50000
 
@@ -70,7 +70,7 @@ jobs:
           export MODEL_NAME=bloom-testing/test-bloomd-560m-$HF_TAG
           export REF_NAME=bigscience/bloom-560m
 
-          python -m cli.run_server --converted_model_name_or_path $MODEL_NAME --block_indices 0:12 \
+          python -m petals.cli.run_server --converted_model_name_or_path $MODEL_NAME --block_indices 0:12 \
             --new_swarm --identity tests/test.id --host_maddrs /ip4/127.0.0.1/tcp/31337 --throughput 1 \
             --torch_dtype float32 --compression NONE --attn_cache_size 0.2GiB &> server1.log &
           SERVER1_PID=$!
@@ -80,21 +80,21 @@ jobs:
           export INITIAL_PEERS=/ip4/127.0.0.1/tcp/31337/p2p/QmS9KwZptnVdB9FFV7uGgaTq4sEKBwcYeKZDfSpyKDUd1g
           # ^-- server 1 multiaddr is determined by --identity and --host_maddrs
 
-          python -m cli.run_server --converted_model_name_or_path $MODEL_NAME --block_indices 12:22 \
+          python -m petals.cli.run_server --converted_model_name_or_path $MODEL_NAME --block_indices 12:22 \
             --initial_peers $INITIAL_PEERS --throughput 1 --torch_dtype float32 &> server2.log &
           SERVER2_PID=$!
 
           sleep 10 # wait for initial servers to declare blocks, then let server decide which blocks to serve
 
-          python -m cli.run_server --converted_model_name_or_path $MODEL_NAME --block_indices 0:6 \
+          python -m petals.cli.run_server --converted_model_name_or_path $MODEL_NAME --block_indices 0:6 \
             --initial_peers $INITIAL_PEERS --throughput 1 --torch_dtype float32 &> server3.log &
           SERVER3_PID=$!
 
-          python -m cli.run_server --converted_model_name_or_path $MODEL_NAME --block_indices 4:16 \
+          python -m petals.cli.run_server --converted_model_name_or_path $MODEL_NAME --block_indices 4:16 \
             --torch_dtype float32 --initial_peers $INITIAL_PEERS --throughput 1 &> server4.log &
           SERVER4_PID=$!
 
-          python -m cli.run_server --converted_model_name_or_path $MODEL_NAME --num_blocks 3 \
+          python -m petals.cli.run_server --converted_model_name_or_path $MODEL_NAME --num_blocks 3 \
             --initial_peers $INITIAL_PEERS --throughput 1 --torch_dtype float32 &> server5.log &
           SERVER5_PID=$!
 

@@ -107,7 +107,7 @@ For a detailed instruction with larger models, see ["Launch your own swarm"](htt
 
 First, run a couple of servers, each in a separate shell. To launch your first server, run:
 ```bash
-python -m cli.run_server bloom-testing/test-bloomd-560m-main --num_blocks 8 --torch_dtype float32 \
+python -m petals.cli.run_server bloom-testing/test-bloomd-560m-main --num_blocks 8 --torch_dtype float32 \
   --host_maddrs /ip4/127.0.0.1/tcp/31337   # use port 31337, local connections only
 ```
 
@@ -124,7 +124,7 @@ Mon Day 01:23:45.678 [INFO] Running DHT node on ['/ip4/127.0.0.1/tcp/31337/p2p/A
 You can use this address (`/ip4/whatever/else`) to connect additional servers. Open another terminal and run:
 
 ```bash
-python -m cli.run_server bloom-testing/test-bloomd-560m-main --num_blocks 8 --torch_dtype float32 \
+python -m petals.cli.run_server bloom-testing/test-bloomd-560m-main --num_blocks 8 --torch_dtype float32 \
   --host_maddrs /ip4/127.0.0.1/tcp/0 \
   --initial_peers /ip4/127.0... # <-- TODO: Copy the address of another server here
 # e.g. --initial_peers /ip4/127.0.0.1/tcp/31337/p2p/QmS1GecIfYouAreReadingThisYouNeedToCopyYourServerAddressCBBq
@@ -176,14 +176,14 @@ To run minimalistic tests, spin up some servers:
 ```bash
 export MODEL_NAME=bloom-testing/test-bloomd-560m-main
 export INITIAL_PEERS=/ip4/127.0.0.1/tcp/31337/p2p/QmS9KwZptnVdB9FFV7uGgaTq4sEKBwcYeKZDfSpyKDUd1g
-python -m cli.run_server $MODEL_NAME --block_indices 0:12 --throughput 1 --torch_dtype float32 \
+python -m petals.cli.run_server $MODEL_NAME --block_indices 0:12 --throughput 1 --torch_dtype float32 \
   --identity tests/test.id --host_maddrs /ip4/127.0.0.1/tcp/31337  &> server1.log &
 sleep 5  # wait for the first server to initialize DHT
-python -m cli.run_server $MODEL_NAME --block_indices 12:24 --throughput 1 --torch_dtype float32 \
+python -m petals.cli.run_server $MODEL_NAME --block_indices 12:24 --throughput 1 --torch_dtype float32 \
   --initial_peers /ip4/127.0.0.1/tcp/31337/p2p/QmS9KwZptnVdB9FFV7uGgaTq4sEKBwcYeKZDfSpyKDUd1g &> server2.log &
 
 tail -f server1.log server2.log  # view logs for both servers
-# after you're done, kill servers with 'pkill -f cli.run_server'
+# after you're done, kill servers with 'pkill -f petals.cli.run_server'
 ```
 
 Then launch pytest:
