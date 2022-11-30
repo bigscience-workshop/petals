@@ -22,11 +22,6 @@ RUN conda install python~=3.10 pip && \
     pip install --no-cache-dir "torch>=1.12" torchvision torchaudio && \
     conda clean --all && rm -rf ~/.cache/pip
 
-COPY requirements.txt petals/requirements.txt
-COPY requirements-dev.txt petals/requirements-dev.txt
-RUN pip install --no-cache-dir -r petals/requirements.txt && \
-    pip install --no-cache-dir -r petals/requirements-dev.txt
-
 COPY . petals/
 RUN pip install -e petals[dev]
 
