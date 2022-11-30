@@ -140,7 +140,8 @@ Once your have enough servers, you can use them to train and/or inference the mo
 ```python
 import torch
 import torch.nn.functional as F
-from petals.client import BloomTokenizerFast, DistributedBloomForCausalLM
+from transformers import BloomTokenizerFast
+from petals.client import DistributedBloomForCausalLM
 
 initial_peers = [TODO_put_one_or_more_server_addresses_here]  # e.g. ["/ip4/127.0.0.1/tcp/more/stuff/here"]
 tokenizer = BloomTokenizerFast.from_pretrained("bloom-testing/test-bloomd-560m-main")

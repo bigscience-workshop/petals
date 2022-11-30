@@ -1,5 +1,3 @@
-from transformers import BloomTokenizerFast
-
 from petals.client.inference_session import InferenceSession
 from petals.client.remote_model import DistributedBloomConfig, DistributedBloomForCausalLM, DistributedBloomModel
 from petals.client.remote_sequential import RemoteSequential, RemoteTransformerBlock
