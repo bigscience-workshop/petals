@@ -65,15 +65,16 @@ class RemoteSequenceManager(threading.Thread):
         self._rpc_info = None
         self._should_shutdown = False
         self.policy = NoSpendingPolicy()
+        self.ready = threading.Event()  # TODO-USED? # whether or not you are ready to make_sequence
+        self.lock_changes = threading.Lock()  # TODO-USED? # internal lock on sequence_info and strategies
+        self.update_trigger = threading.Event()  # TODO-USED?
+
         self.update_()
 
         for uid, info in zip(self.block_uids, self.block_infos):
             assert info is not None, f"Found no remote peers for block {uid}"
         assert self.spans_by_priority and self.spans_containing_block
 
-        self.ready = threading.Event()  # TODO-USED? # whether or not you are ready to make_sequence
-        self.lock_changes = threading.Lock()  # TODO-USED? # internal lock on sequence_info and strategies
-        self.update_trigger = threading.Event()  # TODO-USED?
 
         if start:
             self.run_in_background()
@@ -130,11 +131,6 @@ class RemoteSequenceManager(threading.Thread):
         if not isinstance(ix, slice):
             ix = slice(int(ix), int(ix) + 1, 1)
         with self.lock_changes:
-            #         max_retries: int = 3,
-            #         update_period: float = 30, # TODO actually use this
-            #         timeout: float = 20,
-            #         min_backoff: float = 1,
-
             subseq = RemoteSequenceManager(
                 self.dht,
                 self.block_uids[ix],
