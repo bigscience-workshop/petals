@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "petals"
 version = "1.0alpha1"
 authors = [
-  { name="Alexander Borzunov", email="borzunov.alexander@gmail.com" },
+  { name="Petals Developers", email="petals-dev@googlegroups.com" },
 ]
 description = "Easy way to efficiently run 100B+ language models without high-end GPUs"
 readme = "README.md"
