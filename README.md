@@ -85,10 +85,10 @@ This is important because it's technically possible for peers serving model laye
 
 ## Installation
 
-Here's how to install the dependencies with conda:
+Here's how to install Petals with conda:
 ```
 conda install pytorch torchvision torchaudio cudatoolkit=11.3 -c pytorch
-pip install -r requirements.txt
+pip install git+https://github.com/bigscience-workshop/petals
 ```
 
 This script uses Anaconda to install cuda-enabled PyTorch.

@@ -40,7 +40,7 @@ else
 
     conda install -y -c conda-forge cudatoolkit-dev==11.3.1 cudatoolkit==11.3.1 cudnn==8.2.1.32
     pip install -i https://pypi.org/simple torch==1.12.0+cu113 -f https://download.pytorch.org/whl/torch_stable.html
-    pip install -i https://pypi.org/simple -r requirements.txt
+    pip install -i https://pypi.org/simple -r .
     pip install -i https://test.pypi.org/simple/ bitsandbytes-cuda113
 fi
 
@@ -59,7 +59,7 @@ echo "Initial peer: ${INITIAL_PEER}"
 # Initialize the config file #
 ##############################
 
-typeset -A cfg 
+typeset -A cfg
 cfg=( # set default values in config array
     [device]="cpu"
     [block_ids]="1:2"
@@ -72,7 +72,7 @@ cfg=( # set default values in config array
 ###############
 
 for SERVER_ID in $(seq 0 $(( $NUM_SERVERS - 1 )) )
-do  
+do
     ###############
     # Read config #
     ###############
@@ -85,14 +85,14 @@ do
             cfg[$varname]=$(echo "$line" | cut -d '=' -f 2-)
         fi
     done < ${CONFIG_PATH}/server_${SERVER_ID}.cfg
-    
+
     echo "=== Server #${SERVER_ID} ==="
     echo "Server ID: ${cfg[id_path]}"
     echo "Device: ${cfg[device]}"
     echo "Bloom block ids: ${cfg[block_ids]}"
     echo "Host maddr: ${cfg[maddr]}"
     echo ""
-    
+
     ##############
     # Run server #
     ##############
