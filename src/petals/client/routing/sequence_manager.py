@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import itertools
+import logging
 import random
 import threading
 import time
@@ -35,8 +37,8 @@ class RemoteSequenceManager:
     :param update_period: by default, refresh DHT information once in this many seconds
     :param timeout: float, in seconds, default timeout for RPC forwad/backward/inference requests
     :param min_backoff: after a repeated failure, sleep for this many seconds times 2 ^ (num_failures - 1)
-    :param max_retries: DEPRECATED. If you are reading this, yozh needs to fix the PR
     :param sequence_info: optionally, specify pre-generated sequence info. by default, create a new one using dht
+    :param rpc_info: optionally, specify rpc info (communicated tensor shapes and compression) to save time
     :param start: start the background thread (see the note below). If false, you will need to start it manually.
     :note: RemoteSequenceManager takes up some CPU and network I/O to operate in background. It is recommended to avoid
       running redundant sequence managers for the same set of layers.
@@ -48,22 +50,21 @@ class RemoteSequenceManager:
         dht: DHT,
         block_uids: Sequence[ModuleUID],
         p2p: P2P,
-        max_retries: int = 3,
         update_period: float = 30,
         timeout: float = 20,
         min_backoff: float = 1,
         sequence_info: Optional[RemoteSequenceInfo] = None,
+        rpc_info: Optional[dict] = None,
         *,  # dear dev, if you add more parameters to this class, please make sure to handle them in __getitem__ (below)
         start: bool,
     ):
         assert len(block_uids) > 0, "Sequences must contain at least one block"
         self.dht, self.p2p = dht, p2p
-        self.max_retries = max_retries
         self.timeout, self.min_backoff = timeout, min_backoff
         self.lock_changes = threading.Lock()
         self._thread = _SequenceManagerUpdateThread(update_period, WeakMethod(self.update_))
         self.policy = NoSpendingPolicy()
-        self._rpc_info = None
+        self._rpc_info = rpc_info
 
         if sequence_info is None:
             self.sequence_info = RemoteSequenceInfo.make_empty(block_uids)
@@ -94,8 +95,10 @@ class RemoteSequenceManager:
         """
         if not self.is_alive():
             logger.error("Using a sequence manager that is not running: it has either crashed or never started")
-        if not self._thread.ready.is_set():
-            logger.warning("Remote SequenceManager is still planning routes, waiting for it to become ready")
+        if not self.ready.is_set():
+            logger.warning("Remote SequenceManager is still searching for routes, waiting for it to become ready")
+            self.ready.wait()
+
         end_index = end_index if end_index is not None else len(self)
         span_sequence = []
         current_index = start_index
@@ -118,11 +121,11 @@ class RemoteSequenceManager:
             self.dht,
             self.block_uids[ix],
             self.p2p,
-            sequence_info=self.sequence_info[ix],
-            max_retries=self.max_retries,
             update_period=self._thread.update_period,
             timeout=self.timeout,
             min_backoff=self.min_backoff,
+            sequence_info=self.sequence_info[ix],
+            rpc_info=self._rpc_info,
             start=True,
         )
 
@@ -132,17 +135,31 @@ class RemoteSequenceManager:
 
     def update_(self):
         """Perform an immediate and synchronous refresh, may take time"""
-        new_block_infos = petals.dht_utils.get_remote_module_infos(
-            self.dht, self.block_uids, expiration_time=float("inf"), frozen=False
-        )
-        with self.lock_changes:
-            self.sequence_info.update_(new_block_infos)
+        for attempt_no in itertools.count():
+            new_block_infos = petals.dht_utils.get_remote_module_infos(
+                self.dht, self.block_uids, expiration_time=float("inf"), frozen=False
+            )
+            with self.lock_changes:
+                self.sequence_info.update_(new_block_infos)
+            missing_blocks = [i for i in range(len(self)) if not self.sequence_info.spans_containing_block[i]]
+            if not missing_blocks:
+                self.ready.set()  # if there is an active server for every block, we may begin running
+                break
+            else:
+                delay = self.get_retry_delay(attempt_no)
+                logger.warning(f"Could not find blocks {missing_blocks} (retry in {delay:.0f} sec)")
+                time.sleep(delay)
 
     def __len__(self):
         return len(self.block_uids)
 
+    @property
     def is_alive(self):
-        return self._thread.is_alive()
+        return self._thread.is_alive
+
+    @property
+    def ready(self) -> threading.Event:
+        return self._thread.ready
 
     @property
     def block_uids(self):
@@ -152,9 +169,7 @@ class RemoteSequenceManager:
     def rpc_info(self):
         """Return the rpc_info queried from one of the servers that hold the first block"""
         if self._rpc_info is None:
-            retries = 0
-            for i in range(self.max_retries):
-                # TODO remove max_retries and introduce backoff
+            for attempt_no in itertools.count():
                 try:
                     self.update_()
                     peer_id, _ = random.choice(list(self.sequence_info.block_infos[0].servers.items()))
@@ -165,11 +180,15 @@ class RemoteSequenceManager:
                     self._rpc_info = MSGPackSerializer.loads(outputs.serialized_info)
                     break
                 except Exception as e:
-                    retries += 1
-                    if retries >= self.max_retries:
-                        raise e
-                    else:
-                        logger.warning(f"Tried to call rpc_info, but caught {repr(e)}", exc_info=True)
+                    delay = self.get_retry_delay(attempt_no)
+                    logger.warning(
+                        f"Caught exception when gathering information from peer {peer_id} "
+                        f"(retry in {delay:.0f} sec): {repr(e)}"
+                    )
+                    traceback_level = logging.DEBUG if str(e) else logging.WARNING
+                    logger.log(traceback_level, "See detailed traceback below:", exc_info=True)
+                    time.sleep(delay)
+
         return self._rpc_info
 
     def get_retry_delay(self, attempt_no: int) -> float:
@@ -202,6 +221,7 @@ class _SequenceManagerUpdateThread(threading.Thread):
 
     def run(self) -> None:
         while not self.should_shutdown:
+
             self.trigger.wait(max(0.0, min(self.update_period, time.perf_counter() - self.last_update_time)))
 
             if self.should_shutdown:
@@ -213,13 +233,12 @@ class _SequenceManagerUpdateThread(threading.Thread):
 
             update_manager = self.ref_update_manager()
             if update_manager is None:
-                logger.debug(f"{self.__class__.__name__} exited because the sequence manager got deallocated")
+                logger.debug(f"{self.__class__.__name__} exited because the sequence manager no longer exists")
                 break
 
             try:
                 update_manager()
                 self.trigger.clear()
-                self.ready.set()
             except Exception as e:
                 logger.exception(e)
             finally:
