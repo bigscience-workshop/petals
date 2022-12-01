@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 
 import torch
-from hivemind.moe.server.task_pool import Task
 
 
 class TaskPrioritizerBase(ABC):
