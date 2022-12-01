@@ -4,7 +4,7 @@ import threading
 import time
 from dataclasses import dataclass, field
 from queue import PriorityQueue
-from typing import Any, Generator, List, Optional, Sequence, Tuple
+from typing import Any, List, Optional, Sequence, Tuple
 
 import torch
 from hivemind import MPFuture, get_logger, use_hivemind_log_handler
