@@ -33,7 +33,7 @@ class RemoteSequenceInfo:
     @classmethod
     def make_empty(cls: Type[T], block_uids: Iterable[ModuleUID]) -> T:
         block_uids = tuple(block_uids)
-        empty_block_infos = tuple(RemoteModuleInfo(uid) for uid in block_uids)
+        empty_block_infos = tuple(RemoteModuleInfo(uid, {}) for uid in block_uids)
         empty_spans = tuple([] for _ in range(len(block_uids)))
         return cls(block_uids, empty_block_infos, [], empty_spans, last_updated_time=-float("inf"))
 
@@ -63,8 +63,7 @@ class RemoteSequenceInfo:
             if info.uid != uid:
                 logger.warning(f"The DHT entry for {uid} actually points to {info.uid}")
                 continue
-            for server_id, (server_info, expiration_time) in info.servers.items():
-                self.block_infos[block_index].servers.store(server_id, server_info, expiration_time)
+            self.block_infos[block_index].servers = info.servers
 
         self.spans_by_priority, self.spans_containing_block = self.compute_spans(self.block_infos)
         self.last_updated_time = time.perf_counter()

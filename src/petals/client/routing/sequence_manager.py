@@ -131,7 +131,7 @@ class RemoteSequenceManager:
 
     def update(self, *, wait: bool):
         """Run an asynchronous update in background as soon as possible"""
-        self.ready.clear()
+        self.ready.clear()  # TODO this should be a separate event
         self._thread.trigger.set()
         if wait:
             self.ready.wait()
@@ -139,18 +139,21 @@ class RemoteSequenceManager:
     def _update(self):
         """Perform an immediate and synchronous refresh, may take time"""
         for attempt_no in itertools.count():
-            new_block_infos = petals.dht_utils.get_remote_module_infos(
-                self.dht, self.block_uids, expiration_time=float("inf")
-            )
-            with self.lock_changes:
-                self.sequence_info.update_(new_block_infos)
-            missing_blocks = [i for i in range(len(self)) if not self.sequence_info.spans_containing_block[i]]
-            if not missing_blocks:
+            try:
+                new_block_infos = petals.dht_utils.get_remote_module_infos(
+                    self.dht, self.block_uids, expiration_time=float("inf")
+                )
+                with self.lock_changes:
+                    self.sequence_info.update_(new_block_infos)
+                missing_blocks = [i for i in range(len(self)) if not self.sequence_info.spans_containing_block[i]]
+                if missing_blocks:
+                    raise MissingBlocksError(f'could not find blocks {missing_blocks}')
                 self.ready.set()  # if there is an active server for every block, we may begin running
                 break
-            else:
+
+            except Exception as e:
                 delay = self.get_retry_delay(attempt_no)
-                logger.warning(f"Could not find blocks {missing_blocks} (retry in {delay:.0f} sec)")
+                logger.warning(f"Routing update failed: {e} (retry in {delay:.0f} sec)")
                 time.sleep(delay)
 
     def __len__(self):
@@ -253,3 +256,8 @@ class _SequenceManagerUpdateThread(threading.Thread):
     def __del__(self):
         if self.is_alive():
             self.shutdown()
+
+
+class MissingBlocksError(Exception):
+    def __repr__(self):
+        return self.args
