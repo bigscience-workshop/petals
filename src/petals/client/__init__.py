@@ -2,4 +2,4 @@ from petals.client.inference_session import InferenceSession
 from petals.client.remote_model import DistributedBloomConfig, DistributedBloomForCausalLM, DistributedBloomModel
 from petals.client.remote_sequential import RemoteSequential, RemoteTransformerBlock
 from petals.client.routing.sequence_manager import RemoteSequenceManager
-from petals.client.spending_policy import NoSpendingPolicy, SpendingPolicyBase
+from petals.client.routing.spending_policy import NoSpendingPolicy, SpendingPolicyBase

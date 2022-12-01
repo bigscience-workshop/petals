@@ -3,16 +3,17 @@ from __future__ import annotations
 import random
 import threading
 import time
-from typing import List, Optional, Sequence, Tuple, Union
+from typing import List, Optional, Sequence, Union
+from weakref import WeakMethod
 
-from hivemind import DHT, P2P, DHTExpiration, MSGPackSerializer
+from hivemind import DHT, P2P, MSGPackSerializer
 from hivemind.moe.client.remote_expert_worker import RemoteExpertWorker
 from hivemind.proto import runtime_pb2
 from hivemind.utils.logging import get_logger, use_hivemind_log_handler
 
 import petals.dht_utils
 from petals.client.routing.sequence_info import RemoteSequenceInfo
-from petals.client.spending_policy import NoSpendingPolicy
+from petals.client.routing.spending_policy import NoSpendingPolicy
 from petals.data_structures import ModuleUID, RemoteSpanInfo
 from petals.server.handler import TransformerConnectionHandler
 
@@ -20,7 +21,7 @@ use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
 
 
-class RemoteSequenceManager(threading.Thread):
+class RemoteSequenceManager:
     """
     Sequence manager is a thread that keeps track of remote servers that hold the specified sequence of blocks.
     TL;DR it tells you, which peers you should ask to get a specific layer. It is used in RemoteSequential.
@@ -55,60 +56,34 @@ class RemoteSequenceManager(threading.Thread):
         *,  # dear dev, if you add more parameters to this class, please make sure to handle them in __getitem__ (below)
         start: bool,
     ):
-        super().__init__(daemon=True)
         assert len(block_uids) > 0, "Sequences must contain at least one block"
-
         self.dht, self.p2p = dht, p2p
         self.max_retries = max_retries
-        self.update_period = update_period
         self.timeout, self.min_backoff = timeout, min_backoff
-        self.policy = NoSpendingPolicy()
-        self.ready = threading.Event()
         self.lock_changes = threading.Lock()
-        self.update_trigger = threading.Event()
-        self.last_update_time = -float("inf")
+        self._thread = _SequenceManagerUpdateThread(update_period, WeakMethod(self.update_))
+        self.policy = NoSpendingPolicy()
         self._rpc_info = None
-        self._should_shutdown = False
 
         if sequence_info is None:
             self.sequence_info = RemoteSequenceInfo.make_empty(block_uids)
-            self.update_trigger.set()  # trigger background thread to update asap
+            self.trigger_update()
         else:
             self.sequence_info = sequence_info
             assert block_uids == sequence_info.block_uids
-            self.ready.set()  # no need to await the first dht fetch
+            self._thread.ready.set()  # no need to await the first dht fetch
 
         if start:
             self.run_in_background()
 
     def run_in_background(self, await_ready: bool = True, timeout: Optional[float] = None) -> None:
         """
-        Starts averager in a background process. if await_ready, this method will wait until background dht
+        Starts the updater thread in a background. if await_ready, this method will wait until sequence manager
         is ready to process incoming requests or for :timeout: seconds max.
         """
-        self.start()
+        self._thread.start()
         if await_ready:
-            self.ready.wait(timeout)
-
-    def run(self) -> None:
-        while not self._should_shutdown:
-            self.update_trigger.wait(max(0.0, min(self.update_period, time.perf_counter() - self.last_update_time)))
-
-            if self._should_shutdown:
-                logger.debug(f"{self.__class__.__name__} is shutting down")
-                break
-
-            if not self.update_trigger.is_set() and time.perf_counter() - self.last_update_time >= self.update_period:
-                continue  # waited for update_period, but found that our info was already updated in the meantime
-
-            try:
-                self.update_()
-                self.update_trigger.clear()
-                self.ready.set()
-            except Exception as e:
-                logger.exception(e)
-
-        logger.info(f"{self.__class__.__name__} thread exited")
+            self._thread.ready.wait(timeout)
 
     def make_sequence(self, start_index: int = 0, end_index: Optional[int] = None) -> List[RemoteSpanInfo]:
         """
@@ -119,7 +94,7 @@ class RemoteSequenceManager(threading.Thread):
         """
         if not self.is_alive():
             logger.error("Using a sequence manager that is not running: it has either crashed or never started")
-        if not self.ready.is_set():
+        if not self._thread.ready.is_set():
             logger.warning("Remote SequenceManager is still planning routes, waiting for it to become ready")
         end_index = end_index if end_index is not None else len(self)
         span_sequence = []
@@ -139,13 +114,13 @@ class RemoteSequenceManager(threading.Thread):
         assert isinstance(ix, (int, slice))
         if not isinstance(ix, slice):
             ix = slice(int(ix), int(ix) + 1, 1)
-        return RemoteSequenceManager(
+        return type(self)(
             self.dht,
             self.block_uids[ix],
             self.p2p,
             sequence_info=self.sequence_info[ix],
             max_retries=self.max_retries,
-            update_period=self.update_period,
+            update_period=self._thread.update_period,
             timeout=self.timeout,
             min_backoff=self.min_backoff,
             start=True,
@@ -153,18 +128,21 @@ class RemoteSequenceManager(threading.Thread):
 
     def trigger_update(self):
         """Run an asynchronous update in background as soon as possible"""
-        self.update_trigger.set()
+        self._thread.trigger.set()
 
     def update_(self):
         """Perform an immediate and synchronous refresh, may take time"""
         new_block_infos = petals.dht_utils.get_remote_module_infos(
-            self.dht, self.block_uids, expiration_time=float("inf")
+            self.dht, self.block_uids, expiration_time=float("inf"), frozen=False
         )
         with self.lock_changes:
             self.sequence_info.update_(new_block_infos)
 
     def __len__(self):
         return len(self.block_uids)
+
+    def is_alive(self):
+        return self._thread.is_alive()
 
     @property
     def block_uids(self):
@@ -209,8 +187,50 @@ class RemoteSequenceManager(threading.Thread):
         return MSGPackSerializer.dumps(dict(points=self.policy.get_points(protocol, *args, **kwargs)))
 
     def shutdown(self):
-        self._should_shutdown = True
-        self.update_trigger.set()
+        self._thread.shutdown()
+
+
+class _SequenceManagerUpdateThread(threading.Thread):
+    def __init__(self, update_period: float, ref_update_manager: WeakMethod):
+        super().__init__(daemon=True)
+        self.ref_update_manager = ref_update_manager
+        self.ready = threading.Event()
+        self.trigger = threading.Event()
+        self.last_update_time = -float("inf")
+        self.update_period = update_period
+        self.should_shutdown = False
+
+    def run(self) -> None:
+        while not self.should_shutdown:
+            self.trigger.wait(max(0.0, min(self.update_period, time.perf_counter() - self.last_update_time)))
+
+            if self.should_shutdown:
+                logger.debug(f"{self.__class__.__name__} is shutting down")
+                break
+
+            if not self.trigger.is_set() and time.perf_counter() - self.last_update_time >= self.update_period:
+                continue  # waited for update_period, but found that our info was already updated in the meantime
+
+            update_manager = self.ref_update_manager()
+            if update_manager is None:
+                logger.debug(f"{self.__class__.__name__} exited because the sequence manager got deallocated")
+                break
+
+            try:
+                update_manager()
+                self.trigger.clear()
+                self.ready.set()
+            except Exception as e:
+                logger.exception(e)
+            finally:
+                del update_manager
+
+        logger.info(f"{self.__class__.__name__} thread exited")
+
+    def shutdown(self, timeout: Optional[float]=None):
+        self.should_shutdown = True
+        self.trigger.set()
+        self.join(timeout)
 
     def __del__(self):
         if self.is_alive():

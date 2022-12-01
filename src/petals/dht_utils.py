@@ -7,7 +7,7 @@ import math
 from functools import partial
 from typing import Dict, List, Optional, Sequence, Union
 
-from hivemind import TimedStorage, ValueWithExpiration
+from hivemind import TimedStorage
 from hivemind.dht import DHT, DHTNode, DHTValue
 from hivemind.moe.client.remote_expert_worker import RemoteExpertWorker
 from hivemind.p2p import PeerID
@@ -135,18 +135,27 @@ async def _get_remote_module(
 
 
 def get_remote_module_infos(
-    dht: DHT, uid_or_uids: Union[ModuleUID, Sequence[ModuleUID]], expiration_time: Optional[DHTExpiration] = None
+    dht: DHT, uid_or_uids: Union[ModuleUID, Sequence[ModuleUID]], expiration_time: Optional[DHTExpiration] = None, *,
+        frozen: bool = False
 ) -> List[Optional[RemoteModuleInfo]]:
+    """
+
+    :type dht:
+    :param uid_or_uids:
+    :param expiration_time: fetch dht information
+    :param frozen: if True, the timed information will not be removed on expiration
+    :return: a list of dht information for each
+    """
     single_uid = isinstance(uid_or_uids, ModuleUID)
     uids = [uid_or_uids] if single_uid else uid_or_uids
     infos = dht.run_coroutine(
-        partial(_get_remote_module_infos, uids=uids, expiration_time=expiration_time), return_future=False
+        partial(_get_remote_module_infos, uids=uids, expiration_time=expiration_time, frozen=frozen), return_future=False
     )
     return infos[0] if single_uid else infos
 
 
 async def _get_remote_module_infos(
-    dht: DHT, node: DHTNode, uids: List[ModuleUID], expiration_time: Optional[DHTExpiration]
+    dht: DHT, node: DHTNode, uids: List[ModuleUID], expiration_time: Optional[DHTExpiration], frozen: bool
 ) -> List[Optional[RemoteModuleInfo]]:
     if expiration_time is None:
         expiration_time = get_dht_time()
@@ -161,6 +170,7 @@ async def _get_remote_module_infos(
                 logger.error(f"Incorrect metadata for {uid}: {metadata}")
             continue
         servers = TimedStorage[PeerID, ServerInfo]()
+        servers.frozen = frozen
         for peer_id, server_info in metadata.value.items():
             try:
                 peer_id = PeerID.from_base58(peer_id)
