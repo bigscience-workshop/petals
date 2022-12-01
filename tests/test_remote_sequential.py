@@ -1,6 +1,6 @@
 import pytest
 import torch
-from hivemind import DHT, BatchTensorDescriptor, MSGPackSerializer, get_logger, use_hivemind_log_handler
+from hivemind import DHT, BatchTensorDescriptor, get_logger, use_hivemind_log_handler
 from hivemind.proto import runtime_pb2
 from test_utils import *
 
@@ -48,7 +48,7 @@ def test_remote_sequential():
     # test RemoteSequential with lossy compression
     block_uids = [f"{config.dht_prefix}{UID_DELIMITER}{i}" for i in range(config.n_layer)]
     lossy_sequential = RemoteSequential(
-        config, dht, sequence_manager=DummyCustomSequenceManager(dht, block_uids, sequential.p2p)
+        config, dht, sequence_manager=DummyCustomSequenceManager(dht, block_uids, sequential.p2p, start=True)
     )
 
     test_inputs.grad = None
@@ -58,7 +58,8 @@ def test_remote_sequential():
     assert not torch.allclose(approx_outputs, full_outputs, rtol=0, atol=1e-4), "compression was not used"
     assert not torch.allclose(test_inputs.grad, full_grad, rtol=0, atol=1e-2), "compression was not used"
     assert abs(approx_outputs - full_outputs).mean() < 0.01
-    assert abs(test_inputs.grad - full_grad).mean() < 0.3
+    absmax = abs(full_grad).max()
+    assert abs(test_inputs.grad / absmax - full_grad / absmax).mean() < 0.01
 
 
 class DummyCustomSequenceManager(RemoteSequenceManager):
@@ -73,13 +74,12 @@ class DummyCustomSequenceManager(RemoteSequenceManager):
         return rpc_info
 
     def get_request_metadata(self, protocol: str, *args, **kwargs):
+        metadata = super().get_request_metadata(protocol, *args, **kwargs)
         if protocol == "rpc_forward":
-            return MSGPackSerializer.dumps(dict(output_compression=(runtime_pb2.CompressionType.FLOAT16,)))
+            metadata["output_compression"] = (runtime_pb2.CompressionType.FLOAT16,)
         elif protocol == "rpc_backward":
-            return MSGPackSerializer.dumps(dict(output_compression=(runtime_pb2.CompressionType.BLOCKWISE_8BIT,)))
-        else:
-            assert protocol == "rpc_inference"
-            return super().get_request_metadata(protocol, *args, **kwargs)
+            metadata["output_compression"] = (runtime_pb2.CompressionType.BLOCKWISE_8BIT,)
+        return metadata
 
 
 @pytest.mark.forked

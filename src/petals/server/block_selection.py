@@ -25,7 +25,7 @@ class Span:
         self.start, self.end = new_start, new_start + self.length
 
 
-def _compute_spans(module_infos: List[Optional[RemoteModuleInfo]]) -> Tuple[Dict[PeerID, Span], np.ndarray]:
+def compute_spans(module_infos: List[Optional[RemoteModuleInfo]]) -> Tuple[Dict[PeerID, Span], np.ndarray]:
     spans = {}
     throughputs = np.zeros(len(module_infos))
     for block, module in enumerate(module_infos):
@@ -56,7 +56,7 @@ def _choose_best_start(throughputs: np.ndarray, num_blocks: int) -> int:
 
 
 def choose_best_blocks(num_blocks: int, module_infos: List[Optional[RemoteModuleInfo]]) -> List[int]:
-    _, throughputs = _compute_spans(module_infos)
+    _, throughputs = compute_spans(module_infos)
     start = _choose_best_start(throughputs, num_blocks)
     return list(range(start, start + num_blocks))
 
@@ -67,7 +67,7 @@ def should_choose_other_blocks(
     if balance_quality > 1.0:
         return True  # Forces rebalancing on each check (may be used for debugging purposes)
 
-    spans, throughputs = _compute_spans(module_infos)
+    spans, throughputs = compute_spans(module_infos)
     initial_throughput = throughputs.min()
     eps = 1e-3
 

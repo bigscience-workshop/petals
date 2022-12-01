@@ -36,7 +36,7 @@ class DistributedBloomConfig(BloomConfig):
     chunk_size_for_efficient_fp16_on_cpu: int = 10000  # a chunk size for a LM head for efficient half-precision on CPU
     pre_seq_len: int = 0  # a number of tokens for prompt tuning.
     tuning_mode: Optional[str] = None  # One of the finetune options: [None, 'shallow_ptune', 'deep_ptune', 'adapters']
-    request_timeout: int = 20  # a number of seconds for waiting result from each node
+    request_timeout: int = 30  # a number of seconds for waiting result from each node
 
 
 original_register_parameter = nn.Module.register_parameter
