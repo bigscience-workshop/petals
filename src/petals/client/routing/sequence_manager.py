@@ -10,10 +10,10 @@ from hivemind.moe.client.remote_expert_worker import RemoteExpertWorker
 from hivemind.proto import runtime_pb2
 from hivemind.utils.logging import get_logger, use_hivemind_log_handler
 
+import petals.dht_utils
 from petals.client.routing.sequence_info import RemoteSequenceInfo
 from petals.client.spending_policy import NoSpendingPolicy
-from petals.data_structures import ModuleUID, RemoteModuleInfo, RemoteSpanInfo, ServerState
-from petals.dht_utils import get_remote_module_infos
+from petals.data_structures import ModuleUID, RemoteSpanInfo
 from petals.server.handler import TransformerConnectionHandler
 
 use_hivemind_log_handler("in_root_logger")
@@ -157,7 +157,9 @@ class RemoteSequenceManager(threading.Thread):
 
     def update_(self):
         """Perform an immediate and synchronous refresh, may take time"""
-        new_block_infos = get_remote_module_infos(self.dht, self.block_uids, expiration_time=float("inf"))
+        new_block_infos = petals.dht_utils.get_remote_module_infos(
+            self.dht, self.block_uids, expiration_time=float("inf")
+        )
         with self.lock_changes:
             self.sequence_info.update_(new_block_infos)
 
