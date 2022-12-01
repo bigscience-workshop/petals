@@ -107,6 +107,7 @@ def test_sampling(sampling_options, max_new_tokens=4):
     model = DistributedBloomForCausalLM.from_pretrained(
         MODEL_NAME, initial_peers=INITIAL_PEERS, low_cpu_mem_usage=True, torch_dtype=torch.float32
     )
+    logits_warper = BloomForCausalLM._get_logits_warper(**sampling_options)
     inputs = tokenizer("A cat sat on a mat", return_tensors="pt")["input_ids"]
     with torch.random.fork_rng():
         remote_outputs = model.generate(
@@ -116,8 +117,8 @@ def test_sampling(sampling_options, max_new_tokens=4):
             **sampling_options,
         )
     with torch.random.fork_rng():
-        hf_outputs = BloomForCausalLM.generate(
-            model, input_ids=inputs, max_length=inputs.size(1) + max_new_tokens, do_sample=True, **sampling_options
+        hf_outputs = BloomForCausalLM.sample(
+            model, input_ids=inputs, max_length=inputs.size(1) + max_new_tokens, logits_warper=logits_warper
         )
     assert torch.allclose(remote_outputs, hf_outputs), "Sampling results are not identical to HF"
 
@@ -132,12 +133,11 @@ def test_sampling(sampling_options, max_new_tokens=4):
             **sampling_options,
         )
     with torch.random.fork_rng():
-        hf_outputs_batch = BloomForCausalLM.generate(
+        hf_outputs_batch = BloomForCausalLM.sample(
             model,
             input_ids=inputs_batch,
             max_length=inputs_batch.size(1) + max_new_tokens,
-            do_sample=True,
-            **sampling_options,
+            logits_warper=logits_warper,
         )
     assert torch.allclose(
         remote_outputs_batch, hf_outputs_batch
