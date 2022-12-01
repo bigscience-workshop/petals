@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict
 
-from hivemind import PeerID, DHTExpiration, TimedStorage
+from hivemind import DHTExpiration, PeerID, TimedStorage
 
 ModuleUID = str
 UID_DELIMITER = "."  # delimits parts of one module uid, e.g. "bloom.transformer.h.4.self_attention"

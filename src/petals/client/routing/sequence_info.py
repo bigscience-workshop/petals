@@ -1,11 +1,10 @@
 import dataclasses
-import threading
-from typing import Iterable, Tuple, Type, TypeVar
+import time
+from typing import Iterable, List, Optional, Sequence, Tuple, Type, TypeVar
 
-from hivemind import DHT, get_logger, use_hivemind_log_handler
+from hivemind import get_logger, use_hivemind_log_handler
 
-from petals.data_structures import ModuleUID, RemoteModuleInfo
-from petals.dht_utils import get_remote_module_infos
+from petals.data_structures import ModuleUID, RemoteModuleInfo, RemoteSpanInfo, ServerState
 
 use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
@@ -14,7 +13,7 @@ logger = get_logger(__file__)
 T = TypeVar("T")
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass
 class RemoteSequenceInfo:
     """
     A dataclass that stores general information about which servers hold any given layer;
@@ -27,37 +26,79 @@ class RemoteSequenceInfo:
 
     block_uids: Tuple[ModuleUID, ...]
     block_infos: Tuple[RemoteModuleInfo, ...]  # note: the contents of RemoteModuleInfo can and will be updated
-    lock_changes: threading.Lock = dataclasses.field(default_factory=threading.Lock)
+    spans_by_priority: List[RemoteSpanInfo]
+    spans_containing_block: Tuple[List[RemoteSpanInfo], ...]
+    last_updated_time: float
 
     @classmethod
     def make_empty(cls: Type[T], block_uids: Iterable[ModuleUID]) -> T:
         block_uids = tuple(block_uids)
         empty_block_infos = tuple(RemoteModuleInfo(uid) for uid in block_uids)
-        return cls(block_uids, empty_block_infos)
+        empty_spans = tuple([] for _ in range(len(block_uids)))
+        return cls(block_uids, empty_block_infos, [], empty_spans, last_updated_time=-float("inf"))
 
     def __getitem__(self, ix: slice):
         assert isinstance(ix, slice)
-        return RemoteSequenceInfo(self.block_uids[ix], self.block_infos[ix])
+        block_uids, block_infos = self.block_uids[ix], self.block_infos[ix]
+        spans_by_priority, spans_containing_block = self.compute_spans(block_infos)
+        return RemoteSequenceInfo(
+            block_uids, block_infos, spans_by_priority, spans_containing_block, self.last_updated_time
+        )
 
     def __len__(self):
         return len(self.block_uids)
 
-    def update_(self, dht: DHT):
-        new_block_infos = get_remote_module_infos(dht, self.block_uids, expiration_time=float("inf"))
-        with self.lock_changes:
-            assert len(new_block_infos) == len(self.block_uids)
-            for block_index, (uid, info) in enumerate(zip(self.block_uids, new_block_infos)):
-                if info is None:
-                    logger.warning(f"Found no block info for block {uid}")
-                    continue
-                if not isinstance(info, RemoteModuleInfo):
-                    logger.warning(f"Unexpected dht entry type for {uid}: {info}")
-                    continue
-                if not info.servers:
-                    logger.warning(f"Found no active peers for block {uid}")
-                    continue
-                if info.uid != uid:
-                    logger.warning(f"The DHT entry for {uid} actually points to {info.uid}")
-                    continue
-                for server_id, (server_info, expiration_time) in info.servers.items():
-                    self.block_infos[block_index].servers.store(server_id, server_info, expiration_time)
+    def update_(self, new_block_infos: List[Optional[RemoteModuleInfo]]):
+        assert len(new_block_infos) == len(self.block_uids)
+        for block_index, (uid, info) in enumerate(zip(self.block_uids, new_block_infos)):
+            if info is None:
+                logger.warning(f"Found no block info for block {uid}")
+                continue
+            if not isinstance(info, RemoteModuleInfo):
+                logger.warning(f"Unexpected dht entry type for {uid}: {info}")
+                continue
+            if not info.servers:
+                logger.warning(f"Found no active peers for block {uid}")
+                continue
+            if info.uid != uid:
+                logger.warning(f"The DHT entry for {uid} actually points to {info.uid}")
+                continue
+            for server_id, (server_info, expiration_time) in info.servers.items():
+                self.block_infos[block_index].servers.store(server_id, server_info, expiration_time)
+
+        self.spans_by_priority, self.spans_containing_block = self.compute_spans(self.block_infos)
+        self.last_updated_time = time.perf_counter()
+
+    @staticmethod
+    def compute_spans(block_infos: Sequence[RemoteModuleInfo]):
+        closed_spans = []
+        active_spans = {}
+        for block_index, info in enumerate(block_infos):
+            if info is not None:
+                for peer_id, (server, _) in info.servers.items():
+                    if server.state != ServerState.ONLINE:
+                        continue
+                    if peer_id not in active_spans:
+                        active_spans[peer_id] = RemoteSpanInfo(start=block_index, end=block_index + 1, peer_id=peer_id)
+                    else:  # peer_id in active_spans
+                        active_spans[peer_id].end = block_index + 1
+
+            for peer_id in list(active_spans.keys()):
+                server_state, _ = info.servers.get(peer_id) or (None, None)
+                if (
+                    info is None
+                    or peer_id not in info.servers
+                    or server_state != ServerState.ONLINE
+                    or block_index == len(block_infos) - 1
+                ):
+                    closed_spans.append(active_spans.pop(peer_id))
+        assert not active_spans, f"spans: {active_spans}"
+
+        closed_spans.sort(key=lambda span: span.end - span.start, reverse=True)
+
+        spans_containing_block = tuple(list() for _ in range(len(block_infos)))
+        for span in closed_spans:
+            for block_index in range(span.start, span.end):
+                spans_containing_block[block_index].append(span)
+
+        return closed_spans, spans_containing_block

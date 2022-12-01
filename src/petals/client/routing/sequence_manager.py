@@ -10,10 +10,10 @@ from hivemind.moe.client.remote_expert_worker import RemoteExpertWorker
 from hivemind.proto import runtime_pb2
 from hivemind.utils.logging import get_logger, use_hivemind_log_handler
 
-import petals.dht_utils
 from petals.client.routing.sequence_info import RemoteSequenceInfo
 from petals.client.spending_policy import NoSpendingPolicy
 from petals.data_structures import ModuleUID, RemoteModuleInfo, RemoteSpanInfo, ServerState
+from petals.dht_utils import get_remote_module_infos
 from petals.server.handler import TransformerConnectionHandler
 
 use_hivemind_log_handler("in_root_logger")
@@ -35,6 +35,7 @@ class RemoteSequenceManager(threading.Thread):
     :param timeout: float, in seconds, default timeout for RPC forwad/backward/inference requests
     :param min_backoff: after a repeated failure, sleep for this many seconds times 2 ^ (num_failures - 1)
     :param max_retries: DEPRECATED. If you are reading this, yozh needs to fix the PR
+    :param sequence_info: optionally, specify pre-generated sequence info. by default, create a new one using dht
     :param start: start the background thread (see the note below). If false, you will need to start it manually.
     :note: RemoteSequenceManager takes up some CPU and network I/O to operate in background. It is recommended to avoid
       running redundant sequence managers for the same set of layers.
@@ -50,28 +51,32 @@ class RemoteSequenceManager(threading.Thread):
         update_period: float = 30,
         timeout: float = 20,
         min_backoff: float = 1,
+        sequence_info: Optional[RemoteSequenceInfo] = None,
         *,  # dear dev, if you add more parameters to this class, please make sure to handle them in __getitem__ (below)
         start: bool,
     ):
         super().__init__(daemon=True)
         assert len(block_uids) > 0, "Sequences must contain at least one block"
+
         self.dht, self.p2p = dht, p2p
-        self.sequence_info = RemoteSequenceInfo.make_empty(block_uids)
-        self.spans_by_priority: List[RemoteSpanInfo] = []  # sorted from best to worst
-        self.spans_containing_block: Tuple[List[RemoteSpanInfo], ...] = tuple([] for _ in range(len(self)))
-        self.last_update_time: DHTExpiration = -float("inf")
         self.max_retries = max_retries
         self.update_period = update_period
         self.timeout, self.min_backoff = timeout, min_backoff
+        self.policy = NoSpendingPolicy()
+        self.ready = threading.Event()
+        self.lock_changes = threading.Lock()
+        self.update_trigger = threading.Event()
+        self.last_update_time = -float("inf")
         self._rpc_info = None
         self._should_shutdown = False
-        self.policy = NoSpendingPolicy()
-        self.ready = threading.Event()  # TODO-USED? # whether or not you are ready to make_sequence
-        self.lock_changes = threading.Lock()  # TODO-USED? # internal lock on sequence_info and strategies
-        self.update_trigger = threading.Event()  # TODO-USED?
 
-        self.update_() #TODO switch away to async update and await?
-        assert self.spans_by_priority and self.spans_containing_block
+        if sequence_info is None:
+            self.sequence_info = RemoteSequenceInfo.make_empty(block_uids)
+            self.update_trigger.set()  # trigger background thread to update asap
+        else:
+            self.sequence_info = sequence_info
+            assert block_uids == sequence_info.block_uids
+            self.ready.set()  # no need to await the first dht fetch
 
         if start:
             self.run_in_background()
@@ -86,8 +91,6 @@ class RemoteSequenceManager(threading.Thread):
             self.ready.wait(timeout)
 
     def run(self) -> None:
-        self.ready.set()
-
         while not self._should_shutdown:
             self.update_trigger.wait(max(0.0, min(self.update_period, time.perf_counter() - self.last_update_time)))
 
@@ -101,6 +104,7 @@ class RemoteSequenceManager(threading.Thread):
             try:
                 self.update_()
                 self.update_trigger.clear()
+                self.ready.set()
             except Exception as e:
                 logger.exception(e)
 
@@ -115,11 +119,13 @@ class RemoteSequenceManager(threading.Thread):
         """
         if not self.is_alive():
             logger.error("Using a sequence manager that is not running: it has either crashed or never started")
+        if not self.ready.is_set():
+            logger.warning("Remote SequenceManager is still planning routes, waiting for it to become ready")
         end_index = end_index if end_index is not None else len(self)
         span_sequence = []
         current_index = start_index
         while current_index < end_index:
-            candidate_spans = self.spans_containing_block[current_index]
+            candidate_spans = self.sequence_info.spans_containing_block[current_index]
             chosen_span = random.choice(candidate_spans)  # TODO this should be replaced with proper load balancing
 
             assert chosen_span.start <= current_index < chosen_span.end
@@ -133,21 +139,17 @@ class RemoteSequenceManager(threading.Thread):
         assert isinstance(ix, (int, slice))
         if not isinstance(ix, slice):
             ix = slice(int(ix), int(ix) + 1, 1)
-        with self.lock_changes:
-            subseq = RemoteSequenceManager(
-                self.dht,
-                self.block_uids[ix],#TODO pass sequence info nicely
-                self.p2p,
-                max_retries=self.max_retries,
-                update_period=self.update_period,
-                timeout=self.timeout,
-                min_backoff=self.min_backoff,
-                start=False,
-            )
-            subseq.block_infos = self.sequence_info.block_infos[ix]#TODO make sure this is actually used, not overriden by init update
-            subseq.spans_by_priority, subseq.spans_containing_block = subseq.compute_spans(subseq.block_infos)
-            subseq.last_update_time = self.last_update_time
-        return subseq
+        return RemoteSequenceManager(
+            self.dht,
+            self.block_uids[ix],
+            self.p2p,
+            sequence_info=self.sequence_info[ix],
+            max_retries=self.max_retries,
+            update_period=self.update_period,
+            timeout=self.timeout,
+            min_backoff=self.min_backoff,
+            start=True,
+        )
 
     def trigger_update(self):
         """Run an asynchronous update in background as soon as possible"""
@@ -155,48 +157,12 @@ class RemoteSequenceManager(threading.Thread):
 
     def update_(self):
         """Perform an immediate and synchronous refresh, may take time"""
-        self.sequence_info.update_(self.dht)
-
+        new_block_infos = get_remote_module_infos(self.dht, self.block_uids, expiration_time=float("inf"))
         with self.lock_changes:
-            self.spans_by_priority, self.spans_containing_block = self.compute_spans(self.sequence_info.block_infos)
-            self.last_update_time = time.perf_counter()
-
-    @staticmethod
-    def compute_spans(block_infos: Sequence[RemoteModuleInfo]):
-        closed_spans = []
-        active_spans = {}
-        for block_index, info in enumerate(block_infos):
-            if info is not None:
-                for peer_id, (server, _) in info.servers.items():
-                    if server.state != ServerState.ONLINE:
-                        continue
-                    if peer_id not in active_spans:
-                        active_spans[peer_id] = RemoteSpanInfo(start=block_index, end=block_index + 1, peer_id=peer_id)
-                    else:  # peer_id in active_spans
-                        active_spans[peer_id].end = block_index + 1
-
-            for peer_id in list(active_spans.keys()):
-                server_state, _ = info.servers.get(peer_id) or (None, None)
-                if (
-                    info is None
-                    or peer_id not in info.servers
-                    or server_state != ServerState.ONLINE
-                    or block_index == len(block_infos) - 1
-                ):
-                    closed_spans.append(active_spans.pop(peer_id))
-        assert not active_spans, f"spans: {active_spans}"
-
-        closed_spans.sort(key=lambda span: span.end - span.start, reverse=True)
-
-        spans_containing_block = tuple(list() for _ in range(len(block_infos)))
-        for span in closed_spans:
-            for block_index in range(span.start, span.end):
-                spans_containing_block[block_index].append(span)
-
-        return closed_spans, spans_containing_block
+            self.sequence_info.update_(new_block_infos)
 
     def __len__(self):
-        return len(self.sequence_info)
+        return len(self.block_uids)
 
     @property
     def block_uids(self):
