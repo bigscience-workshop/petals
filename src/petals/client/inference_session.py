@@ -184,7 +184,7 @@ class InferenceSession:
                         stub,
                         span_uids,
                         rpc_info=self._sequence_manager.rpc_info,
-                        timeout=self._sequence_manager.timeout,
+                        timeout=self._sequence_manager.request_timeout,
                         max_length=self._max_length,
                         **self._metadata,
                     )
