@@ -23,7 +23,7 @@ class RemoteGenerationMixin:
     A class containing all functions for auto-regressive text generation, to be used as a mixin in [`BloomForCausalLM`].
     The class exposes can be used for:
         - *greedy decoding*.
-        - *multinomial sampling*.
+        - *multinomial, top-k and top-p sampling*.
         - *beam-search decoding*
 
     This class is similar to transformer's [`generation_utils.GenerationMixin`], it can be used instead of it.
@@ -256,7 +256,8 @@ class RemoteGenerationMixin:
         **model_kwargs,
     ) -> torch.LongTensor:
         """
-        Generates sequences of token ids for models with a language modeling head. Uses sampling. Uses multinomial sampling algorithm. If top_k is provided, uses top_k sampling. If top_p is provided, uses nucleus sampling.
+        Generates sequences of token ids for models with a language modeling head. Uses multinomial sampling.
+        If top_k is provided, uses top_k sampling. If top_p is provided, uses nucleus sampling.
 
         :param: input_ids: The input tokens to the model.
         :param: temperature: The temperature to use for sampling.
