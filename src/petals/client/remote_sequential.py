@@ -30,7 +30,7 @@ class RemoteSequential(nn.Module):
         dht_prefix: Optional[str] = None,
         p2p: Optional[P2P] = None,
         sequence_manager: Optional[RemoteSequenceManager] = None,
-        **kwargs
+        **kwargs,
     ):
         super().__init__()
         self.config = config
