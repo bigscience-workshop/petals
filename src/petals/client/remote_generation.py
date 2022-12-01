@@ -10,6 +10,7 @@ from petals.utils.generation_algorithms import (
     DecodingAlgorithm,
     GreedyAlgorithm,
     NucleusAlgorithm,
+    SamplingAlgorithm,
     TopKAlgorithm,
 )
 from petals.utils.generation_constraints import ABCBloomConstraint, EosConstraint
@@ -341,10 +342,12 @@ class RemoteGenerationMixin:
     ) -> DecodingAlgorithm:
         if (top_k is not None) and (top_p is not None):
             raise ValueError("You have to provide only top_k or top_p for sampling")
-        if top_k:
+        if top_k is not None:
             return TopKAlgorithm(top_k, temperature)
-        elif top_p:
+        elif top_p is not None:
             return NucleusAlgorithm(top_p, temperature)
+        else:
+            return SamplingAlgorithm(temperature)
 
     def _get_constraints(
         self,
