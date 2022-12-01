@@ -147,13 +147,15 @@ class RemoteSequenceManager:
                     self.sequence_info.update_(new_block_infos)
                 missing_blocks = [i for i in range(len(self)) if not self.sequence_info.spans_containing_block[i]]
                 if missing_blocks:
-                    raise MissingBlocksError(f'could not find blocks {missing_blocks}')
+                    raise MissingBlocksError(f'no servers holding blocks {missing_blocks}')
                 self.ready.set()  # if there is an active server for every block, we may begin running
                 break
 
             except Exception as e:
                 delay = self.get_retry_delay(attempt_no)
-                logger.warning(f"Routing update failed: {e} (retry in {delay:.0f} sec)")
+                logger.warning(f"Could not find route through the model: {repr(e)} (retry in {delay:.0f} sec)")
+                traceback_level = logging.DEBUG if str(e) else logging.WARNING
+                logger.log(traceback_level, "See detailed traceback below:", exc_info=True)
                 time.sleep(delay)
 
     def __len__(self):
