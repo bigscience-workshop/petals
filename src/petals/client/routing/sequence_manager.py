@@ -227,7 +227,7 @@ class _SequenceManagerUpdateThread(threading.Thread):
 
         logger.info(f"{self.__class__.__name__} thread exited")
 
-    def shutdown(self, timeout: Optional[float]=None):
+    def shutdown(self, timeout: Optional[float] = None):
         self.should_shutdown = True
         self.trigger.set()
         self.join(timeout)

@@ -24,9 +24,9 @@ def test_sequence_manager_shutdown():
     # test RemoteSequential with lossy compression
     block_uids = [f"{config.dht_prefix}{UID_DELIMITER}{i}" for i in range(config.n_layer)]
     sequential = RemoteSequential(
-        config, dht, sequence_manager=TestSequenceManager(
-            dht, block_uids, sequential.p2p, _was_shut_down=shutdown_evt, start=True
-        )
+        config,
+        dht,
+        sequence_manager=TestSequenceManager(dht, block_uids, sequential.p2p, _was_shut_down=shutdown_evt, start=True),
     )
 
     assert sequential.sequence_manager.is_alive()
@@ -43,6 +43,7 @@ def test_sequence_manager_shutdown():
 
 class TestSequenceManager(RemoteSequenceManager):
     """A sequence manager that signals if it was shut down"""
+
     def __init__(self, *args, _was_shut_down: threading.Event, **kwargs):
         super().__init__(*args, **kwargs)
         self._was_shut_down = _was_shut_down
