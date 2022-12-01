@@ -62,13 +62,13 @@ class RemoteSequenceManager:
         self.dht, self.p2p = dht, p2p
         self.timeout, self.min_backoff = timeout, min_backoff
         self.lock_changes = threading.Lock()
-        self._thread = _SequenceManagerUpdateThread(update_period, WeakMethod(self.update_))
+        self._thread = _SequenceManagerUpdateThread(update_period, WeakMethod(self._update))
         self.policy = NoSpendingPolicy()
         self._rpc_info = rpc_info
 
         if sequence_info is None:
             self.sequence_info = RemoteSequenceInfo.make_empty(block_uids)
-            self.trigger_update()
+            self.update()
         else:
             self.sequence_info = sequence_info
             assert block_uids == sequence_info.block_uids
@@ -129,11 +129,13 @@ class RemoteSequenceManager:
             start=True,
         )
 
-    def trigger_update(self):
+    def update(self, *, wait: bool):
         """Run an asynchronous update in background as soon as possible"""
+        self.ready.clear()
         self._thread.trigger.set()
+        self.ready.wait()
 
-    def update_(self):
+    def _update(self):
         """Perform an immediate and synchronous refresh, may take time"""
         for attempt_no in itertools.count():
             new_block_infos = petals.dht_utils.get_remote_module_infos(
@@ -171,7 +173,7 @@ class RemoteSequenceManager:
         if self._rpc_info is None:
             for attempt_no in itertools.count():
                 try:
-                    self.update_()
+                    self._update()
                     peer_id, _ = random.choice(list(self.sequence_info.block_infos[0].servers.items()))
                     stub = TransformerConnectionHandler.get_stub(self.p2p, peer_id)
                     outputs = RemoteExpertWorker.run_coroutine(

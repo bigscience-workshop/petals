@@ -59,7 +59,7 @@ async def sequential_forward(
             logger.debug(f"Forward: block {block_idx}, attempt {attempt_no}")
             try:
                 if attempt_no >= 1:
-                    sequence_manager.update_()
+                    sequence_manager._update()
                 if not sequences or attempt_no >= 1:
                     sequences = deque(sequence_manager.make_sequence(block_idx, end_index))
                     # make_sequence() could return a longer sequence
@@ -137,7 +137,7 @@ async def sequential_backward(
             logger.debug(f"Backward: block {span.end - 1}, attempt {attempt_no}")
             try:
                 if attempt_no >= 1:
-                    sequence_manager.update_()
+                    sequence_manager.update(wait=True)
                     _, backup_inputs, backup_sequences = await sequential_forward(
                         inputs, prompts, sequence_manager, start_index=span.start, end_index=span.end
                     )

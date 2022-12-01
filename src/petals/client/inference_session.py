@@ -237,7 +237,7 @@ class InferenceSession:
                 logger.debug(f"Inference: block {block_idx}, attempt {attempt_no}")
                 try:
                     if attempt_no >= 1:
-                        self._sequence_manager.update_()
+                        self._sequence_manager.update(wait=True)
                     if not self._chosen_spans or not self._server_sessions or attempt_no >= 1:
                         # If there is a failed server session, this code closes it
                         self._exit_server_sessions(self._server_sessions[server_idx : server_idx + 1])
