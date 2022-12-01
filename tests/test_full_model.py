@@ -107,7 +107,7 @@ def test_sampling(sampling_options, max_new_tokens=4):
     model = DistributedBloomForCausalLM.from_pretrained(
         MODEL_NAME, initial_peers=INITIAL_PEERS, low_cpu_mem_usage=True, torch_dtype=torch.float32
     )
-    logits_warper = BloomForCausalLM._get_logits_warper(**sampling_options)
+    logits_warper = BloomForCausalLM._get_logits_warper(model, **sampling_options)
     inputs = tokenizer("A cat sat on a mat", return_tensors="pt")["input_ids"]
     with torch.random.fork_rng():
         remote_outputs = model.generate(
