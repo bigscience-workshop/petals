@@ -51,7 +51,6 @@ async def sequential_forward(
     sequences = deque()
     intermediate_inputs = []
     done_sequences = []
-    outputs = inputs
 
     block_idx = start_index
     while block_idx < end_index:

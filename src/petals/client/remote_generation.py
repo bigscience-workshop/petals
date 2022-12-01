@@ -57,6 +57,7 @@ class RemoteGenerationMixin:
         :param bos_token_id: The id of the beginning of sentence token.
         :param eos_token_id: The id of the end of sentence token.
         :param pad_token_id: The id of the padding token.
+        :param max_length: The maximum number of tokens in the output (including input tokens).
         :param max_new_tokens: The maximum number of tokens to generate.
         :param decoding_algorithm: The decoding algorithm to use.
         :param provided_constraints: A list of constraints to use.
