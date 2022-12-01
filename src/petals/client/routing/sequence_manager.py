@@ -137,7 +137,7 @@ class RemoteSequenceManager:
         """Perform an immediate and synchronous refresh, may take time"""
         for attempt_no in itertools.count():
             new_block_infos = petals.dht_utils.get_remote_module_infos(
-                self.dht, self.block_uids, expiration_time=float("inf"), frozen=False
+                self.dht, self.block_uids, expiration_time=float("inf")
             )
             with self.lock_changes:
                 self.sequence_info.update_(new_block_infos)

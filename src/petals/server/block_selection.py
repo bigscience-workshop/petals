@@ -35,7 +35,7 @@ def compute_spans(module_infos: List[Optional[RemoteModuleInfo]]) -> Tuple[Dict[
         # We sort servers here to ensure that we get exactly the same throughputs for a given set of servers.
         # If the order were not defined, we would get slightly different values due to floating point errors,
         # which may cause excess block replacements.
-        for peer_id, (server, _) in sorted(module.servers.items()):
+        for peer_id, server in sorted(module.servers.items()):
             if server.state == ServerState.OFFLINE:
                 continue
 
