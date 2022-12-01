@@ -29,6 +29,9 @@ def test_sequence_manager_shutdown():
         sequence_manager=TestSequenceManager(dht, block_uids, sequential.p2p, _was_shut_down=shutdown_evt, start=True),
     )
 
+    sequence = sequential.sequence_manager.make_sequence()
+    assert all(sequence[i].peer_id != sequence[i + 1].peer_id for i in range(len(sequence) - 1))
+
     assert sequential.sequence_manager.is_alive()
     assert sequential.sequence_manager._thread.ready.is_set()
     assert not shutdown_evt.is_set()

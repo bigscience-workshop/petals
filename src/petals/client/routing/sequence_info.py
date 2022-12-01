@@ -86,7 +86,7 @@ class RemoteSequenceInfo:
                 if (
                     info is None
                     or peer_id not in info.servers
-                    or info.servers[peer_id] != ServerState.ONLINE
+                    or info.servers[peer_id].state != ServerState.ONLINE
                     or block_index == len(block_infos) - 1
                 ):
                     closed_spans.append(active_spans.pop(peer_id))
