@@ -8,6 +8,7 @@ from collections import deque
 from typing import List, Optional, Sequence, Tuple
 
 import torch
+from hivemind import MSGPackSerializer
 from hivemind.moe.client.remote_expert_worker import RemoteExpertWorker
 from hivemind.utils.logging import get_logger
 
@@ -79,7 +80,7 @@ async def sequential_forward(
                     sequence_manager.rpc_info,
                     *inputs_and_prompts,
                     timeout=sequence_manager.timeout,
-                    metadata=metadata,
+                    metadata=MSGPackSerializer.dumps(metadata),
                 )
 
                 assert isinstance(outputs, torch.Tensor)
@@ -163,7 +164,7 @@ async def sequential_backward(
                     grad_outputs,
                     prompts[span.start : span.end],
                     timeout=sequence_manager.timeout,
-                    metadata=metadata,
+                    metadata=MSGPackSerializer.dumps(metadata),
                 )
                 grad_outputs = [grad_outputs]
                 grad_prompts_reversed.extend(span_grad_prompts)

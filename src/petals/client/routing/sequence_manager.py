@@ -5,7 +5,7 @@ import logging
 import random
 import threading
 import time
-from typing import List, Optional, Sequence, Union
+from typing import Any, Dict, List, Optional, Sequence, Union
 from weakref import WeakMethod
 
 from hivemind import DHT, P2P, MSGPackSerializer
@@ -147,7 +147,7 @@ class RemoteSequenceManager:
                     self.sequence_info.update_(new_block_infos)
                 missing_blocks = [i for i in range(len(self)) if not self.sequence_info.spans_containing_block[i]]
                 if missing_blocks:
-                    raise MissingBlocksError(f'no servers holding blocks {missing_blocks}')
+                    raise MissingBlocksError(f"no servers holding blocks {missing_blocks}")
                 self.ready.set()  # if there is an active server for every block, we may begin running
                 break
 
@@ -204,14 +204,14 @@ class RemoteSequenceManager:
             return 0
         return self.min_backoff * 2 ** (attempt_no - 1)
 
-    def get_request_metadata(self, protocol: str, *args, **kwargs) -> Optional[bytes]:
+    def get_request_metadata(self, protocol: str, *args, **kwargs) -> Optional[Dict[str, Any]]:
         """
         :param protocol: one of "rpc_forward", "rpc_backward" or "rpc_inference"
         :param args: request-specific inputs, typicall block uids and input tensors
         :param kwargs: additional request context, such as remote peer ID
         :returns: msgpack-serialized metadata dict that will be passed alongside a given request
         """
-        return MSGPackSerializer.dumps(dict(points=self.policy.get_points(protocol, *args, **kwargs)))
+        return dict(points=self.policy.get_points(protocol, *args, **kwargs))
 
     def shutdown(self):
         self._thread.shutdown()
@@ -262,4 +262,4 @@ class _SequenceManagerUpdateThread(threading.Thread):
 
 class MissingBlocksError(Exception):
     def __repr__(self):
-        return self.args
+        return self.args[0]
