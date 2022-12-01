@@ -1,8 +1,8 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict
 
-from hivemind import PeerID
+from hivemind import PeerID, DHTExpiration, TimedStorage
 
 ModuleUID = str
 UID_DELIMITER = "."  # delimits parts of one module uid, e.g. "bloom.transformer.h.4.self_attention"
@@ -26,7 +26,7 @@ class RemoteModuleInfo:
     """A remote module that is served by one or more servers"""
 
     uid: ModuleUID
-    servers: Dict[PeerID, ServerInfo]
+    servers: TimedStorage[PeerID, ServerInfo] = field(default_factory=TimedStorage)
 
 
 @dataclass

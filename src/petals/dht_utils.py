@@ -7,6 +7,7 @@ import math
 from functools import partial
 from typing import Dict, List, Optional, Sequence, Union
 
+from hivemind import ValueWithExpiration, TimedStorage
 from hivemind.dht import DHT, DHTNode, DHTValue
 from hivemind.moe.client.remote_expert_worker import RemoteExpertWorker
 from hivemind.p2p import PeerID
@@ -135,8 +136,8 @@ async def _get_remote_module(
 
 def get_remote_module_infos(
     dht: DHT,
-    uid_or_uids: Union[ModuleUID, List[ModuleUID]],
-    expiration_time: Optional[DHTExpiration] = None,
+    uid_or_uids: Union[ModuleUID, Sequence[ModuleUID]],
+    expiration_time: Optional[DHTExpiration] = None
 ) -> List[Optional[RemoteModuleInfo]]:
     single_uid = isinstance(uid_or_uids, ModuleUID)
     uids = [uid_or_uids] if single_uid else uid_or_uids
@@ -161,7 +162,7 @@ async def _get_remote_module_infos(
             if metadata is not None:
                 logger.error(f"Incorrect metadata for {uid}: {metadata}")
             continue
-        servers = {}
+        servers = TimedStorage[PeerID, ServerInfo]()
         for peer_id, server_info in metadata.value.items():
             try:
                 peer_id = PeerID.from_base58(peer_id)
@@ -173,7 +174,7 @@ async def _get_remote_module_infos(
                     and throughput >= 0.0
                 ):
                     raise ValueError(f"Invalid server info: {server_info}")
-                servers[peer_id] = ServerInfo(ServerState(state), throughput)
+                servers.store(peer_id, ServerInfo(ServerState(state), throughput), server_info.expiration_time)
             except (TypeError, ValueError) as e:
                 logger.error(f"Incorrect peer entry for uid={uid}, peer_id={peer_id}: {e}")
         if servers:

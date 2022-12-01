@@ -1,4 +1,5 @@
 import dataclasses
+import threading
 from typing import Iterable, Tuple, Type, TypeVar
 
 from hivemind import DHT, get_logger, use_hivemind_log_handler
@@ -26,11 +27,12 @@ class RemoteSequenceInfo:
 
     block_uids: Tuple[ModuleUID, ...]
     block_infos: Tuple[RemoteModuleInfo, ...]  # note: the contents of RemoteModuleInfo can and will be updated
+    lock_changes: threading.Lock = dataclasses.field(default_factory=threading.Lock)
 
     @classmethod
     def make_empty(cls: Type[T], block_uids: Iterable[ModuleUID]) -> T:
         block_uids = tuple(block_uids)
-        empty_block_infos = tuple(RemoteModuleInfo(uid, dict()) for uid in block_uids)
+        empty_block_infos = tuple(RemoteModuleInfo(uid) for uid in block_uids)
         return cls(block_uids, empty_block_infos)
 
     def __getitem__(self, ix: slice):
@@ -42,18 +44,20 @@ class RemoteSequenceInfo:
 
     def update_(self, dht: DHT):
         new_block_infos = get_remote_module_infos(dht, self.block_uids, expiration_time=float("inf"))
-        assert len(new_block_infos) == len(self.block_uids)
-        for block_index, (uid, info) in enumerate(zip(self.block_uids, new_block_infos)):
-            if info is None:
-                logger.warning(f"Found no block info for block {uid}")
-                continue
-            if not isinstance(info, RemoteModuleInfo):
-                logger.warning(f"Unexpected dht entry type for {uid}: {info}")
-                continue
-            if not info.servers:
-                logger.warning(f"Found no active peers for block {uid}")
-                continue
-            if info.uid != uid:
-                logger.warning(f"The DHT entry for {uid} actually points to {info.uid}")
-                continue
-            self.block_infos[block_index].servers = info.servers
+        with self.lock_changes:
+            assert len(new_block_infos) == len(self.block_uids)
+            for block_index, (uid, info) in enumerate(zip(self.block_uids, new_block_infos)):
+                if info is None:
+                    logger.warning(f"Found no block info for block {uid}")
+                    continue
+                if not isinstance(info, RemoteModuleInfo):
+                    logger.warning(f"Unexpected dht entry type for {uid}: {info}")
+                    continue
+                if not info.servers:
+                    logger.warning(f"Found no active peers for block {uid}")
+                    continue
+                if info.uid != uid:
+                    logger.warning(f"The DHT entry for {uid} actually points to {info.uid}")
+                    continue
+                for server_id, (server_info, expiration_time) in info.servers.items():
+                    self.block_infos[block_index].servers.store(server_id, server_info, expiration_time)
