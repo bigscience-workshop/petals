@@ -223,15 +223,11 @@ class _SequenceManagerUpdateThread(threading.Thread):
 
     def run(self) -> None:
         while not self.should_shutdown:
-
             self.trigger.wait(max(0.0, min(self.update_period, time.perf_counter() - self.last_update_time)))
 
             if self.should_shutdown:
                 logger.debug(f"{self.__class__.__name__} is shutting down")
                 break
-
-            if not self.trigger.is_set() and time.perf_counter() - self.last_update_time >= self.update_period:
-                continue  # waited for update_period, but found that our info was already updated in the meantime
 
             update_manager = self.ref_update_manager()
             if update_manager is None:
