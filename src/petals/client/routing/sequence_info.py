@@ -52,13 +52,13 @@ class RemoteSequenceInfo:
         assert len(new_block_infos) == len(self.block_uids)
         for block_index, (uid, info) in enumerate(zip(self.block_uids, new_block_infos)):
             if info is None:
-                logger.warning(f"Found no block info for block {uid}")
+                logger.debug(f"Found no block info for block {uid}")
                 continue
             if not isinstance(info, RemoteModuleInfo):
                 logger.warning(f"Unexpected dht entry type for {uid}: {info}")
                 continue
             if not info.servers:
-                logger.warning(f"Found no active peers for block {uid}")
+                logger.debug(f"Found no active peers for block {uid}")
                 continue
             if info.uid != uid:
                 logger.warning(f"The DHT entry for {uid} actually points to {info.uid}")
