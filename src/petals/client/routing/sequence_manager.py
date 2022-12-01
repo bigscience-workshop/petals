@@ -35,7 +35,7 @@ class RemoteSequenceManager:
     :param block_uids: a sequence of DHT keys (strings) corresponding to remote layers
     :param p2p: an optional P2P replica (if not specified, create one via dht.replicate_p2p())
     :param update_period: by default, refresh DHT information once in this many seconds
-    :param timeout: float, in seconds, default timeout for RPC forwad/backward/inference requests
+    :param request_timeout: float, in seconds, default timeout for RPC forwad/backward/inference requests
     :param min_backoff: after a repeated failure, sleep for this many seconds times 2 ^ (num_failures - 1)
     :param sequence_info: optionally, specify pre-generated sequence info. by default, create a new one using dht
     :param rpc_info: optionally, specify rpc info (communicated tensor shapes and compression) to save time
@@ -51,7 +51,7 @@ class RemoteSequenceManager:
         block_uids: Sequence[ModuleUID],
         p2p: P2P,
         update_period: float = 30,
-        timeout: float = 20,
+        request_timeout: float = 30,
         min_backoff: float = 1,
         sequence_info: Optional[RemoteSequenceInfo] = None,
         rpc_info: Optional[dict] = None,
@@ -60,7 +60,7 @@ class RemoteSequenceManager:
     ):
         assert len(block_uids) > 0, "Sequences must contain at least one block"
         self.dht, self.p2p = dht, p2p
-        self.timeout, self.min_backoff = timeout, min_backoff
+        self.request_timeout, self.min_backoff = request_timeout, min_backoff
         self.lock_changes = threading.Lock()
         self._thread = _SequenceManagerUpdateThread(update_period, WeakMethod(self._update))
         self.policy = NoSpendingPolicy()
@@ -122,7 +122,7 @@ class RemoteSequenceManager:
             self.block_uids[ix],
             self.p2p,
             update_period=self._thread.update_period,
-            timeout=self.timeout,
+            request_timeout=self.request_timeout,
             min_backoff=self.min_backoff,
             sequence_info=self.sequence_info[ix],
             rpc_info=self._rpc_info,

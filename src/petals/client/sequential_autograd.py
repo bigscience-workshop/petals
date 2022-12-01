@@ -52,7 +52,6 @@ async def sequential_forward(
     sequences = deque()
     intermediate_inputs = []
     done_sequences = []
-    outputs = inputs
 
     block_idx = start_index
     while block_idx < end_index:
@@ -79,7 +78,7 @@ async def sequential_forward(
                     stub,
                     sequence_manager.rpc_info,
                     *inputs_and_prompts,
-                    timeout=sequence_manager.timeout,
+                    timeout=sequence_manager.request_timeout,
                     metadata=MSGPackSerializer.dumps(metadata),
                 )
 
@@ -163,7 +162,7 @@ async def sequential_backward(
                     inputs,
                     grad_outputs,
                     prompts[span.start : span.end],
-                    timeout=sequence_manager.timeout,
+                    timeout=sequence_manager.request_timeout,
                     metadata=MSGPackSerializer.dumps(metadata),
                 )
                 grad_outputs = [grad_outputs]

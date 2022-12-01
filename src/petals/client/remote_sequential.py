@@ -30,6 +30,7 @@ class RemoteSequential(nn.Module):
         dht_prefix: Optional[str] = None,
         p2p: Optional[P2P] = None,
         sequence_manager: Optional[RemoteSequenceManager] = None,
+        **kwargs
     ):
         super().__init__()
         self.config = config
@@ -41,10 +42,12 @@ class RemoteSequential(nn.Module):
         block_uids = tuple(f"{config.dht_prefix}{UID_DELIMITER}{i}" for i in range(num_blocks))
         if sequence_manager is None:
             logger.debug(f"Creating new sequence manager for block uids: {block_uids}")
-            self.sequence_manager = RemoteSequenceManager(dht, block_uids, self.p2p, start=True)
+            self.sequence_manager = RemoteSequenceManager(dht, block_uids, self.p2p, start=True, **kwargs)
             self.is_subsequence = False
         else:
             logger.debug(f"Reusing sequence manager with {len(sequence_manager)} modules")
+            if kwargs:
+                logger.warning(f"Parameters {kwargs} are ignored because sequence_manager is explicitly provided")
             self.sequence_manager = sequence_manager
             assert isinstance(sequence_manager.sequence_info.block_uids, tuple)
             self.is_subsequence = self.sequence_manager.sequence_info.block_uids != block_uids
