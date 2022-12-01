@@ -68,7 +68,7 @@ class RemoteSequenceManager:
 
         if sequence_info is None:
             self.sequence_info = RemoteSequenceInfo.make_empty(block_uids)
-            self.update()
+            self.update(wait=False)
         else:
             self.sequence_info = sequence_info
             assert block_uids == sequence_info.block_uids
@@ -133,7 +133,8 @@ class RemoteSequenceManager:
         """Run an asynchronous update in background as soon as possible"""
         self.ready.clear()
         self._thread.trigger.set()
-        self.ready.wait()
+        if wait:
+            self.ready.wait()
 
     def _update(self):
         """Perform an immediate and synchronous refresh, may take time"""
@@ -242,7 +243,7 @@ class _SequenceManagerUpdateThread(threading.Thread):
             finally:
                 del update_manager
 
-        logger.info(f"{self.__class__.__name__} thread exited")
+        logger.debug(f"{self.__class__.__name__} thread exited")
 
     def shutdown(self, timeout: Optional[float] = None):
         self.should_shutdown = True
