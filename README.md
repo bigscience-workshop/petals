@@ -27,7 +27,7 @@ for input_ids, labels in data_loader:
 ```
 
 <p align="center">
-    🚀 &nbsp;<b><a href="https://colab.research.google.com/drive/1hhgSYqfN8a5xOCTPDtwNEdecon5t5pUX?usp=sharing">Try now in Colab</a></b>
+    🚀 &nbsp;<b><a href="https://colab.research.google.com/drive/1PvsJ22je1UMbNKXQIKYCBDzBWSLXoh7U?usp=sharing">Try now in Colab</a></b>
 </p>
 
 Connect your own GPU and increase Petals capacity:
@@ -109,19 +109,19 @@ git clone https://github.com/bigscience-workshop/petals.git && cd petals
 pip install -e .[dev]
 ```
 
-To run minimalistic tests, spin up a local swarm with some servers:
+To run minimalistic tests, you need to make a local swarm with a small model and some servers. You may find more information about how local swarms work and how to run them in [this tutorial](https://github.com/bigscience-workshop/petals/wiki/Launch-your-own-swarm).
 
 ```bash
 export MODEL_NAME=bloom-testing/test-bloomd-560m-main
-export INITIAL_PEERS=/ip4/127.0.0.1/tcp/31337/p2p/QmS9KwZptnVdB9FFV7uGgaTq4sEKBwcYeKZDfSpyKDUd1g
-python -m petals.cli.run_server $MODEL_NAME --block_indices 0:12 --throughput 1 --torch_dtype float32 \
-  --identity tests/test.id --host_maddrs /ip4/127.0.0.1/tcp/31337  &> server1.log &
+
+python -m petals.cli.run_server $MODEL_NAME --block_indices 0:12 \
+  --identity tests/test.id --host_maddrs /ip4/127.0.0.1/tcp/31337 --new_swarm  &> server1.log &
 sleep 5  # wait for the first server to initialize DHT
-python -m petals.cli.run_server $MODEL_NAME --block_indices 12:24 --throughput 1 --torch_dtype float32 \
-  --initial_peers /ip4/127.0.0.1/tcp/31337/p2p/QmS9KwZptnVdB9FFV7uGgaTq4sEKBwcYeKZDfSpyKDUd1g &> server2.log &
+
+python -m petals.cli.run_server $MODEL_NAME --block_indices 12:24 \
+  --initial_peers SEE_THE_OUTPUT_OF_THE_1ST_PEER &> server2.log &
 
 tail -f server1.log server2.log  # view logs for both servers
-# after you're done, kill servers with 'pkill -f petals.cli.run_server'
 ```
 
 Then launch pytest:
@@ -131,6 +131,8 @@ export MODEL_NAME=bloom-testing/test-bloomd-560m-main REF_NAME=bigscience/bloom-
 export INITIAL_PEERS=/ip4/127.0.0.1/tcp/31337/p2p/QmS9KwZptnVdB9FFV7uGgaTq4sEKBwcYeKZDfSpyKDUd1g
 PYTHONPATH=. pytest tests --durations=0 --durations-min=1.0 -v
 ```
+
+After you're done, you can terminate the servers and ensure that no zombie processes are left with `pkill -f petals.cli.run_server && pkill -f p2p`.
 
 The automated tests use a more complex server configuration that can be found [here](https://github.com/bigscience-workshop/petals/blob/main/.github/workflows/run-tests.yaml).
 
