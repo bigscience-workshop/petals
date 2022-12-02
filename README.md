@@ -10,40 +10,17 @@
     </a>
 </p>
 
-## Key features
-
-- Run inference or fine-tune large language models like [BLOOM-176B](https://huggingface.co/bigscience/bloom) by joining compute resources with people all over the Internet.
-- **Petals** allows to load and serve a small part of the model, then team up with people serving the other parts to run inference or fine-tuning.
-- This way, one inference step takes ≈ 1 sec — 10x faster than possible with offloading. Enough for chatbots and other interactive apps.
-- Beyond classic language model APIs — you can employ any fine-tuning and sampling methods by executing custom paths through the model or accessing its hidden states. This combines the comforts of an API with the flexibility of PyTorch.
-
-<p align="center">
-    📜 &nbsp;<b><a href="https://arxiv.org/pdf/2209.01188.pdf">Read paper</a></b>
-    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-    🖥️ &nbsp;<b><a href="https://petals.ml/">View website</a></b>
-</p>
-
-## How it works?
-
-<p align="center">
-    <img src="https://i.imgur.com/RTYF3yW.png" width="800">
-</p>
-
-### 🛠️ Examples
-
-Petals integrates seamlessly with PyTorch and the Hugging Face [Transformers](https://github.com/huggingface/transformers) library.
-
-This snippet shows how to **(a)** generate text with BLOOM and **(b)** solve a sequence classification task via soft prompt tuning:
+Generate text using distributed BLOOM and fine-tune it for your own tasks:
 
 ```python
-# Initialize distributed BLOOM and connect to the swarm
-model = DistributedBloomForCausalLM.from_pretrained(
-    "bigscience/bloom-petals", tuning_mode="ptune", initial_peers=SEE_BELOW
-)  # Embeddings & prompts are on your device, BLOOM blocks are distributed
+# Embeddings & prompts are on your device, BLOOM blocks are distributed across the Internet
+model = DistributedBloomForCausalLM.from_pretrained("bigscience/bloom-petals", tuning_mode="ptune")
 
-print("Generated:", model.generate(tokenized_prefix, max_new_tokens=5))
+inputs = tokenizer("A cat sat", return_tensors="pt")["input_ids"]
+outputs = model.generate(inputs, max_new_tokens=5)
+print(tokenizer.decode(remote_outputs[0]))  # A cat sat on a mat...
 
-# Training (updates only local prompts / adapters)
+# Training (updates only prompts or adapters hosted locally)
 optimizer = torch.optim.AdamW(model.parameters())
 for input_ids, labels in data_loader:
     outputs = model.forward(input_ids)
@@ -53,11 +30,36 @@ for input_ids, labels in data_loader:
     optimizer.step()
 ```
 
-### 🚧 This project is in active development
+<p align="center">
+    🚀 &nbsp;<b><a href="https://petals.ml/">Try now in Colab</a></b>
+</p>
 
-Be careful: some features may not work, interfaces may change, and we have no detailed docs yet (see [roadmap](https://github.com/bigscience-workshop/petals/issues/12)).
+Connect your own GPU and increase Petals capacity:
 
-A stable version of the code and a public swarm open to everyone will be released in November 2022. You can [subscribe](https://petals.ml/) to be emailed when it happens or fill in [this form](https://forms.gle/TV3wtRPeHewjZ1vH9) to help the public launch by donating GPU time. In the meantime, you can launch and use your own private swarm.
+```bash
+pip install git+https://github.com/bigscience-workshop/petals
+python -m petals.cli.run_server bigscience/bloom-petals
+```
+
+Check out more examples:
+
+- Training a personified chatbot: [examples/prompt-tuning-personachat.ipynb](./examples/prompt-tuning-personachat.ipynb)
+- Fine-tuning BLOOM for text semantic classification: [examples/prompt-tuning-sst2.ipynb](./examples/prompt-tuning-sst2.ipynb)
+
+## How it works
+
+- **Petals** runs inference or fine-tunes large language models like [BLOOM-176B](https://huggingface.co/bigscience/bloom) by joining compute resources with people all over the Internet.
+- One participant with weak GPU can load a small part of the model, then team up with people serving the other parts to run inference or fine-tuning.
+- This way, one inference step takes ≈ 1 sec — 10x faster than possible with offloading. Enough for chatbots and other interactive apps.
+- Beyond classic language model APIs — you can employ any fine-tuning and sampling methods by executing custom paths through the model or accessing its hidden states. This combines the comforts of an API with the flexibility of PyTorch.
+
+<p align="center">
+    <img src="https://i.imgur.com/RTYF3yW.png" width="800">
+</p>
+
+<p align="center">
+    📜 &nbsp;<b><a href="https://arxiv.org/pdf/2209.01188.pdf">Read paper</a></b>
+</p>
 
 ### 📋 Terms of use
 
