@@ -37,16 +37,18 @@ for input_ids, labels in data_loader:
 Connect your own GPU and increase Petals capacity:
 
 ```bash
-pip install git+https://github.com/bigscience-workshop/petals
-python -m petals.cli.run_server bigscience/bloom-petals
+(conda) $ pip install git+https://github.com/bigscience-workshop/petals
+(conda) $ python -m petals.cli.run_server bigscience/bloom-petals
 ```
+
+💬 If you have any issues or feedback, tell us in our [**Discord**](https://petals.ml/)!
 
 Check out more examples:
 
 - Training a personified chatbot: [examples/prompt-tuning-personachat.ipynb](./examples/prompt-tuning-personachat.ipynb)
 - Fine-tuning BLOOM for text semantic classification: [examples/prompt-tuning-sst2.ipynb](./examples/prompt-tuning-sst2.ipynb)
 
-## How it works
+## How it works?
 
 - **Petals** runs inference or fine-tunes large language models like [BLOOM-176B](https://huggingface.co/bigscience/bloom) by joining compute resources with people all over the Internet.
 - One participant with weak GPU can load a small part of the model, then team up with people serving the other parts to run inference or fine-tuning.
