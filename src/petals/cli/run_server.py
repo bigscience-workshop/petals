@@ -106,7 +106,8 @@ def main():
                         help="Check the swarm's balance every N seconds (and rebalance it if necessary)")
 
     parser.add_argument("--use_auth_token", type=str, default=None, help="auth token for from_pretrained")
-    parser.add_argument('--load_in_8bit', action='store_true', help='Convert the loaded model into mixed-8bit quantized model.')
+    parser.add_argument('--load_in_8bit', type=bool, default=None,
+                        help="Convert the loaded model into mixed-8bit quantized model. Default: True if GPU is available")
 
     # fmt:on
     args = vars(parser.parse_args())

@@ -71,7 +71,7 @@ class Server:
         mean_balance_check_period: float = 60,
         mean_block_selection_delay: float = 0.5,
         use_auth_token: Optional[str] = None,
-        load_in_8bit: bool = False,
+        load_in_8bit: Optional[bool] = None,
         **kwargs,
     ):
         """Create a server with one or more bloom blocks. See run_server.py for documentation."""
@@ -86,7 +86,6 @@ class Server:
         self.stats_report_interval, self.update_period = stats_report_interval, update_period
         self.prefetch_batches, self.sender_threads = prefetch_batches, sender_threads
         self.use_auth_token = use_auth_token
-        self.load_in_8bit = load_in_8bit
 
         if custom_module_path is not None:
             add_custom_models_from_file(custom_module_path)
@@ -114,8 +113,14 @@ class Server:
         else:
             logger.info(f"Running DHT node on {visible_maddrs_str}, initial peers = {initial_peers}")
 
-        device = device or ("cuda" if torch.cuda.is_available() else "cpu")
+        if device is None:
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+        device = torch.device(device)
         self.device = device
+
+        if load_in_8bit is None:
+            load_in_8bit = (device.type == "cuda")
+        self.load_in_8bit = load_in_8bit
 
         self.memory_cache = MemoryCache(device, attn_cache_size, alloc_timeout)
 
