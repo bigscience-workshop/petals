@@ -177,7 +177,10 @@ class Server:
 
         gib = 1024**3
         total_memory_gib = torch.cuda.get_device_properties(self.device).total_memory / gib
-        num_blocks = math.floor((total_memory_gib - 2) / (176 / 70 + 0.5))
+        block_size_gib = 176 / 70 + 0.5
+        if not self.load_in_8bit:
+            block_size_gib *= 2 if self.dtype in (torch.float16, torch.bfloat16) else 4
+        num_blocks = math.floor((total_memory_gib - 2) / block_size_gib)
         assert num_blocks >= 1, "Your GPU do not have enough memory to serve at least one block"
 
         logger.info(
