@@ -1,18 +1,14 @@
 <p align="center">
     <img src="https://i.imgur.com/7eR7Pan.png" width="400"><br>
-    Easy way to efficiently run 100B+ language models<br>
-    without high-end GPUs<br><br>
-    <a href="https://github.com/bigscience-workshop/petals/actions">
-        <img src="https://github.com/bigscience-workshop/petals/actions/workflows/run-tests.yaml/badge.svg?branch=main">
-    </a>
-    <a href="https://github.com/psf/black">
-        <img src="https://img.shields.io/badge/code%20style-black-000000.svg">
-    </a>
+    Easy way to run 100B+ language models without high-end GPUs<br>
+    by collaborating with researchers across the world<br><br>
 </p>
 
 Generate text using distributed BLOOM and fine-tune it for your own tasks:
 
 ```python
+from petals.client import DistributedBloomForCausalLM
+
 # Embeddings & prompts are on your device, BLOOM blocks are distributed across the Internet
 model = DistributedBloomForCausalLM.from_pretrained("bigscience/bloom-petals", tuning_mode="ptune")
 
