@@ -8,11 +8,12 @@ from collections import deque
 from typing import List, Optional, Sequence, Tuple
 
 import torch
+from hivemind import MSGPackSerializer
 from hivemind.moe.client.remote_expert_worker import RemoteExpertWorker
 from hivemind.utils.logging import get_logger
 
 from petals.client.remote_forward_backward import run_remote_backward, run_remote_forward
-from petals.client.sequence_manager import RemoteSequenceManager
+from petals.client.routing.sequence_manager import RemoteSequenceManager
 from petals.data_structures import CHAIN_DELIMITER, RemoteSpanInfo
 from petals.server.handler import TransformerConnectionHandler
 from petals.utils.misc import DUMMY, is_dummy
@@ -51,7 +52,6 @@ async def sequential_forward(
     sequences = deque()
     intermediate_inputs = []
     done_sequences = []
-    outputs = inputs
 
     block_idx = start_index
     while block_idx < end_index:
@@ -59,7 +59,7 @@ async def sequential_forward(
             logger.debug(f"Forward: block {block_idx}, attempt {attempt_no}")
             try:
                 if attempt_no >= 1:
-                    sequence_manager.update_()
+                    sequence_manager._update()
                 if not sequences or attempt_no >= 1:
                     sequences = deque(sequence_manager.make_sequence(block_idx, end_index))
                     # make_sequence() could return a longer sequence
@@ -78,8 +78,8 @@ async def sequential_forward(
                     stub,
                     sequence_manager.rpc_info,
                     *inputs_and_prompts,
-                    timeout=sequence_manager.timeout,
-                    metadata=metadata,
+                    timeout=sequence_manager.request_timeout,
+                    metadata=MSGPackSerializer.dumps(metadata),
                 )
 
                 assert isinstance(outputs, torch.Tensor)
@@ -137,7 +137,7 @@ async def sequential_backward(
             logger.debug(f"Backward: block {span.end - 1}, attempt {attempt_no}")
             try:
                 if attempt_no >= 1:
-                    sequence_manager.update_()
+                    sequence_manager.update(wait=True)
                     _, backup_inputs, backup_sequences = await sequential_forward(
                         inputs, prompts, sequence_manager, start_index=span.start, end_index=span.end
                     )
@@ -162,8 +162,8 @@ async def sequential_backward(
                     inputs,
                     grad_outputs,
                     prompts[span.start : span.end],
-                    timeout=sequence_manager.timeout,
-                    metadata=metadata,
+                    timeout=sequence_manager.request_timeout,
+                    metadata=MSGPackSerializer.dumps(metadata),
                 )
                 grad_outputs = [grad_outputs]
                 grad_prompts_reversed.extend(span_grad_prompts)

@@ -21,7 +21,6 @@ from transformers.modeling_outputs import (
     CausalLMOutputWithCrossAttentions,
     SequenceClassifierOutputWithPast,
 )
-from transformers.modeling_utils import PreTrainedModel
 from transformers.models.bloom.configuration_bloom import BloomConfig
 from transformers.models.bloom.modeling_bloom import BloomPreTrainedModel
 from transformers.utils import logging

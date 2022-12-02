@@ -94,7 +94,7 @@ async def _get_remote_sequence(
 ) -> petals.client.RemoteSequential:
     uids = [f"{config.dht_prefix}{UID_DELIMITER}{i}" for i in range(start, stop)]
     p2p = await dht.replicate_p2p()
-    manager = petals.client.RemoteSequenceManager(dht, uids, p2p)
+    manager = petals.client.RemoteSequenceManager(dht, uids, p2p, start=True)
     return petals.client.RemoteSequential(config, dht, dht_prefix, p2p, manager)
 
 
@@ -125,7 +125,7 @@ async def _get_remote_module(
     single_uid = isinstance(uid_or_uids, ModuleUID)
     uids = [uid_or_uids] if single_uid else uid_or_uids
     p2p = await dht.replicate_p2p()
-    managers = (petals.client.RemoteSequenceManager(dht, [uid], p2p) for uid in uids)
+    managers = (petals.client.RemoteSequenceManager(dht, [uid], p2p, start=True) for uid in uids)
     modules = [
         petals.client.RemoteTransformerBlock(config, dht, dht_prefix=dht_prefix, p2p=p2p, sequence_manager=m)
         for m in managers
@@ -134,14 +134,13 @@ async def _get_remote_module(
 
 
 def get_remote_module_infos(
-    dht: DHT,
-    uid_or_uids: Union[ModuleUID, List[ModuleUID]],
-    expiration_time: Optional[DHTExpiration] = None,
+    dht: DHT, uid_or_uids: Union[ModuleUID, Sequence[ModuleUID]], expiration_time: Optional[DHTExpiration] = None
 ) -> List[Optional[RemoteModuleInfo]]:
     single_uid = isinstance(uid_or_uids, ModuleUID)
     uids = [uid_or_uids] if single_uid else uid_or_uids
     infos = dht.run_coroutine(
-        partial(_get_remote_module_infos, uids=uids, expiration_time=expiration_time), return_future=False
+        partial(_get_remote_module_infos, uids=uids, expiration_time=expiration_time),
+        return_future=False,
     )
     return infos[0] if single_uid else infos
 

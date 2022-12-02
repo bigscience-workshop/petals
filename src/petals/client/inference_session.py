@@ -20,7 +20,7 @@ from hivemind.moe.client.remote_expert_worker import RemoteExpertWorker
 from hivemind.p2p import StubBase
 from hivemind.proto import runtime_pb2
 
-from petals.client.sequence_manager import RemoteSequenceManager
+from petals.client.routing.sequence_manager import RemoteSequenceManager
 from petals.data_structures import CHAIN_DELIMITER, ModuleUID, RemoteSpanInfo, RPCInfo
 from petals.server.handler import TransformerConnectionHandler
 from petals.utils.misc import DUMMY, is_dummy
@@ -44,14 +44,14 @@ class _ServerInferenceSession:
         *,
         timeout: float,
         max_length: int,
-        points: int = 0,
+        **metadata,
     ):
         self.uid, self.rpc_info = uid, rpc_info
         self.num_blocks = uid.count(CHAIN_DELIMITER) + 1
         self._inputs_queue: asyncio.Queue[runtime_pb2.ExpertRequest] = inputs_queue
         self._outputs_stream: AsyncIterator[runtime_pb2.ExpertResponse] = outputs_aiter
         self.timeout = timeout
-        self._serialized_metadata = MSGPackSerializer.dumps(dict(max_length=max_length, points=points))
+        self._serialized_metadata = MSGPackSerializer.dumps(dict(max_length=max_length, **metadata))
         self.stepped = False
         self.closed = False
 
@@ -162,7 +162,7 @@ class InferenceSession:
     An interface to a multi-step *inference* session for a sequence of remote transformer blocks
     """
 
-    def __init__(self, sequence_manager: RemoteSequenceManager, p2p: P2P, max_length: int, **metadata):
+    def __init__(self, sequence_manager: RemoteSequenceManager, p2p: P2P, max_length: int):
         self._sequence_manager = sequence_manager
         self._p2p = p2p
         self._closed = False
@@ -171,7 +171,6 @@ class InferenceSession:
         self._server_inputs = []  # Used in case of server failures to regenerate attention caches on new servers
         self._position = 0
         self._max_length = max_length
-        self._metadata = metadata
 
     def _enter_server_sessions(self, chosen_spans: List[RemoteSpanInfo]) -> List[_ServerInferenceSession]:
         server_sessions = []
@@ -179,14 +178,15 @@ class InferenceSession:
             for span in chosen_spans:
                 stub = TransformerConnectionHandler.get_stub(self._p2p, span.peer_id)
                 span_uids = CHAIN_DELIMITER.join(self._sequence_manager.block_uids[span.start : span.end])
+                metadata = self._sequence_manager.get_request_metadata("rpc_inference", span_uids, peer_id=span.peer_id)
                 session = RemoteExpertWorker.run_coroutine(
                     _ServerInferenceSession.create(
                         stub,
                         span_uids,
                         rpc_info=self._sequence_manager.rpc_info,
-                        timeout=self._sequence_manager.timeout,
+                        timeout=self._sequence_manager.request_timeout,
                         max_length=self._max_length,
-                        **self._metadata,
+                        **metadata,
                     )
                 )
                 server_sessions.append(session)
@@ -237,7 +237,7 @@ class InferenceSession:
                 logger.debug(f"Inference: block {block_idx}, attempt {attempt_no}")
                 try:
                     if attempt_no >= 1:
-                        self._sequence_manager.update_()
+                        self._sequence_manager.update(wait=True)
                     if not self._chosen_spans or not self._server_sessions or attempt_no >= 1:
                         # If there is a failed server session, this code closes it
                         self._exit_server_sessions(self._server_sessions[server_idx : server_idx + 1])

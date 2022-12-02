@@ -104,7 +104,7 @@ jobs:
 
           kill -0 $SERVER1_PID $SERVER2_PID $SERVER3_PID $SERVER4_PID $SERVER5_PID # ensure all servers survived init
 
-          PYTHONPATH=. pytest tests --durations=0 --durations-min=1.0 -v
+          pytest tests --durations=0 --durations-min=1.0 -v
 
           kill -0 $SERVER1_PID $SERVER2_PID $SERVER3_PID $SERVER4_PID $SERVER5_PID # ensure all servers survived tests
 
