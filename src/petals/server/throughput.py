@@ -6,6 +6,7 @@ import tempfile
 import time
 from hashlib import sha256
 from pathlib import Path
+from typing import Union
 
 import torch
 from hivemind.utils.logging import get_logger, use_hivemind_log_handler
@@ -26,7 +27,7 @@ DEFAULT_LOCK_PATH = Path(tempfile.gettempdir(), "petals", "throughput.lock")
 def get_host_throughput(
     config: BloomConfig,
     device: torch.device,
-    torch_dtype: torch.dtype,
+    dtype: Union[str, torch.dtype],
     *,
     load_in_8bit: bool,
     force_eval: bool = False,
@@ -42,7 +43,7 @@ def get_host_throughput(
 
         cache_key = f"config_{sha256(str(config).encode()).hexdigest()[-16:]}"
         cache_key += f"_device_{_get_device_name(device).replace(' ', '_')}"
-        cache_key += f"_dtype_{_get_dtype_name(torch_dtype, load_in_8bit)}"
+        cache_key += f"_dtype_{_get_dtype_name(dtype, load_in_8bit)}"
 
         cache = {}
         try:
@@ -55,7 +56,7 @@ def get_host_throughput(
             cache = {}
 
         if cache_key not in cache:
-            cache[cache_key] = measure_throughput_info(config, device, torch_dtype, load_in_8bit=load_in_8bit)
+            cache[cache_key] = measure_throughput_info(config, device, dtype, load_in_8bit=load_in_8bit)
 
             try:
                 os.makedirs(cache_path.parent, exist_ok=True)
@@ -70,7 +71,7 @@ def get_host_throughput(
 def measure_throughput_info(
     config: BloomConfig,
     device: torch.device,
-    dtype: torch.dtype,
+    dtype: Union[str, torch.dtype],
     *,
     load_in_8bit: bool,
 ) -> float:
@@ -106,7 +107,7 @@ def measure_network_rps(config: BloomConfig) -> float:
 def measure_compute_rps(
     config: BloomConfig,
     device: torch.device,
-    dtype: torch.dtype,
+    dtype: Union[str, torch.dtype],
     *,
     load_in_8bit: bool,
     n_tokens: int = 16,
@@ -114,7 +115,10 @@ def measure_compute_rps(
     layer_index: int = 0,
 ) -> float:
     with torch.inference_mode():
-        block = BloomBlock(config, layer_index).to(dtype)
+        block = BloomBlock(config, layer_index)
+        if dtype != "auto":
+            block = block.to(dtype)
+        input_dtype = block.input_layernorm.weight.dtype
         if load_in_8bit:
             block = replace_8bit_linear(block)
         block = block.to(device)
@@ -122,8 +126,8 @@ def measure_compute_rps(
         cache = None
         elapsed = 0
         for step in range(n_steps + 1):
-            dummy_input = torch.randn(n_tokens, 1, config.hidden_size, device=device, dtype=dtype)
-            alibi = build_alibi_tensor(step + 1, config.num_attention_heads, device=device, dtype=dtype)
+            dummy_input = torch.randn(n_tokens, 1, config.hidden_size, device=device, dtype=input_dtype)
+            alibi = build_alibi_tensor(step + 1, config.num_attention_heads, device=device, dtype=input_dtype)
 
             start_time = time.perf_counter()
             _, cache = block.forward(dummy_input, alibi=alibi, use_cache=True, layer_past=cache)
