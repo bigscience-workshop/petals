@@ -1,7 +1,7 @@
 <p align="center">
     <img src="https://i.imgur.com/7eR7Pan.png" width="400"><br>
     Easy way to run 100B+ language models without high-end GPUs<br>
-    by joining compute resources with other people.<br>
+    by joining compute resources with people across the Internet.<br>
     10x faster than offloading.<br><br>
 </p>
 
