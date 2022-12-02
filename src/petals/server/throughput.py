@@ -98,7 +98,7 @@ def measure_network_rps(config: BloomConfig) -> float:
         f"Network throughput: "
         f"{network_info['download'] / 1e6:.2f} Mbit/s on download, "
         f"{network_info['upload'] / 1e6:.2f} Mbit/s on upload, "
-        f"{network_rps:.2f} token/sec"
+        f"{network_rps:.1f} RPS"
     )
     return network_rps
 
@@ -133,7 +133,7 @@ def measure_compute_rps(
 
     logger.info(
         f"Forward pass throughput ({_get_device_name(device)}, {_get_dtype_name(dtype, load_in_8bit)}): "
-        f"{device_rps:.2f} token/sec"
+        f"{device_rps:.1f} RPS"
     )
     return device_rps
 
