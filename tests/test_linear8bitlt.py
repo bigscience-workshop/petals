@@ -3,7 +3,7 @@ import pytest
 import torch
 from bitsandbytes import functional as F
 
-from petals.utils.linear8bitlt_patch import CustomLinear8bitLt, get_inverse_transform_indices, logger, undo_layout
+from petals.utils.linear8bitlt_patch import CustomLinear8bitLt, get_inverse_transform_indices, undo_layout
 
 
 @pytest.mark.skipif(
@@ -11,7 +11,6 @@ from petals.utils.linear8bitlt_patch import CustomLinear8bitLt, get_inverse_tran
     reason="this test requires a turing-generation or newer GPU, see bitsandbytes docs",
 )
 def test_layout_exact_match():
-    logger.warning("Testing inverse CxB transform")
     x = (torch.randn(14336 * 3, 14336) * 10).to(torch.int8).cuda()
     for tile_size, order in ((8, 32), "col_turing"), ((32, 32), "col_ampere"):
         transform = lambda x: F.transform(x.cuda(), from_order="row", to_order=order)[0].to(x.device)
@@ -23,7 +22,6 @@ def test_layout_exact_match():
         torch.cuda.synchronize()
         assert restored_x.is_contiguous()
         assert torch.all(torch.eq(restored_x, x))
-    logger.warning("CxB tests passed")
 
 
 @pytest.mark.skipif(

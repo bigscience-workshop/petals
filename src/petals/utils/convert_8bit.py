@@ -3,7 +3,7 @@ import os
 import bitsandbytes as bnb
 import torch
 
-PETALS_8BIT_BACKWARD = bool(int(os.environ.get("PETALS_8BIT_BACKWARD", 1)))
+from petals.utils.linear8bitlt_patch import CustomLinear8bitLt
 
 
 def replace_8bit_linear(model, threshold=6.0):
@@ -27,13 +27,12 @@ def replace_8bit_linear(model, threshold=6.0):
             replace_8bit_linear(module, threshold)
 
         if isinstance(module, torch.nn.Linear) and n not in ["lm_head", "score"]:
-            model._modules[n] = bnb.nn.Linear8bitLt(
+            model._modules[n] = CustomLinear8bitLt(
                 module.in_features,
                 module.out_features,
                 module.bias is not None,
                 has_fp16_weights=False,
                 threshold=threshold,
-                memory_efficient_backward=PETALS_8BIT_BACKWARD,
             )
             model._modules[n].weight = bnb.nn.Int8Params(
                 module.weight.data, requires_grad=False, has_fp16_weights=False

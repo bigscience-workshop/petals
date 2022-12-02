@@ -15,13 +15,9 @@ import bitsandbytes.functional as F
 import torch
 from bitsandbytes.autograd._functions import MatMul8bitLt, MatmulLtState
 from bitsandbytes.nn import Linear8bitLt
-from hivemind import get_logger, use_hivemind_log_handler
-
-use_hivemind_log_handler("in_root_logger")
-logger = get_logger(__file__)
 
 
-def get_inverse_transform_indices(transform_tile: callable, tile_size: Tuple[int, int] = (8, 32)):
+def get_inverse_transform_indices(transform_tile: callable, tile_size: Tuple[int, int]):
     """
     Compute a permutation of indices that invert the specified (tiled) matrix transformation
 
