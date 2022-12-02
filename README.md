@@ -27,7 +27,7 @@ for input_ids, labels in data_loader:
 ```
 
 <p align="center">
-    🚀 &nbsp;<b><a href="https://petals.ml/">Try now in Colab</a></b>
+    🚀 &nbsp;<b><a href="https://colab.research.google.com/drive/1hhgSYqfN8a5xOCTPDtwNEdecon5t5pUX?usp=sharing">Try now in Colab</a></b>
 </p>
 
 Connect your own GPU and increase Petals capacity:
