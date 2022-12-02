@@ -1,49 +1,22 @@
 <p align="center">
     <img src="https://i.imgur.com/7eR7Pan.png" width="400"><br>
-    Easy way to efficiently run 100B+ language models<br>
-    without high-end GPUs<br><br>
-    <a href="https://github.com/bigscience-workshop/petals/actions">
-        <img src="https://github.com/bigscience-workshop/petals/actions/workflows/run-tests.yaml/badge.svg?branch=main">
-    </a>
-    <a href="https://github.com/psf/black">
-        <img src="https://img.shields.io/badge/code%20style-black-000000.svg">
-    </a>
+    Easy way to run 100B+ language models without high-end GPUs<br>
+    by collaborating with researchers across the Internet<br><br>
 </p>
 
-## Key features
-
-- Run inference or fine-tune large language models like [BLOOM-176B](https://huggingface.co/bigscience/bloom) by joining compute resources with people all over the Internet.
-- **Petals** allows to load and serve a small part of the model, then team up with people serving the other parts to run inference or fine-tuning.
-- This way, one inference step takes ≈ 1 sec — 10x faster than possible with offloading. Enough for chatbots and other interactive apps.
-- Beyond classic language model APIs — you can employ any fine-tuning and sampling methods by executing custom paths through the model or accessing its hidden states. This combines the comforts of an API with the flexibility of PyTorch.
-
-<p align="center">
-    📜 &nbsp;<b><a href="https://arxiv.org/pdf/2209.01188.pdf">Read paper</a></b>
-    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-    🖥️ &nbsp;<b><a href="https://petals.ml/">View website</a></b>
-</p>
-
-## How it works?
-
-<p align="center">
-    <img src="https://i.imgur.com/RTYF3yW.png" width="800">
-</p>
-
-### 🛠️ Examples
-
-Petals integrates seamlessly with PyTorch and the Hugging Face [Transformers](https://github.com/huggingface/transformers) library.
-
-This snippet shows how to **(a)** generate text with BLOOM and **(b)** solve a sequence classification task via soft prompt tuning:
+Generate text using distributed BLOOM and fine-tune it for your own tasks:
 
 ```python
-# Initialize distributed BLOOM and connect to the swarm
-model = DistributedBloomForCausalLM.from_pretrained(
-    "bigscience/bloom-petals", tuning_mode="ptune", initial_peers=SEE_BELOW
-)  # Embeddings & prompts are on your device, BLOOM blocks are distributed
+from petals.client import DistributedBloomForCausalLM
 
-print("Generated:", model.generate(tokenized_prefix, max_new_tokens=5))
+# Embeddings & prompts are on your device, BLOOM blocks are distributed across the Internet
+model = DistributedBloomForCausalLM.from_pretrained("bigscience/bloom-petals", tuning_mode="ptune")
 
-# Training (updates only local prompts / adapters)
+inputs = tokenizer("A cat sat", return_tensors="pt")["input_ids"]
+outputs = model.generate(inputs, max_new_tokens=5)
+print(tokenizer.decode(remote_outputs[0]))  # A cat sat on a mat...
+
+# Training (updates only prompts or adapters hosted locally)
 optimizer = torch.optim.AdamW(model.parameters())
 for input_ids, labels in data_loader:
     outputs = model.forward(input_ids)
@@ -53,11 +26,40 @@ for input_ids, labels in data_loader:
     optimizer.step()
 ```
 
-### 🚧 This project is in active development
+<p align="center">
+    🚀 &nbsp;<b><a href="https://colab.research.google.com/drive/1PvsJ22je1UMbNKXQIKYCBDzBWSLXoh7U?usp=sharing">Try now in Colab</a></b>
+</p>
 
-Be careful: some features may not work, interfaces may change, and we have no detailed docs yet (see [roadmap](https://github.com/bigscience-workshop/petals/issues/12)).
+Connect your own GPU and increase Petals capacity:
 
-A stable version of the code and a public swarm open to everyone will be released in November 2022. You can [subscribe](https://petals.ml/) to be emailed when it happens or fill in [this form](https://forms.gle/TV3wtRPeHewjZ1vH9) to help the public launch by donating GPU time. In the meantime, you can launch and use your own private swarm.
+```bash
+(conda) $ pip install git+https://github.com/bigscience-workshop/petals
+(conda) $ python -m petals.cli.run_server bigscience/bloom-petals
+```
+
+💬 If you have any issues or feedback, please join [our Discord server](https://discord.gg/uGugx9zYvN)!
+
+Check out more tutorials:
+
+- Training a personified chatbot: [notebook](./examples/prompt-tuning-personachat.ipynb)
+- Fine-tuning BLOOM for text semantic classification: [notebook](./examples/prompt-tuning-sst2.ipynb)
+- Launching your own swarm: [tutorial](https://github.com/bigscience-workshop/petals/wiki/Launch-your-own-swarm)
+- Running a custom foundation model: [tutorial](https://github.com/bigscience-workshop/petals/wiki/Run-a-custom-model-with-Petals)
+
+## How it works?
+
+- **Petals** runs inference or fine-tunes large language models like [BLOOM-176B](https://huggingface.co/bigscience/bloom) by joining compute resources with people all over the Internet.
+- One participant with weak GPU can load a small part of the model, then team up with people serving the other parts to run inference or fine-tuning.
+- This way, one inference step takes ≈ 1 sec — 10x faster than possible with offloading. Enough for chatbots and other interactive apps.
+- Beyond classic language model APIs — you can employ any fine-tuning and sampling methods by executing custom paths through the model or accessing its hidden states. This combines the comforts of an API with the flexibility of PyTorch.
+
+<p align="center">
+    <img src="https://i.imgur.com/RTYF3yW.png" width="800">
+</p>
+
+<p align="center">
+    📜 &nbsp;<b><a href="https://arxiv.org/pdf/2209.01188.pdf">Read paper</a></b>
+</p>
 
 ### 📋 Terms of use
 
@@ -96,77 +98,7 @@ If you don't have anaconda, you can get it from [here](https://www.anaconda.com/
 If you don't want anaconda, you can install PyTorch [any other way](https://pytorch.org/get-started/locally/).
 If you want to run models with 8-bit weights, please install **PyTorch with CUDA 11** or newer for compatility with [bitsandbytes](https://github.com/timDettmers/bitsandbytes).
 
-__OS support:__ Currently, Petals only supports Linux operating systems. On Windows 11, you can run Petals with GPU enabled inside WSL2 ([read more](https://learn.microsoft.com/en-us/windows/ai/directml/gpu-cuda-in-wsl)).
-For macOS, you can *probably* run everything normally if you manage to install dependencies, but we do not guarantee this.
-
-
-## 🚀 Getting Started
-
-This is a toy example running on a local machine without GPU and with a tiny model.
-For a detailed instruction with larger models, see ["Launch your own swarm"](https://github.com/bigscience-workshop/petals/wiki/Launch-your-own-swarm).
-
-First, run a couple of servers, each in a separate shell. To launch your first server, run:
-```bash
-python -m petals.cli.run_server bloom-testing/test-bloomd-560m-main --num_blocks 8 --torch_dtype float32 \
-  --host_maddrs /ip4/127.0.0.1/tcp/31337   # use port 31337, local connections only
-```
-
-This server will host 8 (out of 24) blocks of a [tiny 560M version](https://huggingface.co/bloom-testing/test-bloomd-560m-main) of the BLOOM model that was converted for Petals.
-
-> If you'd like to run a swarm of servers with the full BLOOM straight away, please see [this instruction](https://github.com/bigscience-workshop/petals/wiki/Launch-your-own-swarm) (you'll need several GPUs!). To run a different model, see [this wiki page](https://github.com/bigscience-workshop/petals/wiki/Run-a-custom-model-with-PETALS).
-
-Once the server has started, it will print out a ton of information, including an important line like this:
-
-```bash
-Mon Day 01:23:45.678 [INFO] Running DHT node on ['/ip4/127.0.0.1/tcp/31337/p2p/ALongStringOfCharacters'], initial peers = []
-```
-
-You can use this address (`/ip4/whatever/else`) to connect additional servers. Open another terminal and run:
-
-```bash
-python -m petals.cli.run_server bloom-testing/test-bloomd-560m-main --num_blocks 8 --torch_dtype float32 \
-  --host_maddrs /ip4/127.0.0.1/tcp/0 \
-  --initial_peers /ip4/127.0... # <-- TODO: Copy the address of another server here
-# e.g. --initial_peers /ip4/127.0.0.1/tcp/31337/p2p/QmS1GecIfYouAreReadingThisYouNeedToCopyYourServerAddressCBBq
-```
-
-You can assign `--initial_peers` to one or multiple addresses of other servers, not necessarily the first one.
-The only requirement is that at least one of them is running at the time.
-
-Before you proceed, __please run 3 servers__ for a total of 24 blocks (3x8). If you are running a different model,
-make sure your servers have enough total `--num_blocks` to cover that model.
-
-Once your have enough servers, you can use them to train and/or inference the model:
-```python
-import torch
-import torch.nn.functional as F
-from transformers import BloomTokenizerFast
-from petals.client import DistributedBloomForCausalLM
-
-initial_peers = [TODO_put_one_or_more_server_addresses_here]  # e.g. ["/ip4/127.0.0.1/tcp/more/stuff/here"]
-tokenizer = BloomTokenizerFast.from_pretrained("bloom-testing/test-bloomd-560m-main")
-model = DistributedBloomForCausalLM.from_pretrained(
-  "bloom-testing/test-bloomd-560m-main", initial_peers=initial_peers, low_cpu_mem_usage=True, torch_dtype=torch.float32
-)  # this model has only embeddings / logits, all transformer blocks rely on remote servers
-
-
-inputs = tokenizer("a cat sat", return_tensors="pt")["input_ids"]
-remote_outputs = model.generate(inputs, max_length=10)
-print(tokenizer.decode(remote_outputs[0]))  # "a cat sat in the back of the car,"
-
-# "train" input embeddings by backprop through distributed transformer blocks
-model.transformer.word_embeddings.weight.requires_grad = True
-outputs = model.forward(input_ids=inputs)
-loss = F.cross_entropy(outputs.logits.flatten(0, 1), inputs.flatten())
-loss.backward()
-print("Gradients (norm):", model.transformer.word_embeddings.weight.grad.norm())
-```
-
-Of course, this is a simplified code snippet. For actual training, see the example notebooks with "deep" prompt-tuning:
-- Simple text semantic classification: [examples/prompt-tuning-sst2.ipynb](./examples/prompt-tuning-sst2.ipynb)
-- A personified chatbot: [examples/prompt-tuning-personachat.ipynb](./examples/prompt-tuning-personachat.ipynb)
-
-Here's a [more advanced tutorial](https://github.com/bigscience-workshop/petals/wiki/Launch-your-own-swarm) that covers 8-bit quantization and best practices for running Petals.
+__System requirements:__ Petals only supports Linux for now. If you don't have a Linux machine, consider running Petals in Docker (see our [image](https://hub.docker.com/r/learningathome/petals)) or, in case of Windows, in WSL2 ([read more](https://learn.microsoft.com/en-us/windows/ai/directml/gpu-cuda-in-wsl)). CPU is enough to run a client, but you probably need a GPU to run a server efficiently.
 
 ## 🛠️ Development
 
@@ -177,19 +109,19 @@ git clone https://github.com/bigscience-workshop/petals.git && cd petals
 pip install -e .[dev]
 ```
 
-To run minimalistic tests, spin up some servers:
+To run minimalistic tests, you need to make a local swarm with a small model and some servers. You may find more information about how local swarms work and how to run them in [this tutorial](https://github.com/bigscience-workshop/petals/wiki/Launch-your-own-swarm).
 
 ```bash
 export MODEL_NAME=bloom-testing/test-bloomd-560m-main
-export INITIAL_PEERS=/ip4/127.0.0.1/tcp/31337/p2p/QmS9KwZptnVdB9FFV7uGgaTq4sEKBwcYeKZDfSpyKDUd1g
-python -m petals.cli.run_server $MODEL_NAME --block_indices 0:12 --throughput 1 --torch_dtype float32 \
-  --identity tests/test.id --host_maddrs /ip4/127.0.0.1/tcp/31337  &> server1.log &
+
+python -m petals.cli.run_server $MODEL_NAME --block_indices 0:12 \
+  --identity tests/test.id --host_maddrs /ip4/127.0.0.1/tcp/31337 --new_swarm  &> server1.log &
 sleep 5  # wait for the first server to initialize DHT
-python -m petals.cli.run_server $MODEL_NAME --block_indices 12:24 --throughput 1 --torch_dtype float32 \
-  --initial_peers /ip4/127.0.0.1/tcp/31337/p2p/QmS9KwZptnVdB9FFV7uGgaTq4sEKBwcYeKZDfSpyKDUd1g &> server2.log &
+
+python -m petals.cli.run_server $MODEL_NAME --block_indices 12:24 \
+  --initial_peers SEE_THE_OUTPUT_OF_THE_1ST_PEER &> server2.log &
 
 tail -f server1.log server2.log  # view logs for both servers
-# after you're done, kill servers with 'pkill -f petals.cli.run_server'
 ```
 
 Then launch pytest:
@@ -199,6 +131,8 @@ export MODEL_NAME=bloom-testing/test-bloomd-560m-main REF_NAME=bigscience/bloom-
 export INITIAL_PEERS=/ip4/127.0.0.1/tcp/31337/p2p/QmS9KwZptnVdB9FFV7uGgaTq4sEKBwcYeKZDfSpyKDUd1g
 PYTHONPATH=. pytest tests --durations=0 --durations-min=1.0 -v
 ```
+
+After you're done, you can terminate the servers and ensure that no zombie processes are left with `pkill -f petals.cli.run_server && pkill -f p2p`.
 
 The automated tests use a more complex server configuration that can be found [here](https://github.com/bigscience-workshop/petals/blob/main/.github/workflows/run-tests.yaml).
 
