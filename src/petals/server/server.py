@@ -171,8 +171,9 @@ class Server:
         self.stop = threading.Event()
 
     def _choose_num_blocks(self) -> int:
-        assert self.converted_model_name_or_path != "bigscience/bloom-petals", \
-            "If you use a model other than bigscience/bloom-petals, please specify --num blocks manually"
+        assert (
+            self.converted_model_name_or_path != "bigscience/bloom-petals"
+        ), "If you use a model other than bigscience/bloom-petals, please specify --num blocks manually"
         assert self.device.type == "cuda", "If you run a non-GPU server, please specify --num_blocks manually"
 
         gib = 1024**3
