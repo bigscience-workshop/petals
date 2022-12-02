@@ -107,9 +107,10 @@ def main():
     parser.add_argument("--mean_balance_check_period", type=float, default=60,
                         help="Check the swarm's balance every N seconds (and rebalance it if necessary)")
 
-    parser.add_argument("--use_auth_token", type=str, default=None, help="auth token for from_pretrained")
-    parser.add_argument('--load_in_8bit', type=bool, default=None,
-                        help="Convert the loaded model into mixed-8bit quantized model. Default: True if GPU is available")
+    parser.add_argument("--use_auth_token", action='store_true', help="auth token for from_pretrained")
+    parser.add_argument('--load_in_8bit', type=str, default=None,
+                        help="Convert the loaded model into mixed-8bit quantized model. "
+                             "Default: True if GPU is available. Use `--load_in_8bit False` to disable this")
 
     # fmt:on
     args = vars(parser.parse_args())
@@ -133,8 +134,9 @@ def main():
     if args.pop("new_swarm"):
         args["initial_peers"] = []
 
-    use_auth_token = args.pop("use_auth_token")
-    args["use_auth_token"] = True if use_auth_token in ("True", "true", "") else use_auth_token
+    load_in_8bit = args.pop("load_in_8bit")
+    if load_in_8bit is not None:
+        args["load_in_8bit"] = load_in_8bit.lower() in ["true", "1"]
 
     server = Server(**args, compression=compression, attn_cache_size=attn_cache_size)
     try:

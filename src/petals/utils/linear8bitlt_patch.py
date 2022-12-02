@@ -9,7 +9,7 @@ Based on: https://github.com/TimDettmers/bitsandbytes/blob/main/csrc/kernels.cu#
 Exact match tests: see $REPO/tests/test_linear8bitlt.py
 """
 import dataclasses
-import warnings
+import logging
 from typing import Optional, Tuple
 
 import bitsandbytes.functional as F
@@ -155,7 +155,7 @@ class CustomMatMul8bitLt(MatMul8bitLt):
 
         # Cast A to fp16
         if A.dtype != torch.float16:
-            warnings.warn(f"MatMul8bitLt: inputs will be cast from {A.dtype} to float16 during quantization")
+            logging.debug(f"MatMul8bitLt: inputs will be cast from {A.dtype} to float16 during quantization")
 
         # 1. Quantize A
         if len(A.shape) == 3:
