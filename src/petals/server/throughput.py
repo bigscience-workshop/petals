@@ -74,11 +74,11 @@ def measure_throughput_info(
     *,
     load_in_8bit: bool,
 ) -> float:
+    """Measure network and compute throughput in forward pass tokens per second"""
+
     logger.info(
         "Measuring network and compute throughput. This takes about a minute and will be cached for future runs"
     )
-    # We measure both network and compute throughput in "(inference) requests per second" (RPS)
-
     return min(
         measure_network_rps(config),
         measure_compute_rps(config, device, dtype, load_in_8bit=load_in_8bit),
