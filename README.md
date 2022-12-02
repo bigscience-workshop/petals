@@ -39,10 +39,12 @@ Connect your own GPU and increase Petals capacity:
 
 💬 If you have any issues or feedback, please join [our Discord server](https://discord.gg/uGugx9zYvN)!
 
-Check out more examples:
+Check out more tutorials:
 
-- Training a personified chatbot: [examples/prompt-tuning-personachat.ipynb](./examples/prompt-tuning-personachat.ipynb)
-- Fine-tuning BLOOM for text semantic classification: [examples/prompt-tuning-sst2.ipynb](./examples/prompt-tuning-sst2.ipynb)
+- Training a personified chatbot: [notebook](./examples/prompt-tuning-personachat.ipynb)
+- Fine-tuning BLOOM for text semantic classification: [notebook](./examples/prompt-tuning-sst2.ipynb)
+- Launching your own swarm: [tutorial](https://github.com/bigscience-workshop/petals/wiki/Launch-your-own-swarm)
+- Running a custom foundation model: [tutorial](https://github.com/bigscience-workshop/petals/wiki/Run-a-custom-model-with-Petals)
 
 ## How it works?
 
