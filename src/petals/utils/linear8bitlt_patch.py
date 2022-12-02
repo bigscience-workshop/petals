@@ -1,5 +1,5 @@
 """
-A patch to bitsandbytes 0.34.0 that introduces an option to run backward pass in default (fast) matrix layout
+A patch to bitsandbytes 0.34.0 that introduces an option to run backward pass in default (fast) matrix layout.
 Authors: modification by @borzunov, original code by @timdettmers. Please disregard commit authors in this file.
 
 Core idea: layouts apply the same permutation to every tile in the matrix. We can treat this as (batched) gather ops.
