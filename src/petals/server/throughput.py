@@ -48,8 +48,8 @@ def get_host_throughput(
         # The OS will release the lock when lock_fd is closed or the process is killed
 
         cache_key = f"config_{sha256(str(config).encode()).hexdigest()[-16:]}"
-        cache_key += f"_device_{_get_device_name(device).replace(' ', '_')}"
-        cache_key += f"_dtype_{_get_dtype_name(dtype, load_in_8bit)}"
+        cache_key += f"_device_{get_device_name(device).replace(' ', '_')}"
+        cache_key += f"_dtype_{get_dtype_name(dtype, load_in_8bit)}"
 
         cache = {}
         try:
@@ -139,15 +139,15 @@ def measure_compute_rps(
         device_rps = n_steps * n_tokens / elapsed
 
     logger.info(
-        f"Forward pass throughput ({_get_device_name(device)}, {_get_dtype_name(dtype, load_in_8bit)}): "
+        f"Forward pass throughput ({get_device_name(device)}, {get_dtype_name(dtype, load_in_8bit)}): "
         f"{device_rps:.1f} RPS"
     )
     return device_rps
 
 
-def _get_device_name(device: torch.device) -> str:
+def get_device_name(device: torch.device) -> str:
     return f"{torch.cuda.get_device_name(device)} GPU" if device == "cuda" else "CPU"
 
 
-def _get_dtype_name(dtype: torch.dtype, load_in_8bit: bool) -> str:
+def get_dtype_name(dtype: torch.dtype, load_in_8bit: bool) -> str:
     return "8-bit" if load_in_8bit else str(dtype)
