@@ -91,14 +91,14 @@ def measure_network_rps(config: BloomConfig) -> float:
         raise RuntimeError(f"Failed to measure network throughput (stdout: {proc.stdout}, stderr: {proc.stderr})")
     network_info = json.loads(proc.stdout)
 
-    bits_per_request = config.hidden_size * 32  # In the worst case, clients send float32 tensors without compression
+    bits_per_request = config.hidden_size * 16  # Clients usually send 16-bit tensors for forward/backward
     network_rps = min(network_info["download"], network_info["upload"]) / bits_per_request
 
     logger.info(
         f"Network throughput: "
         f"{network_info['download'] / 1e6:.2f} Mbit/s on download, "
         f"{network_info['upload'] / 1e6:.2f} Mbit/s on upload, "
-        f"{network_rps:.2f} RPS"
+        f"{network_rps:.2f} token/sec"
     )
     return network_rps
 
@@ -109,8 +109,9 @@ def measure_compute_rps(
     dtype: torch.dtype,
     *,
     load_in_8bit: bool,
-    layer_index: int = 0,
+    n_tokens: int = 16,
     n_steps: int = 500,
+    layer_index: int = 0,
 ) -> float:
     with torch.inference_mode():
         block = BloomBlock(config, layer_index).to(dtype)
@@ -121,24 +122,24 @@ def measure_compute_rps(
         cache = None
         elapsed = 0
         for step in range(n_steps + 1):
-            dummy_input = torch.randn(1, 1, config.hidden_size, device=device, dtype=dtype)
+            dummy_input = torch.randn(n_tokens, 1, config.hidden_size, device=device, dtype=dtype)
             alibi = build_alibi_tensor(step + 1, config.num_attention_heads, device=device, dtype=dtype)
 
             start_time = time.perf_counter()
             _, cache = block.forward(dummy_input, alibi=alibi, use_cache=True, layer_past=cache)
             if step >= 1:  # Skip the 1st step to exclude the initialization time
                 elapsed += time.perf_counter() - start_time
-        device_rps = n_steps / elapsed
+        device_rps = n_steps * n_tokens / elapsed
 
     logger.info(
-        f"Compute throughput ({_get_device_name(device)}, {_get_dtype_name(dtype, load_in_8bit)}): "
-        f"{device_rps:.2f} RPS"
+        f"Forward pass throughput ({_get_device_name(device)}, {_get_dtype_name(dtype, load_in_8bit)}): "
+        f"{device_rps:.2f} token/sec"
     )
     return device_rps
 
 
 def _get_device_name(device: torch.device) -> str:
-    return f"{torch.cuda.get_device_name(0)} GPU" if device == "cuda" else "CPU"
+    return f"{torch.cuda.get_device_name(device)} GPU" if device == "cuda" else "CPU"
 
 
 def _get_dtype_name(dtype: torch.dtype, load_in_8bit: bool) -> str:
