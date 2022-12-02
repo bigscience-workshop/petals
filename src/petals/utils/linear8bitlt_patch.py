@@ -236,6 +236,7 @@ class CustomMatMul8bitLt(MatMul8bitLt):
             C32A, SA = F.transform(CA, "col32")
             out32, Sout32 = F.igemmlt(C32A, state.CxB, SA, state.SB)
             if bias is None or bias.dtype == torch.float16:
+                # we apply the fused bias here
                 output = F.mm_dequant(out32, Sout32, SCA, state.SCB, bias=bias)
                 output = output.to(A.dtype)
             else:  # apply bias separately
@@ -250,8 +251,6 @@ class CustomMatMul8bitLt(MatMul8bitLt):
             output = output.mul_(state.SCB.unsqueeze(0).mul(1.0 / 127.0))
             if bias is not None:
                 output = output.add_(bias)
-
-        # we apply the fused bias here
 
         # 4. Mixed-precision decomposition matmul
         if coo_tensorA is not None and subA is not None:
