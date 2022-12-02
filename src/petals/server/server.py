@@ -119,11 +119,6 @@ class Server:
 
         self.memory_cache = MemoryCache(device, attn_cache_size, alloc_timeout)
 
-        assert isinstance(throughput, float) or throughput in ["auto", "eval"]
-        if throughput in ["auto", "eval"]:
-            throughput = get_host_throughput(device, force_eval=(throughput == "eval"))
-        self.throughput = throughput
-
         if isinstance(torch_dtype, str):
             torch_dtype = DTYPE_MAP[torch_dtype]
         assert torch_dtype in DTYPE_MAP.values(), f"torch_dtype must be one of {list(DTYPE_MAP.values())}"
@@ -135,6 +130,11 @@ class Server:
             revision=revision,
         )
         self.module_uids = [f"{self.prefix}.{block_index}" for block_index in range(self.block_config.n_layer)]
+
+        assert isinstance(throughput, float) or throughput in ["auto", "eval"]
+        if throughput in ["auto", "eval"]:
+            throughput = get_host_throughput(self.block_config, device, torch_dtype, load_in_8bit=load_in_8bit, force_eval=(throughput == "eval"))
+        self.throughput = throughput
 
         assert (block_indices is None) != (num_blocks is None), "please specify num_blocks or block_indices, not both"
         if block_indices is not None:
