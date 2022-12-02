@@ -64,7 +64,7 @@ class Server:
         expiration: Optional[float] = None,
         request_timeout: float = 3 * 60,
         session_timeout: float = 30 * 60,
-        step_timeout: float = 5 * 60,
+        step_timeout: float = 60,
         prefetch_batches: int = 1,
         sender_threads: int = 1,
         balance_quality: float = 0.75,
