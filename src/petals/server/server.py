@@ -118,7 +118,7 @@ class Server:
         self.device = device
 
         if load_in_8bit is None:
-            load_in_8bit = (device.type == "cuda")
+            load_in_8bit = device.type == "cuda"
         if load_in_8bit:
             logger.info("Model weights will be loaded in 8-bit format")
         self.load_in_8bit = load_in_8bit
