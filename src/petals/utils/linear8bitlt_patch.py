@@ -70,7 +70,12 @@ class CustomLinear8bitLt(Linear8bitLt):
     def __init__(self, *args, memory_efficient_backward: bool = False, **kwargs):
         assert not memory_efficient_backward, "memory_efficient_backward is no longer used"
         super().__init__(*args, **kwargs)
-        self.state = CustomMatmulLtState(**dataclasses.asdict(self.state))
+        old_state, self.state = self.state, CustomMatmulLtState()
+        self.state.threshold = old_state.threshold
+        self.state.has_fp16_weights = old_state.has_fp16_weights
+        self.state.memory_efficient_backward = old_state.memory_efficient_backward
+        if old_state.threshold > 0.0 and not old_state.has_fp16_weights:
+            self.state.use_pool = True
 
     def forward(self, x: torch.Tensor):
         self.state.is_training = self.training
