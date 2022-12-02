@@ -133,7 +133,9 @@ class Server:
 
         assert isinstance(throughput, float) or throughput in ["auto", "eval"]
         if throughput in ["auto", "eval"]:
-            throughput = get_host_throughput(self.block_config, device, torch_dtype, load_in_8bit=load_in_8bit, force_eval=(throughput == "eval"))
+            throughput = get_host_throughput(
+                self.block_config, device, torch_dtype, load_in_8bit=load_in_8bit, force_eval=(throughput == "eval")
+            )
         self.throughput = throughput
 
         assert (block_indices is None) != (num_blocks is None), "please specify num_blocks or block_indices, not both"
