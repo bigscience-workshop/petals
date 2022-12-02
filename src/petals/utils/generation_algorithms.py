@@ -72,14 +72,13 @@ class NucleusAlgorithm(SamplingAlgorithm):
         self.top_p = top_p
 
     def __call__(self, logits: torch.Tensor) -> Tuple[TokenIds, HypoIds]:
-        sorted_logits, sorted_indices = torch.sort(logits, descending=True, dim=-1)
+        sorted_logits, sorted_indices = torch.sort(logits, descending=False, dim=-1)
         probs = torch.softmax(sorted_logits / self.temperature, -1)
         cumulative_probs = torch.cumsum(probs, dim=-1)
-        sorted_indices_to_remove = cumulative_probs > self.top_p
-        sorted_indices_to_remove[..., 1:] = sorted_indices_to_remove[..., :-1].clone()
-        sorted_indices_to_remove[..., 0] = False
-        indices_to_remove = torch.zeros_like(sorted_indices_to_remove)
-        indices_to_remove.scatter_(-1, sorted_indices, sorted_indices_to_remove)
+
+        sorted_indices_to_remove = cumulative_probs <= (1 - self.top_p)
+
+        indices_to_remove = sorted_indices_to_remove.scatter(1, sorted_indices, sorted_indices_to_remove)
         return self.sample(logits, indices_to_remove)
 
 
