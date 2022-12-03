@@ -82,7 +82,7 @@ class DistributedBloomModel(BloomModel):
         dht = (
             config.dht
             if config.dht is not None
-            else hivemind.DHT(initial_peers=config.initial_peers, client_mode=True, start=True)
+            else hivemind.DHT(initial_peers=config.initial_peers, client_mode=True, num_workers=n_layer, start=True)
         )
         assert isinstance(dht, hivemind.DHT) and dht.is_alive(), "dht must be a running hivemind.DHT instance"
         self.h = RemoteSequential(config, dht, config.dht_prefix, request_timeout=config.request_timeout)
