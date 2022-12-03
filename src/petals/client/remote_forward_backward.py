@@ -109,7 +109,11 @@ async def run_remote_forward(
     # call RPC on remote server
     size = sum(t.element_size() * t.nelement() for t in inputs)
     forward_fn = _forward_stream if size > MAX_UNARY_PAYLOAD_SIZE else _forward_unary
-    deserialized_outputs = await forward_fn(uid, serialized_tensors, stub, timeout, metadata=metadata, **kwargs)
+    try:
+        deserialized_outputs = await forward_fn(uid, serialized_tensors, stub, timeout, metadata=metadata, **kwargs)
+    except asyncio.TimeoutError as e:
+        e.args = (f"Timeout on rpc_forward(remote_peer=...{stub._peer[-6:]})",)
+        raise
     return nested_pack(deserialized_outputs, structure=rpc_info["outputs_schema"])
 
 
@@ -151,5 +155,9 @@ async def run_remote_backward(
 
     size = sum(t.element_size() * t.nelement() for t in inputs_and_grad_outputs)
     backward_fn = _backward_stream if size > MAX_UNARY_PAYLOAD_SIZE else _backward_unary
-    deserialized_grad_inputs = await backward_fn(uid, serialized_tensors, stub, timeout, metadata=metadata, **kwargs)
+    try:
+        deserialized_grad_inputs = await backward_fn(uid, serialized_tensors, stub, timeout, metadata=metadata, **kwargs)
+    except asyncio.TimeoutError as e:
+        e.args = (f"Timeout on rpc_backward(remote_peer=...{stub._peer[-6:]})",)
+        raise
     return deserialized_grad_inputs
