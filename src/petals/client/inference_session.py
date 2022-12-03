@@ -171,6 +171,11 @@ class InferenceSession:
         self._server_inputs = []  # Used in case of server failures to regenerate attention caches on new servers
         self._position = 0
         self._max_length = max_length
+        self.last_token_id = None
+
+    @property
+    def position(self) -> int:
+        return self._position
 
     def _enter_server_sessions(self, chosen_spans: List[RemoteSpanInfo]) -> List[_ServerInferenceSession]:
         server_sessions = []
