@@ -57,9 +57,8 @@ async def sequential_forward(
     while block_idx < end_index:
         for attempt_no in itertools.count():
             logger.debug(f"Forward: block {block_idx}, attempt {attempt_no}")
+            span = None
             try:
-                if attempt_no >= 1:
-                    sequence_manager._update()
                 if not sequences or attempt_no >= 1:
                     sequences = deque(sequence_manager.make_sequence(block_idx, end_index))
                     # make_sequence() could return a longer sequence
@@ -91,8 +90,11 @@ async def sequential_forward(
 
                 inputs = outputs
                 block_idx = span.end
+                sequence_manager.on_request_success(span.peer_id)
                 break
             except Exception as e:
+                if span is not None:
+                    sequence_manager.on_request_failure(span.peer_id)
                 delay = sequence_manager.get_retry_delay(attempt_no)
                 logger.warning(
                     f"Caught exception when running forward from block {block_idx} "
@@ -137,7 +139,6 @@ async def sequential_backward(
             logger.debug(f"Backward: block {span.end - 1}, attempt {attempt_no}")
             try:
                 if attempt_no >= 1:
-                    sequence_manager.update(wait=True)
                     _, backup_inputs, backup_sequences = await sequential_forward(
                         inputs, prompts, sequence_manager, start_index=span.start, end_index=span.end
                     )
@@ -167,8 +168,11 @@ async def sequential_backward(
                 )
                 grad_outputs = [grad_outputs]
                 grad_prompts_reversed.extend(span_grad_prompts)
+                sequence_manager.on_request_success(span.peer_id)
                 break
             except Exception as e:
+                if span is not None:
+                    sequence_manager.on_request_failure(span.peer_id)
                 delay = sequence_manager.get_retry_delay(attempt_no)
                 logger.warning(
                     f"Caught exception when running backward between blocks {span.start}-{span.end} "
