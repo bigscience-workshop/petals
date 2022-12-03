@@ -18,7 +18,7 @@ from hivemind.utils.logging import get_logger, use_hivemind_log_handler
 import petals.dht_utils
 from petals.client.routing.sequence_info import RemoteSequenceInfo
 from petals.client.routing.spending_policy import NoSpendingPolicy
-from petals.data_structures import ModuleUID, RemoteSpanInfo
+from petals.data_structures import ModuleUID, RemoteSpanInfo, ServerState
 from petals.server.handler import TransformerConnectionHandler
 
 use_hivemind_log_handler("in_root_logger")
@@ -215,9 +215,16 @@ class RemoteSequenceManager:
                 try:
                     if not self.ready.is_set():
                         self.update(wait=True)
-                    if not self.sequence_info.block_infos[0].servers:
-                        raise MissingBlocksError("No servers holding the first block are online")
-                    peer_id, _ = random.choice(list(self.sequence_info.block_infos[0].servers.items()))
+
+                    active_servers = [
+                        peer_id
+                        for peer_id, server in self.sequence_info.block_infos[0].servers.items()
+                        if server.state == ServerState.ONLINE
+                    ]
+                    if not active_servers:
+                        raise MissingBlocksError("no servers holding the first block are online")
+                    peer_id = random.choice(active_servers)
+
                     stub = TransformerConnectionHandler.get_stub(self.p2p, peer_id)
                     outputs = RemoteExpertWorker.run_coroutine(
                         stub.rpc_info(runtime_pb2.ExpertUID(uid=self.block_uids[0]))
