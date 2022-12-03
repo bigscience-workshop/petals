@@ -40,7 +40,7 @@ class RemoteSequenceManager:
     :param min_backoff: after a repeated failure, sleep for this many seconds times 2 ^ (num_failures - 1)
     :param sequence_info: optionally, specify pre-generated sequence info. by default, create a new one using dht
     :param rpc_info: optionally, specify rpc info (communicated tensor shapes and compression) to save time
-    :param ban_timeout: when banning a remote peer, prevent routing to that peer for this many seconds
+    :param ban_timeout: when a remote peer fails to respond, prevent routing to that peer for this many seconds
     :param start: start the background thread (see the note below). If false, you will need to start it manually.
     :note: RemoteSequenceManager takes up some CPU and network I/O to operate in background. It is recommended to avoid
       running redundant sequence managers for the same set of layers.
