@@ -279,8 +279,8 @@ class _SequenceManagerUpdateThread(threading.Thread):
                 break
 
             try:
-                update_manager()
                 self.trigger.clear()
+                update_manager()
             except Exception as e:
                 logger.exception(e)
             finally:
