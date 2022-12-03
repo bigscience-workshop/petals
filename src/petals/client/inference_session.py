@@ -10,6 +10,7 @@ import torch
 from hivemind import (
     P2P,
     MSGPackSerializer,
+    PeerID,
     anext,
     deserialize_torch_tensor,
     get_logger,
@@ -44,9 +45,10 @@ class _ServerInferenceSession:
         *,
         timeout: float,
         max_length: int,
+        peer_id: PeerID,
         **metadata,
     ):
-        self.uid, self.rpc_info = uid, rpc_info
+        self.uid, self.peer_id, self.rpc_info = uid, peer_id, rpc_info
         self.num_blocks = uid.count(CHAIN_DELIMITER) + 1
         self._inputs_queue: asyncio.Queue[runtime_pb2.ExpertRequest] = inputs_queue
         self._outputs_stream: AsyncIterator[runtime_pb2.ExpertResponse] = outputs_aiter
@@ -186,6 +188,7 @@ class InferenceSession:
                         rpc_info=self._sequence_manager.rpc_info,
                         timeout=self._sequence_manager.request_timeout,
                         max_length=self._max_length,
+                        peer_id=span.peer_id,
                         **metadata,
                     )
                 )
@@ -235,9 +238,8 @@ class InferenceSession:
         while block_idx < n_blocks:
             for attempt_no in itertools.count():
                 logger.debug(f"Inference: block {block_idx}, attempt {attempt_no}")
+                span = None
                 try:
-                    if attempt_no >= 1:
-                        self._sequence_manager.update(wait=True)
                     if not self._chosen_spans or not self._server_sessions or attempt_no >= 1:
                         # If there is a failed server session, this code closes it
                         self._exit_server_sessions(self._server_sessions[server_idx : server_idx + 1])
@@ -301,6 +303,8 @@ class InferenceSession:
                     break
                 except Exception as e:
                     delay = self._sequence_manager.get_retry_delay(attempt_no)
+                    if span is not None:
+                        self._sequence_manager.ban_peer(span.peer_id)
                     logger.warning(
                         f"Caught exception when running inference from block {block_idx} "
                         f"(retry in {delay:.0f} sec): {repr(e)}"
