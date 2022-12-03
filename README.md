@@ -140,7 +140,7 @@ The automated tests use a more complex server configuration that can be found [h
 ### Code style
 
 We use [black](https://black.readthedocs.io/en/stable/the_black_code_style/current_style.html) and [isort](https://pycqa.github.io/isort/) for all pull requests.
-Before commiting your code, simply run `black . && isort .` and you will be fine.
+Before committing your code, simply run `black . && isort .` and you will be fine.
 
 --------------------------------------------------------------------------------
 

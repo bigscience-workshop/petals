@@ -33,7 +33,7 @@ def declare_active_modules(
     :param uids: a list of module ids to declare
     :param wait: if True, awaits for declaration to finish, otherwise runs in background
     :param throughput: specify your performance in terms of compute throughput
-    :param expiration_time: declated modules will be visible for this many seconds
+    :param expiration_time: declared modules will be visible for this many seconds
     :returns: if wait, returns store status for every key (True = store succeeded, False = store rejected)
     """
     if isinstance(uids, str):
@@ -107,7 +107,7 @@ def get_remote_module(
 ) -> Union[Union[petals.client.RemoteTransformerBlock, List[petals.client.RemoteTransformerBlock]], MPFuture]:
     """
     :param uid_or_uids: find one or more modules with these ids from across the DHT
-    :param config: model config, usualy taken by .from_pretrained(MODEL_NAME)
+    :param config: model config, usually taken by .from_pretrained(MODEL_NAME)
     :param return_future: if False (default), return when finished. Otherwise return MPFuture and run in background.
     :returns: a list of [RemoteTransformerBlock]
     """

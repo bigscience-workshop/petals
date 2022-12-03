@@ -4,11 +4,11 @@ import torch
 
 
 class TaskPrioritizerBase(ABC):
-    """Abstract class for TaskPrioritizer whose reponsibility is to evaluate task priority"""
+    """Abstract class for TaskPrioritizer whose responsibility is to evaluate task priority"""
 
     @abstractmethod
     def prioritize(self, *input: torch.Tensor, points: float = 0.0, **kwargs) -> float:
-        """Evaluates task value by the amout of points given, task input and additional kwargs. Lower priority is better"""
+        """Evaluates task value by the amount of points given, task input and additional kwargs. Lower priority is better"""
         pass
 
 

@@ -14,7 +14,7 @@ class ABCBloomConstraint(ABC):
     def __call__(self, tokens_id: torch.Tensor, logits: torch.Tensor, hypo_ids: torch.Tensor) -> torch.Tensor:
         """
         This method is called by the decoding algorithm to apply the constraint. It changes and returns new logits.
-        :param tokens_id: The token id of the last choosen token.
+        :param tokens_id: The token id of the last chosen token.
         :param logits: The logits from the Bloom model.
         :param hypo_ids: The hypothesis ids of the last tokens.
         """
