@@ -13,7 +13,7 @@ from hivemind.moe.client.remote_expert_worker import RemoteExpertWorker
 from hivemind.utils.logging import get_logger
 
 from petals.client.remote_forward_backward import run_remote_backward, run_remote_forward
-from petals.client.routing.sequence_manager import RemoteSequenceManager
+from petals.client.routing.sequence_manager import RemoteSequenceManager, maybe_log_traceback
 from petals.data_structures import CHAIN_DELIMITER, RemoteSpanInfo
 from petals.server.handler import TransformerConnectionHandler
 from petals.utils.misc import DUMMY, is_dummy
@@ -100,8 +100,7 @@ async def sequential_forward(
                     f"Caught exception when running forward from block {block_idx} "
                     f"(retry in {delay:.0f} sec): {repr(e)}"
                 )
-                traceback_level = logging.DEBUG if str(e) else logging.WARNING
-                logger.log(traceback_level, "See detailed traceback below:", exc_info=True)
+                maybe_log_traceback(e)
                 await asyncio.sleep(delay)
 
     outputs = inputs.to(device=inputs_device, dtype=inputs_dtype)
@@ -178,8 +177,7 @@ async def sequential_backward(
                     f"Caught exception when running backward between blocks {span.start}-{span.end} "
                     f"(retry in {delay:.0f} sec): {repr(e)}"
                 )
-                traceback_level = logging.DEBUG if str(e) else logging.WARNING
-                logger.log(traceback_level, "See detailed traceback below:", exc_info=True)
+                maybe_log_traceback(e)
                 await asyncio.sleep(delay)
 
     # For now, we do not support mixed dummy and grad prompts
