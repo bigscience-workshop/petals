@@ -175,7 +175,7 @@ class RemoteSequenceManager:
 
     def on_request_failure(self, peer_id: PeerID):
         """remove a given peer from the routing table. If the routing is no longer possible, trigger an update"""
-        logger.info(f"Peer {peer_id} does not respond, banning it for {self.ban_timeout} sec")
+        logger.info(f"Peer {peer_id} did not respond, banning it temporarily")
         self.banned_peers.register_failure(peer_id)
         with self.lock_changes:
             should_update = False
