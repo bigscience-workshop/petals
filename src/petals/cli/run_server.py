@@ -55,8 +55,10 @@ def main():
                         help="Use this dtype to store block weights and do computations. "
                              "By default, respect the dtypes in the pre-trained state dict.")
     parser.add_argument('--attn_cache_size', type=str, default=None,
-                        help='The size of GPU memory allocated for storing past attention keys/values between inference'
-                             ' steps; examples: 500MB or 1.2GB or 1073741824 (bytes); be warned: 1KB != 1KiB')
+                        help='The size of GPU memory allocated for storing past attention keys/values between inference steps. '
+                             'Examples: 500MB, 1.2GB, 1073741824 (bytes). Note that 1KB != 1KiB here. '
+                             'Default: 0.5GiB * num_blocks * hidden_size / 14336. '
+                             'The latter is the hidden size of the bigscience/bloom-petals model.')
     parser.add_argument('--alloc_timeout', type=float, default=60,
                         help='If the cache is full, the server will wait for this number of seconds hoping that some memory will be freed '
                              'before rejecting the request')
@@ -76,11 +78,11 @@ def main():
     parser.add_argument('--expiration', type=float, required=False, default=None,
                         help='DHT entries will expire after this many seconds')
     parser.add_argument('--request_timeout', type=float, required=False, default=3 * 60,
-                        help='Timeout for the whole rpc_forward/rpc_backward/rpc_forward_stream/rpc_backward_stream request')
+                        help='Timeout (in seconds) for the whole rpc_forward/rpc_backward/rpc_forward_stream/rpc_backward_stream request')
     parser.add_argument('--session_timeout', type=float, required=False, default=30 * 60,
-                        help='Timeout for the whole inference session')
-    parser.add_argument('--step_timeout', type=float, required=False, default=5 * 60,
-                        help="Timeout for waiting the next step's inputs inside an inference session")
+                        help='Timeout (in seconds) for the whole inference session')
+    parser.add_argument('--step_timeout', type=float, required=False, default=60,
+                        help="Timeout (in seconds) for waiting the next step's inputs inside an inference session")
 
     group = parser.add_mutually_exclusive_group()
     group.add_argument('--initial_peers', type=str, nargs='*', required=False, default=PUBLIC_INITIAL_PEERS,
@@ -105,8 +107,10 @@ def main():
     parser.add_argument("--mean_balance_check_period", type=float, default=60,
                         help="Check the swarm's balance every N seconds (and rebalance it if necessary)")
 
-    parser.add_argument("--use_auth_token", type=str, default=None, help="auth token for from_pretrained")
-    parser.add_argument('--load_in_8bit', action='store_true', help='Convert the loaded model into mixed-8bit quantized model.')
+    parser.add_argument("--use_auth_token", action='store_true', help="auth token for from_pretrained")
+    parser.add_argument('--load_in_8bit', type=str, default=None,
+                        help="Convert the loaded model into mixed-8bit quantized model. "
+                             "Default: True if GPU is available. Use `--load_in_8bit False` to disable this")
 
     # fmt:on
     args = vars(parser.parse_args())
@@ -130,8 +134,9 @@ def main():
     if args.pop("new_swarm"):
         args["initial_peers"] = []
 
-    use_auth_token = args.pop("use_auth_token")
-    args["use_auth_token"] = True if use_auth_token in ("True", "true", "") else use_auth_token
+    load_in_8bit = args.pop("load_in_8bit")
+    if load_in_8bit is not None:
+        args["load_in_8bit"] = load_in_8bit.lower() in ["true", "1"]
 
     server = Server(**args, compression=compression, attn_cache_size=attn_cache_size)
     try:
