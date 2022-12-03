@@ -90,10 +90,11 @@ async def sequential_forward(
 
                 inputs = outputs
                 block_idx = span.end
+                sequence_manager.on_request_success(span.peer_id)
                 break
             except Exception as e:
-                if span:
-                    sequence_manager.ban_peer(span.peer_id)
+                if span is not None:
+                    sequence_manager.on_request_failure(span.peer_id)
                 delay = sequence_manager.get_retry_delay(attempt_no)
                 logger.warning(
                     f"Caught exception when running forward from block {block_idx} "
@@ -167,6 +168,7 @@ async def sequential_backward(
                 )
                 grad_outputs = [grad_outputs]
                 grad_prompts_reversed.extend(span_grad_prompts)
+                sequence_manager.on_request_success(span.peer_id)
                 break
             except Exception as e:
                 delay = sequence_manager.get_retry_delay(attempt_no)

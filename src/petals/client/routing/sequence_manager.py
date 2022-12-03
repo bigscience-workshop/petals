@@ -171,7 +171,7 @@ class RemoteSequenceManager:
                 logger.log(traceback_level, "See detailed traceback below:", exc_info=True)
                 time.sleep(delay)
 
-    def ban_peer(self, peer_id: PeerID):
+    def on_request_failure(self, peer_id: PeerID):
         """remove a given peer from the routing table. If the routing is no longer possible, trigger an update"""
         logger.debug(f"Banning {peer_id}")
         self.banned_peers.register_failure(peer_id)
@@ -209,16 +209,21 @@ class RemoteSequenceManager:
         """Return the rpc_info queried from one of the servers that hold the first block"""
         if self._rpc_info is None:
             for attempt_no in itertools.count():
+                peer_id = None
                 try:
-                    self._update()
+                    if not self.ready.is_set():
+                        self.update(wait=True)
                     peer_id, _ = random.choice(list(self.sequence_info.block_infos[0].servers.items()))
                     stub = TransformerConnectionHandler.get_stub(self.p2p, peer_id)
                     outputs = RemoteExpertWorker.run_coroutine(
                         stub.rpc_info(runtime_pb2.ExpertUID(uid=self.block_uids[0]))
                     )
                     self._rpc_info = MSGPackSerializer.loads(outputs.serialized_info)
+                    self.on_request_success(peer_id)
                     break
                 except Exception as e:
+                    if peer_id is not None:
+                        self.on_request_failure(peer_id)
                     delay = self.get_retry_delay(attempt_no)
                     logger.warning(
                         f"Caught exception when gathering information from peer {peer_id} "

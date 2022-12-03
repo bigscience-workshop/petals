@@ -293,6 +293,7 @@ class InferenceSession:
                         inputs = inputs[:, -n_input_tokens:]  # No need to pass prefix further
 
                     outputs = session.step(inputs, prompts[span.start : span.end], **kwargs)
+
                     assert (
                         inputs.shape == outputs.shape
                     ), f"Shape mismatch: inputs.shape={inputs.shape}, outputs.shape={outputs.shape})"
@@ -300,11 +301,12 @@ class InferenceSession:
                     inputs = outputs
                     server_idx += 1
                     block_idx = span.end
+                    self._sequence_manager.on_request_success(span.peer_id)
                     break
                 except Exception as e:
                     delay = self._sequence_manager.get_retry_delay(attempt_no)
                     if span is not None:
-                        self._sequence_manager.ban_peer(span.peer_id)
+                        self._sequence_manager.on_request_failure(span.peer_id)
                     logger.warning(
                         f"Caught exception when running inference from block {block_idx} "
                         f"(retry in {delay:.0f} sec): {repr(e)}"
