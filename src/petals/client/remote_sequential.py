@@ -54,7 +54,7 @@ class RemoteSequential(nn.Module):
 
     def forward(self, inputs: torch.Tensor, prompts: torch.Tensor = DUMMY):
         assert inputs.ndim == 3
-        assert inputs.shape[1] < 2048, "The sequence length is capped at 2047 tokens in this version"
+        assert inputs.shape[1] <= 2048, "The sequence length is capped at 2048 tokens in this version"
         outputs = _RemoteSequentialAutogradFunction.apply(inputs, prompts, self.sequence_manager)
         return outputs
 
