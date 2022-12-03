@@ -10,7 +10,6 @@ import torch
 from hivemind import (
     P2P,
     MSGPackSerializer,
-    PeerID,
     anext,
     deserialize_torch_tensor,
     get_logger,
