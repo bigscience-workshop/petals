@@ -312,7 +312,7 @@ class InferenceSession:
                     time.sleep(delay)
 
         self._position += n_input_tokens
-
+        inputs = inputs[:, -n_input_tokens:]
         outputs = inputs.to(device=inputs_device, dtype=inputs_dtype)
         return outputs
 
