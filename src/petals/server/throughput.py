@@ -146,7 +146,7 @@ def measure_compute_rps(
 
 
 def get_device_name(device: torch.device) -> str:
-    return f"{torch.cuda.get_device_name(device)} GPU" if device == "cuda" else "CPU"
+    return f"{torch.cuda.get_device_name(device)} GPU" if device.type == "cuda" else "CPU"
 
 
 def get_dtype_name(dtype: torch.dtype, load_in_8bit: bool) -> str:
