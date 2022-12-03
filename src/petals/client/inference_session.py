@@ -45,10 +45,9 @@ class _ServerInferenceSession:
         *,
         timeout: float,
         max_length: int,
-        peer_id: PeerID,
         **metadata,
     ):
-        self.uid, self.peer_id, self.rpc_info = uid, peer_id, rpc_info
+        self.uid, self.rpc_info = uid, rpc_info
         self.num_blocks = uid.count(CHAIN_DELIMITER) + 1
         self._inputs_queue: asyncio.Queue[runtime_pb2.ExpertRequest] = inputs_queue
         self._outputs_stream: AsyncIterator[runtime_pb2.ExpertResponse] = outputs_aiter
