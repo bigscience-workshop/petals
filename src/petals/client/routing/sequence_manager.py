@@ -55,9 +55,10 @@ class RemoteSequenceManager:
         update_period: float = 30,
         request_timeout: float = 30,
         min_backoff: float = 1,
+        ban_timeout: float = 60,
         sequence_info: Optional[RemoteSequenceInfo] = None,
         rpc_info: Optional[dict] = None,
-        ban_timeout: float = 60,
+        banned_peers: Optional[Blacklist] = None,
         *,  # dear dev, if you add more parameters to this class, please make sure to handle them in __getitem__ (below)
         start: bool,
     ):
@@ -68,7 +69,7 @@ class RemoteSequenceManager:
         self._thread = _SequenceManagerUpdateThread(update_period, WeakMethod(self._update))
         self.policy = NoSpendingPolicy()
         self._rpc_info = rpc_info
-        self.banned_peers = Blacklist(base_time=ban_timeout, backoff_rate=2.0)
+        self.banned_peers = Blacklist(base_time=ban_timeout, backoff_rate=2.0) if banned_peers is None else banned_peers
 
         if sequence_info is None:
             self.sequence_info = RemoteSequenceInfo.make_empty(block_uids)
@@ -131,6 +132,7 @@ class RemoteSequenceManager:
             min_backoff=self.min_backoff,
             sequence_info=self.sequence_info[ix],
             rpc_info=self._rpc_info,
+            banned_peers=self.banned_peers,
             start=True,
         )
 
