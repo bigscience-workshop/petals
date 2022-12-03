@@ -25,7 +25,7 @@ class DecodingAlgorithm(ABC):
 
 class GreedyAlgorithm(DecodingAlgorithm):
     """
-    The simpliest algorithm for decoding. It selects the most probable token.
+    The simplest algorithm for decoding. It selects the most probable token.
     """
 
     def __call__(self, logits: torch.Tensor) -> Tuple[TokenIds, HypoIds]:
