@@ -173,7 +173,7 @@ class Server:
     def _choose_num_blocks(self) -> int:
         assert (
             self.converted_model_name_or_path == "bigscience/bloom-petals"
-        ), "If you use a model other than bigscience/bloom-petals, please specify --num blocks manually"
+        ), "If you use a model other than bigscience/bloom-petals, please specify --num_blocks manually"
         assert self.device.type == "cuda", "If you run a non-GPU server, please specify --num_blocks manually"
 
         gib = 1024**3
@@ -497,7 +497,7 @@ class ModuleContainer(threading.Thread):
         logger.debug(f"Shutting down runtime")
         self.runtime.shutdown()
 
-        logger.info("Module container shut down succesfully")
+        logger.info("Module container shut down successfully")
 
 
 class ModuleAnnouncerThread(threading.Thread):
