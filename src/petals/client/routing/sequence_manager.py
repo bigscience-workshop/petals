@@ -36,7 +36,7 @@ class RemoteSequenceManager:
     :param block_uids: a sequence of DHT keys (strings) corresponding to remote layers
     :param p2p: an optional P2P replica (if not specified, create one via dht.replicate_p2p())
     :param update_period: by default, refresh DHT information once in this many seconds
-    :param request_timeout: float, in seconds, default timeout for RPC forwad/backward/inference requests
+    :param request_timeout: float, in seconds, default timeout for RPC forward/backward/inference requests
     :param min_backoff: after a repeated failure, sleep for this many seconds times 2 ^ (num_failures - 1)
     :param sequence_info: optionally, specify pre-generated sequence info. by default, create a new one using dht
     :param rpc_info: optionally, specify rpc info (communicated tensor shapes and compression) to save time
@@ -245,7 +245,7 @@ class RemoteSequenceManager:
     def get_request_metadata(self, protocol: str, *args, **kwargs) -> Optional[Dict[str, Any]]:
         """
         :param protocol: one of "rpc_forward", "rpc_backward" or "rpc_inference"
-        :param args: request-specific inputs, typicall block uids and input tensors
+        :param args: request-specific inputs, typically block uids and input tensors
         :param kwargs: additional request context, such as remote peer ID
         :returns: msgpack-serialized metadata dict that will be passed alongside a given request
         """

@@ -85,14 +85,14 @@ class _ServerInferenceSession:
         """
         Inference step: send a chunk of input tesors and receive a chunk of outputs
         :prompts: optional DEEP prompts, added to a prefix of each layer's outputs,
-          if specified, deep promts should have shape [num_layers, batch_size, prefix_len, hid_size]
+          if specified, deep prompts should have shape [num_layers, batch_size, prefix_len, hid_size]
         """
         if self.closed:
             raise Exception("Session is closed, cannot perform step")
         if prompts is None or is_dummy(prompts):
             prompts = DUMMY
         else:
-            assert prompts.ndim == 4, "deep promts should have shape [num_layers, batch_size, prefix_len, hid_size]"
+            assert prompts.ndim == 4, "deep prompts should have shape [num_layers, batch_size, prefix_len, hid_size]"
             assert prompts.shape[0] == self.num_blocks
             assert prompts.shape[1] in (new_hidden_states.shape[0], 1)
             assert prompts.shape[2] <= new_hidden_states.shape[1]
