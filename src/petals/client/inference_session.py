@@ -188,7 +188,6 @@ class InferenceSession:
                         rpc_info=self._sequence_manager.rpc_info,
                         timeout=self._sequence_manager.request_timeout,
                         max_length=self._max_length,
-                        peer_id=span.peer_id,
                         **metadata,
                     )
                 )
