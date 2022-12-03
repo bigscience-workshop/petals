@@ -43,7 +43,6 @@ def load_pretrained_block(
     state_dict = _load_state_dict(
         converted_model_name_or_path, block_index, use_auth_token=use_auth_token, cache_dir=cache_dir
     )
-    block.load_state_dict(state_dict)
 
     if torch_dtype == "auto":
         with torch.no_grad():
