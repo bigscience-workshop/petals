@@ -291,7 +291,6 @@ class InferenceSession:
                         inputs = inputs[:, -n_input_tokens:]  # No need to pass prefix further
 
                     outputs = session.step(inputs, prompts[span.start : span.end], **kwargs)
-
                     assert (
                         inputs.shape == outputs.shape
                     ), f"Shape mismatch: inputs.shape={inputs.shape}, outputs.shape={outputs.shape})"
