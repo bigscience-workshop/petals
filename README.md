@@ -51,7 +51,7 @@ Check out more tutorials:
 
 - **Petals** runs inference or fine-tunes large language models like [BLOOM-176B](https://huggingface.co/bigscience/bloom) by joining compute resources with people all over the Internet.
 - One participant with weak GPU can load a small part of the model, then team up with people serving the other parts to run inference or fine-tuning.
-- This way, inference takes ≈ 1 sec/token — 10x faster than possible with offloading, enough for chatbots and other interactive apps. Parallel inference takes ≈ 1 sec/batch.
+- Inference takes ≈ 1 sec/token — 10x faster than possible with offloading, enough for chatbots and other interactive apps. Parallel inference takes ≈ 1 sec/batch.
 - Beyond classic language model APIs — you can employ any fine-tuning and sampling methods by executing custom paths through the model or accessing its hidden states. This combines the comforts of an API with the flexibility of PyTorch.
 
 <p align="center">
