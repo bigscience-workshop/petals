@@ -106,10 +106,13 @@ class RemoteGenerationMixin:
         if inputs is not None:
             assert isinstance(inputs, torch.Tensor) and inputs.ndim == 2, "inputs must be a 2d tensor [batch, length]"
             if session is not None and session.last_token_id is not None:
-                inputs = torch.cat([
-                    torch.tensor([[session.last_token_id]] * num_beams, dtype=torch.long, device=self.device),
-                    inputs,
-                ], dim=1)
+                inputs = torch.cat(
+                    [
+                        torch.tensor([[session.last_token_id]] * num_beams, dtype=torch.long, device=self.device),
+                        inputs,
+                    ],
+                    dim=1,
+                )
         else:
             if session is not None and session.last_token_id is not None:
                 inputs = torch.tensor([[session.last_token_id]] * num_beams, dtype=torch.long, device=self.device)
