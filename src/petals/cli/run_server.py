@@ -81,7 +81,7 @@ def main():
                         help='Timeout (in seconds) for the whole rpc_forward/rpc_backward/rpc_forward_stream/rpc_backward_stream request')
     parser.add_argument('--session_timeout', type=float, required=False, default=30 * 60,
                         help='Timeout (in seconds) for the whole inference session')
-    parser.add_argument('--step_timeout', type=float, required=False, default=60,
+    parser.add_argument('--step_timeout', type=float, required=False, default=5 * 60,
                         help="Timeout (in seconds) for waiting the next step's inputs inside an inference session")
 
     group = parser.add_mutually_exclusive_group()
