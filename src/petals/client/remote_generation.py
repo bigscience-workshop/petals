@@ -103,19 +103,18 @@ class RemoteGenerationMixin:
         elif max_length is None and max_new_tokens is not None:
             max_length = prefix_length + max_new_tokens
 
+        if num_beams > 1 and session is not None:
+            raise NotImplementedError(
+                "Reusing inference session in .generate() along with beam search is not supported yet"
+            )
+
         if inputs is not None:
             assert isinstance(inputs, torch.Tensor) and inputs.ndim == 2, "inputs must be a 2d tensor [batch, length]"
             if session is not None and session.last_token_id is not None:
-                inputs = torch.cat(
-                    [
-                        torch.tensor([[session.last_token_id]] * num_beams, dtype=torch.long, device=self.device),
-                        inputs,
-                    ],
-                    dim=1,
-                )
+                inputs = torch.cat([session.last_token_id, inputs], dim=1)
         else:
             if session is not None and session.last_token_id is not None:
-                inputs = torch.tensor([[session.last_token_id]] * num_beams, dtype=torch.long, device=self.device)
+                inputs = session.last_token_id
             else:
                 assert bos_token_id is not None, "You have to provide a bos_token_id if you do not provide inputs"
                 inputs = torch.tensor([[bos_token_id]] * num_beams, dtype=torch.long, device=self.device)
@@ -196,7 +195,7 @@ class RemoteGenerationMixin:
                         outputs[i - 1] = outputs[i - 1][hypo_ids]
 
                 outputs.append(last_token_id)
-                session.last_token_id = last_token_id[0, 0]
+                session.last_token_id = last_token_id
                 seq_idx += 1
                 if torch.all(last_token_id == eos_token_id) or len(outputs) > max_new_tokens:
                     break
