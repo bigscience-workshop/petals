@@ -12,6 +12,7 @@ from weakref import WeakMethod
 from hivemind import DHT, P2P, MSGPackSerializer, PeerID
 from hivemind.dht.node import Blacklist
 from hivemind.moe.client.remote_expert_worker import RemoteExpertWorker
+from hivemind.p2p import P2PHandlerError
 from hivemind.proto import runtime_pb2
 from hivemind.utils.logging import get_logger, use_hivemind_log_handler
 
@@ -233,7 +234,7 @@ class RemoteSequenceManager:
                     self.on_request_success(peer_id)
                     break
                 except Exception as e:
-                    if peer_id is not None:
+                    if peer_id is not None and not isinstance(e, P2PHandlerError):
                         self.on_request_failure(peer_id)
                     delay = self.get_retry_delay(attempt_no)
                     logger.warning(
