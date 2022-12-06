@@ -77,7 +77,7 @@ class MemoryCache:
             async with hivemind.utils.enter_asynchronously(self._lock_acquire_memory):
                 if self.current_size_bytes + allocated_size_bytes > self.max_size_bytes:
                     await loop.run_in_executor(
-                        None, self._wait_until_available, allocated_size_bytes, timeout=self.alloc_timeout
+                        None, self._wait_until_available, allocated_size_bytes, self.alloc_timeout
                     )
                 async with hivemind.utils.enter_asynchronously(self._lock_metadata):
                     allocated_handle = int(self.handle_counter)
