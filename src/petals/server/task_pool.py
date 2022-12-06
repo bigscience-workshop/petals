@@ -105,6 +105,8 @@ class PrioritizedTaskPool(TaskPoolBase):
     def submit_task(self, *args: torch.Tensor, priority: float = 0.0) -> MPFuture:
         """Add task to this pool's queue, return Future for its output"""
         future = MPFuture()
+        # Remove shmem from MPFuture. This disables the .cancel() feature but
+        # saves the server from "could not unlink the shared memory file" crashes during rebalancing
         future._shared_state_code = torch.tensor([ALL_STATES.index(PENDING)], dtype=torch.uint8)
 
         task = Task(priority, time.monotonic(), future, args)
