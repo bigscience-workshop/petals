@@ -66,15 +66,13 @@ Check out more tutorials:
     📜 &nbsp;<b><a href="https://arxiv.org/pdf/2209.01188.pdf">Read paper</a></b>
 </p>
 
-### 📋 Terms of use
+### 📋 Model's terms of use
 
-Before using Petals to run a language model, please make sure that you are familiar with its terms of use, risks, and limitations. In case of BLOOM, they are described in its [model card](https://huggingface.co/bigscience/bloom) and [license](https://huggingface.co/spaces/bigscience/license).
+Before building your own application that runs a language model with Petals, please make sure that you are familiar with the model's **terms of use, risks, and limitations**. In case of BLOOM, they are described in its [model card](https://huggingface.co/bigscience/bloom) and [license](https://huggingface.co/spaces/bigscience/license).
 
 ### 🔒 Privacy and security
 
-If you work with sensitive data, you should only use a private swarm (or a subset of servers in the public swarm) hosted by people and institutions you trust, who are authorized to process this data.
-
-This is important because it's technically possible for peers serving model layers to recover input data or model outputs. Also, if there are malicious peers, they may alter their outputs to influence the model outputs. See a more detailed discussion in Section 4 of our [paper](https://arxiv.org/pdf/2209.01188.pdf).
+**If you work with sensitive data, do not use the public swarm.** This is important because it's technically possible for peers serving model layers to recover input data and model outputs, or modify the outputs in a malicious way. Instead, you can [set up a private Petals swarm](https://github.com/bigscience-workshop/petals/wiki/Launch-your-own-swarm) hosted by people and organization you trust, who are authorized to process this data.
 
 ## FAQ
 
