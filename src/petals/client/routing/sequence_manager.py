@@ -117,6 +117,8 @@ class RemoteSequenceManager:
             span_sequence.append(RemoteSpanInfo(start=current_index, end=chosen_span.end, peer_id=chosen_span.peer_id))
             current_index = chosen_span.end
 
+        route_repr = " => ".join([f"{span.start}:{span.end} via …{str(span.peer_id)[-6:]}" for span in span_sequence])
+        logger.info(f"Route found: {route_repr}")
         return span_sequence
 
     def __getitem__(self, ix: Union[int, slice]) -> RemoteSequenceManager:
