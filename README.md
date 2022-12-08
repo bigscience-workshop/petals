@@ -35,7 +35,7 @@ Connect your own GPU and increase Petals capacity:
 
 ```bash
 # In an Anaconda env
-(conda) $ conda install pytorch torchvision torchaudio cudatoolkit=11.3 -c pytorch
+(conda) $ conda install pytorch cudatoolkit=11.3 -c pytorch
 (conda) $ pip install git+https://github.com/bigscience-workshop/petals
 (conda) $ python -m petals.cli.run_server bigscience/bloom-petals
 
