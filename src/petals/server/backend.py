@@ -7,7 +7,7 @@ from hivemind.moe.server.module_backend import ModuleBackend
 from hivemind.utils import get_logger
 
 from petals.bloom.from_pretrained import BloomBlock
-from petals.server.cache import MemoryCache
+from petals.server.memory_cache import MemoryCache
 from petals.server.task_pool import PrioritizedTaskPool
 from petals.utils.misc import is_dummy
 

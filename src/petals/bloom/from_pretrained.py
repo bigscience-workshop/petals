@@ -16,6 +16,7 @@ from transformers.modeling_utils import WEIGHTS_NAME
 from transformers.utils.hub import cached_path, hf_bucket_url
 
 from petals.bloom import BloomBlock, BloomConfig
+from petals.utils.disk_cache import DEFAULT_CACHE_DIR
 
 use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
@@ -37,8 +38,12 @@ def load_pretrained_block(
     cache_dir: Optional[str] = None,
 ) -> BloomBlock:
     """Load one BloomBlock from a converted model. See convert_model.py (or README.md) on how to convert it."""
+
     if config is None:
         config = BloomConfig.from_pretrained(converted_model_name_or_path, use_auth_token=use_auth_token)
+    if cache_dir is None:
+        cache_dir = DEFAULT_CACHE_DIR
+
     block = BloomBlock(config, layer_number=block_index)
     state_dict = _load_state_dict(
         converted_model_name_or_path, block_index, use_auth_token=use_auth_token, cache_dir=cache_dir
