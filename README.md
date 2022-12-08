@@ -39,7 +39,7 @@ Connect your own GPU and increase Petals capacity:
 (conda) $ pip install git+https://github.com/bigscience-workshop/petals
 (conda) $ python -m petals.cli.run_server bigscience/bloom-petals
 
-# Using a GPU-enabled Docker image
+# Or using a GPU-enabled Docker image
 sudo docker run --net host --ipc host --gpus all --rm learningathome/petals:main \
     python -m petals.cli.run_server bigscience/bloom-petals
 ```
