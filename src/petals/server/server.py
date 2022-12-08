@@ -24,8 +24,8 @@ from petals.data_structures import CHAIN_DELIMITER, UID_DELIMITER, ServerState
 from petals.dht_utils import declare_active_modules, get_remote_module_infos
 from petals.server import block_selection
 from petals.server.backend import TransformerBackend
-from petals.server.cache import MemoryCache
 from petals.server.handler import TransformerConnectionHandler
+from petals.server.memory_cache import MemoryCache
 from petals.server.throughput import get_host_throughput
 from petals.utils.convert_8bit import replace_8bit_linear
 
@@ -160,7 +160,12 @@ class Server:
         assert isinstance(throughput, float) or throughput in ["auto", "eval"]
         if throughput in ["auto", "eval"]:
             throughput = get_host_throughput(
-                self.block_config, device, torch_dtype, load_in_8bit=load_in_8bit, force_eval=(throughput == "eval")
+                self.block_config,
+                device,
+                torch_dtype,
+                load_in_8bit=load_in_8bit,
+                force_eval=(throughput == "eval"),
+                cache_dir=cache_dir,
             )
         self.throughput = throughput
 

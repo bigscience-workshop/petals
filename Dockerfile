@@ -19,8 +19,11 @@ RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -
 ENV PATH="/opt/conda/bin:${PATH}"
 
 RUN conda install python~=3.10 pip && \
-    pip install --no-cache-dir "torch>=1.12" torchvision torchaudio && \
+    pip install --no-cache-dir "torch>=1.12" && \
     conda clean --all && rm -rf ~/.cache/pip
+
+VOLUME /cache
+ENV PETALS_CACHE=/cache
 
 COPY . petals/
 RUN pip install -e petals[dev]
