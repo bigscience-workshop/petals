@@ -2,7 +2,7 @@
     <img src="https://i.imgur.com/7eR7Pan.png" width="400"><br>
     Easy way to run 100B+ language models without high-end GPUs<br>
     by joining compute resources with people across the Internet.<br>
-    10x faster than offloading.<br><br>
+    Up to 10x faster than offloading<br><br>
 </p>
 
 Generate text using distributed BLOOM and fine-tune it for your own tasks:
