@@ -14,11 +14,12 @@ logger = get_logger(__file__)
 
 
 @pytest.mark.forked
-def test_remote_sequential():
+@pytest.mark.parametrize("batch_size, seq_length", [(1, 5), (2, 3), (1, 0), (2, 0)])
+def test_remote_sequential(batch_size: int, seq_length: int):
     config = DistributedBloomConfig.from_pretrained(MODEL_NAME, initial_peers=INITIAL_PEERS)
     dht = DHT(initial_peers=config.initial_peers, client_mode=True, start=True)
-    test_inputs = torch.randn(1, 5, config.hidden_size, requires_grad=True)
-    grad_proj = torch.randn(1, 5, config.hidden_size)
+    test_inputs = torch.randn(batch_size, seq_length, config.hidden_size, requires_grad=True)
+    grad_proj = torch.randn(batch_size, seq_length, config.hidden_size)
 
     sequential = RemoteSequential(config, dht)
 
