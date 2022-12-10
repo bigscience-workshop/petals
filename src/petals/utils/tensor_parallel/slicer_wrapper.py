@@ -5,11 +5,11 @@ This code is here temporarily, with authors' permission, until they make it publ
 The original code can be found here: https://github.com/BlackSamorez/petals_local_parallel , using MIT license
 https://github.com/BlackSamorez/petals_local_parallel/blob/496e4a8ea641ff641e59309445ddc9fe0d7960cd/LICENCE
 """
-from typing import Union, Iterator, Callable, Dict, Tuple
+import re
+from typing import Callable, Dict, Iterator, Tuple, Union
 
 import torch
 import torch.nn as nn
-import re
 
 Arg = Union[int, str]
 
@@ -21,24 +21,24 @@ class SlicingConfig:
 
 
 def slice_weight_vertical(tensor: torch.Tensor, rank: int, world_size: int) -> torch.Tensor:
-    assert (tensor.shape[-2] % world_size == 0)
+    assert tensor.shape[-2] % world_size == 0
     slice_size = tensor.shape[-2] // world_size
 
-    return tensor[..., rank * slice_size: (rank + 1) * slice_size, :]
+    return tensor[..., rank * slice_size : (rank + 1) * slice_size, :]
 
 
 def slice_bias_vertical(tensor: torch.Tensor, rank: int, world_size: int) -> torch.Tensor:
-    assert (tensor.shape[-1] % world_size == 0)
+    assert tensor.shape[-1] % world_size == 0
     slice_size = tensor.shape[-1] // world_size
 
-    return tensor[rank * slice_size: (rank + 1) * slice_size]
+    return tensor[rank * slice_size : (rank + 1) * slice_size]
 
 
 def slice_weight_horizontal(tensor: torch.Tensor, rank: int, world_size: int) -> torch.Tensor:
-    assert (tensor.shape[-1] % world_size == 0)
+    assert tensor.shape[-1] % world_size == 0
     slice_size = tensor.shape[-1] // world_size
 
-    return tensor[..., rank * slice_size: (rank + 1) * slice_size]
+    return tensor[..., rank * slice_size : (rank + 1) * slice_size]
 
 
 def slice_bias_horizontal(tensor: torch.Tensor, rank: int, world_size: int) -> torch.Tensor:
@@ -53,15 +53,16 @@ SLICING_RULES = {
 }
 
 
-def slice_tensors(key_parameter_iterator: Iterator[Tuple[str, nn.Parameter]], tensor_rules: Dict[Arg, str],
-                  rank: int, world_size: int):
+def slice_tensors(
+    key_parameter_iterator: Iterator[Tuple[str, nn.Parameter]], tensor_rules: Dict[Arg, str], rank: int, world_size: int
+):
     regular_rules = [(re.compile(key), value) for key, value in tensor_rules.items()]
 
     with torch.no_grad():
         for name, param in key_parameter_iterator:
             for pattern, rule in regular_rules:
                 if pattern.search(name) is not None:
-                    name_ending = name.split('.')[-1]
+                    name_ending = name.split(".")[-1]
                     param.data = SLICING_RULES[rule, name_ending](param.data, rank=rank, world_size=world_size)
 
 

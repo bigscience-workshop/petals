@@ -42,8 +42,7 @@ class ScatterReduce(CollectiveOpetationBase):
                     self.parts_ready[i].set()  # can be called more than once; we dont care
 
             self.parts_ready[rank].wait()
-            parts_to_reduce = [part.to(x.device, non_blocking=True)
-                               for part in self.tensor_parts[rank]]
+            parts_to_reduce = [part.to(x.device, non_blocking=True) for part in self.tensor_parts[rank]]
             reduced_part = self.reduce_op(parts_to_reduce)
             return reduced_part
         finally:
