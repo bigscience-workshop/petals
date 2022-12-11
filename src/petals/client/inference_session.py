@@ -207,7 +207,7 @@ class InferenceSession:
         assert not self._closed and not self._chosen_spans
         return self
 
-    def step(self, inputs: torch.Tensor, prompts: Optional[torch.Tensor] = None, **kwargs) -> torch.Tensor:
+    def step(self, inputs: torch.Tensor, hypo_ids: torch.Tensor, prompts: Optional[torch.Tensor] = None, **kwargs) -> torch.Tensor:
         assert not self._closed
         if torch.is_grad_enabled():
             logger.warning("Running inference session with grad enabled. Gradients will *not* be propagated correctly.")
@@ -222,6 +222,7 @@ class InferenceSession:
         inputs_dtype = inputs.dtype
         inputs = inputs.cpu()
         prompts = prompts.cpu()
+        hypo_ids = hypo_ids.cpu()
 
         n_input_tokens = inputs.shape[1]
         if self._position + n_input_tokens > self._max_length:
