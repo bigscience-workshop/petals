@@ -5,15 +5,12 @@ This code is here temporarily, with authors' permission, until they make it publ
 The original code can be found here: https://github.com/BlackSamorez/petals_local_parallel , using MIT license
 https://github.com/BlackSamorez/petals_local_parallel/blob/496e4a8ea641ff641e59309445ddc9fe0d7960cd/LICENCE
 """
-import dataclasses
-from enum import Enum, auto
 
 import torch
 import torch.nn as nn
-from torch.nn.parallel import parallel_apply
 import re
 
-from typing import Callable, Dict, Iterator, Tuple, Union, Sequence
+from typing import Callable, Dict, Iterator, Tuple, Union
 
 from petals.utils.tensor_parallel.communications import AllReduce, AllGather
 
@@ -62,7 +59,7 @@ def slice_tensors(
             for pattern, rule in regular_rules:
                 if pattern.search(name) is not None:
                     name_ending = name.split(".")[-1]
-                    param.data = SLICING_RULES[rule, name_ending](param.data, rank=rank, world_size=world_size)
+                    param.data = SLICING_RULES[rule, name_ending](param.data, rank=rank, world_size=world_size).clone()
 
 
 def process_input(rules: Dict[Arg, str], rank: int, world_size: int, *args, **kwargs):
@@ -117,14 +114,13 @@ class ParallelLayerWrapper(nn.Module):
         return process_output(output, self.output_rules, self.rank)
 
 
-def wrap_submodules(model: nn.Module, module_rules: dict, rank: int, world_size: int):
-    # TODO this op modifies rules in-place! gotta un-screw this later
+def create_collective_ops_(module_rules: dict):
     unique_output_transforms = {op for rules in module_rules.values() for op in rules['output'].values()}
     transform_map = {}
     for transform in unique_output_transforms:
-        if transform == 'allreduce':
+        if transform == 'sum':
             transform_map[transform] = AllReduce(world_size)
-        elif transform == 'allgather':
+        elif transform == 'gather':
             transform_map[transform] = AllGather(world_size)
         elif callable(transform):
             transform_map[transform] = transform  # user-defined transform, no action needed
@@ -134,7 +130,11 @@ def wrap_submodules(model: nn.Module, module_rules: dict, rank: int, world_size:
     for rules in module_rules.values():
         for key, rule in rules['output'].items():
             rules['output'][key] = transform_map[rule]
+    return module_rules
 
+
+def wrap_submodules(model: nn.Module, module_rules: dict, rank: int, world_size: int):
+    # TODO this op modifies rules in-place! gotta un-screw this later
     unique_wrappers = {}
     with torch.no_grad():
         for name, module in model.named_modules():
@@ -146,70 +146,3 @@ def wrap_submodules(model: nn.Module, module_rules: dict, rank: int, world_size:
         for child_name, child in list(parent.named_children()):
             if child in unique_wrappers:
                 setattr(parent, child_name, unique_wrappers[child])
-
-
-def get_tensor_parallel_model_slice(model_cls, slicing_config: SlicingConfig, rank: int, world_size: int):
-    class _TensorParallelSlice(model_cls):
-        slicing_config = None
-        rank = None
-        world_size = None
-
-        def __new__(cls, *args, __slicing_config=slicing_config, __rank=rank, __world_size=world_size, **kwargs):
-            _TensorParallelSlice.slicing_config = __slicing_config
-            _TensorParallelSlice.rank = __rank
-            _TensorParallelSlice.world_size = __world_size
-
-            model = model_cls(*args, **kwargs)  # Create an instance of vanilla model
-
-            # modify untrained parameters/buffers
-            slice_tensors(model.named_parameters(), slicing_config.tensor_rules, rank, world_size)
-            return model
-
-        @classmethod
-        def _load_pretrained_model(cls, model: model_cls, state_dict, loaded_keys, *args, **kwargs):
-            slice_tensors(state_dict.items(), slicing_config.tensor_rules, rank, world_size)
-            result = super()._load_pretrained_model(model, state_dict, loaded_keys, *args, **kwargs)
-
-            wrap_submodules(model, slicing_config.module_rules, rank, world_size)
-
-            return result
-
-    return _TensorParallelSlice
-
-
-class TensorParallel(nn.Module):
-    def __init__(self, slice_types, devices) -> None:
-        super().__init__()
-        raise NotImplementedError()
-        assert(len(slice_types) == len(devices))
-        self.slice_types = slice_types
-        self.slices = torch.nn.ModuleList()
-        self.devices = devices
-
-    def forward(self, *args, **kwargs):
-        def scatter_map(obj):
-            if isinstance(obj, torch.Tensor):
-                return [obj.clone().to(targets) for targets in self.devices]
-            if isinstance(obj, tuple) and hasattr(obj, "_asdict") and hasattr(obj, "_fields"):
-                return [type(obj)(*args) for args in zip(*map(scatter_map, obj))]
-            if isinstance(obj, tuple) and len(obj) > 0:
-                return list(zip(*map(scatter_map, obj)))
-            if isinstance(obj, list) and len(obj) > 0:
-                return [list(i) for i in zip(*map(scatter_map, obj))]
-            if isinstance(obj, dict) and len(obj) > 0:
-                return [type(obj)(i) for i in zip(*map(scatter_map, obj.items()))]
-            return [obj for _ in self.devices]
-
-        inputs = scatter_map(args)
-        kwargs_tup = scatter_map(kwargs)
-
-        return parallel_apply(self.slices, inputs, kwargs_tup=kwargs_tup)[0]
-
-    def from_pretrained(self, *args, **kwargs):
-        self.slices = torch.nn.ModuleList([slice_type.from_pretrained(*args, **kwargs) for slice_type in self.slice_types])
-        return self.scatter()
-
-    def scatter(self):
-        for slice, device in zip(self.slices, self.devices):
-            slice.to(device)
-        return self
