@@ -1,6 +1,12 @@
+from typing import Optional, Sequence
+
 import torch
 from torch import nn
+from torch._utils import _get_all_device_indices, _get_available_device_type, _get_device_index
 from torch.nn.parallel import replicate, parallel_apply
+from torch.nn.parallel.data_parallel import _check_balance
+
+from petals.utils.tensor_parallel.slicer_wrapper import SlicingConfig
 
 
 class TensorParallel(nn.Module):
