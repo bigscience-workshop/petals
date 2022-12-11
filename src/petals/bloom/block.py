@@ -149,9 +149,7 @@ class BloomAttention(nn.Module):
         context_layer = context_layer.permute(2, 0, 1, 3).contiguous()
 
         # [q_length, batch_size, num_heads, head_dim] --> [q_length, batch_size, hidden_size]
-        new_context_layer_shape = context_layer.size()[:-2] + (self.hidden_size,)
-
-        context_layer = context_layer.view(*new_context_layer_shape)
+        context_layer = context_layer.flatten(start_dim=2)
 
         # Output. [q_length, batch_size, hidden_size]
 
