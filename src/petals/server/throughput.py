@@ -9,9 +9,8 @@ from typing import Optional, Union
 
 import torch
 from hivemind.utils.logging import get_logger, use_hivemind_log_handler
-from transformers.models.bloom.modeling_bloom import build_alibi_tensor
 
-from petals.bloom.block import BloomBlock
+from petals.bloom.block import WrappedBloomBlock
 from petals.bloom.modeling_utils import BloomConfig
 from petals.server.block_utils import resolve_block_dtype
 from petals.utils.convert_8bit import replace_8bit_linear
@@ -117,7 +116,7 @@ def measure_compute_rps(
     n_steps: int = 500,
 ) -> float:
     with torch.inference_mode():
-        block = BloomBlock(config).to(dtype)
+        block = WrappedBloomBlock(config).to(dtype)
         if load_in_8bit:
             block = replace_8bit_linear(block)
         block = block.to(device)
@@ -126,11 +125,9 @@ def measure_compute_rps(
         elapsed = 0
         for step in range(n_steps + 1):
             dummy_input = torch.randn(n_tokens, 1, config.hidden_size, device=device, dtype=dtype)
-            mask = torch.ones(n_tokens, step + 1, device=device, dtype=dtype)
-            alibi = build_alibi_tensor(mask, config.num_attention_heads, dtype=dtype)
 
             start_time = time.perf_counter()
-            _, cache = block.forward(dummy_input, alibi=alibi, use_cache=True, layer_past=cache)
+            _, cache = block.forward(dummy_input, use_cache=True, layer_past=cache)
             if step >= 1:  # Skip the 1st step to exclude the initialization time
                 elapsed += time.perf_counter() - start_time
         device_rps = n_steps * n_tokens / elapsed
