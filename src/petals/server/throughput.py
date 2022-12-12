@@ -13,6 +13,7 @@ from hivemind.utils.logging import get_logger, use_hivemind_log_handler
 from petals.bloom.block import BloomBlock
 from petals.bloom.model import BloomConfig
 from petals.bloom.ops import build_alibi_tensor
+from petals.server.block_utils import resolve_block_dtype
 from petals.utils.convert_8bit import replace_8bit_linear
 from petals.utils.disk_cache import DEFAULT_CACHE_DIR
 
@@ -29,11 +30,7 @@ def get_host_throughput(
     force_eval: bool = False,
     cache_dir: Optional[str] = None,
 ) -> float:
-    # Resolve default dtypes
-    if dtype == "auto" or dtype is None:
-        dtype = config.torch_dtype
-        if dtype == "auto" or dtype is None:
-            dtype = torch.float32
+    dtype = resolve_block_dtype(config, dtype)
 
     if cache_dir is None:
         cache_dir = DEFAULT_CACHE_DIR

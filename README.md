@@ -2,7 +2,7 @@
     <img src="https://i.imgur.com/7eR7Pan.png" width="400"><br>
     Easy way to run 100B+ language models without high-end GPUs<br>
     by joining compute resources with people across the Internet.<br>
-    10x faster than offloading.<br><br>
+    Up to 10x faster than offloading<br><br>
 </p>
 
 Generate text using distributed BLOOM and fine-tune it for your own tasks:
@@ -74,7 +74,7 @@ Before building your own application that runs a language model with Petals, ple
 
 ### 🔒 Privacy and security
 
-**If you work with sensitive data, do not use the public swarm.** This is important because it's technically possible for peers serving model layers to recover input data and model outputs, or modify the outputs in a malicious way. Instead, you can [set up a private Petals swarm](https://github.com/bigscience-workshop/petals/wiki/Launch-your-own-swarm) hosted by people and organization you trust, who are authorized to process this data.
+**If you work with sensitive data, do not use the public swarm.** This is important because it's technically possible for peers serving model layers to recover input data and model outputs, or modify the outputs in a malicious way. Instead, you can [set up a private Petals swarm](https://github.com/bigscience-workshop/petals/wiki/Launch-your-own-swarm) hosted by people and organization you trust, who are authorized to process this data. We discuss privacy and security in more detail [here](https://github.com/bigscience-workshop/petals/wiki/Security,-privacy,-and-AI-safety).
 
 ## FAQ
 
