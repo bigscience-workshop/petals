@@ -79,7 +79,7 @@ class _LowCPUMemoryMixin:
     )
 
 
-class DistributedBloomModel(BloomModel, _LowCPUMemoryMixin):
+class DistributedBloomModel(_LowCPUMemoryMixin, BloomModel):
     """BloomModel, but all transformer layers are hosted by the swarm"""
 
     _keys_to_ignore_on_load_missing = BloomModel._keys_to_ignore_on_load_missing + [
@@ -205,7 +205,7 @@ class DistributedBloomModel(BloomModel, _LowCPUMemoryMixin):
         )
 
 
-class DistributedBloomForCausalLM(RemoteGenerationMixin, BloomForCausalLM, _LowCPUMemoryMixin):
+class DistributedBloomForCausalLM(_LowCPUMemoryMixin, RemoteGenerationMixin, BloomForCausalLM):
     """DistributedBloomForCausalLM, but all transformer layers are hosted by the swarm"""
 
     _keys_to_ignore_on_load_missing = (
@@ -243,7 +243,7 @@ class DistributedBloomForCausalLM(RemoteGenerationMixin, BloomForCausalLM, _LowC
             self.lm_head.bias[...] = new_lm_head.bias
 
 
-class DistributedBloomForSequenceClassification(BloomForSequenceClassification, _LowCPUMemoryMixin):
+class DistributedBloomForSequenceClassification(_LowCPUMemoryMixin, BloomForSequenceClassification):
     _keys_to_ignore_on_load_missing = (
         BloomForSequenceClassification._keys_to_ignore_on_load_missing
         + DistributedBloomModel._keys_to_ignore_on_load_missing
