@@ -115,10 +115,9 @@ def measure_compute_rps(
     load_in_8bit: bool,
     n_tokens: int = 16,
     n_steps: int = 500,
-    layer_index: int = 0,
 ) -> float:
     with torch.inference_mode():
-        block = BloomBlock(config, layer_index).to(dtype)
+        block = BloomBlock(config).to(dtype)
         if load_in_8bit:
             block = replace_8bit_linear(block)
         block = block.to(device)
