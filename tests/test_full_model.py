@@ -13,8 +13,7 @@ logger = get_logger(__file__)
 
 
 @pytest.mark.forked
-@pytest.mark.parametrize("pass_empty_tensors", (True, False))
-def test_full_model_exact_match(pass_empty_tensors: bool, atol_forward=1e-3, atol_inference=1e-3):
+def test_full_model_exact_match(atol_forward=1e-3, atol_inference=1e-3):
     tokenizer = transformers.BloomTokenizerFast.from_pretrained(MODEL_NAME)
     model = DistributedBloomForCausalLM.from_pretrained(
         MODEL_NAME, initial_peers=INITIAL_PEERS, low_cpu_mem_usage=True, torch_dtype=torch.float32
@@ -34,14 +33,8 @@ def test_full_model_exact_match(pass_empty_tensors: bool, atol_forward=1e-3, ato
         embs = model.transformer.word_embeddings_layernorm(embs)
         recurrent_outputs = []
         with model.transformer.h.inference_session(max_length=embs.shape[1]) as sess:
-            if pass_empty_tensors:
-                recurrent_outputs.append(sess.step(torch.empty(1, 0, config.hidden_size)))
-
             for t in range(embs.shape[1]):
                 recurrent_outputs.append(sess.step(embs[:, t : t + 1, :]))
-                if t == 5 and pass_empty_tensors:
-                    recurrent_outputs.append(sess.step(torch.empty(1, 0, config.hidden_size)))
-                    recurrent_outputs.append(sess.step(torch.empty(1, 0, config.hidden_size)))
 
         recurrent_outputs = torch.cat(recurrent_outputs, dim=1)
         recurrent_outputs = model.transformer.ln_f(recurrent_outputs)
