@@ -52,14 +52,14 @@ class TensorParallel(nn.Module):
 
         # self-diagnostics: check if the model was sharded properly
         original_params = sum(p.numel() for p in module.parameters())
-        num_params_per_shard = [sum(p.numel() for p in shard.parameters()) for shard in self.module_shards]
-        self.param_fractions = tuple(params_i / original_params for params_i in num_params_per_shard)
+        params_per_shard = [sum(p.numel() for p in shard.parameters()) for shard in self.module_shards]
+        assert sum(params_per_shard) >= original_params, "Internal assert failed: lost some parameters during sharding"
+        self.param_fractions = tuple(params_i / original_params for params_i in params_per_shard)
         inefficiency_rate = (sum(self.param_fractions) - 1) / len(device_ids)  # extra params rate per GPU
-        assert inefficiency_rate >= 0, "Internal assert failed: lost a portion of model parameters during sharding"
         log_level = logging.DEBUG if inefficiency_rate < 0.1 else logging.WARNING
         logger.log(
             log_level,
-            f"Inefficiency warning: model has {original_params} but shards have {num_params_per_shard} params. "
+            f"Inefficiency warning: model has {original_params} but shards have {params_per_shard} params. "
             f"This means that each GPU uses {inefficiency_rate * 100:.3f}% extra memory for parameters",
         )
 
