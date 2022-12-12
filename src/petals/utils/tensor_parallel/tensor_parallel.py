@@ -1,10 +1,13 @@
 import logging
-from typing import Any, List, Optional, Sequence, Union
+import threading
+from contextlib import nullcontext
+from typing import Optional, Sequence, Any
 
 import torch
 from hivemind import get_logger, nested_flatten, nested_pack, use_hivemind_log_handler
 from torch import nn
-from torch._utils import _get_all_device_indices, _get_device_index
+from torch.cuda.amp import autocast
+from torch._utils import _get_all_device_indices, _get_device_index, ExceptionWrapper
 from torch.nn.parallel import parallel_apply
 
 from petals.utils.tensor_parallel.communications import broadcast_coalesced
@@ -33,6 +36,7 @@ class TensorParallel(nn.Module):
             return
 
         self.devices = tuple(torch.device(d) for d in device_ids)
+        self.all_cuda = all(device.type == 'cuda' for device in self.devices)
         self.device_ids = [_get_device_index(x, optional=True, allow_cpu=True) for x in device_ids]
         self.output_device_index = self.devices.index(output_device) if output_device is not None else 0
         world_size = len(self.devices)
@@ -80,13 +84,72 @@ class TensorParallel(nn.Module):
         for idx in range(len(self.module_shards)):
             args_and_kwargs_replicated[idx] = nested_pack(args_and_kwargs_replicated[idx], args_and_kwargs)
         inputs, kwargs_tup = zip(*args_and_kwargs_replicated)
-        return parallel_apply(self.module_shards, inputs, kwargs_tup=kwargs_tup)[self.output_device_index]
+        if self.all_cuda:
+            return parallel_apply(self.module_shards, inputs, kwargs_tup, self.devices)[self.output_device_index]
+        else:
+            return parallel_apply_simple(self.module_shards, inputs, kwargs_tup, self.devices)[self.output_device_index]
 
 
-class _Wrapper(nn.Module):
-    def __init__(self, module: nn.Module):
-        super().__init__()
-        self.module = module
+def parallel_apply_simple(modules: Sequence[nn.Module], inputs: Sequence[Sequence[torch.Tensor]], kwargs_tup: Optional[Any],
+                          devices: Sequence[torch.device]) -> Sequence[Sequence[torch.Tensor]]:
+    r"""a version of parallel_apply that does not use cuda streams; somewhat slower"""
+    assert len(modules) == len(inputs)
+    if kwargs_tup is not None:
+        assert len(modules) == len(kwargs_tup)
+    else:
+        kwargs_tup = ({},) * len(modules)
+    lock = threading.Lock()
+    results = {}
+    grad_enabled, autocast_enabled = torch.is_grad_enabled(), torch.is_autocast_enabled()
 
-    def forward(self, *args, **kwargs):
-        return self.module(*args, **kwargs)
+    def _worker(i, module, input, kwargs, device=None):
+        torch.set_grad_enabled(grad_enabled)
+        if device is None:
+            device = get_a_var(input).get_device()
+        try:
+            device_ctx = torch.cuda.device(device) if device.type == 'cuda' else nullcontext()
+            with device_ctx, autocast(enabled=autocast_enabled):
+                # this also avoids accidental slicing of `input` if it is a Tensor
+                if not isinstance(input, (list, tuple)):
+                    input = (input,)
+                output = module(*input, **kwargs)
+            with lock:
+                results[i] = output
+        except Exception:
+            with lock:
+                results[i] = ExceptionWrapper(
+                    where="in replica {} on device {}".format(i, device))
+
+    if len(modules) > 1:
+        threads = [threading.Thread(target=_worker,
+                                    args=(i, module, input, kwargs, device))
+                   for i, (module, input, kwargs, device) in
+                   enumerate(zip(modules, inputs, kwargs_tup, devices))]
+
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+
+    outputs = []
+    for i in range(len(inputs)):
+        output = results[i]
+        if isinstance(output, ExceptionWrapper):
+            output.reraise()
+        outputs.append(output)
+    return outputs
+
+
+def get_a_var(obj):
+    if isinstance(obj, torch.Tensor):
+        return obj
+
+    if isinstance(obj, list) or isinstance(obj, tuple):
+        for result in map(get_a_var, obj):
+            if isinstance(result, torch.Tensor):
+                return result
+    if isinstance(obj, dict):
+        for result in map(get_a_var, obj.items()):
+            if isinstance(result, torch.Tensor):
+                return result
+    return None
