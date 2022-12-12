@@ -343,10 +343,8 @@ class TransformerConnectionHandler(ConnectionHandler):
             for backend in backends:
                 num_heads = backend.module.self_attention.num_heads
                 head_dim = backend.module.self_attention.head_dim
-
-                descr = TensorDescriptor(size=(2, batch_size, max_length, num_heads, head_dim), dtype=backend.dtype)
-                # [key_or_value, batch_size, max_length, num_heads, head_dim]
-
+                descr = TensorDescriptor(size=(2, batch_size, num_heads * head_dim * max_length), dtype=backend.dtype)
+                # ^-- flattened batch-first tensor of both keys and values; based on BLOOM layer_past layout
                 handles.append(await stack.enter_async_context(backend.memory_cache.allocate_cache(descr)))
                 total_size += descr.numel() * torch.finfo(descr.dtype).bits // 8
 

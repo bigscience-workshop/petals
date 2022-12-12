@@ -7,15 +7,15 @@ import torch
 import torch.nn as nn
 from hivemind.utils.logging import get_logger, loglevel, use_hivemind_log_handler
 from transformers.modeling_outputs import BaseModelOutputWithPastAndCrossAttentions
-
-from petals.bloom.model import (
+from transformers.models.bloom import (
     BloomConfig,
     BloomForCausalLM,
     BloomForSequenceClassification,
     BloomModel,
     BloomPreTrainedModel,
-    LMHead,
 )
+
+from petals.bloom.model import LMHead
 from petals.client.remote_generation import RemoteGenerationMixin
 from petals.client.remote_sequential import RemoteSequential
 from petals.constants import PUBLIC_INITIAL_PEERS

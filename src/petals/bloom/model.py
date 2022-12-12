@@ -213,7 +213,6 @@ class BloomModel(_BloomPreTrainedModelWithModifiedDefaults):
         all_self_attentions = () if output_attentions else None
         all_hidden_states = () if output_hidden_states else None
 
-        # Compute alibi tensor: check build_alibi_tensor documentation
         current_sequence_length = hidden_states.shape[1]
         if past_key_values and past_key_values[0]:
             current_sequence_length += past_key_values[0][0].shape[1]
