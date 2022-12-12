@@ -1,13 +1,13 @@
 import logging
 import threading
 from contextlib import nullcontext
-from typing import Optional, Sequence, Any
+from typing import Any, Optional, Sequence
 
 import torch
 from hivemind import get_logger, nested_flatten, nested_pack, use_hivemind_log_handler
 from torch import nn
+from torch._utils import ExceptionWrapper, _get_all_device_indices, _get_device_index
 from torch.cuda.amp import autocast
-from torch._utils import _get_all_device_indices, _get_device_index, ExceptionWrapper
 from torch.nn.parallel import parallel_apply
 
 from petals.utils.tensor_parallel.communications import broadcast_coalesced
@@ -36,7 +36,7 @@ class TensorParallel(nn.Module):
             return
 
         self.devices = tuple(torch.device(d) for d in device_ids)
-        self.all_cuda = all(device.type == 'cuda' for device in self.devices)
+        self.all_cuda = all(device.type == "cuda" for device in self.devices)
         self.device_ids = [_get_device_index(x, optional=True, allow_cpu=True) for x in device_ids]
         self.output_device_index = self.devices.index(output_device) if output_device is not None else 0
         world_size = len(self.devices)
@@ -90,8 +90,12 @@ class TensorParallel(nn.Module):
             return parallel_apply_simple(self.module_shards, inputs, kwargs_tup, self.devices)[self.output_device_index]
 
 
-def parallel_apply_simple(modules: Sequence[nn.Module], inputs: Sequence[Sequence[torch.Tensor]], kwargs_tup: Optional[Any],
-                          devices: Sequence[torch.device]) -> Sequence[Sequence[torch.Tensor]]:
+def parallel_apply_simple(
+    modules: Sequence[nn.Module],
+    inputs: Sequence[Sequence[torch.Tensor]],
+    kwargs_tup: Optional[Any],
+    devices: Sequence[torch.device],
+) -> Sequence[Sequence[torch.Tensor]]:
     r"""a version of parallel_apply that does not use cuda streams; somewhat slower"""
     assert len(modules) == len(inputs)
     if kwargs_tup is not None:
@@ -107,7 +111,7 @@ def parallel_apply_simple(modules: Sequence[nn.Module], inputs: Sequence[Sequenc
         if device is None:
             device = get_a_var(input).get_device()
         try:
-            device_ctx = torch.cuda.device(device) if device.type == 'cuda' else nullcontext()
+            device_ctx = torch.cuda.device(device) if device.type == "cuda" else nullcontext()
             with device_ctx, autocast(enabled=autocast_enabled):
                 # this also avoids accidental slicing of `input` if it is a Tensor
                 if not isinstance(input, (list, tuple)):
@@ -117,14 +121,13 @@ def parallel_apply_simple(modules: Sequence[nn.Module], inputs: Sequence[Sequenc
                 results[i] = output
         except Exception:
             with lock:
-                results[i] = ExceptionWrapper(
-                    where="in replica {} on device {}".format(i, device))
+                results[i] = ExceptionWrapper(where="in replica {} on device {}".format(i, device))
 
     if len(modules) > 1:
-        threads = [threading.Thread(target=_worker,
-                                    args=(i, module, input, kwargs, device))
-                   for i, (module, input, kwargs, device) in
-                   enumerate(zip(modules, inputs, kwargs_tup, devices))]
+        threads = [
+            threading.Thread(target=_worker, args=(i, module, input, kwargs, device))
+            for i, (module, input, kwargs, device) in enumerate(zip(modules, inputs, kwargs_tup, devices))
+        ]
 
         for thread in threads:
             thread.start()

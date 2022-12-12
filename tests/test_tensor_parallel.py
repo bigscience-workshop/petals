@@ -33,18 +33,22 @@ def test_embeds_and_linear(devices):
 
 
 @pytest.mark.parametrize("devices", [None, ("cpu",), ("cpu",) * 2, ("cpu",) * 3, ("cpu",) * 4])
-@pytest.mark.parametrize("extra_options", [{}, {'padding': 'same'}, {'stride': 2}, {'dilation': 2}])
+@pytest.mark.parametrize("extra_options", [{}, {"padding": "same"}, {"stride": 2}, {"dilation": 2}])
 def test_convs(devices, extra_options):
     for Conv, nd in (
-            (nn.Conv1d, 1), (nn.Conv2d, 2), (nn.Conv3d, 3),
-            (nn.ConvTranspose1d, 1), (nn.ConvTranspose2d, 2), (nn.ConvTranspose3d, 3)):
-        if issubclass(Conv, _ConvTransposeNd) and 'padding' in extra_options:
+        (nn.Conv1d, 1),
+        (nn.Conv2d, 2),
+        (nn.Conv3d, 3),
+        (nn.ConvTranspose1d, 1),
+        (nn.ConvTranspose2d, 2),
+        (nn.ConvTranspose3d, 3),
+    ):
+        if issubclass(Conv, _ConvTransposeNd) and "padding" in extra_options:
             continue  # unsupported by pytorch
         model = nn.Sequential(
             Conv(32, 64, kernel_size=(3,) * nd, **extra_options),
             nn.ReLU(),
             Conv(64, 14, kernel_size=(3,) * nd, **extra_options),
-
         )
         inputs = torch.randn(3, 32, *[10 for _ in range(nd)])
         ref_out = model(inputs)
