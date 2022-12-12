@@ -100,6 +100,14 @@ def main():
                         help='Path of a file with custom nn.modules, wrapped into special decorator')
     parser.add_argument('--identity_path', type=str, required=False, help='Path to identity file to be used in P2P')
 
+    parser.add_argument("--max_disk_space", type=str, default=None,
+                        help="Maximal disk space used for caches. Example: 50GB, 100GiB (GB != GiB here). "
+                             "Default: unlimited. "
+                             "For bigscience/bloom-petals, this default means that the server may use up to "
+                             "min(free_disk_space, 350GB) in the worst case, which happens when the server runs "
+                             "for a long time and caches all model blocks after a number of rebalancings. "
+                             "However, this worst case is unlikely, expect the server to consume "
+                             "the disk space equal to 2-4x of your GPU memory on average.")
     parser.add_argument("--balance_quality", type=float, default=0.75,
                         help="Rebalance the swarm if its throughput is worse than this share of the optimal "
                              "throughput. Use 0.0 to disable rebalancing, values > 1.0 to force rebalancing "
@@ -129,6 +137,13 @@ def main():
         attn_cache_size = parse_size(attn_cache_size)
     assert isinstance(
         attn_cache_size, (int, type(None))
+    ), "unrecognized value for attention_cache_bytes, examples: 1.5GB or 1500MB or 1572864000 (bytes)"
+
+    max_disk_space = args.pop("max_disk_space")
+    if max_disk_space is not None:
+        max_disk_space = parse_size(max_disk_space)
+    assert isinstance(
+        max_disk_space, (int, type(None))
     ), "unrecognized value for attention_cache_bytes, examples: 1.5GB or 1500MB or 1572864000 (bytes)"
 
     if args.pop("new_swarm"):
