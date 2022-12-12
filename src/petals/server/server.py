@@ -250,6 +250,7 @@ class Server:
     def _clean_memory_and_fds(self):
         del self.module_container
         gc.collect()  # In particular, this closes unused file descriptors
+
         cur_proc = psutil.Process()
         num_fds = [proc.num_fds() for proc in [cur_proc] + cur_proc.children(recursive=True)]
         logger.info(f"Cleaning up, left {sum(num_fds)} open file descriptors")
@@ -521,12 +522,9 @@ class ModuleContainer(threading.Thread):
         logger.debug(f"Shutting down runtime")
         self.runtime.shutdown()
 
-        logger.debug("Cleaning up memory")
-        # Necessary since links to `backend.module` may be left somewhere, so it is not garbage-collected properly
-        dummy = torch.tensor([])
+        logger.debug("Shutting down backends")
         for backend in self.module_backends.values():
-            for p in backend.module.parameters():
-                p.data = dummy
+            backend.shutdown()
 
         logger.info("Module container shut down successfully")
 
