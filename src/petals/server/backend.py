@@ -57,10 +57,6 @@ class TransformerBackend(ModuleBackend):
             assert (
                 hidden_states.ndim == 3
             ), "expected hidden states to be 3-dimensional: [batch_size, seq_len, hid_size]"
-            if hidden_states.numel() == 0:
-                # user passed a tensor with 0 tokens. This is a special case that occurs, e.g. when
-                # user asks server to pre-allocate memory or check that server *can* allocate memory
-                return (hidden_states,)
 
             with self.memory_cache.use_cache(attention_cache_handle) as cache:
                 assert isinstance(self.module, BloomBlock) and cache.shape[0] == 2 and cache.ndim == 5
