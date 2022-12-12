@@ -24,7 +24,8 @@ class AllReduce(CollectiveOpetationBase):
         self, world_size: int, reduce_op: callable = comm.reduce_add, gather_op: callable = partial(comm.gather, dim=-1)
     ):
         self.scatter_reduce = ScatterReduce(world_size, reduce_op)
-        self.all_gather = AllGather(world_size, gather_op)
+        self.all_gather = AllGather(world_size, gather_op, barrier=False)
+        # note: AllGather does not need barrier here because scatter_reduce's ready event serves as barrier
 
     def __call__(self, x: torch.Tensor, rank: int):
         reduced_part = self.scatter_reduce(x, rank)
@@ -55,24 +56,24 @@ class ScatterReduce(CollectiveOpetationBase):
 
 
 class AllGather(CollectiveOpetationBase):
-    def __init__(self, world_size: int, gather_op: callable = partial(comm.gather, dim=-1)):
+    def __init__(self, world_size: int, gather_op: callable = partial(comm.gather, dim=-1), barrier: bool = True):
         self.world_size = world_size
-        self.can_begin = threading.Event()
-        self.can_begin.set()
+        self.barrier = threading.Barrier(world_size) if barrier else None
         self.parts: List[Optional[torch.Tensor]] = [None for _ in range(world_size)]
         self.ranks_updated = []
         self.parts_ready = threading.Event()
         self.gather_op = gather_op
 
     def __call__(self, x: torch.Tensor, rank: int):
-        self.can_begin.wait()  # if the op is fired in quick succession, wait for the prev call to finish on all ranks
+        if self.barrier is not None:
+            self.barrier.wait()  # if this code is ran multiple times in quick succession,
+        # this even will wait for the previous call to finish before starting a new one
         parts, ranks_updated, parts_ready = self.parts, self.ranks_updated, self.parts_ready
         # ^-- note: we copy properties to locals so that the "finally" clause is thread-safe
         try:
             parts[rank] = x  # no race b/c each rank writes to a separate location
             ranks_updated.append(rank)  # append is thread-safe. thanks, GIL!
             if len(ranks_updated) == self.world_size:
-                self.can_begin.clear()
                 parts_ready.set()  # can be called more than once; we dont care
             parts_ready.wait()
             # note: for one of the parts with r == rank, part.to(device) is a no-op
@@ -82,7 +83,6 @@ class AllGather(CollectiveOpetationBase):
                 self.parts = [None for _ in range(self.world_size)]
                 self.ranks_updated = []
                 self.parts_ready = threading.Event()
-                self.can_begin.set()
             # note: we can safely update these properties because all ranks have
             # copied self.parts_* to locals before passing parts_ready.wait
 
