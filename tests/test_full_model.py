@@ -13,7 +13,7 @@ logger = get_logger(__file__)
 
 
 @pytest.mark.forked
-@pytest.mark.parametrize("pass_empty_tokens", (True, False))
+@pytest.mark.parametrize("pass_empty_tensors", (True, False))
 def test_full_model_exact_match(pass_empty_tensors: bool, atol_forward=1e-3, atol_inference=1e-3):
     tokenizer = transformers.BloomTokenizerFast.from_pretrained(MODEL_NAME)
     model = DistributedBloomForCausalLM.from_pretrained(
