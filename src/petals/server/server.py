@@ -232,9 +232,12 @@ class Server:
 
                 while True:
                     timeout = random.random() * 2 * self.mean_balance_check_period
-                    # TODO: Follow ModuleContainer status (to restart/stop if it crashes)
                     if self.stop.wait(timeout):
                         return
+
+                    if not self.module_container.handlers_alive:
+                        logger.warning("One of connection handlers crashed, restarting the server")
+                        break
 
                     if self._should_choose_other_blocks():
                         logger.info("Swarm is imbalanced, server will load other blocks")
@@ -466,6 +469,10 @@ class ModuleContainer(threading.Thread):
         >>> print("Container ready" if container.ready.is_set() else "Container didn't start in 10 seconds")
         """
         return self.runtime.ready  # mp.Event that is true if self is ready to process batches
+
+    @property
+    def handlers_alive(self) -> bool:
+        return all(handler.is_alive() for handler in self.conn_handlers)
 
     def shutdown(self):
         """
