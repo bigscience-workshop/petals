@@ -5,24 +5,35 @@ This code is here temporarily, with authors' permission, until they make it publ
 The original code can be found here: https://github.com/BlackSamorez/petals_local_parallel , using MIT license
 https://github.com/BlackSamorez/petals_local_parallel/blob/496e4a8ea641ff641e59309445ddc9fe0d7960cd/LICENCE
 """
+from __future__ import annotations
+
+import re
+from copy import deepcopy
+from typing import Any, Callable, Dict, Iterator, Sequence, Tuple, Union
 
 import torch
 import torch.nn as nn
-import re
+from torch.nn.parallel import comm, replicate
 
-from typing import Callable, Dict, Iterator, Tuple, Union
-
-from petals.utils.tensor_parallel.communications import AllReduce, AllGather
-
+from petals.utils.tensor_parallel.communications import AllGather, AllReduce
 
 Pattern, Arg = str, Union[int, str]
 TensorAction = Union[str, Callable]
 
 
 class SlicingConfig:
-    def __init__(self, tensor_rules: Dict[Pattern, TensorAction], module_rules: Dict[Pattern, TensorAction]):
+    def __init__(self, tensor_rules: Dict[Pattern, TensorAction], module_rules: Dict[Pattern, Dict[str, Any]]):
         self.tensor_rules = tensor_rules
         self.module_rules = module_rules
+
+    @classmethod
+    def get_default_config(cls, module: nn.Module) -> SlicingConfig:
+        slicing_config = SlicingConfig({}, {})
+        for name, module in module.named_modules():
+            if isinstance(module, nn.Linear):
+                slicing_config.tensor_rules[name + ".(weight|bias)"] = "vertical"
+                slicing_config.module_rules[name] = {"input": {}, "output": {0: "gather"}, "attributes": {}}
+        return slicing_config
 
 
 def slice_weight_vertical(tensor: torch.Tensor, rank: int, world_size: int) -> torch.Tensor:
@@ -49,7 +60,7 @@ SLICING_RULES = {
 }
 
 
-def slice_tensors(
+def slice_tensors_(
     key_parameter_iterator: Iterator[Tuple[str, nn.Parameter]], tensor_rules: Dict[Arg, str], rank: int, world_size: int
 ):
     regular_rules = [(re.compile(key), value) for key, value in tensor_rules.items()]
@@ -114,27 +125,35 @@ class ParallelLayerWrapper(nn.Module):
         return process_output(output, self.output_rules, self.rank)
 
 
-def create_collective_ops_(module_rules: dict):
-    unique_output_transforms = {op for rules in module_rules.values() for op in rules['output'].values()}
+def create_collective_ops(module_rules: dict, devices: Sequence[torch.device]):
+    world_size = len(devices)
+    if any(device.type == "cpu" for device in devices):
+        reduce_op = lambda xs, destination: sum(x.to(destination) for x in xs)
+        gather_op = lambda xs, destination: torch.cat([x.to(destination) for x in xs], dim=-1)
+    else:
+        reduce_op = comm.reduce_add  # gpu-optimized ops
+        gather_op = lambda xs, destination: comm.gather(xs, dim=-1, destination=destination)
+
+    unique_output_transforms = {op for rules in module_rules.values() for op in rules["output"].values()}
     transform_map = {}
     for transform in unique_output_transforms:
-        if transform == 'sum':
-            transform_map[transform] = AllReduce(world_size)
-        elif transform == 'gather':
-            transform_map[transform] = AllGather(world_size)
+        if transform == "sum":
+            transform_map[transform] = AllReduce(world_size, reduce_op, gather_op)
+        elif transform == "gather":
+            transform_map[transform] = AllGather(world_size, gather_op)
         elif callable(transform):
             transform_map[transform] = transform  # user-defined transform, no action needed
         else:
             raise NotImplementedError(f"Unknown output transform {transform}")
 
-    for rules in module_rules.values():
-        for key, rule in rules['output'].items():
-            rules['output'][key] = transform_map[rule]
-    return module_rules
+    initialized_module_rules = {}
+    for pattern, rules in module_rules.items():
+        output_ops = {key: transform_map[rule] for key, rule in rules["output"].items()}
+        initialized_module_rules[pattern] = dict(rules, output=output_ops)
+    return initialized_module_rules
 
 
-def wrap_submodules(model: nn.Module, module_rules: dict, rank: int, world_size: int):
-    # TODO this op modifies rules in-place! gotta un-screw this later
+def wrap_submodules_(model: nn.Module, module_rules: dict, rank: int, world_size: int):
     unique_wrappers = {}
     with torch.no_grad():
         for name, module in model.named_modules():
@@ -146,3 +165,15 @@ def wrap_submodules(model: nn.Module, module_rules: dict, rank: int, world_size:
         for child_name, child in list(parent.named_children()):
             if child in unique_wrappers:
                 setattr(parent, child_name, unique_wrappers[child])
+
+
+def create_module_shard(
+    module: nn.Module, device: torch.device, config: SlicingConfig, rank: int, world_size: int
+) -> nn.Module:
+    if device.type == "cuda":
+        (replica,) = replicate(module, (device,), detach=True)
+    else:
+        replica = deepcopy(module).to(device)
+    slice_tensors_(replica.named_parameters(), config.tensor_rules, rank, world_size)
+    wrap_submodules_(nn.ModuleList([replica]), config.module_rules, rank, world_size)
+    return replica
