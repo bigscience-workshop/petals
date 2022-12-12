@@ -93,3 +93,13 @@ class TransformerBackend(ModuleBackend):
     def get_info(self) -> Dict[str, Any]:
         """Get module parameters and stats. Used by RemoteExpert to check shapes and for DMoE orchestration."""
         return dict(super().get_info(), inference_schema=self.inference_schema)
+
+    def shutdown(self):
+        # Break the cyclic references, otherwise TransformerBackend may be not garbage-collected
+        self.forward_pool = self.backward_pool = self.inference_pool = None
+
+        # Explicitly free the GPU memory. This is not necessary at the time this code is written,
+        # but may help to avoid future issues when the module is not garbage-collected for some reasons
+        dummy = torch.tensor([])
+        for p in self.module.parameters():
+            p.data = dummy
