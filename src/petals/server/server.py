@@ -235,8 +235,8 @@ class Server:
                     if self.stop.wait(timeout):
                         return
 
-                    if not self.module_container.handlers_alive:
-                        logger.warning("One of connection handlers crashed, restarting the server")
+                    if not self.module_container.is_healthy():
+                        logger.warning("One of subprocesses crashed, restarting the server")
                         break
 
                     if self._should_choose_other_blocks():
@@ -252,8 +252,19 @@ class Server:
         gc.collect()  # In particular, this closes unused file descriptors
 
         cur_proc = psutil.Process()
-        num_fds = [proc.num_fds() for proc in [cur_proc] + psutil.Process().children(recursive=True)]
-        logger.info(f"Cleanup complete, {sum(num_fds)} open file descriptors left")
+        num_fds = [proc.num_fds() for proc in [cur_proc] + cur_proc.children(recursive=True)]
+        logger.info(f"Cleaning up, left {sum(num_fds)} open file descriptors")
+
+        if self.device.type == "cuda":
+            torch.cuda.empty_cache()
+
+            allocated_vram = torch.cuda.memory_allocated(self.device)
+            reserved_vram = torch.cuda.memory_reserved(self.device)
+            gib = 1024**3
+            logger.info(
+                f"Cleaning up, left {allocated_vram / gib:.1f} GiB allocated memory, "
+                f"{reserved_vram / gib:.1f} GiB reserved memory"
+            )
 
     def _choose_blocks(self) -> List[int]:
         if self.strict_block_indices is not None:
@@ -470,9 +481,10 @@ class ModuleContainer(threading.Thread):
         """
         return self.runtime.ready  # mp.Event that is true if self is ready to process batches
 
-    @property
-    def handlers_alive(self) -> bool:
-        return all(handler.is_alive() for handler in self.conn_handlers)
+    def is_healthy(self) -> bool:
+        return all(handler.is_alive() for handler in self.conn_handlers) and all(
+            pool.is_alive() for pool in self.runtime.pools
+        )
 
     def shutdown(self):
         """
@@ -509,6 +521,10 @@ class ModuleContainer(threading.Thread):
 
         logger.debug(f"Shutting down runtime")
         self.runtime.shutdown()
+
+        logger.debug("Shutting down backends")
+        for backend in self.module_backends.values():
+            backend.shutdown()
 
         logger.info("Module container shut down successfully")
 
