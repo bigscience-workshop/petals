@@ -146,6 +146,9 @@ class TransformerConnectionHandler(ConnectionHandler):
                         for backend, prompt, cache_handle in zip(requested_backends, prompts, cache_handles):
                             if not is_dummy(prompt):
                                 hidden_states[:, : prompt.shape[1]] += prompt
+                            if hidden_states.numel() == 0:
+                                continue  # user passed a tensor with 0 tokens. This is a special case that occurs, e.g.
+                                # when user to pre-allocate cache or check that server *can* allocate that cache
 
                             cache_metadata[:, 0], cache_metadata[:, 1] = cache_handle, prefix_length
                             assert isinstance(
