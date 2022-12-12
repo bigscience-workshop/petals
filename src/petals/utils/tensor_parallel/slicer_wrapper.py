@@ -55,8 +55,7 @@ class Config:
             if isinstance(module, nn.Linear):
                 assert module.weight.shape == (module.out_features, module.in_features)
                 assert module.bias is None or module.bias.shape == (module.out_features,)
-                config.state_rules[name + ".weight"] = "split 0"
-                config.state_rules[name + ".bias"] = "split 0"
+                config.state_rules[name + ".(weight|bias)"] = "split 0"
                 config.output_rules[name] = {0: "gather -1"}
             elif isinstance(module, (nn.Embedding, nn.EmbeddingBag)):
                 assert module.max_norm is None or module.norm_type < 2
@@ -164,9 +163,14 @@ def apply_action(input: torch.Tensor, action: Action, *, rank: int, world_size: 
     if action_type == "split":
         dim = int(opts[0])
         return torch.tensor_split(input, world_size, dim=dim)[rank]
+    if action_type == "split_with_sizes":
+        assert len(opts) == 3 and all(map(str.isdigit, opts))
+        dim = int(opts[0])
+        return torch.tensor_split(input, world_size, dim=dim)[rank]
     if action_type == "scale":
         return input / world_size
     if action_type == "scale_int":
+        assert input % world_size == 0
         return input // world_size
     raise Exception(f"unexpected action {action_type}; supported actions: split, scale, or custom user-defined")
 
@@ -186,10 +190,11 @@ def create_collective_ops(rules: dict, devices: Sequence[torch.device]):
 
     for transform in unique_output_transforms:
         if callable(transform):
-            transform_map[transform] = transform  # user-defined transform, no action needed
-            continue
-
+            continue  # user-defined transform, no action needed
         transform_type, *opts = transform.split()
+        if transform_type in ("split", "scale", "scale_int"):
+            continue  # not a collective op, no action needed
+
         if transform_type == "sum":
             transform_map[transform] = AllReduce(world_size, reduce_op, gather_op)
         elif transform_type == "gather":
@@ -198,7 +203,7 @@ def create_collective_ops(rules: dict, devices: Sequence[torch.device]):
 
     initialized_output_rules = {}
     for pattern, output_actions in rules.items():
-        output_actions = {key: transform_map[rule] for key, rule in output_actions.items()}
+        output_actions = {key: transform_map.get(rule, rule) for key, rule in output_actions.items()}
         initialized_output_rules[pattern] = output_actions
     return initialized_output_rules
 
