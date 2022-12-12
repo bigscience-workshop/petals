@@ -15,7 +15,7 @@ from transformers.models.bloom import (
     BloomPreTrainedModel,
 )
 
-from petals.bloom.model import LMHead
+from petals.bloom.modeling_utils import LMHead
 from petals.client.remote_generation import RemoteGenerationMixin
 from petals.client.remote_sequential import RemoteSequential
 from petals.constants import PUBLIC_INITIAL_PEERS
@@ -190,6 +190,17 @@ class DistributedBloomModel(BloomModel):
             hidden_states=None,
             attentions=None,
         )
+
+    @classmethod
+    def from_pretrained(cls, *args, low_cpu_mem_usage: Optional[bool] = None, **kwargs):
+        if low_cpu_mem_usage is None:
+            low_cpu_mem_usage = True
+        return super().from_pretrained(*args, low_cpu_mem_usage=low_cpu_mem_usage, **kwargs)
+
+    from_pretrained.__doc__ = BloomPreTrainedModel.from_pretrained.__doc__.replace(
+        "low_cpu_mem_usage(`bool`, *optional*)",
+        "low_cpu_mem_usage(`bool`, *optional*, defaults to `True` in Petals)",
+    )
 
 
 class DistributedBloomForCausalLM(RemoteGenerationMixin, BloomForCausalLM):

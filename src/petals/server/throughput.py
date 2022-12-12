@@ -12,7 +12,7 @@ from hivemind.utils.logging import get_logger, use_hivemind_log_handler
 from transformers.models.bloom.modeling_bloom import build_alibi_tensor
 
 from petals.bloom.block import BloomBlock
-from petals.bloom.model import BloomConfig
+from petals.bloom.modeling_utils import BloomConfig
 from petals.server.block_utils import resolve_block_dtype
 from petals.utils.convert_8bit import replace_8bit_linear
 from petals.utils.disk_cache import DEFAULT_CACHE_DIR
