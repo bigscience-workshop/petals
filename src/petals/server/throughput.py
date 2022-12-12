@@ -126,7 +126,8 @@ def measure_compute_rps(
         elapsed = 0
         for step in range(n_steps + 1):
             dummy_input = torch.randn(n_tokens, 1, config.hidden_size, device=device, dtype=dtype)
-            alibi = build_alibi_tensor(step + 1, config.num_attention_heads, device=device, dtype=dtype)
+            mask = torch.ones(n_tokens, step + 1, device=device, dtype=dtype)
+            alibi = build_alibi_tensor(mask, config.num_attention_heads, dtype=dtype)
 
             start_time = time.perf_counter()
             _, cache = block.forward(dummy_input, alibi=alibi, use_cache=True, layer_past=cache)
