@@ -23,7 +23,7 @@ def test_embeds_and_linear(devices):
         ref_out = model(inputs)
         ref_out.norm().backward()
 
-        model_tp = deepcopy(model)  # deepcopy to avoid accidental grad spilage and false positives
+        model_tp = deepcopy(model)  # deepcopy to avoid accidental grad spillage and false positives
         model_tp = TensorParallel(model_tp, device_ids=devices)
         out_ours = model_tp(inputs)
         out_ours.norm().backward()
@@ -55,6 +55,6 @@ def test_convs(devices, extra_options):
         out_ours = model_tp(inputs)
         out_ours.norm().backward()
         assert torch.allclose(ref_out, out_ours, atol=1e-6)
-        dim = 1 if model[0].transposed else 0
+        dim = 1 if model[0].transposed else 0  # concat over output channels
         our_grad = torch.cat([next(shard[0].parameters()).grad for shard in model_tp.module_shards], dim=dim)
         assert torch.allclose(model[0].weight.grad, our_grad, atol=1e-6)
