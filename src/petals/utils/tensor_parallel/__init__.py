@@ -5,3 +5,6 @@ This code is here temporarily, with authors' permission, until they make it publ
 The original code can be found here: https://github.com/BlackSamorez/petals_local_parallel , using MIT license
 https://github.com/BlackSamorez/petals_local_parallel/blob/496e4a8ea641ff641e59309445ddc9fe0d7960cd/LICENCE
 """
+
+from petals.utils.tensor_parallel.slicer_wrapper import Config
+from petals.utils.tensor_parallel.tensor_parallel import TensorParallel
