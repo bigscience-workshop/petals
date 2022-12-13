@@ -19,6 +19,7 @@ from hivemind import get_logger, use_hivemind_log_handler
 from torch import nn
 from torch.nn.modules import conv
 
+import petals.utils.tensor_parallel.cross_device_ops as cross_device_ops
 from petals.utils.tensor_parallel.communications import AllGather, AllReduce
 
 Arg = Union[int, str]
@@ -174,15 +175,13 @@ def apply_action(input: torch.Tensor, action: Action, *, rank: int, world_size: 
 def create_collective_ops(rules: dict, devices: Sequence[torch.device]):
     """Initialize collective thread-parallel operations from config rules"""
     world_size = len(devices)
-    has_cpu = any(device.type == "cpu" for device in devices)
+    all_cuda = all(device.type == "cuda" for device in devices)
     unique_output_transforms = {op for output_actions in rules.values() for op in output_actions.values()}
     transform_map = {}
-    if has_cpu:
-        reduce_op = lambda xs, destination: sum(x.to(destination) for x in xs)
-        gather_op = lambda xs, destination, dim=0: torch.cat([x.to(destination) for x in xs], dim=dim)
-    else:
-        reduce_op = comm.reduce_add  # gpu-optimized ops
-        gather_op = lambda xs, destination, dim=0: comm.gather(xs, dim=dim, destination=destination)
+    reduce_op = lambda xs, destination: cross_device_ops.reduce_add(xs, destination, all_cuda=all_cuda)
+    gather_op = lambda xs, destination, dim=0: cross_device_ops.gather(
+        xs, dim=dim, destination=destination, all_cuda=all_cuda
+    )
 
     for transform in unique_output_transforms:
         if callable(transform):

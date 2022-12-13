@@ -72,14 +72,14 @@ def petals_test_tp_block(devices):
     test_inputs1 = torch.randn(1, 2, 1024, device=devices[0], requires_grad=True)
     test_inputs2 = test_inputs1.detach().clone().requires_grad_(True)
     grad_proj = torch.rand_like(test_inputs1)
-    y_ref, = block(test_inputs1)
+    (y_ref,) = block(test_inputs1)
     y_ref.backward(grad_proj)
 
     from petals.utils.tensor_parallel import TensorParallel
+
     block_tp = TensorParallel(block, devices)
-    y_ours, = block_tp(test_inputs2)
+    (y_ours,) = block_tp(test_inputs2)
     y_ours.backward(grad_proj)
 
     assert torch.allclose(y_ours, y_ref, atol=1e-6)
     assert torch.allclose(test_inputs1.grad, test_inputs2.grad, atol=1e-6)
-

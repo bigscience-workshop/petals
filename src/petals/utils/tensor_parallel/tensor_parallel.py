@@ -10,7 +10,7 @@ from torch._utils import ExceptionWrapper, _get_all_device_indices, _get_device_
 from torch.cuda.amp import autocast
 from torch.nn.parallel import parallel_apply
 
-from petals.utils.tensor_parallel.communications import broadcast_coalesced
+from petals.utils.tensor_parallel.cross_device_ops import broadcast_coalesced
 from petals.utils.tensor_parallel.slicer_wrapper import Config
 
 use_hivemind_log_handler("in_root_logger")

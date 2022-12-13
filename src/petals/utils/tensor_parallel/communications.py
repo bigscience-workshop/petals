@@ -5,15 +5,14 @@ This code is here temporarily, with authors' permission, until they make it publ
 The original code can be found here: https://github.com/BlackSamorez/petals_local_parallel , using MIT license
 https://github.com/BlackSamorez/petals_local_parallel/blob/496e4a8ea641ff641e59309445ddc9fe0d7960cd/LICENCE
 """
+from __future__ import annotations
 
 import threading
 from functools import partial
-from typing import List, Optional, Sequence
+from typing import List, Optional
 
 import torch
-from torch.nn.parallel import comm
-from torch.nn.parallel._functions import ReduceAddCoalesced
-from torch.nn.parallel._functions import Scatter, Gather, Broadcast
+import petals.utils.tensor_parallel.cross_device_ops as cross_device_ops
 
 
 class CollectiveOpetationBase:
@@ -23,7 +22,7 @@ class CollectiveOpetationBase:
 
 class AllReduce(CollectiveOpetationBase):
     def __init__(
-        self, world_size: int, reduce_op: callable = comm.reduce_add, gather_op: callable = partial(comm.gather, dim=-1)
+        self, world_size: int, reduce_op: callable = cross_device_ops.reduce_add, gather_op: callable = cross_device_ops.gather
     ):
         self.scatter_reduce = ScatterReduce(world_size, reduce_op)
         self.all_gather = AllGather(world_size, gather_op, barrier=False)
@@ -35,7 +34,7 @@ class AllReduce(CollectiveOpetationBase):
 
 
 class ScatterReduce(CollectiveOpetationBase):
-    def __init__(self, world_size: int, reduce_op: callable = comm.reduce_add):
+    def __init__(self, world_size: int, reduce_op: callable = cross_device_ops.reduce_add):
         self.world_size = world_size
         self.tensor_parts = [[] for _ in range(world_size)]
         self.parts_ready = [threading.Event() for _ in range(world_size)]
@@ -58,7 +57,7 @@ class ScatterReduce(CollectiveOpetationBase):
 
 
 class AllGather(CollectiveOpetationBase):
-    def __init__(self, world_size: int, gather_op: callable = partial(comm.gather, dim=-1), barrier: bool = True):
+    def __init__(self, world_size: int, gather_op: callable = cross_device_ops.gather, barrier: bool = True):
         self.world_size = world_size
         self.barrier = threading.Barrier(world_size) if barrier else None
         self.parts: List[Optional[torch.Tensor]] = [None for _ in range(world_size)]
@@ -87,51 +86,3 @@ class AllGather(CollectiveOpetationBase):
                 self.parts_ready = threading.Event()
             # note: we can safely update these properties because all ranks have
             # copied self.parts_* to locals before passing parts_ready.wait
-
-
-def broadcast_coalesced(
-    tensors: Sequence[torch.Tensor], devices: Sequence[torch.device], *, all_cuda: bool = None, **kwargs
-) -> Sequence[Sequence[torch.Tensor]]:
-    if all_cuda is None:
-        all_cuda = all(device.type == 'cuda' for device in devices)
-    if not all_cuda:
-        broadcasted = [list() for _ in devices]
-        for x in tensors:
-            for i, device in enumerate(devices):
-                broadcasted[i].append(x.to(device, non_blocking=True))
-        return broadcasted
-    flat_outputs = Broadcast.apply(devices, *tensors)
-    return [flat_outputs[i * len(tensors): (i + 1) * len(tensors)] for i in range(len(devices))]
-
-
-def gather(tensors: Sequence[torch.Tensor], dim: int = 0, destination: Optional[torch.device] = None, all_cuda: bool = None):
-    """Gather tensors from multiple devices; differentiable w.r.t. input tensors"""
-    if all_cuda is None:
-        all_cuda = all(x.device.type=='cuda' for x in tensors)
-    if destination is None:
-        destination = tensors[0].device
-    if not all_cuda:
-        return torch.cat([x.to(destination, non_blocking=True) for x in tensors], dim=dim)
-    return Gather.apply(destination, dim, tensors)
-
-
-
-def reduce_add(tensors: Sequence[torch.Tensor], destination: Optional[torch.device] = None, all_cuda: bool = None):
-    if all_cuda is None:
-        all_cuda = all(x.device.type=='cuda' for x in tensors)
-    if destination is None:
-        destination = tensors[0].device
-    if not all_cuda:
-        return sum([tensor.to(destination, non_blocking=True) for tensor in tensors])
-    return _ReduceAdd.apply(destination, tensors)
-
-
-class _ReduceAdd(torch.autograd.Function):
-    @staticmethod
-    def forward(ctx, destination: torch.device, *tensors: torch.Tensor):
-        ctx.source_gpus = [tensor.get_device() for tensor in tensors]
-        return comm.reduce_add(tensors, destination)
-
-    @staticmethod
-    def backward(ctx, *grad_outputs):
-        return (None, ) + Broadcast.apply(ctx.source_gpus, *grad_outputs)
