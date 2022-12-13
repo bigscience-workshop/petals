@@ -120,7 +120,7 @@ def reduce_add(tensors: Sequence[torch.Tensor], destination: Optional[torch.devi
     if destination is None:
         destination = tensors[0].device
     if not all_cuda:
-        return sum([tensor.to(destination, non_blocking=True) for tensor in tensors)
+        return sum([tensor.to(destination, non_blocking=True) for tensor in tensors])
     return _ReduceAdd.apply(destination, tensors)
 
 
