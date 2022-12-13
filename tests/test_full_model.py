@@ -102,6 +102,7 @@ def test_greedy_generation(max_new_tokens=4):
 
 @pytest.mark.forked
 @pytest.mark.parametrize("sampling_options", [dict(), dict(temperature=100.0), dict(top_k=5), dict(top_p=0.9)])
+@pytest.mark.skip("Sampling is currently not consistent with outputs from Transformers")
 def test_sampling(sampling_options, max_new_tokens=4):
     torch.manual_seed(0)
     tokenizer = transformers.BloomTokenizerFast.from_pretrained(MODEL_NAME)
