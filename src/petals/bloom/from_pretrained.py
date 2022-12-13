@@ -24,7 +24,6 @@ logger = get_logger(__file__)
 
 CLIENT_BRANCH = "main"
 BLOCK_BRANCH_PREFIX = "block_"
-USER_AGENT = {"file_type": "model", "framework": "pytorch", "from_auto_class": False}
 
 
 def load_pretrained_block(
