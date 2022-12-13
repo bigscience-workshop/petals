@@ -25,10 +25,6 @@ logger = get_logger(__file__)
 
 CLIENT_BRANCH = "main"
 BLOCK_BRANCH_PREFIX = "block_"
-USER_AGENT = {"file_type": "model", "framework": "pytorch", "from_auto_class": False}
-FORCE_DOWNLOAD = False
-RESUME_DOWNLOAD = False
-LOCAL_FILES_ONLY = False
 
 
 def load_pretrained_block(
@@ -40,7 +36,7 @@ def load_pretrained_block(
     cache_dir: Optional[str] = None,
     max_disk_space: Optional[int] = None,
 ) -> WrappedBloomBlock:
-    """Load one BloomBlock from a converted model. See convert_model.py (or README.md) on how to convert it."""
+    """Load one BLOOM block from a converted model. See convert_model.py (or README.md) on how to convert it."""
 
     if config is None:
         config = BloomConfig.from_pretrained(converted_model_name_or_path, use_auth_token=use_auth_token)

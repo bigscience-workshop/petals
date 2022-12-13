@@ -66,7 +66,7 @@ class LMHead(nn.Module):
         num_embeddings = self.word_embeddings.num_embeddings
 
         hidden_states = hidden_states.float()
-        output = torch.zeros(*hidden_states.shape[:-1], num_embeddings)
+        output = torch.empty(*hidden_states.shape[:-1], num_embeddings)
 
         for i in range(0, num_embeddings, self.chunk_size):
             chunk = word_embeddings[i : i + self.chunk_size].float()

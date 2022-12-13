@@ -16,7 +16,7 @@ logger = get_logger(__file__)
 
 
 class TransformerBackend(ModuleBackend):
-    """A wrapper for a bloom block that can process requests for bloom layer forward, backward and inference"""
+    """A wrapper for a BLOOM block that can process requests for BLOOM layer forward, backward and inference"""
 
     def __init__(self, *args, memory_cache: MemoryCache, backend_dtype: torch.dtype, **kwargs):
         super().__init__(*args, **kwargs)
