@@ -179,7 +179,7 @@ def create_collective_ops(rules: dict, devices: Sequence[torch.device]):
     all_cuda = all(device.type == "cuda" for device in devices)
     unique_output_transforms = {op for output_actions in rules.values() for op in output_actions.values()}
     transform_map = {}
-    if all_cuda and not os.environ["TENSOR_PARALLEL_USE_NATIVE"]:
+    if all_cuda and not os.environ.get("TENSOR_PARALLEL_USE_NATIVE"):
         make_allreduce, make_allgather = NCCLAllReduce, NCCLAllGather
     else:
         make_allreduce = partial(
