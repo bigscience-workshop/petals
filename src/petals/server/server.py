@@ -248,6 +248,7 @@ class Server:
                 inference_max_length=self.inference_max_length,
                 torch_dtype=self.torch_dtype,
                 cache_dir=self.cache_dir,
+                max_disk_space=self.max_disk_space,
                 device=self.device,
                 compression=self.compression,
                 stats_report_interval=self.stats_report_interval,
@@ -343,7 +344,8 @@ class ModuleContainer(threading.Thread):
         min_batch_size: int,
         max_batch_size: int,
         torch_dtype: torch.dtype,
-        cache_dir: Optional[str],
+        cache_dir: str,
+        max_disk_space: int,
         device: Union[str, torch.device],
         compression: CompressionType,
         update_period: float,
@@ -375,6 +377,7 @@ class ModuleContainer(threading.Thread):
                     torch_dtype=torch_dtype,
                     use_auth_token=use_auth_token,
                     cache_dir=cache_dir,
+                    max_disk_space=max_disk_space,
                 )
 
                 if load_in_8bit:

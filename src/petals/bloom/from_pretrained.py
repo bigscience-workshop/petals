@@ -8,16 +8,19 @@ If necessary, one can rewrite this to implement a different behavior, such as:
 """
 from __future__ import annotations
 
+from contextlib import suppress
 from typing import Optional, OrderedDict, Union
 
 import torch
 from hivemind.utils.logging import get_logger, use_hivemind_log_handler
+from huggingface_hub import LocalEntryNotFound
 from transformers.modeling_utils import WEIGHTS_NAME
 from transformers.models.bloom.configuration_bloom import BloomConfig
 from transformers.utils import get_file_from_repo
 
 from petals.bloom.block import WrappedBloomBlock
-from petals.utils.disk_cache import DEFAULT_CACHE_DIR
+from petals.server.block_utils import get_block_size
+from petals.utils.disk_cache import DEFAULT_CACHE_DIR, block_cache_removals, free_space_for
 
 use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
@@ -37,6 +40,7 @@ def load_pretrained_block(
     torch_dtype: Union[torch.dtype, str] = "auto",
     use_auth_token: Optional[str] = None,
     cache_dir: Optional[str] = None,
+    max_disk_space: Optional[int] = None,
 ) -> WrappedBloomBlock:
     """Load one BloomBlock from a converted model. See convert_model.py (or README.md) on how to convert it."""
 
@@ -47,7 +51,7 @@ def load_pretrained_block(
 
     block = WrappedBloomBlock(config)
     state_dict = _load_state_dict(
-        converted_model_name_or_path, block_index, use_auth_token=use_auth_token, cache_dir=cache_dir
+        converted_model_name_or_path, block_index, use_auth_token=use_auth_token, cache_dir=cache_dir, max_disk_space=max_disk_space,
     )
 
     if torch_dtype == "auto":
@@ -66,20 +70,44 @@ def load_pretrained_block(
 
 def _load_state_dict(
     pretrained_model_name_or_path: str,
-    block_index: Optional[int] = None,
+    block_index: int,
+    config: BloomConfig,
+    *,
     use_auth_token: Optional[str] = None,
-    cache_dir: Optional[str] = None,
+    cache_dir: str,
+    max_disk_space: Optional[int] = None,
 ) -> OrderedDict[str, torch.Tensor]:
-    revision = BLOCK_BRANCH_PREFIX + str(block_index) if block_index is not None else CLIENT_BRANCH
-    archive_file = get_file_from_repo(
-        pretrained_model_name_or_path,
-        filename=WEIGHTS_NAME,
-        revision=revision,
-        use_auth_token=use_auth_token,
-        cache_dir=cache_dir,
-    )
-    state_dict = torch.load(archive_file, map_location="cpu")
-    return state_dict
+    revision = BLOCK_BRANCH_PREFIX + str(block_index)
+
+    # If we have a limit for max disk space
+    if max_disk_space is not None:
+        # First, try to find the weights locally
+        with block_cache_removals(cache_dir):
+            with suppress(LocalEntryNotFound):
+                archive_file = get_file_from_repo(
+                    pretrained_model_name_or_path,
+                    filename=WEIGHTS_NAME,
+                    revision=revision,
+                    use_auth_token=use_auth_token,
+                    cache_dir=cache_dir,
+                    local_files_only=True,
+                )
+                return torch.load(archive_file, map_location="cpu")
+
+        # If not found, ensure that we have enough disk space to download them (maybe remove something)
+        block_size = get_block_size(config, "disk")
+        free_space_for(block_size, cache_dir, max_disk_space)
+
+    with block_cache_removals(cache_dir):
+        archive_file = get_file_from_repo(
+            pretrained_model_name_or_path,
+            filename=WEIGHTS_NAME,
+            revision=revision,
+            use_auth_token=use_auth_token,
+            cache_dir=cache_dir,
+            local_files_only=False,
+        )
+        return torch.load(archive_file, map_location="cpu")
 
 
 DTYPE_MAP = dict(bfloat16=torch.bfloat16, float16=torch.float16, float32=torch.float32, auto="auto")
