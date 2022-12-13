@@ -100,7 +100,8 @@ def broadcast_coalesced(
             for i, device in enumerate(devices):
                 broadcasted[i].append(x.to(device, non_blocking=True))
         return broadcasted
-    return Broadcast.apply(devices, *tensors)
+    flat_outputs = Broadcast.apply(devices, *tensors)
+    return [flat_outputs[i * len(tensors): (i + 1) * len(tensors)] for i in range(len(devices))]
 
 
 def gather(tensors: Sequence[torch.Tensor], dim: int = 0, destination: Optional[torch.device] = None, all_cuda: bool = None):
@@ -112,6 +113,7 @@ def gather(tensors: Sequence[torch.Tensor], dim: int = 0, destination: Optional[
     if not all_cuda:
         return torch.cat([x.to(destination, non_blocking=True) for x in tensors], dim=dim)
     return Gather.apply(destination, dim, tensors)
+
 
 
 def reduce_add(tensors: Sequence[torch.Tensor], destination: Optional[torch.device] = None, all_cuda: bool = None):
