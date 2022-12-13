@@ -118,7 +118,7 @@ def _load_state_dict(
                 )
                 return torch.load(archive_file, map_location="cpu")
         except Exception as e:
-            delay = min_backoff * (2 ** attempt_no)
+            delay = min_backoff * (2**attempt_no)
             logger.warning(f"Failed to load block {block_index} from HF Hub (retry in {delay:.0f} sec)", exc_info=True)
             time.sleep(delay)
 
