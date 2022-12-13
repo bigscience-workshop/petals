@@ -59,7 +59,7 @@ def test_remote_sequential():
     assert not torch.allclose(test_inputs.grad, full_grad, rtol=0, atol=1e-2), "compression was not used"
     assert abs(approx_outputs - full_outputs).mean() < 0.01
     absmax = abs(full_grad).max()
-    assert abs(test_inputs.grad / absmax - full_grad / absmax).mean() < 0.01
+    assert abs(test_inputs.grad / absmax - full_grad / absmax).mean() < 0.05
 
 
 class DummyCustomSequenceManager(RemoteSequenceManager):
