@@ -57,7 +57,7 @@ class RemoteSequenceManager:
         update_period: float = 30,
         request_timeout: float = 30,
         min_backoff: float = 1,
-        ban_timeout: float = 60,
+        ban_timeout: float = 15,
         sequence_info: Optional[RemoteSequenceInfo] = None,
         rpc_info: Optional[dict] = None,
         banned_peers: Optional[Blacklist] = None,

@@ -146,6 +146,9 @@ class TransformerConnectionHandler(ConnectionHandler):
                         for backend, prompt, cache_handle in zip(requested_backends, prompts, cache_handles):
                             if not is_dummy(prompt):
                                 hidden_states[:, : prompt.shape[1]] += prompt
+                            if hidden_states.numel() == 0:
+                                continue  # user passed a tensor with 0 tokens. This is a special case that occurs, e.g.
+                                # when user wants to pre-allocate cache or check that server *can* allocate that cache
 
                             cache_metadata[:, 0], cache_metadata[:, 1] = cache_handle, prefix_length
                             assert isinstance(
@@ -343,10 +346,8 @@ class TransformerConnectionHandler(ConnectionHandler):
             for backend in backends:
                 num_heads = backend.module.self_attention.num_heads
                 head_dim = backend.module.self_attention.head_dim
-
-                descr = TensorDescriptor(size=(2, batch_size, max_length, num_heads, head_dim), dtype=backend.dtype)
-                # [key_or_value, batch_size, max_length, num_heads, head_dim]
-
+                descr = TensorDescriptor(size=(2, batch_size, num_heads * head_dim * max_length), dtype=backend.dtype)
+                # ^-- flattened batch-first tensor of both keys and values; based on BLOOM layer_past layout
                 handles.append(await stack.enter_async_context(backend.memory_cache.allocate_cache(descr)))
                 total_size += descr.numel() * torch.finfo(descr.dtype).bits // 8
 
