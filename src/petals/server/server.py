@@ -118,7 +118,8 @@ class Server:
         self.dht = DHT(initial_peers=initial_peers, start=True, num_workers=self.block_config.n_layer, **kwargs)
         visible_maddrs_str = [str(a) for a in self.dht.get_visible_maddrs()]
         if initial_peers == PUBLIC_INITIAL_PEERS:
-            logger.info("Connecting to the public Petals swarm")
+            logger.info(f"Connecting to the public swarm, peer_id = {self.dht.peer_id}")
+            logger.info("Please check that your server is reachable at http://health.petals.ml")
         else:
             logger.info(f"Running DHT node on {visible_maddrs_str}, initial peers = {initial_peers}")
 
