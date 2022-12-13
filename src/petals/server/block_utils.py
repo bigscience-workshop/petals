@@ -2,9 +2,9 @@ from typing import Optional, Union
 
 import torch
 from accelerate import init_empty_weights
+from transformers import BloomConfig
 
 from petals.bloom.block import WrappedBloomBlock
-from petals.bloom.modeling_utils import BloomConfig
 
 
 def resolve_block_dtype(config: BloomConfig, dtype: Union[str, torch.dtype]) -> Union[str, torch.dtype]:
