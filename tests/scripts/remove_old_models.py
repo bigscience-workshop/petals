@@ -22,4 +22,4 @@ if __name__ == "__main__":
             if args.dry_run:
                 print(f"{model.modelId} can be deleted")
             else:
-                delete_repo(repo_id=f"{args.author}/{model.modelId}", token=args.use_auth_token)
+                delete_repo(repo_id=model.modelId, token=args.use_auth_token)
