@@ -51,19 +51,16 @@ def free_disk_space_for(
     if cache_dir is None:
         cache_dir = DEFAULT_CACHE_DIR
     cache_info = huggingface_hub.scan_cache_dir(cache_dir)
+    model_repos = [repo for repo in cache_info.repos if repo.repo_type == "model" and repo.repo_id == model_name]
 
+    occupied_space = sum(repo.size_on_disk for repo in model_repos)
     available_space = shutil.disk_usage(cache_dir).free - os_quota
     if max_disk_space is not None:
-        available_space = min(available_space, max_disk_space - cache_info.size_on_disk)
+        available_space = min(available_space, max_disk_space - occupied_space)
     if size <= available_space:
         return
 
-    revisions = [
-        revision
-        for repo in cache_info.repos
-        if repo.repo_type == "model" and repo.repo_id == model_name
-        for revision in repo.revisions
-    ]
+    revisions = [revision for repo in model_repos for revision in repo.revisions]
     revisions.sort(key=lambda rev: max([item.blob_last_accessed for item in rev.files], default=rev.last_modified))
 
     # Remove as few least recently used blocks as possible
