@@ -88,8 +88,14 @@ class AllGather(CollectiveOpetationBase):
 
 
 def broadcast_coalesced(
-    tensors: Sequence[torch.Tensor], devices: Sequence[torch.device], **kwargs
+    tensors: Sequence[torch.Tensor], devices: Sequence[torch.device], *, all_cuda: bool = None, **kwargs
 ) -> Sequence[Sequence[torch.Tensor]]:
-    if any(device.type == "cpu" for device in devices):
-        return tuple(tuple(x.to(device, non_blocking=True) for device in devices) for x in tensors)
+    if all_cuda is None:
+        all_cuda = all(device.type == 'cuda' for device in devices)
+    if not all_cuda:
+        broadcasted = [list() for _ in devices]
+        for x in tensors:
+            for i, device in enumerate(devices):
+                broadcasted[i].append(x.to(device, non_blocking=True))
+        return broadcasted
     return comm.broadcast_coalesced(tensors, [device.index for device in devices], **kwargs)

@@ -98,10 +98,7 @@ class Config:
         assert (
             len(list(module.children())) != 0
         ), "Please ensure module is a container (e.g. Sequential), not a single layer"
-        if device.type == "cuda":
-            (shard,) = replicate(module, (device,), detach=True)
-        else:
-            shard = deepcopy(module).to(device)
+        shard = deepcopy(module).to(device)
         del module
 
         # convert parameters and buffers

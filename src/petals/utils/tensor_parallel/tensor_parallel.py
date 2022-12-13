@@ -71,7 +71,9 @@ class TensorParallel(nn.Module):
             return self.module_shards[0](*args, **kwargs)
         args_and_kwargs = (args, kwargs)
         flat_tensors = [obj for obj in nested_flatten(args_and_kwargs) if isinstance(obj, torch.Tensor)]
-        iter_flat_tensors_replicated = iter(broadcast_coalesced(flat_tensors, self.devices))
+        flat_tensors_replicated = broadcast_coalesced(flat_tensors, self.devices, all_cuda=self.all_cuda)
+
+        iter_flat_tensors_replicated = iter()
         args_and_kwargs_replicated = [list() for _ in self.device_ids]
         for obj in nested_flatten(args_and_kwargs):
             if isinstance(obj, torch.Tensor):
