@@ -84,16 +84,19 @@ def _load_state_dict(
 
     # First, try to find the weights locally
     with allow_cache_reads(cache_dir):
-        archive_file = get_file_from_repo(
-            pretrained_model_name_or_path,
-            filename=WEIGHTS_NAME,
-            revision=revision,
-            use_auth_token=use_auth_token,
-            cache_dir=cache_dir,
-            local_files_only=True,
-        )
-        if archive_file is not None:
-            return torch.load(archive_file, map_location="cpu")
+        try:
+            archive_file = get_file_from_repo(
+                pretrained_model_name_or_path,
+                filename=WEIGHTS_NAME,
+                revision=revision,
+                use_auth_token=use_auth_token,
+                cache_dir=cache_dir,
+                local_files_only=True,
+            )
+            if archive_file is not None:
+                return torch.load(archive_file, map_location="cpu")
+        except Exception as e:
+            logger.info(f"Failed to load block {block_index} from cache: {e}. The block will be downloaded again")
 
     # If not found, ensure that we have enough disk space to download them (maybe remove something)
     with allow_cache_writes(cache_dir):
