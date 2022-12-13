@@ -21,7 +21,7 @@ from torch import nn
 from torch.nn.modules import conv
 
 import petals.utils.tensor_parallel.cross_device_ops as cross_device_ops
-from petals.utils.tensor_parallel.communications import AllGather, AllReduce, NCCLAllReduce, NCCLAllGather
+from petals.utils.tensor_parallel.communications import AllGather, AllReduce, NCCLAllGather, NCCLAllReduce
 
 Arg = Union[int, str]
 Pattern = Union[str, re.Pattern]
@@ -185,7 +185,9 @@ def create_collective_ops(rules: dict, devices: Sequence[torch.device]):
         make_allreduce = partial(
             AllReduce,
             reduce_op=lambda xs, destination: cross_device_ops.reduce_add(xs, destination, all_cuda=all_cuda),
-            gather_op=lambda xs, destination: cross_device_ops.gather(xs, dim=0, destination=destination, all_cuda=all_cuda)
+            gather_op=lambda xs, destination: cross_device_ops.gather(
+                xs, dim=0, destination=destination, all_cuda=all_cuda
+            ),
         )
         make_allgather = lambda world_size, dim: AllGather(
             world_size, gather_op=lambda xs, destination: cross_device_ops.gather(xs, dim=dim, all_cuda=all_cuda)
