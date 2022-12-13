@@ -4,10 +4,12 @@ import gc
 import math
 import multiprocessing as mp
 import random
+import shutil
 import threading
 import time
 from typing import Dict, List, Optional, Union
 
+import huggingface_hub
 import numpy as np
 import psutil
 import torch
@@ -29,6 +31,7 @@ from petals.server.handler import TransformerConnectionHandler
 from petals.server.memory_cache import MemoryCache
 from petals.server.throughput import get_host_throughput
 from petals.utils.convert_8bit import replace_8bit_linear
+from petals.utils.disk_cache import DEFAULT_CACHE_DIR
 
 use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
@@ -56,6 +59,7 @@ class Server:
         torch_dtype: str = "auto",
         revision: str = "main",
         cache_dir: Optional[str] = None,
+        max_disk_space: Optional[int] = None,
         attn_cache_size: Optional[int] = None,
         alloc_timeout: float = 60,
         device: Optional[Union[str, torch.device]] = None,
@@ -82,7 +86,6 @@ class Server:
         self.num_handlers = num_handlers
         self.min_batch_size, self.max_batch_size = min_batch_size, max_batch_size
         self.inference_max_length = inference_max_length
-        self.cache_dir = cache_dir
         self.compression = compression
         self.stats_report_interval, self.update_period = stats_report_interval, update_period
         self.prefetch_batches, self.sender_threads = prefetch_batches, sender_threads
@@ -158,6 +161,11 @@ class Server:
         logger.info(f"Attention cache for all blocks will consume up to {attn_cache_size / gib:.2f} GiB")
         self.memory_cache = MemoryCache(device, attn_cache_size, alloc_timeout)
 
+        if cache_dir is None:
+            cache_dir = DEFAULT_CACHE_DIR
+        self.cache_dir = cache_dir
+        self.max_disk_space = self._correct_max_disk_space(max_disk_space)
+
         assert isinstance(throughput, float) or throughput in ["auto", "eval"]
         if throughput in ["auto", "eval"]:
             throughput = get_host_throughput(
@@ -195,6 +203,33 @@ class Server:
             f"If you want to leave some free GPU memory, please specify a lesser --num_blocks manually"
         )
         return min(num_blocks, self.block_config.n_layer)
+
+    def _correct_max_disk_space(self, max_disk_space: Optional[int]) -> int:
+        # Available space includes the free space and the size of existing Petals caches we can reuse
+        available_disk_space = (
+            shutil.disk_usage(self.cache_dir).free + huggingface_hub.scan_cache_dir(self.cache_dir).size_on_disk
+        )
+
+        if max_disk_space is None:
+            gib = 1024**3
+            os_quota = 1 * gib  # Minimal space we should leave to keep OS function normally
+            max_disk_space = available_disk_space - os_quota
+            # We only add the OS quota if the user doesn't specify --max_disk_space explicitly
+        elif max_disk_space > available_disk_space:
+            logger.warning(
+                f'You specified --max_disk_space="{max_disk_space / gib:.1f} GiB" '
+                f"but only {available_disk_space / gib:.1f} GiB is available on the volume with {self.cache_dir}"
+            )
+            max_disk_space = available_disk_space
+
+        block_size = get_block_size(self.block_config, "disk")
+        if max_disk_space < block_size:
+            # We add the OS quota to this message so that the server works with automatic --max_disk_space
+            raise RuntimeError(
+                f"You need {(block_size + os_quota) / gib:.1f} GiB of disk space to load at least one block"
+            )
+
+        return max_disk_space
 
     def run(self):
         while True:
