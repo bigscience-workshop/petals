@@ -68,7 +68,6 @@ class _ReduceAdd(torch.autograd.Function):
 class NCCLAllReduceFunction(torch.autograd.Function):
     @staticmethod
     def forward(ctx, *inputs: torch.Tensor):
-        print('ALLREDUCE-FORWARD')
         inputs = tuple(map(torch.Tensor.contiguous, inputs))
         assert nccl.is_available(inputs)
         outputs = tuple(map(torch.empty_like, inputs))
@@ -77,7 +76,6 @@ class NCCLAllReduceFunction(torch.autograd.Function):
 
     @staticmethod
     def backward(ctx, *grad_outputs: torch.Tensor):
-        print('ALLREDUCE-BACKWARD')
         grad_outputs = tuple(map(torch.Tensor.contiguous, grad_outputs))
         assert nccl.is_available(grad_outputs)
         grad_inputs = tuple(map(torch.empty_like, grad_outputs))
@@ -88,17 +86,15 @@ class NCCLAllReduceFunction(torch.autograd.Function):
 class NCCLAllGatherFunction(torch.autograd.Function):
     @staticmethod
     def forward(ctx, *inputs: torch.Tensor):
-        print('ALLGATHER_-FORWARD')
         world_size = len(inputs)
         inputs = tuple(map(torch.Tensor.contiguous, inputs))
         assert nccl.is_available(inputs)
         outputs = tuple(torch.empty((world_size,) + x.shape, device=x.device, dtype=x.dtype) for x in inputs)
-        nccl.all_reduce(inputs, outputs, op=nccl.SUM)
+        nccl.all_gather(inputs, outputs)
         return outputs
 
     @staticmethod
     def backward(ctx, *grad_outputs: torch.Tensor):
-        print('ALLGATHER_-BACKWARD')
         grad_outputs = tuple(map(torch.Tensor.contiguous, grad_outputs))
         assert nccl.is_available(grad_outputs)
         grad_inputs = tuple(torch.empty(x.shape[1:], device=x.device, dtype=x.dtype) for x in grad_outputs)

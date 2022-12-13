@@ -38,11 +38,18 @@ class CollectiveOperation(CollectiveOpetationBase):
             self.rank_inputs[rank] = x
             self.barrier.wait()
             if rank == self.authoritative_rank:
-                result = self.func(*self.rank_inputs)
-                for i in range(self.world_size):
-                    self.rank_outputs[i] = result[i]
-            self.barrier.wait()
-            return self.rank_outputs[rank]
+                try:
+                    result = self.func(*self.rank_inputs)
+                    for i in range(self.world_size):
+                        self.rank_outputs[i] = (result[i], None)
+                except Exception as e:
+                    for i in range(self.world_size):
+                        self.rank_outputs[i] = (None, e)
+            self.barrier.wait(5)
+            result, exception = self.rank_outputs[rank]
+            if exception:
+                raise exception
+            return result
         finally:
             self.rank_inputs[rank] = self.rank_outputs[rank] = None
 
