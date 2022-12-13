@@ -39,7 +39,7 @@ def test_full_model_exact_match(pass_empty_tensors: bool, atol_forward=1e-3, ato
 
             for t in range(embs.shape[1]):
                 recurrent_outputs.append(sess.step(embs[:, t : t + 1, :]))
-                if t == 5 and pass_empty_tensors:
+                if t == int(embs.shape[1] // 2) and pass_empty_tensors:
                     recurrent_outputs.append(sess.step(torch.empty(1, 0, config.hidden_size)))
                     recurrent_outputs.append(sess.step(torch.empty(1, 0, config.hidden_size)))
 
