@@ -1,15 +1,15 @@
-from copy import deepcopy
 import random
+from copy import deepcopy
 
 import pytest
 import torch
 import torch.nn as nn
+from test_utils import MODEL_NAME
 from torch.nn.modules.conv import _ConvTransposeNd
 
 from petals.bloom.from_pretrained import load_pretrained_block
 from petals.utils.tensor_parallel import TensorParallel
 
-from test_utils import MODEL_NAME
 
 @pytest.mark.parametrize("devices", [None, ("cpu",), ("cpu", "cpu"), ("cpu", "cpu", "cpu")])
 def test_embeds_and_linear(devices):
@@ -75,11 +75,11 @@ def petals_test_tp_block(devices):
     test_inputs1 = torch.randn(1, 2, 1024, requires_grad=True, device=devices[0])
     test_inputs2 = test_inputs1.detach().clone().requires_grad_(True)
     grad_proj = torch.rand_like(test_inputs1)
-    y_ref, = block(test_inputs1)
+    (y_ref,) = block(test_inputs1)
     y_ref.backward(grad_proj)
 
     block_tp = TensorParallel(block, devices)
-    y_ours, = block_tp(test_inputs2)
+    (y_ours,) = block_tp(test_inputs2)
     y_ours.backward(grad_proj)
 
     assert torch.allclose(y_ours, y_ref, atol=1e-6)

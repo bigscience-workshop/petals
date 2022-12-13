@@ -11,6 +11,7 @@ from __future__ import annotations
 from typing import Optional, Sequence
 
 import torch
+from torch.cuda import nccl
 from torch.nn.parallel import comm
 from torch.nn.parallel._functions import Broadcast, Gather
 
@@ -62,3 +63,44 @@ class _ReduceAdd(torch.autograd.Function):
     @staticmethod
     def backward(ctx, *grad_outputs):
         return (None,) + Broadcast.apply(ctx.source_gpus, *grad_outputs)
+
+
+class NCCLAllReduceFunction(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, *inputs: torch.Tensor):
+        print('ALLREDUCE-FORWARD')
+        inputs = tuple(map(torch.Tensor.contiguous, inputs))
+        assert nccl.is_available(inputs)
+        outputs = tuple(map(torch.empty_like, inputs))
+        nccl.all_reduce(inputs, outputs, op=nccl.SUM)
+        return outputs
+
+    @staticmethod
+    def backward(ctx, *grad_outputs: torch.Tensor):
+        print('ALLREDUCE-BACKWARD')
+        grad_outputs = tuple(map(torch.Tensor.contiguous, grad_outputs))
+        assert nccl.is_available(grad_outputs)
+        grad_inputs = tuple(map(torch.empty_like, grad_outputs))
+        nccl.all_reduce(grad_outputs, grad_inputs, op=nccl.SUM)
+        return grad_inputs
+
+
+class NCCLAllGatherFunction(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, *inputs: torch.Tensor):
+        print('ALLGATHER_-FORWARD')
+        world_size = len(inputs)
+        inputs = tuple(map(torch.Tensor.contiguous, inputs))
+        assert nccl.is_available(inputs)
+        outputs = tuple(torch.empty((world_size,) + x.shape, device=x.device, dtype=x.dtype) for x in inputs)
+        nccl.all_reduce(inputs, outputs, op=nccl.SUM)
+        return outputs
+
+    @staticmethod
+    def backward(ctx, *grad_outputs: torch.Tensor):
+        print('ALLGATHER_-BACKWARD')
+        grad_outputs = tuple(map(torch.Tensor.contiguous, grad_outputs))
+        assert nccl.is_available(grad_outputs)
+        grad_inputs = tuple(torch.empty(x.shape[1:], device=x.device, dtype=x.dtype) for x in grad_outputs)
+        nccl.reduce_scatter(grad_outputs, grad_inputs, op=nccl.SUM)
+        return grad_inputs

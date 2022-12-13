@@ -8,9 +8,10 @@ https://github.com/BlackSamorez/tensor_parallel/blob/496e4a8ea641ff641e59309445d
 from __future__ import annotations
 
 import threading
-from typing import List, Optional
+from typing import Any, List, Optional
 
 import torch
+
 import petals.utils.tensor_parallel.cross_device_ops as cross_device_ops
 
 
@@ -19,9 +20,58 @@ class CollectiveOpetationBase:
         raise NotImplementedError()
 
 
+class CollectiveOperation(CollectiveOpetationBase):
+    def __init__(self, world_size: int, func: callable, authoritative_rank: int = 0):
+        """
+        Apply user-defined collective function in a way that is compatible with TensorParallel
+        :param func: function(input0, input1, ..., input_worldsize) -> (output0, output1, ..., output_worldsize)
+        """
+        self.world_size = world_size
+        self.func = func
+        self.authoritative_rank = authoritative_rank
+        self.rank_inputs: List[Any] = [None for _ in range(world_size)]
+        self.rank_outputs: List[Any] = [None for _ in range(world_size)]
+        self.barrier = threading.Barrier(world_size)
+
+    def __call__(self, x: torch.Tensor, rank: int):
+        try:
+            self.rank_inputs[rank] = x
+            self.barrier.wait()
+            if rank == self.authoritative_rank:
+                result = self.func(*self.rank_inputs)
+                for i in range(self.world_size):
+                    self.rank_outputs[i] = result[i]
+            self.barrier.wait()
+            return self.rank_outputs[rank]
+        finally:
+            self.rank_inputs[rank] = self.rank_outputs[rank] = None
+
+
+class NCCLAllReduce(CollectiveOperation):
+    def __init__(self, world_size: int):
+        super().__init__(world_size, func=cross_device_ops.NCCLAllReduceFunction.apply)
+
+
+class NCCLAllGather(CollectiveOperation):
+    def __init__(self, world_size: int, dim: int):
+        super().__init__(world_size, func=self._nccl_allgather)
+        self.dim = dim
+
+    def _nccl_allgather(self, *tensors: torch.Tensor):
+        gathered_tensors = cross_device_ops.NCCLAllGatherFunction.apply(*tensors)
+        dim_indices = list(range(1, gathered_tensors[0].ndim))
+        dim_indices.insert(self.dim, 0)
+        concatenated_shape = list(tensors[0].shape)
+        concatenated_shape[self.dim] = -1
+        return tuple(output.permute(dim_indices).reshape(concatenated_shape) for output in gathered_tensors)
+
+
 class AllReduce(CollectiveOpetationBase):
     def __init__(
-        self, world_size: int, reduce_op: callable = cross_device_ops.reduce_add, gather_op: callable = cross_device_ops.gather
+        self,
+        world_size: int,
+        reduce_op: callable = cross_device_ops.reduce_add,
+        gather_op: callable = cross_device_ops.gather,
     ):
         self.scatter_reduce = ScatterReduce(world_size, reduce_op)
         self.all_gather = AllGather(world_size, gather_op, barrier=False)

@@ -8,6 +8,7 @@ https://github.com/BlackSamorez/tensor_parallel/blob/496e4a8ea641ff641e59309445d
 from __future__ import annotations
 
 import dataclasses
+import os
 import re
 from copy import deepcopy
 from functools import partial
@@ -20,7 +21,7 @@ from torch import nn
 from torch.nn.modules import conv
 
 import petals.utils.tensor_parallel.cross_device_ops as cross_device_ops
-from petals.utils.tensor_parallel.communications import AllGather, AllReduce
+from petals.utils.tensor_parallel.communications import AllGather, AllReduce, NCCLAllReduce, NCCLAllGather
 
 Arg = Union[int, str]
 Pattern = Union[str, re.Pattern]
@@ -178,10 +179,17 @@ def create_collective_ops(rules: dict, devices: Sequence[torch.device]):
     all_cuda = all(device.type == "cuda" for device in devices)
     unique_output_transforms = {op for output_actions in rules.values() for op in output_actions.values()}
     transform_map = {}
-    reduce_op = lambda xs, destination: cross_device_ops.reduce_add(xs, destination, all_cuda=all_cuda)
-    gather_op = lambda xs, destination, dim=0: cross_device_ops.gather(
-        xs, dim=dim, destination=destination, all_cuda=all_cuda
-    )
+    if all_cuda and not os.environ["TENSOR_PARALLEL_USE_NATIVE"]:
+        make_allreduce, make_allgather = NCCLAllReduce, NCCLAllGather
+    else:
+        make_allreduce = partial(
+            AllReduce,
+            reduce_op=lambda xs, destination: cross_device_ops.reduce_add(xs, destination, all_cuda=all_cuda),
+            gather_op=lambda xs, destination: cross_device_ops.gather(xs, dim=0, destination=destination, all_cuda=all_cuda)
+        )
+        make_allgather = lambda world_size, dim: AllGather(
+            world_size, gather_op=lambda xs, destination: cross_device_ops.gather(xs, dim=dim, all_cuda=all_cuda)
+        )
 
     for transform in unique_output_transforms:
         if callable(transform):
@@ -191,10 +199,10 @@ def create_collective_ops(rules: dict, devices: Sequence[torch.device]):
             continue  # not a collective op, no action needed
 
         if transform_type == "sum":
-            transform_map[transform] = AllReduce(world_size, reduce_op, gather_op)
+            transform_map[transform] = make_allreduce(world_size)
         elif transform_type == "gather":
             dim = int(opts[0]) if opts else -1
-            transform_map[transform] = AllGather(world_size, partial(gather_op, dim=dim))
+            transform_map[transform] = make_allgather(world_size, dim)
 
     initialized_output_rules = {}
     for pattern, output_actions in rules.items():
