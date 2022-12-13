@@ -71,7 +71,7 @@ class Server:
         step_timeout: float = 5 * 60,
         prefetch_batches: int = 1,
         sender_threads: int = 1,
-        balance_quality: floBLOCK_Uat = 0.75,
+        balance_quality: float = 0.75,
         mean_balance_check_period: float = 60,
         mean_block_selection_delay: float = 0.5,
         use_auth_token: Optional[str] = None,
