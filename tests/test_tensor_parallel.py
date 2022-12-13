@@ -8,7 +8,7 @@ from test_utils import MODEL_NAME
 from torch.nn.modules.conv import _ConvTransposeNd
 
 from petals.bloom.from_pretrained import load_pretrained_block
-from petals.utils.tensor_parallel import TensorParallel
+from petals.utils.tensor_parallel import Config, TensorParallel
 
 
 @pytest.mark.parametrize("devices", [None, ("cpu",), ("cpu", "cpu"), ("cpu", "cpu", "cpu")])
@@ -67,10 +67,30 @@ def test_convs(devices, extra_options):
         assert torch.allclose(model[0].weight.grad, our_grad, atol=1e-6)
 
 
+@pytest.mark.parametrize("custom_config", [True, False])
 @pytest.mark.parametrize("devices", [("cpu",) * 2, ("cpu",) * 3, ("cpu",) * 4])
-def petals_test_tp_block(devices):
+def petals_test_tp_block(devices, custom_config):
     block_index = random.randint(0, 10)
     block = load_pretrained_block(MODEL_NAME, block_index=block_index, torch_dtype=torch.float32).to(devices[0])
+
+    tp_config = None
+    if custom_config:
+        tp_config = Config(
+            state_rules={
+                r".*self_attention\.query_key_value\.(weight|bias)": "split 0",
+                r".*self_attention\.dense\.(weight|bias)": "split 0",
+                r".*mlp\.dense_h_to_4h\.(weight|bias)": "split 0",
+                r".*mlp\.dense_4h_to_h\.weight": "split 1",
+                r".*mlp\.dense_4h_to_h\.bias": "scale",
+            },
+            input_rules={},
+            output_rules={
+                ".*self_attention\.query_key_value": {0: "gather -1"},
+                ".*self_attention\.dense": {0: "gather -1"},
+                ".*mlp\.dense_4h_to_h$": {0: "sum"},
+            },
+            attr_rules={},
+        )
 
     test_inputs1 = torch.randn(2, 3, 1024, requires_grad=True, device=devices[0])
     test_inputs2 = test_inputs1.detach().clone().requires_grad_(True)
@@ -87,7 +107,7 @@ def petals_test_tp_block(devices):
     y_ref, cache_ref = block(test_inputs1, use_cache=True, layer_past=layer_past)
     y_ref.backward(grad_proj)
 
-    block_tp = TensorParallel(block, devices)
+    block_tp = TensorParallel(block, devices, config=tp_config)
     y_ours, cache_ours = block_tp(test_inputs2, use_cache=True, layer_past=layer_past)
     y_ours.backward(grad_proj)
 
