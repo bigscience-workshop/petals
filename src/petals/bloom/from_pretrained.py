@@ -13,9 +13,10 @@ from typing import Optional, OrderedDict, Union
 import torch
 from hivemind.utils.logging import get_logger, use_hivemind_log_handler
 from transformers.modeling_utils import WEIGHTS_NAME
-from transformers.utils.hub import cached_path, hf_bucket_url
+from transformers.models.bloom.configuration_bloom import BloomConfig
+from transformers.utils import get_file_from_repo
 
-from petals.bloom import BloomBlock, BloomConfig
+from petals.bloom.block import WrappedBloomBlock
 from petals.utils.disk_cache import DEFAULT_CACHE_DIR
 
 use_hivemind_log_handler("in_root_logger")
@@ -23,10 +24,6 @@ logger = get_logger(__file__)
 
 CLIENT_BRANCH = "main"
 BLOCK_BRANCH_PREFIX = "block_"
-USER_AGENT = {"file_type": "model", "framework": "pytorch", "from_auto_class": False}
-FORCE_DOWNLOAD = False
-RESUME_DOWNLOAD = False
-LOCAL_FILES_ONLY = False
 
 
 def load_pretrained_block(
@@ -36,15 +33,15 @@ def load_pretrained_block(
     torch_dtype: Union[torch.dtype, str] = "auto",
     use_auth_token: Optional[str] = None,
     cache_dir: Optional[str] = None,
-) -> BloomBlock:
-    """Load one BloomBlock from a converted model. See convert_model.py (or README.md) on how to convert it."""
+) -> WrappedBloomBlock:
+    """Load one BLOOM block from a converted model. See convert_model.py (or README.md) on how to convert it."""
 
     if config is None:
         config = BloomConfig.from_pretrained(converted_model_name_or_path, use_auth_token=use_auth_token)
     if cache_dir is None:
         cache_dir = DEFAULT_CACHE_DIR
 
-    block = BloomBlock(config, layer_number=block_index)
+    block = WrappedBloomBlock(config)
     state_dict = _load_state_dict(
         converted_model_name_or_path, block_index, use_auth_token=use_auth_token, cache_dir=cache_dir
     )
@@ -70,20 +67,14 @@ def _load_state_dict(
     cache_dir: Optional[str] = None,
 ) -> OrderedDict[str, torch.Tensor]:
     revision = BLOCK_BRANCH_PREFIX + str(block_index) if block_index is not None else CLIENT_BRANCH
-    archive_file = hf_bucket_url(pretrained_model_name_or_path, filename=WEIGHTS_NAME, revision=revision, mirror=None)
-
-    # Load from URL or cache if already cached
-    resolved_archive_file = cached_path(
-        archive_file,
-        cache_dir=cache_dir,
-        force_download=FORCE_DOWNLOAD,
-        proxies=None,
-        resume_download=RESUME_DOWNLOAD,
-        local_files_only=LOCAL_FILES_ONLY,
+    archive_file = get_file_from_repo(
+        pretrained_model_name_or_path,
+        filename=WEIGHTS_NAME,
+        revision=revision,
         use_auth_token=use_auth_token,
-        user_agent=USER_AGENT,
+        cache_dir=cache_dir,
     )
-    state_dict = torch.load(resolved_archive_file, map_location="cpu")
+    state_dict = torch.load(archive_file, map_location="cpu")
     return state_dict
 
 

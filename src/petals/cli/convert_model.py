@@ -8,8 +8,8 @@ import transformers
 from hivemind.utils.logging import get_logger, use_hivemind_log_handler
 from huggingface_hub import Repository
 from tqdm.auto import tqdm
+from transformers.models.bloom.modeling_bloom import BloomModel
 
-from petals.bloom import BloomModel
 from petals.bloom.from_pretrained import BLOCK_BRANCH_PREFIX, CLIENT_BRANCH
 from petals.client import DistributedBloomConfig
 

@@ -3,10 +3,10 @@ import argparse
 import torch
 from hivemind.utils.logging import get_logger, use_hivemind_log_handler
 from tqdm.auto import trange
+from transformers import BloomConfig
+from transformers.models.bloom.modeling_bloom import build_alibi_tensor
 
 from petals.bloom.block import BloomBlock
-from petals.bloom.model import BloomConfig
-from petals.bloom.ops import build_alibi_tensor
 
 use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
@@ -31,7 +31,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run a single bloom block locally on dummy data")
     parser.add_argument("--config", required=True, type=str, help="Path to a config json file")
     parser.add_argument("--state_dict", default=None, type=str, help="Optional path to saved block state dict")
-    parser.add_argument("--layer_index", default=0, type=int, help="Optional path to saved block state dict")
     parser.add_argument("--num_steps", default=500, type=int, help="How many inference steps to run")
     parser.add_argument("--device", default=None, type=str, help="Run inference on this device")
     args = parser.parse_args()
@@ -40,7 +39,7 @@ if __name__ == "__main__":
         args.device = "cuda" if torch.cuda.is_available() else "cpu"
 
     config = BloomConfig.from_json_file(args.config)
-    block = BloomBlock(config, args.layer_index).to(args.device)
+    block = BloomBlock(config).to(args.device)
 
     cache = None
 

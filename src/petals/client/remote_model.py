@@ -7,15 +7,15 @@ import torch
 import torch.nn as nn
 from hivemind.utils.logging import get_logger, loglevel, use_hivemind_log_handler
 from transformers.modeling_outputs import BaseModelOutputWithPastAndCrossAttentions
-
-from petals.bloom.model import (
+from transformers.models.bloom import (
     BloomConfig,
     BloomForCausalLM,
     BloomForSequenceClassification,
     BloomModel,
     BloomPreTrainedModel,
-    LMHead,
 )
+
+from petals.bloom.modeling_utils import LMHead
 from petals.client.remote_generation import RemoteGenerationMixin
 from petals.client.remote_sequential import RemoteSequential
 from petals.constants import PUBLIC_INITIAL_PEERS
@@ -66,7 +66,20 @@ def force_non_empty_weights():
         nn.Module.register_parameter = possibly_patched_register_parameter
 
 
-class DistributedBloomModel(BloomModel):
+class _LowCPUMemoryMixin:
+    @classmethod
+    def from_pretrained(cls, *args, low_cpu_mem_usage: Optional[bool] = None, **kwargs):
+        if low_cpu_mem_usage is None:
+            low_cpu_mem_usage = True
+        return super().from_pretrained(*args, low_cpu_mem_usage=low_cpu_mem_usage, **kwargs)
+
+    from_pretrained.__doc__ = BloomPreTrainedModel.from_pretrained.__doc__.replace(
+        "low_cpu_mem_usage(`bool`, *optional*)",
+        "low_cpu_mem_usage(`bool`, *optional*, defaults to `True` in Petals)",
+    )
+
+
+class DistributedBloomModel(_LowCPUMemoryMixin, BloomModel):
     """BloomModel, but all transformer layers are hosted by the swarm"""
 
     _keys_to_ignore_on_load_missing = BloomModel._keys_to_ignore_on_load_missing + [
@@ -192,7 +205,7 @@ class DistributedBloomModel(BloomModel):
         )
 
 
-class DistributedBloomForCausalLM(RemoteGenerationMixin, BloomForCausalLM):
+class DistributedBloomForCausalLM(_LowCPUMemoryMixin, RemoteGenerationMixin, BloomForCausalLM):
     """DistributedBloomForCausalLM, but all transformer layers are hosted by the swarm"""
 
     _keys_to_ignore_on_load_missing = (
@@ -230,7 +243,7 @@ class DistributedBloomForCausalLM(RemoteGenerationMixin, BloomForCausalLM):
             self.lm_head.bias[...] = new_lm_head.bias
 
 
-class DistributedBloomForSequenceClassification(BloomForSequenceClassification):
+class DistributedBloomForSequenceClassification(_LowCPUMemoryMixin, BloomForSequenceClassification):
     _keys_to_ignore_on_load_missing = (
         BloomForSequenceClassification._keys_to_ignore_on_load_missing
         + DistributedBloomModel._keys_to_ignore_on_load_missing
