@@ -129,7 +129,7 @@ class RemoteGenerationMixin:
             else:
                 if top_k is not None or top_p is not None:
                     logger.warning(
-                        "You passed top_k or top_p but did not set do_sample to True. Running greedy sampling"
+                        "You passed top_k or top_p but did pass do_sample=True. Running greedy sampling"
                     )
                 decoding_algorithm = GreedyAlgorithm()
 
