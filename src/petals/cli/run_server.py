@@ -139,14 +139,14 @@ def main():
         attn_cache_size = parse_size(attn_cache_size)
     assert isinstance(
         attn_cache_size, (int, type(None))
-    ), "unrecognized value for attention_cache_bytes, examples: 1.5GB or 1500MB or 1572864000 (bytes)"
+    ), "Unrecognized value for --attn_cache_size. Correct examples: 1.5GB or 1500MB or 1572864000 (bytes)"
 
     max_disk_space = args.pop("max_disk_space")
     if max_disk_space is not None:
         max_disk_space = parse_size(max_disk_space)
     assert isinstance(
         max_disk_space, (int, type(None))
-    ), "unrecognized value for attention_cache_bytes, examples: 1.5GB or 1500MB or 1572864000 (bytes)"
+    ), "Unrecognized value for --max_disk_space. Correct examples: 1.5GB or 1500MB or 1572864000 (bytes)"
 
     if args.pop("new_swarm"):
         args["initial_peers"] = []
