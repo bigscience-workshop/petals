@@ -18,7 +18,6 @@ import torch
 from hivemind import get_logger, use_hivemind_log_handler
 from torch import nn
 from torch.nn.modules import conv
-from torch.nn.parallel import comm, replicate
 
 from petals.utils.tensor_parallel.communications import AllGather, AllReduce
 

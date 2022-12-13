@@ -12,6 +12,8 @@ from typing import List, Optional, Sequence
 
 import torch
 from torch.nn.parallel import comm
+from torch.nn.parallel._functions import ReduceAddCoalesced
+from torch.nn.parallel._functions import Scatter, Gather, Broadcast
 
 
 class CollectiveOpetationBase:
@@ -98,4 +100,36 @@ def broadcast_coalesced(
             for i, device in enumerate(devices):
                 broadcasted[i].append(x.to(device, non_blocking=True))
         return broadcasted
-    return comm.broadcast_coalesced(tensors, [device.index for device in devices], **kwargs)
+    return Broadcast.apply(devices, *tensors)
+
+
+def gather(tensors: Sequence[torch.Tensor], dim: int = 0, destination: Optional[torch.device] = None, all_cuda: bool = None):
+    """Gather tensors from multiple devices; differentiable w.r.t. input tensors"""
+    if all_cuda is None:
+        all_cuda = all(x.device.type=='cuda' for x in tensors)
+    if destination is None:
+        destination = tensors[0].device
+    if not all_cuda:
+        return torch.cat([x.to(destination, non_blocking=True) for x in tensors], dim=dim)
+    return Gather.apply(destination, dim, tensors)
+
+
+def reduce_add(tensors: Sequence[torch.Tensor], destination: Optional[torch.device] = None, all_cuda: bool = None):
+    if all_cuda is None:
+        all_cuda = all(x.device.type=='cuda' for x in tensors)
+    if destination is None:
+        destination = tensors[0].device
+    if not all_cuda:
+        return sum([tensor.to(destination, non_blocking=True) for tensor in tensors)
+    return _ReduceAdd.apply(destination, tensors)
+
+
+class _ReduceAdd(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, destination: torch.device, *tensors: torch.Tensor):
+        ctx.source_gpus = [tensor.get_device() for tensor in tensors]
+        return comm.reduce_add(tensors, destination)
+
+    @staticmethod
+    def backward(ctx, *grad_outputs):
+        return (None, ) + Broadcast.apply(ctx.source_gpus, *grad_outputs)
