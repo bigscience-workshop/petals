@@ -1,6 +1,6 @@
 import pytest
 import torch
-from test_utils import *
+from test_utils import MODEL_NAME, INITIAL_PEERS
 
 from petals.client import DistributedBloomConfig
 from petals.server.throughput import measure_compute_rps
