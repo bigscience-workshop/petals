@@ -34,7 +34,7 @@ def load_pretrained_block(
     use_auth_token: Optional[str] = None,
     cache_dir: Optional[str] = None,
 ) -> WrappedBloomBlock:
-    """Load one BloomBlock from a converted model. See convert_model.py (or README.md) on how to convert it."""
+    """Load one BLOOM block from a converted model. See convert_model.py (or README.md) on how to convert it."""
 
     if config is None:
         config = BloomConfig.from_pretrained(converted_model_name_or_path, use_auth_token=use_auth_token)
