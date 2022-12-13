@@ -3,10 +3,15 @@ Bloom intermediate layer
 Based on https://github.com/huggingface/transformers/commit/ca2a55e9dfb245527b5e1c954fec6ffbb7aef07b
 See commit history for authorship.
 """
+import os
 from typing import Optional, Tuple
 
 import torch.nn.quantized.dynamic.modules.linear
+import transformers
 from transformers.models.bloom.modeling_bloom import BloomBlock, _expand_mask, _make_causal_mask, build_alibi_tensor
+
+if not os.getenv("PETALS_IGNORE_DEPENDENCY_VERSION"):
+    assert transformers.__version__.startswith("4.25."), "Please install transformers 4.25.1"
 
 
 class WrappedBloomBlock(BloomBlock):
