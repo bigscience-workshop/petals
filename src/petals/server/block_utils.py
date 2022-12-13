@@ -2,8 +2,9 @@ from typing import Optional, Union
 
 import torch
 from accelerate import init_empty_weights
+from transformers import BloomConfig
 
-from petals.bloom import BloomBlock, BloomConfig
+from petals.bloom.block import WrappedBloomBlock
 
 
 def resolve_block_dtype(config: BloomConfig, dtype: Union[str, torch.dtype]) -> Union[str, torch.dtype]:
@@ -22,7 +23,6 @@ def get_block_size(
     *,
     dtype: Optional[Union[str, torch.dtype]] = None,
     load_in_8bit: Optional[bool] = None,
-    layer_index: int = 0,
     eps: float = 0.01,  # eps accounts for ~1% of metainfo for tensor descriptions, quantization tables, etc.
 ) -> int:
     if location == "memory":
@@ -31,7 +31,7 @@ def get_block_size(
         ), 'get_block_size(..., location="memory") requires to specify dtype and load_in_8bit for calculations'
 
     with init_empty_weights():
-        block = BloomBlock(config, layer_index)
+        block = WrappedBloomBlock(config)
         n_params = sum(param.numel() for param in block.parameters())
 
     if location == "memory" and load_in_8bit:

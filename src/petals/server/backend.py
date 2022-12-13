@@ -6,7 +6,7 @@ from hivemind import BatchTensorDescriptor, use_hivemind_log_handler
 from hivemind.moe.server.module_backend import ModuleBackend
 from hivemind.utils import get_logger
 
-from petals.bloom.from_pretrained import BloomBlock
+from petals.bloom.block import WrappedBloomBlock
 from petals.server.memory_cache import MemoryCache
 from petals.server.task_pool import PrioritizedTaskPool
 from petals.utils.misc import is_dummy
@@ -16,11 +16,11 @@ logger = get_logger(__file__)
 
 
 class TransformerBackend(ModuleBackend):
-    """A wrapper for BloomBlock that can process requests for bloom layer forward, forward_incremental, and backward"""
+    """A wrapper for a BLOOM block that can process requests for BLOOM layer forward, backward and inference"""
 
     def __init__(self, *args, memory_cache: MemoryCache, backend_dtype: torch.dtype, **kwargs):
         super().__init__(*args, **kwargs)
-        assert isinstance(self.module, BloomBlock)
+        assert isinstance(self.module, WrappedBloomBlock)
         self.memory_cache = memory_cache
         for name, param in self.module.named_parameters():
             assert not param.requires_grad, f"Bloom layer parameters must not accumulate gradients, but {name} does"
@@ -50,6 +50,7 @@ class TransformerBackend(ModuleBackend):
         )
 
     def inference_step(self, cache_metadata: torch.IntTensor, *inputs: torch.Tensor) -> Tuple[torch.Tensor, ...]:
+        num_heads, head_dim = self.module.self_attention.num_heads, self.module.self_attention.head_dim
         with torch.inference_mode():
             attention_cache_handle = int(cache_metadata[0, 0].item())
             prefix_length = int(cache_metadata[0, 1].item())
@@ -59,24 +60,31 @@ class TransformerBackend(ModuleBackend):
             ), "expected hidden states to be 3-dimensional: [batch_size, seq_len, hid_size]"
 
             with self.memory_cache.use_cache(attention_cache_handle) as cache:
-                assert isinstance(self.module, BloomBlock) and cache.shape[0] == 2 and cache.ndim == 5
+                batch_size = cache.shape[1]
+                max_length = cache.numel() // (2 * batch_size * head_dim * num_heads)
+                assert isinstance(self.module, WrappedBloomBlock) and cache.shape[0] == 2 and cache.ndim == 3
                 if not is_dummy(hypo_ids):
                     assert hypo_ids.shape[0] == cache.shape[1]
                     cache[:, :] = cache[:, hypo_ids]  # in-place reorder cache by hypo ids
-                layer_past = past_k, past_v = cache[0, :, :prefix_length], cache[1, :, :prefix_length]
-                logger.debug(f"Metadata: {cache_metadata}, past_k.shape={past_k.shape}, past_v.shape={past_v.shape}")
-                hidden_states, (new_k, new_v) = self.module.forward(
-                    hidden_states, layer_past=layer_past, use_cache=True
-                )
+                key_cache = cache[0].view(batch_size, num_heads, head_dim, max_length)
+                value_cache = cache[1].view(batch_size, num_heads, max_length, head_dim)
 
-                # todo remove these asserts once we pass all tests
-                new_length = new_v.shape[1]
+                key_past = key_cache.flatten(0, 1)[:, :, :prefix_length]  # [batch * num_heads, head_dim, kv_length]
+                value_past = value_cache.flatten(0, 1)[:, :prefix_length, :]  # [batch * num_heads, kv_length, head_dim]
+                logger.debug(
+                    f"Metadata: {cache_metadata}, past_k.shape={key_past.shape}, past_v.shape={value_past.shape}"
+                )
+                hidden_states, (new_key, new_value) = self.module.forward(
+                    hidden_states, layer_past=(key_past, value_past), use_cache=True
+                )
+                new_length = new_key.shape[-1]
                 assert new_length > prefix_length
-                assert new_k.shape[0] == past_k.shape[0] and new_v.shape[0] == past_v.shape[0]
-                assert new_k.shape[1] == new_length and new_v.shape[1] == new_length
-                assert new_k.shape[2:] == past_k.shape[2:] and new_v.shape[2:] == past_v.shape[2:]
-                cache[0, :, prefix_length:new_length, :] = new_k[:, prefix_length:new_length]
-                cache[1, :, prefix_length:new_length, :] = new_v[:, prefix_length:new_length]
+                assert new_key.shape[0] == key_past.shape[0] and new_value.shape[0] == value_past.shape[0]
+                assert new_key.shape[-1] == new_length and new_value.shape[-2] == new_length
+                new_key = new_key.view(batch_size, num_heads, head_dim, -1)
+                new_value = new_value.view(batch_size, num_heads, -1, head_dim)
+                key_cache[:, :, :, prefix_length:new_length] = new_key[:, :, :, prefix_length:new_length]
+                value_cache[:, :, prefix_length:new_length, :] = new_value[:, :, prefix_length:new_length, :]
                 return (hidden_states,)
 
     def get_pools(self) -> Sequence[PrioritizedTaskPool]:
