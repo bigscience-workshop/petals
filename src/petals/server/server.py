@@ -28,7 +28,7 @@ from petals.server.block_utils import get_block_size
 from petals.server.handler import TransformerConnectionHandler
 from petals.server.memory_cache import MemoryCache
 from petals.server.throughput import get_host_throughput
-from petals.utils.convert_block import make_tensor_parallel, replace_8bit_linear, check_device_balance
+from petals.utils.convert_block import check_device_balance, make_tensor_parallel, replace_8bit_linear
 from petals.utils.disk_cache import DEFAULT_CACHE_DIR
 
 use_hivemind_log_handler("in_root_logger")
@@ -207,9 +207,11 @@ class Server:
             )
             total_memory = min(memory_per_device) * num_devices
             if max(memory_per_device) / min(memory_per_device) > 1.5:
-                raise ValueError("GPU devices have highly uneven memory, which makes tensor parallelism inefficient. "
-                                 "Please launch individual servers on each GPU or set --num_blocks manually to "
-                                 "override this exception.")
+                raise ValueError(
+                    "GPU devices have highly uneven memory, which makes tensor parallelism inefficient. "
+                    "Please launch individual servers on each GPU or set --num_blocks manually to "
+                    "override this exception."
+                )
         else:
             total_memory = torch.cuda.get_device_properties(self.device).total_memory
 

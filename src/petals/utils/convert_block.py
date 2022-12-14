@@ -7,7 +7,7 @@ import bitsandbytes as bnb
 import tensor_parallel as tp
 import torch
 import torch.nn as nn
-from hivemind.utils.logging import use_hivemind_log_handler, get_logger
+from hivemind.utils.logging import get_logger, use_hivemind_log_handler
 
 from petals.bloom.block import WrappedBloomBlock
 from petals.utils.linear8bitlt_patch import CustomLinear8bitLt
@@ -77,22 +77,21 @@ def make_tensor_parallel(block: WrappedBloomBlock, devices: Sequence[torch.devic
 
 
 def check_device_balance(devices: Sequence[torch.device]):
-    if any(device.type == 'cpu' for device in devices):
+    if any(device.type == "cpu" for device in devices):
         logger.warning("Running CPU tensor-parallelism, this should only be used for debugging")
         return
     unique_device_capabilities = set(map(torch.cuda.get_device_capability, devices))
     if len(unique_device_capabilities) > 1:
-        logger.warning(f"Found GPUs with uneven capabilities: {unique_device_capabilities}. "
-                       f"Using GPUs with different performance may slow down the server performance.")
+        logger.warning(
+            f"Found GPUs with uneven capabilities: {unique_device_capabilities}. "
+            f"Using GPUs with different performance may slow down the server performance."
+        )
 
-    memory_per_device = tuple(
-        torch.cuda.get_device_properties(device).total_memory for device in devices
-    )
+    memory_per_device = tuple(torch.cuda.get_device_properties(device).total_memory for device in devices)
     used_memory = min(memory_per_device) * len(memory_per_device)
     wasted_memory_rate = (sum(memory_per_device) - used_memory) / sum(memory_per_device)
     if wasted_memory_rate > 0.05:
-        logger.warning(f"GPU devices have highly uneven memory, {wasted_memory_rate * 100:.2f}% memory is wasted. "
-                       f"Consider running high-memory GPUs in a separate server.")
-
-
-
+        logger.warning(
+            f"GPU devices have highly uneven memory, {wasted_memory_rate * 100:.2f}% memory is wasted. "
+            f"Consider running high-memory GPUs in a separate server."
+        )
