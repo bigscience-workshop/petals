@@ -118,7 +118,7 @@ def test_remote_sequential_prompts(batch_size=2, seq_len=5, pre_seq_len=3):
         block = load_pretrained_block(MODEL_NAME, block_index=block_index, torch_dtype=torch.float32)
         (outputs_ref,) = block(outputs_ref)
 
-    assert torch.allclose(outputs_ref, outputs)
+    assert torch.allclose(outputs_ref, outputs, atol=1e-5)
 
     (outputs_ref * output_proj).sum().backward()
     assert input_prompts_ref.grad is not None
