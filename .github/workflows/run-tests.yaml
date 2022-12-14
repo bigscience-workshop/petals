@@ -72,7 +72,7 @@ jobs:
 
           python -m petals.cli.run_server --converted_model_name_or_path $MODEL_NAME --block_indices 0:12 \
             --new_swarm --identity tests/test.id --host_maddrs /ip4/127.0.0.1/tcp/31337 --throughput 1 \
-            --torch_dtype float32 --tensor_parallel_devices cpu cpu --compression NONE --attn_cache_size 0.2GiB &> server1.log &
+            --torch_dtype float32 --compression NONE --attn_cache_size 0.2GiB &> server1.log &
           SERVER1_PID=$!
 
           sleep 5  # wait for the first server to initialize DHT
@@ -87,7 +87,7 @@ jobs:
           sleep 10 # wait for initial servers to declare blocks, then let server decide which blocks to serve
 
           python -m petals.cli.run_server --converted_model_name_or_path $MODEL_NAME --block_indices 0:6 \
-            --initial_peers $INITIAL_PEERS --throughput 1 --tensor_parallel_devices cpu cpu --torch_dtype float32 &> server3.log &
+            --initial_peers $INITIAL_PEERS --throughput 1 --torch_dtype float32 &> server3.log &
           SERVER3_PID=$!
 
           python -m petals.cli.run_server --converted_model_name_or_path $MODEL_NAME --block_indices 4:16 \
