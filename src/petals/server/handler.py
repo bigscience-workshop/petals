@@ -54,6 +54,14 @@ class TransformerConnectionHandler(ConnectionHandler):
         self.session_timeout, self.step_timeout = session_timeout, step_timeout
         self._prioritizer = task_prioritizer
 
+    def shutdown(self):
+        if self.is_alive():
+            self._outer_pipe.send("_shutdown")
+            self.join(self.shutdown_timeout)
+            if self.is_alive():
+                logger.warning(f"{self.__class__.__name__} failed to shut down gracefully, sending SIGTERM")
+                self.terminate()
+
     async def _gather_inputs(
         self, requests: AsyncIterator[runtime_pb2.ExpertRequest], context: P2PContext
     ) -> Tuple[str, List[torch.Tensor], Dict]:
