@@ -13,7 +13,7 @@ from petals.dht_utils import get_remote_module
 
 
 @pytest.mark.forked
-def test_remote_block_exact_match(atol_forward=1e-5, atol_inference=1e-3):
+def test_remote_block_exact_match(atol_forward=1e-4, atol_inference=1e-3):
     dht = hivemind.DHT(initial_peers=INITIAL_PEERS, client_mode=True, start=True)
     config = DistributedBloomConfig.from_pretrained(MODEL_NAME)
 
