@@ -147,7 +147,7 @@ class Server:
                 tensor_parallel_devices = tuple()
         self.tensor_parallel_devices = tuple(map(torch.device, tensor_parallel_devices))
         if self.tensor_parallel_devices:
-            logger.info(f"Model weights will be split between {', '.join(self.tensor_parallel_devices)}")
+            logger.info(f"Model weights will be split between {', '.join(tensor_parallel_devices)}")
             check_device_balance(self.tensor_parallel_devices)
 
         assert num_blocks is None or block_indices is None, "Please specify num_blocks or block_indices, not both"
