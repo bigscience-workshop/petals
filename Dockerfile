@@ -24,7 +24,7 @@ VOLUME /cache
 ENV PETALS_CACHE=/cache
 
 COPY . petals/
-RUN pip install -e petals[dev]
+RUN pip install --no-cache-dir -e petals
 
 WORKDIR /home/petals/
 CMD bash
