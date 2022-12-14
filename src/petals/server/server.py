@@ -157,8 +157,8 @@ class Server:
         if attn_cache_size is None:
             # Hidden size is 14336 for the bigscience/bloom-petals model. For other models, scale accordingly
             attn_cache_size = 0.5 * gib * num_blocks * self.block_config.hidden_size / 14336
+        self.attn_cache_size, self.alloc_timeout = attn_cache_size, alloc_timeout
         logger.info(f"Attention cache for all blocks will consume up to {attn_cache_size / gib:.2f} GiB")
-        self.memory_cache = MemoryCache(device, attn_cache_size, alloc_timeout)
 
         if cache_dir is None:
             cache_dir = DEFAULT_CACHE_DIR
@@ -211,7 +211,8 @@ class Server:
                 prefix=self.prefix,
                 converted_model_name_or_path=self.converted_model_name_or_path,
                 block_config=self.block_config,
-                memory_cache=self.memory_cache,
+                attn_cache_size=self.attn_cache_size,
+                alloc_timeout=self.alloc_timeout,
                 throughput=self.throughput,
                 block_indices=block_indices,
                 num_handlers=self.num_handlers,
@@ -310,7 +311,8 @@ class ModuleContainer(threading.Thread):
         prefix: str,
         converted_model_name_or_path: str,
         block_config: BloomConfig,
-        memory_cache: MemoryCache,
+        attn_cache_size: int,
+        alloc_timeout: float,
         throughput: float,
         block_indices: List[int],
         min_batch_size: int,
@@ -339,8 +341,9 @@ class ModuleContainer(threading.Thread):
         joining_announcer.start()
         logger.info(f"Announced that blocks {block_indices} are joining")
 
+        memory_cache = MemoryCache(device, attn_cache_size, alloc_timeout)
+        module_backends = {}
         try:
-            blocks = {}
             for module_uid, block_index in zip(module_uids, block_indices):
                 block = load_pretrained_block(
                     converted_model_name_or_path,
@@ -360,7 +363,7 @@ class ModuleContainer(threading.Thread):
                     param.requires_grad = False
 
                 backend_dtype = block.input_layernorm.weight.dtype if torch_dtype == "auto" else torch_dtype
-                blocks[module_uid] = TransformerBackend(
+                module_backends[module_uid] = TransformerBackend(
                     module_uid,
                     block,
                     memory_cache=memory_cache,
@@ -380,6 +383,10 @@ class ModuleContainer(threading.Thread):
                     max_batch_size=max_batch_size,
                 )
         except:
+            logger.debug("Shutting down backends")
+            for backend in module_backends.values():
+                backend.shutdown()
+
             joining_announcer.stop.set()
             joining_announcer.join()
             declare_active_modules(
@@ -397,7 +404,7 @@ class ModuleContainer(threading.Thread):
 
         return cls(
             dht,
-            blocks,
+            module_backends,
             throughput=throughput,
             device=device,
             update_period=update_period,
