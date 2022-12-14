@@ -1,5 +1,6 @@
 import pytest
 import torch
+import torch.nn.functional as F
 from hivemind import DHT, BatchTensorDescriptor, get_logger, use_hivemind_log_handler
 from hivemind.proto import runtime_pb2
 from test_utils import *
@@ -88,9 +89,9 @@ def test_remote_sequential_prompts(batch_size=2, seq_len=5, pre_seq_len=3):
     dht = DHT(initial_peers=config.initial_peers, client_mode=True, start=True)
     remote_sequential = RemoteSequential(config, dht)
 
-    inputs = torch.randn(batch_size, seq_len, config.hidden_size)
-    output_proj = torch.randn(batch_size, seq_len + pre_seq_len, config.hidden_size)
-    input_prompts = torch.randn(batch_size, pre_seq_len, config.hidden_size, requires_grad=True)
+    inputs = F.normalize(torch.randn(batch_size, seq_len, config.hidden_size), dim=-1)
+    output_proj = F.normalize(torch.randn(batch_size, seq_len + pre_seq_len, config.hidden_size), dim=-1)
+    input_prompts = F.normalize(torch.randn(batch_size, pre_seq_len, config.hidden_size, requires_grad=True), dim=-1)
     intermediate_prompts = torch.randn(config.n_layer, batch_size, pre_seq_len, config.hidden_size, requires_grad=True)
 
     input_prompts = input_prompts.detach().requires_grad_(True)
@@ -118,10 +119,10 @@ def test_remote_sequential_prompts(batch_size=2, seq_len=5, pre_seq_len=3):
         block = load_pretrained_block(MODEL_NAME, block_index=block_index, torch_dtype=torch.float32)
         (outputs_ref,) = block(outputs_ref)
 
-    assert torch.allclose(outputs_ref, outputs, atol=1e-5)
+    assert torch.allclose(outputs_ref, outputs, atol=1e-3)
 
     (outputs_ref * output_proj).sum().backward()
     assert input_prompts_ref.grad is not None
-    assert torch.allclose(input_prompts_ref.grad, input_prompts.grad)
+    assert torch.allclose(input_prompts_ref.grad, input_prompts.grad, atol=1e-3)
     assert intermediate_prompts_ref.grad is not None
-    assert torch.allclose(intermediate_prompts_ref.grad, intermediate_prompts.grad)
+    assert torch.allclose(intermediate_prompts_ref.grad, intermediate_prompts.grad, atol=1e-2)
