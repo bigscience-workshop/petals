@@ -53,6 +53,6 @@ def test_tp_block(devices, custom_config):
     y_ours.backward(grad_proj)
 
     assert torch.allclose(y_ours, y_ref, atol=1e-6)
-    assert torch.allclose(test_inputs1.grad, test_inputs2.grad, atol=1e-6)
+    assert torch.allclose(test_inputs1.grad, test_inputs2.grad, atol=1e-5)
     assert torch.allclose(cache_ref[0], cache_ours[0], atol=1e-6)
     assert torch.allclose(cache_ref[1], cache_ours[1], atol=1e-6)
