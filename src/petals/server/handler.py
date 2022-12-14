@@ -20,6 +20,7 @@ from hivemind.proto import runtime_pb2
 from hivemind.utils.asyncio import amap_in_executor, anext
 from hivemind.utils.logging import get_logger
 from hivemind.utils.streaming import split_for_streaming
+from transformers import BloomConfig
 
 from petals.data_structures import CHAIN_DELIMITER, ModuleUID
 from petals.server.backend import TransformerBackend
@@ -352,8 +353,7 @@ class TransformerConnectionHandler(ConnectionHandler):
             total_size = 0
             backend = None
             for backend in backends:
-                num_heads = backend.module.self_attention.num_heads
-                head_dim = backend.module.self_attention.head_dim
+                num_heads, head_dim = backend.config.n_head, backend.config.hidden_size // backend.config.n_head
                 descr = TensorDescriptor(size=(2, batch_size, num_heads * head_dim * max_length), dtype=backend.dtype)
                 # ^-- flattened batch-first tensor of both keys and values; based on BLOOM layer_past layout
                 handles.append(await stack.enter_async_context(backend.memory_cache.allocate_cache(descr)))

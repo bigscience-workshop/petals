@@ -6,7 +6,7 @@ import multiprocessing as mp
 import random
 import threading
 import time
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Sequence, Union
 
 import numpy as np
 import psutil
@@ -28,7 +28,7 @@ from petals.server.block_utils import get_block_size
 from petals.server.handler import TransformerConnectionHandler
 from petals.server.memory_cache import MemoryCache
 from petals.server.throughput import get_host_throughput
-from petals.utils.convert_8bit import replace_8bit_linear
+from petals.utils.convert_block import make_tensor_parallel, replace_8bit_linear
 from petals.utils.disk_cache import DEFAULT_CACHE_DIR
 
 use_hivemind_log_handler("in_root_logger")
@@ -76,6 +76,7 @@ class Server:
         mean_block_selection_delay: float = 0.5,
         use_auth_token: Optional[str] = None,
         load_in_8bit: Optional[bool] = None,
+        tensor_parallel_devices: Optional[Sequence[torch.device]] = None,
         **kwargs,
     ):
         """Create a server with one or more bloom blocks. See run_server.py for documentation."""
@@ -138,6 +139,15 @@ class Server:
         if load_in_8bit:
             logger.info("Model weights will be loaded in 8-bit format")
         self.load_in_8bit = load_in_8bit
+
+        if tensor_parallel_devices is None:
+            if torch.cuda.is_available() and torch.cuda.device_count() > 1:
+                tensor_parallel_devices = tuple(torch.device(i) for i in range(torch.cuda.device_count()))
+            else:
+                tensor_parallel_devices = tuple()
+        if tensor_parallel_devices:
+            logger.info(f"Model weights will be split between {', '.join(tensor_parallel_devices)}")
+        self.tensor_parallel_devices = tuple(map(torch.device, tensor_parallel_devices))
 
         assert num_blocks is None or block_indices is None, "Please specify num_blocks or block_indices, not both"
         if num_blocks is None and block_indices is None:
@@ -233,6 +243,7 @@ class Server:
                 sender_threads=self.sender_threads,
                 use_auth_token=self.use_auth_token,
                 load_in_8bit=self.load_in_8bit,
+                tensor_parallel_devices=self.tensor_parallel_devices,
                 start=True,
             )
             try:
@@ -324,6 +335,7 @@ class ModuleContainer(threading.Thread):
         expiration: Optional[float],
         use_auth_token: Optional[str],
         load_in_8bit: bool,
+        tensor_parallel_devices: Optional[Sequence[torch.device]],
         **kwargs,
     ) -> ModuleContainer:
         module_uids = [f"{prefix}.{block_index}" for block_index in block_indices]
@@ -355,14 +367,19 @@ class ModuleContainer(threading.Thread):
                 if load_in_8bit:
                     block = replace_8bit_linear(block)
 
-                block = block.to(device)
                 for param in block.parameters():
                     param.requires_grad = False
 
-                backend_dtype = block.input_layernorm.weight.dtype if torch_dtype == "auto" else torch_dtype
+                if tensor_parallel_devices:
+                    block = make_tensor_parallel(block, tensor_parallel_devices, output_device=device)
+                else:
+                    block = block.to(device)
+
+                backend_dtype = next(block.parameters()).dtype if torch_dtype == "auto" else torch_dtype
                 blocks[module_uid] = TransformerBackend(
                     module_uid,
                     block,
+                    config=block_config,
                     memory_cache=memory_cache,
                     backend_dtype=backend_dtype,
                     args_schema=(

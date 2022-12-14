@@ -13,7 +13,7 @@ from transformers import BloomConfig
 
 from petals.bloom.block import WrappedBloomBlock
 from petals.server.block_utils import resolve_block_dtype
-from petals.utils.convert_8bit import replace_8bit_linear
+from petals.utils.convert_block import replace_8bit_linear
 from petals.utils.disk_cache import DEFAULT_CACHE_DIR
 
 use_hivemind_log_handler("in_root_logger")

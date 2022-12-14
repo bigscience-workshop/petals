@@ -5,6 +5,8 @@ import torch
 from hivemind import BatchTensorDescriptor, use_hivemind_log_handler
 from hivemind.moe.server.module_backend import ModuleBackend
 from hivemind.utils import get_logger
+from tensor_parallel import TensorParallel
+from transformers import BloomConfig
 
 from petals.bloom.block import WrappedBloomBlock
 from petals.server.memory_cache import MemoryCache
@@ -18,9 +20,10 @@ logger = get_logger(__file__)
 class TransformerBackend(ModuleBackend):
     """A wrapper for a BLOOM block that can process requests for BLOOM layer forward, backward and inference"""
 
-    def __init__(self, *args, memory_cache: MemoryCache, backend_dtype: torch.dtype, **kwargs):
+    def __init__(self, *args, config: BloomConfig, memory_cache: MemoryCache, backend_dtype: torch.dtype, **kwargs):
         super().__init__(*args, **kwargs)
-        assert isinstance(self.module, WrappedBloomBlock)
+        assert isinstance(self.module, (WrappedBloomBlock, TensorParallel))
+        self.config = config
         self.memory_cache = memory_cache
         for name, param in self.module.named_parameters():
             assert not param.requires_grad, f"Bloom layer parameters must not accumulate gradients, but {name} does"
@@ -50,7 +53,7 @@ class TransformerBackend(ModuleBackend):
         )
 
     def inference_step(self, cache_metadata: torch.IntTensor, *inputs: torch.Tensor) -> Tuple[torch.Tensor, ...]:
-        num_heads, head_dim = self.module.self_attention.num_heads, self.module.self_attention.head_dim
+        num_heads, head_dim = self.config.n_head, self.config.hidden_size // self.config.n_head
         with torch.inference_mode():
             attention_cache_handle = int(cache_metadata[0, 0].item())
             prefix_length = int(cache_metadata[0, 1].item())
@@ -62,7 +65,8 @@ class TransformerBackend(ModuleBackend):
             with self.memory_cache.use_cache(attention_cache_handle) as cache:
                 batch_size = cache.shape[1]
                 max_length = cache.numel() // (2 * batch_size * head_dim * num_heads)
-                assert isinstance(self.module, WrappedBloomBlock) and cache.shape[0] == 2 and cache.ndim == 3
+                assert isinstance(self.module, (WrappedBloomBlock, TensorParallel))
+                assert cache.shape[0] == 2 and cache.ndim == 3
                 if not is_dummy(hypo_ids):
                     assert hypo_ids.shape[0] == cache.shape[1]
                     cache[:, :] = cache[:, hypo_ids]  # in-place reorder cache by hypo ids
