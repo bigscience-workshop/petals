@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import gc
+import itertools
 import math
 import multiprocessing as mp
 import random
@@ -119,7 +120,6 @@ class Server:
         visible_maddrs_str = [str(a) for a in self.dht.get_visible_maddrs()]
         if initial_peers == PUBLIC_INITIAL_PEERS:
             logger.info(f"Connecting to the public swarm, peer_id = {self.dht.peer_id}")
-            logger.info("Please check that your server is reachable at http://health.petals.ml")
         else:
             logger.info(f"Running DHT node on {visible_maddrs_str}, initial peers = {initial_peers}")
 
@@ -570,7 +570,7 @@ class ModuleAnnouncerThread(threading.Thread):
         self.stop = threading.Event()
 
     def run(self) -> None:
-        while True:
+        for iter_no in itertools.count():
             declare_active_modules(
                 self.dht,
                 self.module_uids,
@@ -578,5 +578,10 @@ class ModuleAnnouncerThread(threading.Thread):
                 state=self.state,
                 throughput=self.throughput,
             )
+            if iter_no == 0 and self.state == ServerState.JOINING:
+                logger.info(
+                    f"Please ensure that your server is reachable. "
+                    f"For public swarm, open http://health.petals.ml and find peer_id = {self.dht.peer_id}"
+                )
             if self.stop.wait(self.update_period):
                 break
