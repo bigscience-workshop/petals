@@ -217,7 +217,7 @@ class Server:
 
         block_size = get_block_size(self.block_config, "memory", dtype=self.torch_dtype, load_in_8bit=self.load_in_8bit)
         gib = 1024**3
-        attn_cache_per_block = 0.5 * gib  # TODO: This does not account for manually set --attn_cache_size
+        attn_cache_per_block = 0.5 * gib * num_devices  # TODO: This does not account for manually set --attn_cache_size
 
         autograd_memory = 2 * gib * num_devices  # gpu memory used for intermediate tensors in rpc_backward
         num_blocks = math.floor((total_memory - autograd_memory) / (block_size + attn_cache_per_block))
