@@ -342,7 +342,7 @@ class ModuleContainer(threading.Thread):
         logger.info(f"Announced that blocks {block_indices} are joining")
 
         memory_cache = MemoryCache(device, attn_cache_size, alloc_timeout)
-        module_backends = {}
+        blocks = {}
         try:
             for module_uid, block_index in zip(module_uids, block_indices):
                 block = load_pretrained_block(
@@ -363,7 +363,7 @@ class ModuleContainer(threading.Thread):
                     param.requires_grad = False
 
                 backend_dtype = block.input_layernorm.weight.dtype if torch_dtype == "auto" else torch_dtype
-                module_backends[module_uid] = TransformerBackend(
+                blocks[module_uid] = TransformerBackend(
                     module_uid,
                     block,
                     memory_cache=memory_cache,
@@ -384,7 +384,7 @@ class ModuleContainer(threading.Thread):
                 )
         except:
             logger.debug("Shutting down backends")
-            for backend in module_backends.values():
+            for backend in blocks.values():
                 backend.shutdown()
 
             joining_announcer.stop.set()
@@ -404,7 +404,7 @@ class ModuleContainer(threading.Thread):
 
         return cls(
             dht,
-            module_backends,
+            blocks,
             throughput=throughput,
             device=device,
             update_period=update_period,
