@@ -8,6 +8,7 @@ from test_utils import MODEL_NAME
 from petals.bloom.from_pretrained import load_pretrained_block
 
 
+@pytest.mark.forked
 @pytest.mark.parametrize("custom_config", [True, False])
 @pytest.mark.parametrize("devices", [("cpu",) * 2, ("cpu",) * 3, ("cpu",) * 4])
 def test_tp_block(devices, custom_config):
