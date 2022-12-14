@@ -79,7 +79,7 @@ def make_tensor_parallel(block: WrappedBloomBlock, devices: Sequence[torch.devic
 def check_device_balance(devices: Sequence[torch.device]):
     if any(device.type == 'cpu' for device in devices):
         logger.warning("Running CPU tensor-parallelism, this should only be used for debugging")
-    return
+        return
     unique_device_capabilities = set(map(torch.cuda.get_device_capability, devices))
     if len(unique_device_capabilities) > 1:
         logger.warning(f"Found GPUs with uneven capabilities: {unique_device_capabilities}. "
