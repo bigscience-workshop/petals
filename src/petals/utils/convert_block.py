@@ -5,7 +5,6 @@ from typing import Sequence
 
 import bitsandbytes as bnb
 import tensor_parallel as tp
-from tensor_parallel.logging import use_log_handler
 import torch
 import torch.nn as nn
 from hivemind.utils.logging import get_logger, use_hivemind_log_handler
@@ -15,7 +14,6 @@ from petals.utils.linear8bitlt_patch import CustomLinear8bitLt
 
 use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
-use_log_handler("nowhere")
 
 
 def replace_8bit_linear(module: nn.Module, threshold=6.0) -> nn.Module:
