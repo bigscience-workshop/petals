@@ -10,6 +10,7 @@ from petals.utils.generation_algorithms import (
     DecodingAlgorithm,
     GreedyAlgorithm,
     NucleusAlgorithm,
+    SamplingAlgorithm,
     TopKAlgorithm,
 )
 from petals.utils.generation_constraints import ABCBloomConstraint, EosConstraint
@@ -22,7 +23,7 @@ class RemoteGenerationMixin:
     A class containing all functions for auto-regressive text generation, to be used as a mixin in [`BloomForCausalLM`].
     The class exposes can be used for:
         - *greedy decoding*.
-        - *multinomial sampling*.
+        - *multinomial, top-k and top-p sampling*.
         - *beam-search decoding*
 
     This class is similar to transformer's [`generation_utils.GenerationMixin`], it can be used instead of it.
@@ -126,6 +127,8 @@ class RemoteGenerationMixin:
             elif num_beams is not None and num_beams > 1:
                 decoding_algorithm = BeamSearchAlgorithm(num_beams, batch_size=batch_size)
             else:
+                if top_k is not None or top_p is not None:
+                    logger.warning("You passed top_k or top_p but did pass do_sample=True. Running greedy sampling")
                 decoding_algorithm = GreedyAlgorithm()
 
         if num_beams > 1:
@@ -252,7 +255,8 @@ class RemoteGenerationMixin:
         **model_kwargs,
     ) -> torch.LongTensor:
         """
-        Generates sequences of token ids for models with a language modeling head. Uses sampling. Uses multinomial sampling algorithm. If top_k is provided, uses top_k sampling. If top_p is provided, uses nucleus sampling.
+        Generates sequences of token ids for models with a language modeling head. Uses multinomial sampling.
+        If top_k is provided, uses top_k sampling. If top_p is provided, uses nucleus sampling.
 
         :param: input_ids: The input tokens to the model.
         :param: temperature: The temperature to use for sampling.
@@ -341,10 +345,12 @@ class RemoteGenerationMixin:
     ) -> DecodingAlgorithm:
         if (top_k is not None) and (top_p is not None):
             raise ValueError("You have to provide only top_k or top_p for sampling")
-        if top_k:
+        if top_k is not None:
             return TopKAlgorithm(top_k, temperature)
-        elif top_p:
+        elif top_p is not None:
             return NucleusAlgorithm(top_p, temperature)
+        else:
+            return SamplingAlgorithm(temperature)
 
     def _get_constraints(
         self,
