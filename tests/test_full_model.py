@@ -3,9 +3,9 @@ import torch
 import transformers
 from hivemind import get_logger, use_hivemind_log_handler
 from test_utils import *
-from transformers.generation_utils import BeamSearchScorer
+from transformers.generation import BeamSearchScorer
+from transformers.models.bloom import BloomForCausalLM
 
-from petals.bloom.model import BloomForCausalLM
 from petals.client.remote_model import DistributedBloomForCausalLM
 
 use_hivemind_log_handler("in_root_logger")
@@ -13,7 +13,8 @@ logger = get_logger(__file__)
 
 
 @pytest.mark.forked
-def test_full_model_exact_match(atol_forward=1e-3, atol_inference=1e-3):
+@pytest.mark.parametrize("pass_empty_tensors", (True, False))
+def test_full_model_exact_match(pass_empty_tensors: bool, atol_forward=1e-3, atol_inference=1e-3):
     tokenizer = transformers.BloomTokenizerFast.from_pretrained(MODEL_NAME)
     model = DistributedBloomForCausalLM.from_pretrained(
         MODEL_NAME, initial_peers=INITIAL_PEERS, low_cpu_mem_usage=True, torch_dtype=torch.float32
@@ -33,8 +34,15 @@ def test_full_model_exact_match(atol_forward=1e-3, atol_inference=1e-3):
         embs = model.transformer.word_embeddings_layernorm(embs)
         recurrent_outputs = []
         with model.transformer.h.inference_session(max_length=embs.shape[1]) as sess:
+            if pass_empty_tensors:
+                recurrent_outputs.append(sess.step(torch.empty(1, 0, config.hidden_size)))
+
             for t in range(embs.shape[1]):
                 recurrent_outputs.append(sess.step(embs[:, t : t + 1, :]))
+                if t == int(embs.shape[1] // 2) and pass_empty_tensors:
+                    recurrent_outputs.append(sess.step(torch.empty(1, 0, config.hidden_size)))
+                    recurrent_outputs.append(sess.step(torch.empty(1, 0, config.hidden_size)))
+
         recurrent_outputs = torch.cat(recurrent_outputs, dim=1)
         recurrent_outputs = model.transformer.ln_f(recurrent_outputs)
         recurrent_outputs = model.lm_head(recurrent_outputs)
@@ -75,7 +83,7 @@ def test_greedy_generation(max_new_tokens=4):
         max_new_tokens=max_new_tokens,
     )
     hf_outputs = BloomForCausalLM.greedy_search(model, input_ids=inputs, max_length=inputs.size(1) + max_new_tokens)
-    assert torch.allclose(remote_outputs, hf_outputs), "Greedy search are not identical to HF"
+    assert torch.allclose(remote_outputs, hf_outputs), "Greedy search results are not identical to HF"
 
     inputs_batch = tokenizer(["A cat sat on a mat", "A dog sat on a mat"], return_tensors="pt", padding=True)[
         "input_ids"
@@ -89,7 +97,53 @@ def test_greedy_generation(max_new_tokens=4):
     )
     assert torch.allclose(
         remote_outputs_batch, hf_outputs_batch
-    ), "Greedy search are not identical to HF in multibatch mode"
+    ), "Greedy search results are not identical to HF in multibatch mode"
+
+
+@pytest.mark.forked
+@pytest.mark.parametrize("sampling_options", [dict(), dict(temperature=100.0), dict(top_k=5), dict(top_p=0.9)])
+@pytest.mark.skip("Sampling is currently not consistent with outputs from Transformers")
+def test_sampling(sampling_options, max_new_tokens=4):
+    torch.manual_seed(0)
+    tokenizer = transformers.BloomTokenizerFast.from_pretrained(MODEL_NAME)
+    model = DistributedBloomForCausalLM.from_pretrained(
+        MODEL_NAME, initial_peers=INITIAL_PEERS, low_cpu_mem_usage=True, torch_dtype=torch.float32
+    )
+    logits_warper = BloomForCausalLM._get_logits_warper(model, num_beams=1, **sampling_options)
+    inputs = tokenizer("A cat sat on a mat", return_tensors="pt")["input_ids"]
+    with torch.random.fork_rng():
+        remote_outputs = model.generate(
+            inputs,
+            max_new_tokens=max_new_tokens,
+            do_sample=True,
+            **sampling_options,
+        )
+    with torch.random.fork_rng():
+        hf_outputs = BloomForCausalLM.sample(
+            model, input_ids=inputs, max_length=inputs.size(1) + max_new_tokens, logits_warper=logits_warper
+        )
+    assert torch.allclose(remote_outputs, hf_outputs), "Sampling results are not identical to HF"
+
+    inputs_batch = tokenizer(["A cat sat on a mat", "A dog sat on a mat"], return_tensors="pt", padding=True)[
+        "input_ids"
+    ]
+    with torch.random.fork_rng():
+        remote_outputs_batch = model.generate(
+            inputs_batch,
+            max_new_tokens=max_new_tokens,
+            do_sample=True,
+            **sampling_options,
+        )
+    with torch.random.fork_rng():
+        hf_outputs_batch = BloomForCausalLM.sample(
+            model,
+            input_ids=inputs_batch,
+            max_length=inputs_batch.size(1) + max_new_tokens,
+            logits_warper=logits_warper,
+        )
+    assert torch.allclose(
+        remote_outputs_batch, hf_outputs_batch
+    ), "Sampling results are not identical to HF in multibatch mode"
 
 
 @pytest.mark.forked

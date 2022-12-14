@@ -33,12 +33,10 @@ class MemoryCache:
         self._lock_metadata, self.size_decreased_event = mp.Lock(), mp.Event()
         self._current_size = mp.Value(ctypes.c_int64, 0, lock=False)
         self._handle_counter = mp.Value(ctypes.c_int64, 0, lock=False)
-        self._active_handles: Optional[Dict[Handle, TensorDescriptor]] = None
-        self._allocated_tensors: Optional[Dict[Handle, torch.Tensor]] = None
+        self._allocated_tensors: Dict[Handle, torch.Tensor] = {}
         self.runtime_pid = os.getpid()
 
         self._pipe_recv, self._pipe_send = mp.Pipe(duplex=False)  # any ConnectionHandler -> runtime
-        self._pending_messages = mp.Value(ctypes.c_int64, 0, lock=False)
         self._lock_acquire_memory = mp.Lock()
         self._memory_freed_event = mp.Event()
 
@@ -83,14 +81,12 @@ class MemoryCache:
                     allocated_handle = int(self.handle_counter)
                     self.current_size_bytes += allocated_size_bytes
                     self.handle_counter += 1  # note: this will eventually overflow and it is okay
-                    self._pending_messages.value += 1
                     self._pipe_send.send((allocated_handle, descr))
 
             yield allocated_handle
         finally:
             if allocated_handle is not None:
                 async with hivemind.utils.enter_asynchronously(self._lock_metadata):
-                    self._pending_messages.value += 1
                     self._pipe_send.send((allocated_handle, None))  # signal runtime to free that handle
                     self.current_size_bytes -= allocated_size_bytes
                 self._memory_freed_event.set()
@@ -122,13 +118,9 @@ class MemoryCache:
         # note: this specific function is not concurrent, so you can safely allocate/offload/defragment data here
 
         with self._lock_metadata:
-            if self._allocated_tensors is None:
-                self._allocated_tensors = {}
-
             # read creation/deletion requests from connection handlers
-            for i in range(int(self._pending_messages.value)):
+            while self._pipe_recv.poll():
                 recv_handle, recv_data = self._pipe_recv.recv()
-                self._pending_messages.value -= 1
                 if isinstance(recv_data, TensorDescriptor):
                     self._allocated_tensors[recv_handle] = recv_data.make_zeros(device=self.device)
                 elif recv_data is None:

@@ -47,8 +47,18 @@ def main():
                         help='Use this many threads to pass results/exceptions from Runtime to Pools')
     parser.add_argument('--inference_max_length', type=int, default=2048,
                         help='Maximum total sequence length permitted per inference, defaults to 16384 tokens')
+
     parser.add_argument('--cache_dir', type=str, default=None,
                         help='Path to a directory in which a downloaded pretrained model configuration should be cached if the standard cache should not be used.')
+    parser.add_argument("--max_disk_space", type=str, default=None,
+                        help="Maximal disk space used for caches. Example: 50GB, 100GiB (GB != GiB here). "
+                             "Default: unlimited. "
+                             "For bigscience/bloom-petals, this default means that the server may use up to "
+                             "min(free_disk_space, 350GB) in the worst case, which happens when the server runs "
+                             "for a long time and caches all model blocks after a number of rebalancings. "
+                             "However, this worst case is unlikely, expect the server to consume "
+                             "the disk space equal to 2-4x of your GPU memory on average.")
+
     parser.add_argument('--device', type=str, default=None, required=False,
                         help='all blocks will use this device in torch notation; default: cuda if available else cpu')
     parser.add_argument("--torch_dtype", type=str, default="auto",
@@ -129,7 +139,14 @@ def main():
         attn_cache_size = parse_size(attn_cache_size)
     assert isinstance(
         attn_cache_size, (int, type(None))
-    ), "unrecognized value for attention_cache_bytes, examples: 1.5GB or 1500MB or 1572864000 (bytes)"
+    ), "Unrecognized value for --attn_cache_size. Correct examples: 1.5GB or 1500MB or 1572864000 (bytes)"
+
+    max_disk_space = args.pop("max_disk_space")
+    if max_disk_space is not None:
+        max_disk_space = parse_size(max_disk_space)
+    assert isinstance(
+        max_disk_space, (int, type(None))
+    ), "Unrecognized value for --max_disk_space. Correct examples: 1.5GB or 1500MB or 1572864000 (bytes)"
 
     if args.pop("new_swarm"):
         args["initial_peers"] = []
@@ -138,7 +155,7 @@ def main():
     if load_in_8bit is not None:
         args["load_in_8bit"] = load_in_8bit.lower() in ["true", "1"]
 
-    server = Server(**args, compression=compression, attn_cache_size=attn_cache_size)
+    server = Server(**args, compression=compression, max_disk_space=max_disk_space, attn_cache_size=attn_cache_size)
     try:
         server.run()
     except KeyboardInterrupt:

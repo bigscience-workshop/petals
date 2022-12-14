@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import gc
+import itertools
 import math
 import multiprocessing as mp
 import random
@@ -16,18 +17,20 @@ from hivemind.moe.server.layers import add_custom_models_from_file
 from hivemind.moe.server.runtime import Runtime
 from hivemind.proto.runtime_pb2 import CompressionType
 from hivemind.utils.logging import get_logger, use_hivemind_log_handler
+from transformers import BloomConfig
 
 from petals.bloom.from_pretrained import DTYPE_MAP, load_pretrained_block
-from petals.bloom.model import BloomConfig
 from petals.constants import PUBLIC_INITIAL_PEERS
 from petals.data_structures import CHAIN_DELIMITER, UID_DELIMITER, ServerState
 from petals.dht_utils import declare_active_modules, get_remote_module_infos
 from petals.server import block_selection
 from petals.server.backend import TransformerBackend
+from petals.server.block_utils import get_block_size
 from petals.server.handler import TransformerConnectionHandler
 from petals.server.memory_cache import MemoryCache
 from petals.server.throughput import get_host_throughput
 from petals.utils.convert_8bit import replace_8bit_linear
+from petals.utils.disk_cache import DEFAULT_CACHE_DIR
 
 use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
@@ -55,6 +58,7 @@ class Server:
         torch_dtype: str = "auto",
         revision: str = "main",
         cache_dir: Optional[str] = None,
+        max_disk_space: Optional[int] = None,
         attn_cache_size: Optional[int] = None,
         alloc_timeout: float = 60,
         device: Optional[Union[str, torch.device]] = None,
@@ -69,8 +73,8 @@ class Server:
         prefetch_batches: int = 1,
         sender_threads: int = 1,
         balance_quality: float = 0.75,
-        mean_balance_check_period: float = 60,
-        mean_block_selection_delay: float = 0.5,
+        mean_balance_check_period: float = 120,
+        mean_block_selection_delay: float = 2.5,
         use_auth_token: Optional[str] = None,
         load_in_8bit: Optional[bool] = None,
         **kwargs,
@@ -81,7 +85,6 @@ class Server:
         self.num_handlers = num_handlers
         self.min_batch_size, self.max_batch_size = min_batch_size, max_batch_size
         self.inference_max_length = inference_max_length
-        self.cache_dir = cache_dir
         self.compression = compression
         self.stats_report_interval, self.update_period = stats_report_interval, update_period
         self.prefetch_batches, self.sender_threads = prefetch_batches, sender_threads
@@ -116,7 +119,7 @@ class Server:
         self.dht = DHT(initial_peers=initial_peers, start=True, num_workers=self.block_config.n_layer, **kwargs)
         visible_maddrs_str = [str(a) for a in self.dht.get_visible_maddrs()]
         if initial_peers == PUBLIC_INITIAL_PEERS:
-            logger.info("Connecting to the public Petals swarm")
+            logger.info(f"Connecting to the public swarm, peer_id = {self.dht.peer_id}")
         else:
             logger.info(f"Running DHT node on {visible_maddrs_str}, initial peers = {initial_peers}")
 
@@ -124,6 +127,11 @@ class Server:
             device = "cuda" if torch.cuda.is_available() else "cpu"
         device = torch.device(device)
         self.device = device
+
+        if isinstance(torch_dtype, str):
+            torch_dtype = DTYPE_MAP[torch_dtype]
+        assert torch_dtype in DTYPE_MAP.values(), f"torch_dtype must be one of {list(DTYPE_MAP.values())}"
+        self.torch_dtype = torch_dtype
 
         if load_in_8bit is None:
             load_in_8bit = device.type == "cuda"
@@ -149,13 +157,13 @@ class Server:
         if attn_cache_size is None:
             # Hidden size is 14336 for the bigscience/bloom-petals model. For other models, scale accordingly
             attn_cache_size = 0.5 * gib * num_blocks * self.block_config.hidden_size / 14336
+        self.attn_cache_size, self.alloc_timeout = attn_cache_size, alloc_timeout
         logger.info(f"Attention cache for all blocks will consume up to {attn_cache_size / gib:.2f} GiB")
-        self.memory_cache = MemoryCache(device, attn_cache_size, alloc_timeout)
 
-        if isinstance(torch_dtype, str):
-            torch_dtype = DTYPE_MAP[torch_dtype]
-        assert torch_dtype in DTYPE_MAP.values(), f"torch_dtype must be one of {list(DTYPE_MAP.values())}"
-        self.torch_dtype = torch_dtype
+        if cache_dir is None:
+            cache_dir = DEFAULT_CACHE_DIR
+        self.cache_dir = cache_dir
+        self.max_disk_space = max_disk_space
 
         assert isinstance(throughput, float) or throughput in ["auto", "eval"]
         if throughput in ["auto", "eval"]:
@@ -181,19 +189,19 @@ class Server:
         ), "If you use a model other than bigscience/bloom-petals, please specify --num_blocks manually"
         assert self.device.type == "cuda", "If you run a non-GPU server, please specify --num_blocks manually"
 
+        total_memory = torch.cuda.get_device_properties(self.device).total_memory
+        block_size = get_block_size(self.block_config, "memory", dtype=self.torch_dtype, load_in_8bit=self.load_in_8bit)
         gib = 1024**3
-        total_memory_gib = torch.cuda.get_device_properties(self.device).total_memory / gib
-        block_size_gib = 176 / 70 + 0.5
-        if not self.load_in_8bit:
-            block_size_gib *= 2 if self.dtype in (torch.float16, torch.bfloat16) else 4
-        num_blocks = math.floor((total_memory_gib - 2) / block_size_gib)
+        attn_cache_per_block = 0.5 * gib  # TODO: This does not account for manually set --attn_cache_size
+
+        num_blocks = math.floor((total_memory - 2 * gib) / (block_size + attn_cache_per_block))
         assert num_blocks >= 1, "Your GPU does not have enough memory to serve at least one block"
 
         logger.info(
             f"Server will fill all your GPU memory with {num_blocks} transformer blocks. "
             f"If you want to leave some free GPU memory, please specify a lesser --num_blocks manually"
         )
-        return num_blocks
+        return min(num_blocks, self.block_config.n_layer)
 
     def run(self):
         while True:
@@ -203,7 +211,8 @@ class Server:
                 prefix=self.prefix,
                 converted_model_name_or_path=self.converted_model_name_or_path,
                 block_config=self.block_config,
-                memory_cache=self.memory_cache,
+                attn_cache_size=self.attn_cache_size,
+                alloc_timeout=self.alloc_timeout,
                 throughput=self.throughput,
                 block_indices=block_indices,
                 num_handlers=self.num_handlers,
@@ -212,6 +221,7 @@ class Server:
                 inference_max_length=self.inference_max_length,
                 torch_dtype=self.torch_dtype,
                 cache_dir=self.cache_dir,
+                max_disk_space=self.max_disk_space,
                 device=self.device,
                 compression=self.compression,
                 stats_report_interval=self.stats_report_interval,
@@ -231,9 +241,12 @@ class Server:
 
                 while True:
                     timeout = random.random() * 2 * self.mean_balance_check_period
-                    # TODO: Follow ModuleContainer status (to restart/stop if it crashes)
                     if self.stop.wait(timeout):
                         return
+
+                    if not self.module_container.is_healthy():
+                        logger.warning("One of subprocesses crashed, restarting the server")
+                        break
 
                     if self._should_choose_other_blocks():
                         logger.info("Swarm is imbalanced, server will load other blocks")
@@ -248,8 +261,19 @@ class Server:
         gc.collect()  # In particular, this closes unused file descriptors
 
         cur_proc = psutil.Process()
-        num_fds = [proc.num_fds() for proc in [cur_proc] + psutil.Process().children(recursive=True)]
-        logger.info(f"Cleanup complete, {sum(num_fds)} open file descriptors left")
+        num_fds = [proc.num_fds() for proc in [cur_proc] + cur_proc.children(recursive=True)]
+        logger.info(f"Cleaning up, left {sum(num_fds)} open file descriptors")
+
+        if self.device.type == "cuda":
+            torch.cuda.empty_cache()
+
+            allocated_vram = torch.cuda.memory_allocated(self.device)
+            reserved_vram = torch.cuda.memory_reserved(self.device)
+            gib = 1024**3
+            logger.info(
+                f"Cleaning up, left {allocated_vram / gib:.1f} GiB allocated memory, "
+                f"{reserved_vram / gib:.1f} GiB reserved memory"
+            )
 
     def _choose_blocks(self) -> List[int]:
         if self.strict_block_indices is not None:
@@ -287,13 +311,15 @@ class ModuleContainer(threading.Thread):
         prefix: str,
         converted_model_name_or_path: str,
         block_config: BloomConfig,
-        memory_cache: MemoryCache,
+        attn_cache_size: int,
+        alloc_timeout: float,
         throughput: float,
         block_indices: List[int],
         min_batch_size: int,
         max_batch_size: int,
         torch_dtype: torch.dtype,
-        cache_dir: Optional[str],
+        cache_dir: str,
+        max_disk_space: int,
         device: Union[str, torch.device],
         compression: CompressionType,
         update_period: float,
@@ -315,8 +341,9 @@ class ModuleContainer(threading.Thread):
         joining_announcer.start()
         logger.info(f"Announced that blocks {block_indices} are joining")
 
+        memory_cache = MemoryCache(device, attn_cache_size, alloc_timeout)
+        blocks = {}
         try:
-            blocks = {}
             for module_uid, block_index in zip(module_uids, block_indices):
                 block = load_pretrained_block(
                     converted_model_name_or_path,
@@ -325,6 +352,7 @@ class ModuleContainer(threading.Thread):
                     torch_dtype=torch_dtype,
                     use_auth_token=use_auth_token,
                     cache_dir=cache_dir,
+                    max_disk_space=max_disk_space,
                 )
 
                 if load_in_8bit:
@@ -355,6 +383,10 @@ class ModuleContainer(threading.Thread):
                     max_batch_size=max_batch_size,
                 )
         except:
+            logger.debug("Shutting down backends")
+            for backend in blocks.values():
+                backend.shutdown()
+
             joining_announcer.stop.set()
             joining_announcer.join()
             declare_active_modules(
@@ -466,6 +498,11 @@ class ModuleContainer(threading.Thread):
         """
         return self.runtime.ready  # mp.Event that is true if self is ready to process batches
 
+    def is_healthy(self) -> bool:
+        return all(handler.is_alive() for handler in self.conn_handlers) and all(
+            pool.is_alive() for pool in self.runtime.pools
+        )
+
     def shutdown(self):
         """
         Gracefully terminate the container, process-safe.
@@ -502,6 +539,10 @@ class ModuleContainer(threading.Thread):
         logger.debug(f"Shutting down runtime")
         self.runtime.shutdown()
 
+        logger.debug("Shutting down backends")
+        for backend in self.module_backends.values():
+            backend.shutdown()
+
         logger.info("Module container shut down successfully")
 
 
@@ -529,7 +570,7 @@ class ModuleAnnouncerThread(threading.Thread):
         self.stop = threading.Event()
 
     def run(self) -> None:
-        while True:
+        for iter_no in itertools.count():
             declare_active_modules(
                 self.dht,
                 self.module_uids,
@@ -537,5 +578,10 @@ class ModuleAnnouncerThread(threading.Thread):
                 state=self.state,
                 throughput=self.throughput,
             )
+            if iter_no == 0 and self.state == ServerState.JOINING:
+                logger.info(
+                    f"Please ensure that your server is reachable. "
+                    f"For public swarm, open http://health.petals.ml and find peer_id = {self.dht.peer_id}"
+                )
             if self.stop.wait(self.update_period):
                 break
