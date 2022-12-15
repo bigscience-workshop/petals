@@ -14,4 +14,4 @@ def test_throughput_basic():
     )
     assert isinstance(compute_rps, float) and compute_rps > 0
     network_rps = measure_network_rps(config)
-    assert isinstance(network_rps, float) and compute_rps > 0
+    assert isinstance(network_rps, float) and network_rps > 0
