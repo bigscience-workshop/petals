@@ -20,7 +20,6 @@ from hivemind.proto import runtime_pb2
 from hivemind.utils.asyncio import amap_in_executor, anext
 from hivemind.utils.logging import get_logger
 from hivemind.utils.streaming import split_for_streaming
-from transformers import BloomConfig
 
 from petals.data_structures import CHAIN_DELIMITER, ModuleUID
 from petals.server.backend import TransformerBackend
