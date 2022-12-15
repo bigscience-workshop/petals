@@ -30,13 +30,14 @@ def main():
                                                                  "use the same name as in the converted model.")
 
     parser.add_argument('--port', type=int, required=False,
-                        help='Port this server will use. '
-                             'This is a simplified way to set the --host_maddrs and --announce_maddrs options (see below).'
-                             'Default: a random port')
+                        help='Port this server listens to. '
+                             'This is a simplified way to set the --host_maddrs and --announce_maddrs options (see below) '
+                             'that sets the port across all interfaces (IPv4, IPv6) and protocols (TCP, etc.) '
+                             'to the same number. Default: a random free port is chosen for each interface and protocol')
     parser.add_argument('--public_ip', type=str, required=False,
                         help='Your public IPv4 address, which is visible from the Internet. '
                              'This is a simplified way to set the --announce_maddrs option (see below).'
-                             'Default: IPv4/IPv6 addresses of your network interfaces')
+                             'Default: server announces IPv4/IPv6 addresses of your network interfaces')
 
     parser.add_argument('--host_maddrs', nargs='+', required=False,
                         help='Multiaddrs to listen for external connections from other peers')
