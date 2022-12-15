@@ -88,10 +88,27 @@ def measure_throughput_info(
 
 
 def measure_network_rps(config: BloomConfig) -> float:
-    proc = subprocess.run("python3 -m petals.cli.speed_test --json", shell=True, capture_output=True)
-    if proc.returncode != 0:
-        raise RuntimeError(f"Failed to measure network throughput (stdout: {proc.stdout}, stderr: {proc.stderr})")
-    network_info = json.loads(proc.stdout)
+    try:
+        import speedtest
+        s = speedtest.Speedtest()
+    except ImportError as e:
+        logger.error("Please `pip install speedtest-cli==2.1.3` or set throughput manually")
+        logger.exception(e)
+        raise e
+    except AttributeError:
+        raise ImportError("You are using the wrong speedtest module. Please replace speedtest with speedtest-cli\n"
+                          "To do that, run `pip uninstall -y speedtest`. Depending on your python environment, "
+                          "you may need to run uninstall speedtest two or more times, unitil it says 'not installed'.\n"
+                          "After that, please `pip install speedtest-cli==2.1.3` to install the correct version.")
+    try:
+        s.get_servers()
+        s.get_best_server()
+        s.download()
+        s.upload()
+        network_info = s.results.dict()
+    except Exception as e:
+        logger.error("Failed to measure network throughput:")
+        raise e
 
     bits_per_request = config.hidden_size * 16  # Clients usually send 16-bit tensors for forward/backward
     network_rps = min(network_info["download"], network_info["upload"]) / bits_per_request
