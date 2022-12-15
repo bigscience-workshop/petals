@@ -127,6 +127,8 @@ class Server:
         if device is None:
             device = "cuda" if torch.cuda.is_available() else "cpu"
         device = torch.device(device)
+        if device.type == 'cuda' and device.index is None:
+            device = torch.device(device.type, index=0)
         self.device = device
 
         if isinstance(torch_dtype, str):
