@@ -84,7 +84,7 @@ def check_device_balance(devices: Sequence[torch.device]):
     if len(unique_device_capabilities) > 1:
         logger.warning(
             f"Found GPUs with uneven capabilities: {unique_device_capabilities}. "
-            f"Using GPUs with different performance may slow down the server performance."
+            f"Using GPUs with different performance will cause the server to wait for the slowest GPU."
         )
 
     memory_per_device = tuple(torch.cuda.get_device_properties(device).total_memory for device in devices)
