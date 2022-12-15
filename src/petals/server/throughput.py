@@ -20,8 +20,7 @@ logger = get_logger(__file__)
 try:
     import speedtest
 except ImportError:
-    logger.error("Please `pip install speedtest-cli==2.1.3`")
-    raise
+    raise ImportError("Please `pip install speedtest-cli==2.1.3`")
 
 if not hasattr(speedtest, "Speedtest"):
     raise ImportError(
