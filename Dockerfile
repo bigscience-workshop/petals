@@ -1,4 +1,4 @@
-FROM nvcr.io/nvidia/cuda:11.6.2-cudnn8-devel-ubuntu20.04
+FROM nvcr.io/nvidia/cuda:11.0.3-cudnn8-devel-ubuntu20.04
 LABEL maintainer="bigscience-workshop"
 LABEL repository="petals"
 
@@ -11,7 +11,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   build-essential \
   wget \
   git \
-  ed \
   && apt-get clean autoclean && rm -rf /var/lib/apt/lists/{apt,dpkg,cache,log} /tmp/* /var/tmp/*
 
 RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O install_miniconda.sh && \
@@ -26,7 +25,7 @@ VOLUME /cache
 ENV PETALS_CACHE=/cache
 
 COPY . petals/
-RUN pip install -e petals[dev]
+RUN pip install --no-cache-dir -e petals
 
 WORKDIR /home/petals/
 CMD bash
