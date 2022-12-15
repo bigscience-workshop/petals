@@ -21,9 +21,9 @@ try:
     import speedtest
 
     getattr(speedtest, "Speedtest")
-except ImportError as e:
+except ImportError:
     logger.error("Please `pip install speedtest-cli==2.1.3` or set throughput manually")
-    raise e
+    raise
 except AttributeError:
     raise ImportError(
         "You are using the wrong speedtest module. Please replace speedtest with speedtest-cli.\n"
