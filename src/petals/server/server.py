@@ -196,13 +196,14 @@ class Server:
             return
 
         if not response["success"]:
+            # This happens only if health.petals.ml is up and explicitly told us that we are unreachable
             raise RuntimeError(
                 f"Server is not reachable from the Internet:\n\n"
                 f"{response['message']}\n\n"
                 f"You need to fix your port forwarding and/or firewall settings. How to do that:\n\n"
                 f"    1. Choose a specific port for the Petals server, for example, 31337.\n"
                 f"    2. Ensure that this port is accessible from the Internet and not blocked by your firewall.\n"
-                f"    3. Add this to the command to explicitly announce your IP address and port to other peers:\n"
+                f"    3. Add these arguments to explicitly announce your IP address and port to other peers:\n"
                 f"        python -m petals.cli.run_server ... --public_ip {response['your_ip']} --port 31337\n"
                 f"    4. If it does not help, ask for help in our Discord: https://discord.gg/Wuk8BnrEPH\n"
             )

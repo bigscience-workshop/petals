@@ -145,9 +145,11 @@ def main():
     args["converted_model_name_or_path"] = args.pop("model") or args["converted_model_name_or_path"]
 
     host_maddrs = args.pop("host_maddrs")
-    port = args.pop("port", 0)  # Default: a random port will be chosen unless --host_maddrs are specified
+    port = args.pop("port")
     if port is not None:
         assert host_maddrs is None, "You can't use --port and --host_maddrs at the same time"
+    else:
+        port = 0
     if host_maddrs is None:
         host_maddrs = [f"/ip4/0.0.0.0/tcp/{port}", f"/ip6/::/tcp/{port}"]
 
