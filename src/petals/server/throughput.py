@@ -27,7 +27,7 @@ if not hasattr(speedtest, "Speedtest"):
     raise ImportError(
         "You are using the wrong speedtest module. Please replace speedtest with speedtest-cli.\n"
         "To do that, run `pip uninstall -y speedtest`. Depending on your python environment, "
-        "you may need to run uninstall speedtest two or more times, unitil it says 'not installed'.\n"
+        "you may need to run uninstall speedtest two or more times, until it says 'not installed'.\n"
         "After that, please `pip install speedtest-cli==2.1.3` to install the correct version."
     )
 
