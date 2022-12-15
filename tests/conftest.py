@@ -5,10 +5,9 @@ from contextlib import suppress
 import psutil
 import pytest
 from hivemind.utils.crypto import RSAPrivateKey
-from hivemind.utils.logging import get_logger, use_hivemind_log_handler
+from hivemind.utils.logging import get_logger
 from hivemind.utils.mpfuture import MPFuture
 
-use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__name__)
 
 

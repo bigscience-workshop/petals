@@ -2,11 +2,10 @@ import dataclasses
 import time
 from typing import Iterable, List, Optional, Sequence, Tuple, Type, TypeVar
 
-from hivemind import get_logger, use_hivemind_log_handler
+from hivemind import get_logger
 
 from petals.data_structures import ModuleUID, RemoteModuleInfo, RemoteSpanInfo, ServerState
 
-use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
 
 

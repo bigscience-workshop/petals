@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Optional, Union
 
 import torch
-from hivemind import DHT, P2P, get_logger, use_hivemind_log_handler
+from hivemind import DHT, P2P, get_logger
 from hivemind.moe.client.remote_expert_worker import RemoteExpertWorker
 from torch import nn
 
@@ -14,7 +14,6 @@ from petals.client.sequential_autograd import _RemoteSequentialAutogradFunction
 from petals.data_structures import UID_DELIMITER
 from petals.utils.misc import DUMMY
 
-use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
 
 

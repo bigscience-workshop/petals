@@ -1,14 +1,13 @@
 import pytest
 import torch
 import transformers
-from hivemind import get_logger, use_hivemind_log_handler
+from hivemind import get_logger
 from test_utils import *
 from transformers.generation import BeamSearchScorer
 from transformers.models.bloom import BloomForCausalLM
 
 from petals.client.remote_model import DistributedBloomForCausalLM
 
-use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
 
 

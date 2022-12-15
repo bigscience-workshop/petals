@@ -14,10 +14,8 @@ from typing import AsyncContextManager, Dict, Optional, Union
 
 import hivemind
 import torch
-from hivemind import use_hivemind_log_handler
 from hivemind.utils import TensorDescriptor, get_logger
 
-use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
 
 Handle = int

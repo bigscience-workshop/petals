@@ -13,7 +13,7 @@ import time
 from typing import Optional, OrderedDict, Union
 
 import torch
-from hivemind.utils.logging import get_logger, use_hivemind_log_handler
+from hivemind.utils.logging import get_logger
 from transformers.modeling_utils import WEIGHTS_NAME
 from transformers.models.bloom.configuration_bloom import BloomConfig
 from transformers.utils import get_file_from_repo
@@ -22,7 +22,6 @@ from petals.bloom.block import WrappedBloomBlock
 from petals.server.block_utils import get_block_size
 from petals.utils.disk_cache import DEFAULT_CACHE_DIR, allow_cache_reads, allow_cache_writes, free_disk_space_for
 
-use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
 
 CLIENT_BRANCH = "main"

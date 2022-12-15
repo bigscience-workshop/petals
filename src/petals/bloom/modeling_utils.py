@@ -7,13 +7,11 @@ See commit history for authorship.
 import torch
 import torch.nn.functional as F
 import torch.utils.checkpoint
-from hivemind import use_hivemind_log_handler
+from hivemind import get_logger
 from torch import nn
 from transformers import BloomConfig
-from transformers.utils import logging
 
-use_hivemind_log_handler("in_root_logger")
-logger = logging.get_logger(__file__)
+logger = get_logger(__file__)
 
 
 class LMHead(nn.Module):
