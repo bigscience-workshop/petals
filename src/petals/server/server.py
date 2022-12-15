@@ -183,6 +183,7 @@ class Server:
                 device,
                 torch_dtype,
                 load_in_8bit=load_in_8bit,
+                tensor_parallel_devices=self.tensor_parallel_devices,
                 force_eval=(throughput == "eval"),
                 cache_dir=cache_dir,
             )

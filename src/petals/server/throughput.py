@@ -26,6 +26,7 @@ def get_host_throughput(
     dtype: Union[str, torch.dtype],
     *,
     load_in_8bit: bool,
+    tensor_parallel_devices: Sequence[torch.device],
     force_eval: bool = False,
     cache_dir: Optional[str] = None,
 ) -> float:
@@ -58,7 +59,9 @@ def get_host_throughput(
             cache = {}
 
         if cache_key not in cache:
-            cache[cache_key] = measure_throughput_info(config, device, dtype, load_in_8bit=load_in_8bit)
+            cache[cache_key] = measure_throughput_info(
+                config, device, dtype, load_in_8bit=load_in_8bit, tensor_parallel_devices=tensor_parallel_devices
+            )
 
             try:
                 os.makedirs(cache_path.parent, exist_ok=True)
@@ -76,6 +79,7 @@ def measure_throughput_info(
     dtype: torch.dtype,
     *,
     load_in_8bit: bool,
+    tensor_parallel_devices: Sequence[torch.device],
 ) -> float:
     """Measure network and compute throughput in forward pass tokens per second"""
 
@@ -84,7 +88,9 @@ def measure_throughput_info(
     )
     return min(
         measure_network_rps(config),
-        measure_compute_rps(config, device, dtype, load_in_8bit=load_in_8bit),
+        measure_compute_rps(
+            config, device, dtype, load_in_8bit=load_in_8bit, tensor_parallel_devices=tensor_parallel_devices
+        ),
     )
 
 
