@@ -187,7 +187,14 @@ def main():
     if load_in_8bit is not None:
         args["load_in_8bit"] = load_in_8bit.lower() in ["true", "1"]
 
-    server = Server(**args, host_maddrs=host_maddrs, announce_maddrs=announce_maddrs, compression=compression, max_disk_space=max_disk_space, attn_cache_size=attn_cache_size)
+    server = Server(
+        **args,
+        host_maddrs=host_maddrs,
+        announce_maddrs=announce_maddrs,
+        compression=compression,
+        max_disk_space=max_disk_space,
+        attn_cache_size=attn_cache_size,
+    )
     try:
         server.run()
     except KeyboardInterrupt:
