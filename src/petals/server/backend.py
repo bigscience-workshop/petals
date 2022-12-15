@@ -2,7 +2,7 @@
 from typing import Any, Dict, Sequence, Tuple
 
 import torch
-from hivemind import BatchTensorDescriptor, use_hivemind_log_handler
+from hivemind import BatchTensorDescriptor
 from hivemind.moe.server.module_backend import ModuleBackend
 from hivemind.utils import get_logger
 
@@ -11,7 +11,6 @@ from petals.server.memory_cache import MemoryCache
 from petals.server.task_pool import PrioritizedTaskPool
 from petals.utils.misc import is_dummy
 
-use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
 
 

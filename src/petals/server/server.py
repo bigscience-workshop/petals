@@ -16,7 +16,7 @@ from hivemind import DHT, MAX_DHT_TIME_DISCREPANCY_SECONDS, BatchTensorDescripto
 from hivemind.moe.server.layers import add_custom_models_from_file
 from hivemind.moe.server.runtime import Runtime
 from hivemind.proto.runtime_pb2 import CompressionType
-from hivemind.utils.logging import get_logger, use_hivemind_log_handler
+from hivemind.utils.logging import get_logger
 from transformers import BloomConfig
 
 from petals.bloom.from_pretrained import DTYPE_MAP, load_pretrained_block
@@ -32,7 +32,6 @@ from petals.server.throughput import get_host_throughput
 from petals.utils.convert_8bit import replace_8bit_linear
 from petals.utils.disk_cache import DEFAULT_CACHE_DIR
 
-use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
 
 
