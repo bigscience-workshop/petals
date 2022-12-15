@@ -90,16 +90,19 @@ def measure_throughput_info(
 def measure_network_rps(config: BloomConfig) -> float:
     try:
         import speedtest
+
         s = speedtest.Speedtest()
     except ImportError as e:
         logger.error("Please `pip install speedtest-cli==2.1.3` or set throughput manually")
         logger.exception(e)
         raise e
     except AttributeError:
-        raise ImportError("You are using the wrong speedtest module. Please replace speedtest with speedtest-cli\n"
-                          "To do that, run `pip uninstall -y speedtest`. Depending on your python environment, "
-                          "you may need to run uninstall speedtest two or more times, unitil it says 'not installed'.\n"
-                          "After that, please `pip install speedtest-cli==2.1.3` to install the correct version.")
+        raise ImportError(
+            "You are using the wrong speedtest module. Please replace speedtest with speedtest-cli\n"
+            "To do that, run `pip uninstall -y speedtest`. Depending on your python environment, "
+            "you may need to run uninstall speedtest two or more times, unitil it says 'not installed'.\n"
+            "After that, please `pip install speedtest-cli==2.1.3` to install the correct version."
+        )
     try:
         s.get_servers()
         s.get_best_server()
