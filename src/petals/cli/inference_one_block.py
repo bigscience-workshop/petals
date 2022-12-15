@@ -1,14 +1,13 @@
 import argparse
 
 import torch
-from hivemind.utils.logging import get_logger, use_hivemind_log_handler
+from hivemind.utils.logging import get_logger
 from tqdm.auto import trange
 from transformers import BloomConfig
 from transformers.models.bloom.modeling_bloom import build_alibi_tensor
 
 from petals.bloom.block import BloomBlock
 
-use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
 
 logger.warning("inference_one_block will soon be deprecated in favour of tests!")

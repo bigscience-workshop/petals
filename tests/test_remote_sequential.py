@@ -10,7 +10,6 @@ from petals.client import RemoteSequenceManager, RemoteSequential
 from petals.client.remote_model import DistributedBloomConfig
 from petals.data_structures import UID_DELIMITER
 
-use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
 
 

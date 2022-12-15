@@ -8,11 +8,10 @@ from queue import PriorityQueue
 from typing import Any, List, Optional, Sequence, Tuple
 
 import torch
-from hivemind import get_logger, use_hivemind_log_handler
+from hivemind import get_logger
 from hivemind.moe.server.task_pool import TaskPoolBase
 from hivemind.utils.mpfuture import ALL_STATES, MPFuture
 
-use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
 
 
