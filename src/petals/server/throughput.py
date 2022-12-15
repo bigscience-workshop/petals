@@ -19,6 +19,7 @@ logger = get_logger(__file__)
 
 try:
     import speedtest
+
     getattr(speedtest, "Speedtest")
 except ImportError:
     logger.error("Please `pip install speedtest-cli==2.1.3`")
