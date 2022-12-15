@@ -28,9 +28,19 @@ def main():
     parser.add_argument('--block_indices', type=str, default=None, help="Specific block indices to serve")
     parser.add_argument('--prefix', type=str, default=None, help="Announce all blocks with this prefix. By default,"
                                                                  "use the same name as in the converted model.")
-    parser.add_argument('--host_maddrs', nargs='+', default=['/ip4/0.0.0.0/tcp/0', '/ip6/::/tcp/0'], required=False,
-                        help='Multiaddrs to listen for external connections from other peers. Default: all IPv4/IPv6 interfaces, a random free TCP port')
-    parser.add_argument('--announce_maddrs', nargs='+', default=None, required=False,
+
+    parser.add_argument('--port', type=int, required=False,
+                        help='Port this server will use. '
+                             'This is a simplified way to set the --host_maddrs and --announce_maddrs options (see below).'
+                             'Default: a random port')
+    parser.add_argument('--public_ip', type=str, required=False,
+                        help='Your public IPv4 address, which is visible from the Internet. '
+                             'This is a simplified way to set the --announce_maddrs option (see below).'
+                             'Default: IPv4/IPv6 addresses of your network interfaces')
+
+    parser.add_argument('--host_maddrs', nargs='+', required=False,
+                        help='Multiaddrs to listen for external connections from other peers')
+    parser.add_argument('--announce_maddrs', nargs='+', required=False,
                         help='Visible multiaddrs the host announces for external connections from other peers')
 
     parser.add_argument('--compression', type=str, default='NONE', required=False, help='Tensor compression communication')
@@ -122,11 +132,30 @@ def main():
                         help="Convert the loaded model into mixed-8bit quantized model. "
                              "Default: True if GPU is available. Use `--load_in_8bit False` to disable this")
 
+    parser.add_argument("--skip_reachability_check", action='store_true',
+                        help="Skip checking this server's reachability via health.petals.ml "
+                             "when connecting to the public swarm. If you connect to a private swarm, "
+                             "the check is skipped by default. Use this option only if you know what you are doing")
+
     # fmt:on
     args = vars(parser.parse_args())
     args.pop("config", None)
 
     args["converted_model_name_or_path"] = args.pop("model") or args["converted_model_name_or_path"]
+
+    host_maddrs = args.pop("host_maddrs")
+    port = args.pop("port", 0)  # Default: a random port will be chosen unless --host_maddrs are specified
+    if port is not None:
+        assert host_maddrs is None, "You can't use --port and --host_maddrs at the same time"
+    if host_maddrs is None:
+        host_maddrs = [f"/ip4/0.0.0.0/tcp/{port}", f"/ip6/::/tcp/{port}"]
+
+    announce_maddrs = args.pop("announce_maddrs")
+    public_ip = args.pop("public_ip")
+    if public_ip is not None:
+        assert announce_maddrs is None, "You can't use --public_ip and --announce_maddrs at the same time"
+        assert port != 0, "Please specify a fixed non-zero --port when you use --public_ip (e.g., --port 31337)"
+        announce_maddrs = [f"/ip4/{public_ip}/tcp/{port}"]
 
     if args.pop("increase_file_limit"):
         increase_file_limit()
@@ -155,7 +184,7 @@ def main():
     if load_in_8bit is not None:
         args["load_in_8bit"] = load_in_8bit.lower() in ["true", "1"]
 
-    server = Server(**args, compression=compression, max_disk_space=max_disk_space, attn_cache_size=attn_cache_size)
+    server = Server(**args, host_maddrs=host_maddrs, announce_maddrs=announce_maddrs, compression=compression, max_disk_space=max_disk_space, attn_cache_size=attn_cache_size)
     try:
         server.run()
     except KeyboardInterrupt:
