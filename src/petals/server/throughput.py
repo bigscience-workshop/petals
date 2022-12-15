@@ -108,9 +108,9 @@ def measure_network_rps(config: BloomConfig) -> float:
         s.download()
         s.upload()
         network_info = s.results.dict()
-    except Exception as e:
+    except:
         logger.error("Failed to measure network throughput:")
-        raise e
+        raise
 
     bits_per_request = config.hidden_size * 16  # Clients usually send 16-bit tensors for forward/backward
     network_rps = min(network_info["download"], network_info["upload"]) / bits_per_request
