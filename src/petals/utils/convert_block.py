@@ -63,9 +63,9 @@ def make_tensor_parallel(block: WrappedBloomBlock, devices: Sequence[torch.devic
         },
         input_rules={},
         output_rules={
-            ".*self_attention\.query_key_value": {0: "gather -1"},
-            ".*self_attention\.dense": {0: "gather -1"},
-            ".*mlp\.dense_4h_to_h$": {0: "sum"},
+            r".*self_attention\.query_key_value": {0: "gather -1"},
+            r".*self_attention\.dense": {0: "gather -1"},
+            r".*mlp\.dense_4h_to_h$": {0: "sum"},
         },
         attr_rules={},
     )
