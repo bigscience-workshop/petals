@@ -188,7 +188,7 @@ class Server:
 
     def _check_reachability(self):
         try:
-            r = requests.get(f"http://health.petals.ml/api/v1/is_reachable/{self.dht.peer_id}")
+            r = requests.get(f"http://health.petals.ml/api/v1/is_reachable/{self.dht.peer_id}", timeout=10)
             r.raise_for_status()
             response = r.json()
         except Exception as e:
