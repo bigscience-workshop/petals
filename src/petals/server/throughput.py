@@ -94,7 +94,6 @@ def measure_network_rps(config: BloomConfig) -> float:
         s = speedtest.Speedtest()
     except ImportError as e:
         logger.error("Please `pip install speedtest-cli==2.1.3` or set throughput manually")
-        logger.exception(e)
         raise e
     except AttributeError:
         raise ImportError(
