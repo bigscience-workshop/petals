@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import gc
-import itertools
 import math
 import multiprocessing as mp
 import random
@@ -11,6 +10,7 @@ from typing import Dict, List, Optional, Union
 
 import numpy as np
 import psutil
+import requests
 import torch
 from hivemind import DHT, MAX_DHT_TIME_DISCREPANCY_SECONDS, BatchTensorDescriptor, get_dht_time
 from hivemind.moe.server.layers import add_custom_models_from_file
@@ -77,6 +77,7 @@ class Server:
         mean_block_selection_delay: float = 2.5,
         use_auth_token: Optional[str] = None,
         load_in_8bit: Optional[bool] = None,
+        skip_reachability_check: bool = False,
         **kwargs,
     ):
         """Create a server with one or more bloom blocks. See run_server.py for documentation."""
@@ -120,6 +121,8 @@ class Server:
         visible_maddrs_str = [str(a) for a in self.dht.get_visible_maddrs()]
         if initial_peers == PUBLIC_INITIAL_PEERS:
             logger.info(f"Connecting to the public swarm, peer_id = {self.dht.peer_id}")
+            if not skip_reachability_check:
+                self._check_reachability()
         else:
             logger.info(f"Running DHT node on {visible_maddrs_str}, initial peers = {initial_peers}")
 
@@ -182,6 +185,29 @@ class Server:
         self.mean_block_selection_delay = mean_block_selection_delay
 
         self.stop = threading.Event()
+
+    def _check_reachability(self):
+        try:
+            r = requests.get(f"http://health.petals.ml/api/v1/is_reachable/{self.dht.peer_id}")
+            r.raise_for_status()
+            response = r.json()
+        except Exception as e:
+            logger.warning(f"Skipping reachability check because health.petals.ml is down: {repr(e)}")
+            return
+
+        if not response["success"]:
+            raise RuntimeError(
+                f"Server is not reachable from the Internet:\n\n"
+                f"{response['message']}\n\n"
+                f"You need to fix your port forwarding and/or firewall settings. How to do that:\n\n"
+                f"    1. Choose a specific port for the Petals server, for example, 31337.\n"
+                f"    2. Ensure that this port is accessible from the Internet and not blocked by your firewall.\n"
+                f"    3. Add this to the command to explicitly announce your IP address and port to other peers:\n"
+                f"        python -m petals.cli.run_server ... --public_ip {response['your_ip']} --port 31337\n"
+                f"    4. If it does not help, ask for help in our Discord: https://discord.gg/Wuk8BnrEPH\n"
+            )
+
+        logger.info("Server is reachable from the Internet, it will appear at http://health.petals.ml soon")
 
     def _choose_num_blocks(self) -> int:
         assert (
@@ -570,7 +596,7 @@ class ModuleAnnouncerThread(threading.Thread):
         self.stop = threading.Event()
 
     def run(self) -> None:
-        for iter_no in itertools.count():
+        while True:
             declare_active_modules(
                 self.dht,
                 self.module_uids,
@@ -578,10 +604,5 @@ class ModuleAnnouncerThread(threading.Thread):
                 state=self.state,
                 throughput=self.throughput,
             )
-            if iter_no == 0 and self.state == ServerState.JOINING:
-                logger.info(
-                    f"Please ensure that your server is reachable. "
-                    f"For public swarm, open http://health.petals.ml and find peer_id = {self.dht.peer_id}"
-                )
             if self.stop.wait(self.update_period):
                 break
