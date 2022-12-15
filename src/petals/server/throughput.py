@@ -23,7 +23,7 @@ except ImportError:
     logger.error("Please `pip install speedtest-cli==2.1.3`")
     raise
 
-if hasattr(speedtest, "Speedtest"):
+if not hasattr(speedtest, "Speedtest"):
     raise ImportError(
         "You are using the wrong speedtest module. Please replace speedtest with speedtest-cli.\n"
         "To do that, run `pip uninstall -y speedtest`. Depending on your python environment, "
