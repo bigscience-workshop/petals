@@ -14,7 +14,7 @@ from hivemind.dht.node import Blacklist
 from hivemind.moe.client.remote_expert_worker import RemoteExpertWorker
 from hivemind.p2p import P2PHandlerError
 from hivemind.proto import runtime_pb2
-from hivemind.utils.logging import get_logger, use_hivemind_log_handler
+from hivemind.utils.logging import get_logger
 
 import petals.dht_utils
 from petals.client.routing.sequence_info import RemoteSequenceInfo
@@ -22,7 +22,6 @@ from petals.client.routing.spending_policy import NoSpendingPolicy
 from petals.data_structures import ModuleUID, RemoteSpanInfo, ServerState
 from petals.server.handler import TransformerConnectionHandler
 
-use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
 
 

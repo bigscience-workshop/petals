@@ -5,7 +5,7 @@ from typing import List, Optional
 import hivemind
 import torch
 import torch.nn as nn
-from hivemind.utils.logging import get_logger, use_hivemind_log_handler
+from hivemind.utils.logging import get_logger
 from transformers.modeling_outputs import BaseModelOutputWithPastAndCrossAttentions
 from transformers.models.bloom import (
     BloomConfig,
@@ -21,7 +21,6 @@ from petals.client.remote_sequential import RemoteSequential
 from petals.constants import PUBLIC_INITIAL_PEERS
 from petals.utils.misc import DUMMY
 
-use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
 
 

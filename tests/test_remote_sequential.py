@@ -1,6 +1,6 @@
 import pytest
 import torch
-from hivemind import DHT, BatchTensorDescriptor, get_logger, use_hivemind_log_handler
+from hivemind import DHT, BatchTensorDescriptor, get_logger
 from hivemind.proto import runtime_pb2
 from test_utils import *
 
@@ -9,7 +9,6 @@ from petals.client import RemoteSequenceManager, RemoteSequential
 from petals.client.remote_model import DistributedBloomConfig
 from petals.data_structures import UID_DELIMITER
 
-use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
 
 

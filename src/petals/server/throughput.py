@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Optional, Union
 
 import torch
-from hivemind.utils.logging import get_logger, use_hivemind_log_handler
+from hivemind.utils.logging import get_logger
 from transformers import BloomConfig
 
 from petals.bloom.block import WrappedBloomBlock
@@ -16,7 +16,6 @@ from petals.server.block_utils import resolve_block_dtype
 from petals.utils.convert_8bit import replace_8bit_linear
 from petals.utils.disk_cache import DEFAULT_CACHE_DIR
 
-use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
 
 
