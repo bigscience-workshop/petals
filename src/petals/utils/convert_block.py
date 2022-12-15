@@ -52,7 +52,7 @@ def replace_8bit_linear(module: nn.Module, threshold=6.0) -> nn.Module:
 
 
 def make_tensor_parallel(block: WrappedBloomBlock, devices: Sequence[torch.device], output_device: torch.device):
-    assert isinstance(block, WrappedBloomBlock)
+    assert isinstance(block, (WrappedBloomBlock, CustomLinear8bitLt))
     tp_config = tp.Config(
         state_rules={
             ".*self_attention\.query_key_value\.(weight|bias)": "split 0",
