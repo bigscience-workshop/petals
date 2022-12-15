@@ -5,7 +5,7 @@ from typing import List, Optional
 import hivemind
 import torch
 import torch.nn as nn
-from hivemind.utils.logging import get_logger, loglevel, use_hivemind_log_handler
+from hivemind.utils.logging import get_logger, use_hivemind_log_handler
 from transformers.modeling_outputs import BaseModelOutputWithPastAndCrossAttentions
 from transformers.models.bloom import (
     BloomConfig,
@@ -23,10 +23,6 @@ from petals.utils.misc import DUMMY
 
 use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
-
-# We suppress asyncio error logs by default since they are mostly not relevant for the end user
-asyncio_loglevel = os.getenv("PETALS_ASYNCIO_LOGLEVEL", "FATAL" if loglevel != "DEBUG" else "DEBUG")
-get_logger("asyncio").setLevel(asyncio_loglevel)
 
 
 class DistributedBloomConfig(BloomConfig):
