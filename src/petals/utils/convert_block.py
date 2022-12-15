@@ -55,11 +55,11 @@ def make_tensor_parallel(block: WrappedBloomBlock, devices: Sequence[torch.devic
     assert isinstance(block, (WrappedBloomBlock, CustomLinear8bitLt))
     tp_config = tp.Config(
         state_rules={
-            ".*self_attention\.query_key_value\.(weight|bias)": "split 0",
-            ".*self_attention\.dense\.(weight|bias)": "split 0",
-            ".*mlp\.dense_h_to_4h\.(weight|bias)": "split 0",
-            ".*mlp\.dense_4h_to_h\.weight": "split 1",
-            ".*mlp\.dense_4h_to_h\.bias": "scale",
+            r".*self_attention\.query_key_value\.(weight|bias)": "split 0",
+            r".*self_attention\.dense\.(weight|bias)": "split 0",
+            r".*mlp\.dense_h_to_4h\.(weight|bias)": "split 0",
+            r".*mlp\.dense_4h_to_h\.weight": "split 1",
+            r".*mlp\.dense_4h_to_h\.bias": "scale",
         },
         input_rules={},
         output_rules={
