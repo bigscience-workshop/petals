@@ -19,12 +19,11 @@ logger = get_logger(__file__)
 
 try:
     import speedtest
-
-    getattr(speedtest, "Speedtest")
 except ImportError:
     logger.error("Please `pip install speedtest-cli==2.1.3`")
     raise
-except AttributeError:
+
+if hasattr(speedtest, "Speedtest"):
     raise ImportError(
         "You are using the wrong speedtest module. Please replace speedtest with speedtest-cli.\n"
         "To do that, run `pip uninstall -y speedtest`. Depending on your python environment, "
