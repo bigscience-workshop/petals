@@ -3,8 +3,8 @@ import time
 
 import pytest
 import torch
+from hivemind.moe.server.runtime import Runtime
 
-from petals.server.runtime import Runtime
 from petals.server.task_pool import PrioritizedTaskPool
 
 
