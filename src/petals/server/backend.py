@@ -48,25 +48,25 @@ class TransformerBackend(ModuleBackend):
             self.kwargs_schema,
         )
 
-    def inference_step(self, cache_metadata: torch.IntTensor, *inputs: torch.Tensor) -> Tuple[torch.Tensor, ...]:
+    def inference_step(
+        self, hidden_states: torch.Tensor, hypo_ids: torch.LongTensor, cache_metadata: torch.LongTensor
+    ) -> Tuple[torch.Tensor, ...]:
         num_heads, head_dim = self.module.self_attention.num_heads, self.module.self_attention.head_dim
         with torch.inference_mode():
-            attention_cache_handle = int(cache_metadata[0, 0].item())
-            prefix_length = int(cache_metadata[0, 1].item())
-            (hidden_states, hypo_ids) = inputs
             assert (
                 hidden_states.ndim == 3
             ), "expected hidden states to be 3-dimensional: [batch_size, seq_len, hid_size]"
+            cache_handle, rel_index, prefix_length = map(int, cache_metadata[0])
 
-            with self.memory_cache.use_cache(attention_cache_handle) as cache:
-                batch_size = cache.shape[1]
-                max_length = cache.numel() // (2 * batch_size * head_dim * num_heads)
-                assert isinstance(self.module, WrappedBloomBlock) and cache.shape[0] == 2 and cache.ndim == 3
+            with self.memory_cache.use_cache(cache_handle) as cache:
+                batch_size = cache.shape[2]
+                max_length = cache.shape[-1] // (head_dim * num_heads)
+                assert isinstance(self.module, WrappedBloomBlock) and cache.shape[1] == 2 and cache.ndim == 4
                 if not is_dummy(hypo_ids):
-                    assert hypo_ids.shape[0] == cache.shape[1]
-                    cache[:, :] = cache[:, hypo_ids]  # in-place reorder cache by hypo ids
-                key_cache = cache[0].view(batch_size, num_heads, head_dim, max_length)
-                value_cache = cache[1].view(batch_size, num_heads, max_length, head_dim)
+                    assert hypo_ids.shape[0] == batch_size
+                    cache[rel_index, :, :] = cache[rel_index, :, hypo_ids]  # in-place reorder cache by hypo ids
+                key_cache = cache[rel_index, 0].view(batch_size, num_heads, head_dim, max_length)
+                value_cache = cache[rel_index, 1].view(batch_size, num_heads, max_length, head_dim)
 
                 key_past = key_cache.flatten(0, 1)[:, :, :prefix_length]  # [batch * num_heads, head_dim, kv_length]
                 value_past = value_cache.flatten(0, 1)[:, :prefix_length, :]  # [batch * num_heads, kv_length, head_dim]
