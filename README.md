@@ -8,7 +8,7 @@
 Generate text using distributed BLOOM and fine-tune it for your own tasks:
 
 ```python
-from petals.client import DistributedBloomForCausalLM
+from petals import DistributedBloomForCausalLM
 
 # Embeddings & prompts are on your device, BLOOM blocks are distributed across the Internet
 model = DistributedBloomForCausalLM.from_pretrained("bigscience/bloom-petals", tuning_mode="ptune")
