@@ -3,7 +3,7 @@ import torch
 from test_utils import MODEL_NAME
 
 from petals.client import DistributedBloomConfig
-from petals.server.throughput import measure_compute_rps
+from petals.server.throughput import measure_compute_rps, measure_network_rps
 
 
 @pytest.mark.forked
@@ -18,5 +18,7 @@ def test_throughput_basic(tensor_parallel: bool):
         load_in_8bit=False,
         tensor_parallel_devices=tensor_parallel_devices,
         n_steps=10,
-    )
-    assert isinstance(throughput, float) and throughput > 0
+
+    assert isinstance(compute_rps, float) and compute_rps > 0
+    network_rps = measure_network_rps(config)
+    assert isinstance(network_rps, float) and network_rps > 0
