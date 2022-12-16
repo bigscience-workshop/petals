@@ -64,7 +64,8 @@ class TransformerBackend(ModuleBackend):
             with self.memory_cache.use_cache(cache_handle) as cache:
                 batch_size = cache.shape[2]
                 max_length = cache.shape[-1] // (head_dim * num_heads)
-                assert isinstance(self.module, (WrappedBloomBlock, TensorParallel))                if not is_dummy(hypo_ids):
+                assert isinstance(self.module, (WrappedBloomBlock, TensorParallel))
+                if not is_dummy(hypo_ids):
                     assert hypo_ids.shape[0] == batch_size
                     cache[rel_index, :, :] = cache[rel_index, :, hypo_ids]  # in-place reorder cache by hypo ids
                 key_cache = cache[rel_index, 0].view(batch_size, num_heads, head_dim, max_length)
