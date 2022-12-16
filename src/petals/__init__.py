@@ -1,5 +1,6 @@
-import petals.utils.logging
+from petals import utils
+from petals.client import *
 
 __version__ = "1.0alpha1"
 
-petals.utils.logging.initialize_logs()
+utils.logging.initialize_logs()
