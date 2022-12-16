@@ -25,7 +25,10 @@ def initialize_logs():
         os.environ["HIVEMIND_COLORS"] = "True"
     importlib.reload(hm_logging)
 
-    hm_logging.get_logger().handlers.clear()  # Remove extra default handlers on Colab
+    # Remove log handlers from previous import of hivemind.utils.logging and extra handlers on Colab
+    hm_logging.get_logger().handlers.clear()
+    hm_logging.get_logger("hivemind").handlers.clear()
+
     hm_logging.use_hivemind_log_handler("in_root_logger")
 
     # We suppress asyncio error logs by default since they are mostly not relevant for the end user,
