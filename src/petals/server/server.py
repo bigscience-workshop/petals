@@ -116,7 +116,9 @@ class Server:
         )
         self.module_uids = [f"{self.prefix}.{block_index}" for block_index in range(self.block_config.n_layer)]
 
-        self.dht = hivemind.DHT(initial_peers=initial_peers, start=True, num_workers=self.block_config.n_layer, **kwargs)
+        self.dht = hivemind.DHT(
+            initial_peers=initial_peers, start=True, num_workers=self.block_config.n_layer, **kwargs
+        )
         visible_maddrs_str = [str(a) for a in self.dht.get_visible_maddrs()]
         if initial_peers == PUBLIC_INITIAL_PEERS:
             logger.info(f"Connecting to the public swarm, peer_id = {self.dht.peer_id}")
@@ -469,7 +471,7 @@ class ModuleContainer(threading.Thread):
             )
             for _ in range(num_handlers)
         ]
-        self.runtime = hivemind.Runtime(self.module_backends, **kwargs)
+        self.runtime = hivemind.moe.Runtime(self.module_backends, **kwargs)
         self.online_announcer = ModuleAnnouncerThread(
             list(self.module_backends.keys()),
             dht,
