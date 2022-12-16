@@ -1,9 +1,9 @@
 import multiprocessing as mp
 import time
 
-import hivemind
 import pytest
 import torch
+from hivemind.moe.server.runtime import Runtime
 
 from petals.server.task_pool import PrioritizedTaskPool
 
@@ -31,7 +31,7 @@ def test_priority_pools():
         PrioritizedTaskPool(dummy_pool_func, name="B", max_batch_size=1),
     )
 
-    runtime = hivemind.Runtime({str(i): DummyBackend([pool]) for i, pool in enumerate(pools)}, prefetch_batches=0)
+    runtime = Runtime({str(i): DummyBackend([pool]) for i, pool in enumerate(pools)}, prefetch_batches=0)
     runtime.start()
 
     def process_tasks():

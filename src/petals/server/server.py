@@ -8,13 +8,13 @@ import threading
 import time
 from typing import Dict, List, Optional, Union
 
-import hivemind
 import numpy as np
 import psutil
 import requests
 import torch
-from hivemind import MAX_DHT_TIME_DISCREPANCY_SECONDS, BatchTensorDescriptor, get_dht_time
+from hivemind import DHT, MAX_DHT_TIME_DISCREPANCY_SECONDS, BatchTensorDescriptor, get_dht_time
 from hivemind.moe.server.layers import add_custom_models_from_file
+from hivemind.moe.server.runtime import Runtime
 from hivemind.proto.runtime_pb2 import CompressionType
 from hivemind.utils.logging import get_logger
 from transformers import BloomConfig
@@ -116,9 +116,7 @@ class Server:
         )
         self.module_uids = [f"{self.prefix}.{block_index}" for block_index in range(self.block_config.n_layer)]
 
-        self.dht = hivemind.DHT(
-            initial_peers=initial_peers, start=True, num_workers=self.block_config.n_layer, **kwargs
-        )
+        self.dht = DHT(initial_peers=initial_peers, start=True, num_workers=self.block_config.n_layer, **kwargs)
         visible_maddrs_str = [str(a) for a in self.dht.get_visible_maddrs()]
         if initial_peers == PUBLIC_INITIAL_PEERS:
             logger.info(f"Connecting to the public swarm, peer_id = {self.dht.peer_id}")
@@ -335,7 +333,7 @@ class ModuleContainer(threading.Thread):
     def create(
         cls,
         *,
-        dht: hivemind.DHT,
+        dht: DHT,
         prefix: str,
         converted_model_name_or_path: str,
         block_config: BloomConfig,
@@ -442,7 +440,7 @@ class ModuleContainer(threading.Thread):
 
     def __init__(
         self,
-        dht: hivemind.DHT,
+        dht: DHT,
         module_backends: Dict[str, TransformerBackend],
         *,
         inference_max_length: int,
@@ -471,7 +469,7 @@ class ModuleContainer(threading.Thread):
             )
             for _ in range(num_handlers)
         ]
-        self.runtime = hivemind.moe.Runtime(self.module_backends, **kwargs)
+        self.runtime = Runtime(self.module_backends, **kwargs)
         self.online_announcer = ModuleAnnouncerThread(
             list(self.module_backends.keys()),
             dht,
@@ -580,7 +578,7 @@ class ModuleAnnouncerThread(threading.Thread):
     def __init__(
         self,
         module_uids: List[str],
-        dht: hivemind.DHT,
+        dht: DHT,
         state: ServerState,
         *,
         throughput: float,
