@@ -75,6 +75,11 @@ class MemoryCache:
             await asyncio.shield(self._schedule_free(alloc_size, handle))
 
     async def _schedule_alloc(self, alloc_size: int, descr: TensorDescriptor) -> Handle:
+        """
+        This method should be called inside asyncio.shield() because:
+            - hivemind.utils.enter_asynchronously() does not always release the lock on cancellation
+        """
+
         loop = asyncio.get_event_loop()
         async with hivemind.utils.enter_asynchronously(self._lock_acquire_memory):
             if self.current_size_bytes + alloc_size > self.max_size_bytes:
@@ -87,6 +92,12 @@ class MemoryCache:
                 return handle
 
     async def _schedule_free(self, alloc_size: int, handle: Handle):
+        """
+        This method should be called inside asyncio.shield() because:
+            - hivemind.utils.enter_asynchronously() does not always release the lock on cancellation
+            - _schedule_free() must finish freeing memory even in case of cancellation
+        """
+
         async with hivemind.utils.enter_asynchronously(self._lock_metadata):
             self._pipe_send.send((handle, None))  # signal runtime to free that handle
             self.current_size_bytes -= alloc_size
