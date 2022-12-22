@@ -1,6 +1,6 @@
 import asyncio
 import contextlib
-from typing import Any, AsyncIterator, Dict, Iterable, List, Sequence, Tuple, Union
+from typing import Any, AsyncIterator, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 
 import torch
 from async_timeout import timeout
@@ -93,7 +93,12 @@ class TransformerConnectionHandler(ConnectionHandler):
         """Compute a single step of inference using attention cache; update attention cache accordingly."""
 
         async with timeout(self.session_timeout):
-            request = await asyncio.wait_for(anext(requests), self.step_timeout)
+            try:
+                request = await asyncio.wait_for(anext(requests), self.step_timeout)
+            except asyncio.TimeoutError:
+                self._log_request("rpc_inference.open", None, context, warning="timed out")
+                return
+
             requested_uids = self._check_uids(request.uid)
             self._log_request("rpc_inference.open", requested_uids, context)
             try:
@@ -193,7 +198,11 @@ class TransformerConnectionHandler(ConnectionHandler):
 
                         # prepare for next step
                         prefix_length += hidden_states.shape[1]
-                        request = await asyncio.wait_for(anext(requests), self.step_timeout)
+                        try:
+                            request = await asyncio.wait_for(anext(requests), self.step_timeout)
+                        except asyncio.TimeoutError:
+                            self._log_request("rpc_inference.step", requested_uids, context, warning="timed out")
+                            return
             finally:
                 self._log_request("rpc_inference.close", requested_uids, context)
 
@@ -369,14 +378,23 @@ class TransformerConnectionHandler(ConnectionHandler):
             logger.info(f"rpc_inference.alloc(size={alloc_size / gib:.2f} GiB)")
             yield handle
 
-    def _log_request(self, method: str, uids: Sequence[ModuleUID], context: P2PContext) -> None:
-        friendly_uids = [uid.split(".")[-1] for uid in uids if "." in uid]
-        friendly_uids = [int(uid) for uid in friendly_uids if uid.isdigit()]
-        friendly_uids = f"{min(friendly_uids)}:{max(friendly_uids) + 1}" if friendly_uids else uids
+    def _log_request(
+        self, method: str, uids: Optional[Sequence[ModuleUID]], context: P2PContext, *, warning: Optional[str] = None
+    ) -> None:
+        if uids is not None:
+            friendly_uids = [uid.split(".")[-1] for uid in uids if "." in uid]
+            friendly_uids = [int(uid) for uid in friendly_uids if uid.isdigit()]
+            friendly_uids = f"{min(friendly_uids)}:{max(friendly_uids) + 1}" if friendly_uids else uids
+        else:
+            friendly_uids = "n/a"
 
         friendly_remote_id = "..." + str(context.remote_id)[-6:]
 
-        logger.info(f"{method}(blocks={friendly_uids}, remote_peer={friendly_remote_id})")
+        message = f"{method}(blocks={friendly_uids}, remote_peer={friendly_remote_id})"
+        if warning is None:
+            logger.info(message)
+        else:
+            logger.warning(f"{message}: {warning}")
 
 
 async def _rpc_forward(
