@@ -16,6 +16,8 @@ import hivemind
 import torch
 from hivemind.utils import TensorDescriptor, get_logger
 
+from petals.utils.asyncio import shield_and_wait
+
 logger = get_logger(__file__)
 
 Handle = int
@@ -70,11 +72,9 @@ class MemoryCache:
         alloc_size = descr.numel() * torch.finfo(descr.dtype).bits // 8
         alloc_task = asyncio.create_task(self._schedule_alloc(alloc_size, descr))
         try:
-            yield await asyncio.shield(alloc_task)
-            # If cancelled, alloc_task will finish in the background,
-            # and self._schedule_free() will wait for its outcome
+            yield await shield_and_wait(alloc_task)
         finally:
-            await asyncio.shield(self._schedule_free(alloc_size, alloc_task))
+            await shield_and_wait(self._schedule_free(alloc_size, alloc_task))
 
     async def _schedule_alloc(self, alloc_size: int, descr: TensorDescriptor) -> Handle:
         """
@@ -100,10 +100,9 @@ class MemoryCache:
             - _schedule_free() must finish freeing memory even in case of cancellation
         """
 
-        # We may need to wait for alloc to finish in case it is running in the background
-        [handle] = await asyncio.gather(alloc_task, return_exceptions=True)
-        if isinstance(handle, BaseException):
-            return  # Alloc failed, no need to free anything
+        if alloc_task.exception() is not None:
+            return
+        handle = alloc_task.result()
 
         async with hivemind.utils.enter_asynchronously(self._lock_metadata):
             self._pipe_send.send((handle, None))  # signal runtime to free that handle
