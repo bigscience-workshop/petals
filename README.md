@@ -1,8 +1,7 @@
 <p align="center">
     <img src="https://i.imgur.com/7eR7Pan.png" width="400"><br>
-    Easy way to run 100B+ language models without high-end GPUs<br>
-    by joining compute resources with people across the Internet.<br>
-    Up to 10x faster than offloading<br><br>
+    Run 100B+ language models at home, BitTorrent-style.<br>
+    Fine-tuning and inference up to 10x faster than offloading<br><br>
 </p>
 
 Generate text using distributed BLOOM and fine-tune it for your own tasks:
@@ -55,10 +54,9 @@ Check out more tutorials:
 
 ## How it works?
 
-- **Petals** runs inference or fine-tunes large language models like [BLOOM-176B](https://huggingface.co/bigscience/bloom) by joining compute resources with people all over the Internet.
-- One participant with weak GPU can load a small part of the model, then team up with people serving the other parts to run inference or fine-tuning.
+- Petals runs large language models like BLOOM-176B **collaboratively** — you load a small part of the model, then team up with people serving the other parts to run inference or fine-tuning.
 - Inference runs at ≈ 1 sec per step (token) — 10x faster than possible with offloading, enough for chatbots and other interactive apps. Parallel inference reaches hundreds of tokens/sec.
-- Beyond classic language model APIs — you can employ any fine-tuning and sampling methods by executing custom paths through the model or accessing its hidden states. This combines the comforts of an API with the flexibility of PyTorch.
+- Beyond classic language model APIs — you can employ any fine-tuning and sampling methods by executing custom paths through the model or accessing its hidden states. You get the comforts of an API with the flexibility of PyTorch.
 
 <p align="center">
     <img src="https://i.imgur.com/RTYF3yW.png" width="800">
