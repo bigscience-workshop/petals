@@ -5,10 +5,10 @@ from typing import Sequence
 
 import bitsandbytes as bnb
 import tensor_parallel as tp
-from tensor_parallel.slicing_configs import get_bloom_config
 import torch
 import torch.nn as nn
 from hivemind.utils.logging import get_logger, use_hivemind_log_handler
+from tensor_parallel.slicing_configs import get_bloom_config
 from transformers import BloomConfig
 
 from petals.bloom.block import WrappedBloomBlock
