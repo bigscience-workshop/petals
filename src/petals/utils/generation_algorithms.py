@@ -14,7 +14,7 @@ class DecodingAlgorithm(ABC):
     """
 
     @abstractmethod
-    def __call__(self, logits: torch.Tensor) -> Tuple[TokenIds, HypoIds]:
+    def __call__(self, token_ids: torch.LongTensor, logits: torch.Tensor) -> Tuple[TokenIds, HypoIds]:
         """
         :param logits: A tensor of shape (batch_size, seq_lenth, vocab_size)
         :return: A tuple of selected token ids and corresponding hypotheses.
@@ -28,7 +28,7 @@ class GreedyAlgorithm(DecodingAlgorithm):
     The simplest algorithm for decoding. It selects the most probable token.
     """
 
-    def __call__(self, logits: torch.Tensor) -> Tuple[TokenIds, HypoIds]:
+    def __call__(self, token_ids: torch.LongTensor, logits: torch.Tensor) -> Tuple[TokenIds, HypoIds]:
         """
         Returns the most probable token. The second returned object is always a range of integers
         from 0 to batch_size - 1.
@@ -51,7 +51,7 @@ class SamplingAlgorithm(DecodingAlgorithm):
         probs = torch.softmax(logits / self.temperature, -1)
         return torch.multinomial(probs, num_samples=1), torch.arange(logits.size(0))
 
-    def __call__(self, logits: torch.Tensor) -> Tuple[TokenIds, HypoIds]:
+    def __call__(self, token_ids: torch.LongTensor, logits: torch.Tensor) -> Tuple[TokenIds, HypoIds]:
         indices_to_remove = torch.full_like(logits, False, dtype=torch.bool)
         return self.sample(logits, indices_to_remove)
 
@@ -61,7 +61,7 @@ class TopKAlgorithm(SamplingAlgorithm):
         super().__init__(temperature=temperature)
         self.top_k = top_k
 
-    def __call__(self, logits: torch.Tensor) -> Tuple[TokenIds, HypoIds]:
+    def __call__(self, token_ids: torch.LongTensor, logits: torch.Tensor) -> Tuple[TokenIds, HypoIds]:
         indices_to_remove = logits < torch.topk(logits, self.top_k, dim=-1)[0][..., -1, None]
         return self.sample(logits, indices_to_remove)
 
@@ -71,7 +71,7 @@ class NucleusAlgorithm(SamplingAlgorithm):
         super().__init__(temperature=temperature)
         self.top_p = top_p
 
-    def __call__(self, logits: torch.Tensor) -> Tuple[TokenIds, HypoIds]:
+    def __call__(self, token_ids: torch.LongTensor, logits: torch.Tensor) -> Tuple[TokenIds, HypoIds]:
         sorted_logits, sorted_indices = torch.sort(logits, descending=False, dim=-1)
         probs = torch.softmax(sorted_logits / self.temperature, -1)
         cumulative_probs = torch.cumsum(probs, dim=-1)
@@ -82,6 +82,20 @@ class NucleusAlgorithm(SamplingAlgorithm):
         return self.sample(logits, indices_to_remove)
 
 
+class RepetitionPenaltyAlgorithm(SamplingAlgorithm):
+    def __init__(self, repetition_penalty: float, temperature: float = 1.0) -> None:
+        super().__init__(temperature=temperature)
+        self.repetition_penalty = repetition_penalty
+
+    def __call__(self, token_ids: torch.LongTensor, logits: torch.Tensor) -> Tuple[TokenIds, HypoIds]:
+        score = torch.gather(logits, -1, token_ids)
+        # if score < 0 then repetition penalty has to be multiplied to reduce the previous token probability
+        score = torch.where(score < 0, score * self.repetition_penalty, score / self.repetition_penalty)
+        logits.scatter_(-1, token_ids, score)
+
+        return super().__call__(token_ids, logits)
+
+
 class BeamSearchAlgorithm(DecodingAlgorithm):
     def __init__(self, num_beams: int, batch_size: int) -> None:
         self.num_beams = num_beams
@@ -90,7 +104,7 @@ class BeamSearchAlgorithm(DecodingAlgorithm):
 
         self._batch_beams = [list() for _ in range(batch_size)]
 
-    def __call__(self, logits: torch.Tensor):
+    def __call__(self, token_ids: torch.LongTensor, logits: torch.Tensor):
         sorted_logits, sorted_indices = torch.sort(logits, descending=True, dim=-1)
         probs = torch.log_softmax(sorted_logits, -1)
 

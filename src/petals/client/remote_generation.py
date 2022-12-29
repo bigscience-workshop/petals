@@ -10,6 +10,7 @@ from petals.utils.generation_algorithms import (
     DecodingAlgorithm,
     GreedyAlgorithm,
     NucleusAlgorithm,
+    RepetitionPenaltyAlgorithm,
     SamplingAlgorithm,
     TopKAlgorithm,
 )
@@ -48,6 +49,7 @@ class RemoteGenerationMixin:
         temperature: float = 1.0,
         top_k: Optional[int] = None,
         top_p: Optional[float] = None,
+        repetition_penalty: Optional[float] = None,
         num_beams: Optional[int] = 1,
         bos_token_id: Optional[int] = None,
         eos_token_id: Optional[int] = None,
@@ -69,6 +71,7 @@ class RemoteGenerationMixin:
         :param temperature: The temperature to use for sampling.
         :param top_k: The number of results to return.
         :param top_p: The cumulative probability of results to return.
+        :param repetition_penalty: Repetition penalty (1.0 means no penalty). See https://arxiv.org/pdf/1909.05858.pdf
         :param num_beams: The number of beams to use for beam search.
         :param bos_token_id: The id of the beginning of sentence token.
         :param eos_token_id: The id of the end of sentence token.
@@ -111,11 +114,11 @@ class RemoteGenerationMixin:
 
         if inputs is not None:
             assert isinstance(inputs, torch.Tensor) and inputs.ndim == 2, "inputs must be a 2d tensor [batch, length]"
-            if session is not None and session.last_token_id is not None:
-                inputs = torch.cat([session.last_token_id, inputs], dim=1)
+            if session is not None and session.token_ids:
+                inputs = torch.cat([session.token_ids[-1], inputs], dim=1)
         else:
-            if session is not None and session.last_token_id is not None:
-                inputs = session.last_token_id
+            if session is not None and session.token_ids:
+                inputs = session.token_ids[-1]
             else:
                 assert bos_token_id is not None, "You have to provide a bos_token_id if you do not provide inputs"
                 inputs = torch.tensor([[bos_token_id]] * num_beams, dtype=torch.long, device=self.device)
@@ -123,12 +126,14 @@ class RemoteGenerationMixin:
 
         if decoding_algorithm is None:
             if do_sample:
-                decoding_algorithm = self._choose_sample_algorithm(temperature, top_k, top_p)
+                decoding_algorithm = self._choose_sample_algorithm(temperature, top_k, top_p, repetition_penalty)
             elif num_beams is not None and num_beams > 1:
                 decoding_algorithm = BeamSearchAlgorithm(num_beams, batch_size=batch_size)
             else:
-                if top_k is not None or top_p is not None:
-                    logger.warning("You passed top_k or top_p but did pass do_sample=True. Running greedy sampling")
+                if top_k is not None or top_p is not None or repetition_penalty is not None:
+                    logger.warning(
+                        "You passed top_k, top_p, or repetition_penalty but did pass do_sample=True. Running greedy sampling"
+                    )
                 decoding_algorithm = GreedyAlgorithm()
 
         if num_beams > 1:
@@ -160,6 +165,12 @@ class RemoteGenerationMixin:
         else:
             context_manager = contextlib.nullcontext(session)  # Doesn't actually enter session or exit from it
         with context_manager as session:
+            if session.token_ids:
+                if inputs.shape[1] >= 2:
+                    session.token_ids.append(inputs[:, 1:])
+            else:
+                session.token_ids.append(inputs)
+
             outputs = []
             # Find samples with padded inputs.
             # They will be changed before all of the samples have right length.
@@ -183,7 +194,8 @@ class RemoteGenerationMixin:
 
                 for constraint in constraints:
                     lm_logits = constraint(last_token_id, lm_logits, hypo_ids)
-                last_token_id, hypo_ids = decoding_algorithm(lm_logits)
+                token_ids = torch.cat(session.token_ids, dim=1) if session.token_ids else torch.empty(batch_size, 0, dtype=torch.int64)
+                last_token_id, hypo_ids = decoding_algorithm(token_ids, lm_logits)
 
                 # If some samples were padded, change only these samples
                 if seq_idx < inputs.size(1):
@@ -198,7 +210,7 @@ class RemoteGenerationMixin:
                         outputs[i - 1] = outputs[i - 1][hypo_ids]
 
                 outputs.append(last_token_id)
-                session.last_token_id = last_token_id
+                session.token_ids.append(last_token_id)
                 seq_idx += 1
                 if torch.all(last_token_id == eos_token_id) or len(outputs) > max_new_tokens:
                     break
@@ -342,6 +354,7 @@ class RemoteGenerationMixin:
         temperature: float = 1.0,
         top_k: Optional[int] = None,
         top_p: Optional[float] = None,
+        repetition_penalty: Optional[float] = None,
     ) -> DecodingAlgorithm:
         if (top_k is not None) and (top_p is not None):
             raise ValueError("You have to provide only top_k or top_p for sampling")
@@ -349,6 +362,8 @@ class RemoteGenerationMixin:
             return TopKAlgorithm(top_k, temperature)
         elif top_p is not None:
             return NucleusAlgorithm(top_p, temperature)
+        elif repetition_penalty is not None:
+            return RepetitionPenaltyAlgorithm(repetition_penalty, temperature)
         else:
             return SamplingAlgorithm(temperature)
 
