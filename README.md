@@ -52,7 +52,7 @@ Check out more tutorials:
 - Launching your own swarm: [tutorial](https://github.com/bigscience-workshop/petals/wiki/Launch-your-own-swarm)
 - Running a custom foundation model: [tutorial](https://github.com/bigscience-workshop/petals/wiki/Run-a-custom-model-with-Petals)
 
-## How it works?
+## How does it work?
 
 - Petals runs large language models like BLOOM-176B **collaboratively** — you load a small part of the model, then team up with people serving the other parts to run inference or fine-tuning.
 - Inference runs at ≈ 1 sec per step (token) — 10x faster than possible with offloading, enough for chatbots and other interactive apps. Parallel inference reaches hundreds of tokens/sec.
