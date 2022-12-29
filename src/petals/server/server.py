@@ -419,7 +419,7 @@ class ModuleContainer(threading.Thread):
                     param.requires_grad = False
 
                 if tensor_parallel_devices:
-                    block = make_tensor_parallel(block, tensor_parallel_devices, output_device=device)
+                    block = make_tensor_parallel(block, block_config, tensor_parallel_devices, output_device=device)
                 else:
                     block = block.to(device)
 

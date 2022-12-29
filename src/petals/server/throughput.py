@@ -144,7 +144,7 @@ def measure_compute_rps(
         if load_in_8bit:
             block = replace_8bit_linear(block)
         if tensor_parallel_devices:
-            block = make_tensor_parallel(block, tensor_parallel_devices, output_device=device)
+            block = make_tensor_parallel(block, config, tensor_parallel_devices, output_device=device)
         else:
             block = block.to(device)
 

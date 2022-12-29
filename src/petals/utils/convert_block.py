@@ -5,9 +5,11 @@ from typing import Sequence
 
 import bitsandbytes as bnb
 import tensor_parallel as tp
+from tensor_parallel.slicing_configs import get_bloom_config
 import torch
 import torch.nn as nn
 from hivemind.utils.logging import get_logger, use_hivemind_log_handler
+from transformers import BloomConfig
 
 from petals.bloom.block import WrappedBloomBlock
 from petals.utils.linear8bitlt_patch import CustomLinear8bitLt
@@ -51,28 +53,11 @@ def replace_8bit_linear(module: nn.Module, threshold=6.0) -> nn.Module:
     return module
 
 
-def make_tensor_parallel(block: WrappedBloomBlock, devices: Sequence[torch.device], output_device: torch.device):
+def make_tensor_parallel(
+    block: WrappedBloomBlock, model_config: BloomConfig, devices: Sequence[torch.device], output_device: torch.device
+):
     assert isinstance(block, (WrappedBloomBlock, CustomLinear8bitLt))
-    tp_config = tp.Config(
-        state_rules={
-            r".*self_attention\.query_key_value\.(weight|bias)": "split 0",
-            r".*self_attention\.dense\.(weight|bias)": "split 0",
-            r".*mlp\.dense_h_to_4h\.(weight|bias)": "split 0",
-            r".*mlp\.dense_4h_to_h\.weight": "split 1",
-            r".*mlp\.dense_4h_to_h\.bias": "scale",
-        },
-        input_rules={},
-        output_rules={
-            r".*self_attention\.query_key_value": {0: "gather -1"},
-            r".*self_attention\.dense": {0: "gather -1"},
-            r".*mlp\.dense_4h_to_h$": {0: "sum"},
-        },
-        attr_rules={},
-    )
-    # note: this config can be further improved to make it (slightly) faster and reduce memory usage
-    # If num gpus is a power of two (2, 4, 8), it is better to split attention by heads and all-reduce once at the end
-    # This requires some modifications to layer_past, alibi and num_heads, and the way new_layer_past is processed
-    # This optimization is not implemented in the current PR because it was tested (rigorously) with the current config
+    tp_config = get_bloom_config(model_config, devices)
     return tp.TensorParallel(block, devices, config=tp_config, output_device=output_device)
 
 
