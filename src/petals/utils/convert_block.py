@@ -2,7 +2,7 @@
 Tools for converting transformer blocks, applying quantization and/or tensor parallelism
 """
 from typing import Sequence
-
+import re
 import bitsandbytes as bnb
 import tensor_parallel as tp
 import torch
@@ -58,13 +58,11 @@ def make_tensor_parallel(
 ):
     assert isinstance(block, (WrappedBloomBlock, CustomLinear8bitLt))
     tp_config = get_bloom_config(model_config, devices)
+    del tp_config.state_rules[re.compile(".*word_embeddings.weight$")]
     return tp.TensorParallel(block, devices, config=tp_config, output_device=output_device)
 
 
 def check_device_balance(devices: Sequence[torch.device]):
-    if any(device.type == "cpu" for device in devices):
-        logger.warning("Running CPU tensor-parallelism, this should only be used for debugging")
-        return
     unique_device_capabilities = set(map(torch.cuda.get_device_capability, devices))
     if len(unique_device_capabilities) > 1:
         logger.warning(

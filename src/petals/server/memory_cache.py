@@ -26,10 +26,9 @@ Handle = int
 class MemoryCache:
     """A shared cache for storing tensors that persist across calls. Main use case: storing past attention KVs"""
 
-    def __init__(self, device: Union[str, torch.device], max_size_bytes: Optional[int], alloc_timeout: float):
+    def __init__(self, max_size_bytes: Optional[int], alloc_timeout: float):
         self.max_size_bytes = max_size_bytes if max_size_bytes is not None else (2**64 - 1)
         self.alloc_timeout = alloc_timeout
-        self.device = device
         self._lock_metadata, self.size_decreased_event = mp.Lock(), mp.Event()
         self._current_size = mp.Value(ctypes.c_int64, 0, lock=False)
         self._handle_counter = mp.Value(ctypes.c_int64, 0, lock=False)
@@ -57,26 +56,34 @@ class MemoryCache:
         self._handle_counter.value = value
 
     @contextlib.asynccontextmanager
-    async def allocate_cache(self, descr: TensorDescriptor) -> AsyncContextManager[Handle]:
+    async def allocate_cache(self, *descriptors: TensorDescriptor) -> AsyncContextManager[Handle]:
         """
         Create a handle that is associated with buffers on unique device. If cache full, raises AllocationFailed.
 
-        :param descr: allocate a tensor of this size, dtype, etc
+        :param descriptors: one or more tensors tensor of this size, dtype, etc
+
+        :note: if descriptors reside on different devices, it is expected that they are approximately balanced across devices;
+          if not, it will count maximum tensor allocation across devices for the purposes of size limit
 
         :note: This function should be called by connection handlers, it can be called concurrently from multiple processes.
         Furthermore, it can be called concurrently with at most one use_cache call in runtime.
         """
         assert os.getpid() != self.runtime_pid, "must be called by a ConnectionHandler, not runtime"
-        assert descr.device is None and descr
+        assert all(descr.device is not None for descr in descriptors), "please specify allocated devices"
 
-        alloc_size = descr.numel() * torch.finfo(descr.dtype).bits // 8
-        alloc_task = asyncio.create_task(self._schedule_alloc(alloc_size, descr))
+        alloc_size_by_device = {}
+        for descr in descriptors:
+            tensor_size = descr.numel() * torch.finfo(descr.dtype).bits // 8
+            alloc_size_by_device[descr.device] = alloc_size_by_device.get(descr.device, 0) + tensor_size
+
+        max_alloc_size = max(alloc_size_by_device)
+        alloc_task = asyncio.create_task(self._schedule_alloc(max_alloc_size, descriptors))
         try:
             yield await shield_and_wait(alloc_task)
         finally:
-            await shield_and_wait(self._schedule_free(alloc_size, alloc_task))
+            await shield_and_wait(self._schedule_free(max_alloc_size, alloc_task))
 
-    async def _schedule_alloc(self, alloc_size: int, descr: TensorDescriptor) -> Handle:
+    async def _schedule_alloc(self, alloc_size: int, *descriptors: TensorDescriptor) -> Handle:
         """
         This method should be called inside asyncio.shield() because:
             - hivemind.utils.enter_asynchronously() does not always release the lock on cancellation
