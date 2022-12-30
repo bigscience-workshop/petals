@@ -1,8 +1,9 @@
 """
 Tools for converting transformer blocks, applying quantization and/or tensor parallelism
 """
-from typing import Sequence
 import re
+from typing import Sequence
+
 import bitsandbytes as bnb
 import tensor_parallel as tp
 import torch

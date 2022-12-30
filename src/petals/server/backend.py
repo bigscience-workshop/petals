@@ -1,5 +1,6 @@
 """Code for serving bloom blocks via hivemind-server"""
 from __future__ import annotations
+
 from itertools import chain
 from typing import Any, Dict, Sequence, Tuple
 

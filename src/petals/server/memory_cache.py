@@ -10,7 +10,7 @@ import ctypes
 import multiprocessing as mp
 import os
 import time
-from typing import AsyncContextManager, Dict, Optional, Tuple, Sequence
+from typing import AsyncContextManager, Dict, Optional, Sequence, Tuple
 
 import hivemind
 import torch

@@ -14,8 +14,8 @@ from hivemind import (
     deserialize_tensor_stream,
     deserialize_torch_tensor,
     nested_flatten,
-    serialize_torch_tensor,
     nested_pack,
+    serialize_torch_tensor,
 )
 from hivemind.moe.server.connection_handler import ConnectionHandler
 from hivemind.p2p.p2p_daemon import DEFAULT_MAX_MSG_SIZE
@@ -24,7 +24,7 @@ from hivemind.utils.asyncio import amap_in_executor, anext
 from hivemind.utils.logging import get_logger
 from hivemind.utils.streaming import split_for_streaming
 
-from petals.data_structures import CHAIN_DELIMITER, ModuleUID, InferenceMetadata
+from petals.data_structures import CHAIN_DELIMITER, InferenceMetadata, ModuleUID
 from petals.server.backend import TransformerBackend
 from petals.server.memory_cache import Handle
 from petals.server.task_pool import PrioritizedTaskPool
