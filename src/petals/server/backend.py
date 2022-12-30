@@ -24,7 +24,7 @@ class TransformerBackend(ModuleBackend):
 
     def __init__(self, *args, config: BloomConfig, memory_cache: MemoryCache, backend_dtype: torch.dtype, **kwargs):
         super().__init__(*args, **kwargs)
-        assert isinstance(self.module, (WrappedBloomBlock, TensorParallel))
+        assert isinstance(self.module, TensorParallel)
         self.config = config
         self.memory_cache = memory_cache
         for name, param in self.module.named_parameters():
@@ -45,7 +45,6 @@ class TransformerBackend(ModuleBackend):
 
         assert backend_dtype is not None
         self.dtype = backend_dtype
-        self.device = next(self.module.parameters()).device
         self.inference_schema = (
             (
                 *self.args_schema,
@@ -59,14 +58,13 @@ class TransformerBackend(ModuleBackend):
         """Create tensor descriptors for attention cache tensors used during inference_step"""
         num_heads = self.config.n_head
         head_dim = self.config.hidden_size // num_heads
-        if isinstance(self.module, WrappedBloomBlock):
-            device = self.device
+        cache_tensors = []
+        for device, tp_shard in zip(self.module.devices, self.module.module_shards):
+            num_heads = tp_shard.num_heads
             keys = TensorDescriptor((batch_size, num_heads, head_dim, max_length), dtype=self.dtype, device=device)
             values = TensorDescriptor((batch_size, num_heads, max_length, head_dim), dtype=self.dtype, device=device)
-            return keys, values
-        else:
-            assert isinstance(self.module, TensorParallel)
-            raise NotImplementedError("TODO")
+            cache_tensors.extend((keys, values))
+        return tuple(cache_tensors)
 
     def inference_step(
         self,
@@ -104,12 +102,10 @@ class TransformerBackend(ModuleBackend):
     ):
         """Writes new key/value tensors back into cache, works in-place"""
         _batch_size_times_num_heads, head_dim, new_length = new_kvs[0].shape
-        cache_keys, cache_values = cache_tensors[0::2], cache_tensors[1::2]
-        new_keys, new_values = new_kvs[0::2], new_kvs[1::2]
-        for cache_key, new_key in zip(cache_keys, new_keys):
+        for cache_key, new_key in zip(cache_tensors[0::2], new_kvs[0::2]):
             new_key = new_key.view(*cache_key.shape[:3], new_length)
             cache_key[:, :, :, prefix_length:new_length] = new_key[:, :, :, prefix_length:new_length]
-        for cache_value, new_value in zip(cache_values, new_values):
+        for cache_value, new_value in zip(cache_tensors[1::2], new_kvs[1::2]):
             new_value = new_value.view(*cache_value.shape[:2], new_length, head_dim)
             cache_value[:, :, prefix_length:new_length, :] = new_value[:, :, prefix_length:new_length, :]
 

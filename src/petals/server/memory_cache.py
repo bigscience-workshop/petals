@@ -76,14 +76,14 @@ class MemoryCache:
         cur_size, max_size = self.current_size_bytes, self.max_size_bytes
         friendly_max_size = f"{max_size / gib:.2f}" if max_size != 2**64 - 1 else "inf"
         logger.info(
-            f"rpc_inference.wait_for_alloc(size={max_alloc_size} GiB), "
+            f"rpc_inference.wait_for_alloc(size={max_alloc_size / gib:.2f} GiB), "
             f"already used {cur_size / gib:.2f}/{friendly_max_size} GiB ({cur_size / max_size * 100:.1f}%)"
         )
 
         alloc_task = asyncio.create_task(self._schedule_alloc(max_alloc_size, *descriptors))
         try:
             handles = await shield_and_wait(alloc_task)
-            logger.info(f"rpc_inference.alloc(size={max_alloc_size})")
+            logger.info(f"rpc_inference.alloc(size={max_alloc_size / gib:.2f})")
             yield handles
         finally:
             await shield_and_wait(self._schedule_free(max_alloc_size, alloc_task))
