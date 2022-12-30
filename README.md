@@ -93,7 +93,8 @@ Before building your own application that runs a language model with Petals, ple
 ## Installation
 
 Here's how to install Petals with conda:
-```
+
+```bash
 conda install pytorch cudatoolkit=11.3 -c pytorch
 pip install -U petals
 ```
@@ -109,7 +110,7 @@ __System requirements:__ Petals only supports Linux for now. If you don't have a
 
 Petals uses pytest with a few plugins. To install them, run:
 
-```python
+```bash
 conda install pytorch cudatoolkit=11.3 -c pytorch
 git clone https://github.com/bigscience-workshop/petals.git && cd petals
 pip install -e .[dev]
@@ -132,7 +133,7 @@ tail -f server1.log server2.log  # view logs for both servers
 
 Then launch pytest:
 
-```
+```bash
 export MODEL_NAME=bloom-testing/test-bloomd-560m-main REF_NAME=bigscience/bloom-560m
 export INITIAL_PEERS=/ip4/127.0.0.1/tcp/31337/p2p/QmS9KwZptnVdB9FFV7uGgaTq4sEKBwcYeKZDfSpyKDUd1g
 PYTHONPATH=. pytest tests --durations=0 --durations-min=1.0 -v
