@@ -36,7 +36,7 @@ Connect your own GPU and increase Petals capacity:
 ```bash
 # In an Anaconda env
 conda install pytorch cudatoolkit=11.3 -c pytorch
-pip install git+https://github.com/bigscience-workshop/petals
+pip install -U petals
 python -m petals.cli.run_server bigscience/bloom-petals
 
 # Or using our GPU-enabled Docker image
@@ -95,7 +95,7 @@ Before building your own application that runs a language model with Petals, ple
 Here's how to install Petals with conda:
 ```
 conda install pytorch cudatoolkit=11.3 -c pytorch
-pip install git+https://github.com/bigscience-workshop/petals
+pip install -U petals
 ```
 
 This script uses Anaconda to install CUDA-enabled PyTorch.
