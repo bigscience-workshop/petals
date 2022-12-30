@@ -171,7 +171,6 @@ class MemoryCache:
                             logger.warning(
                                 f"Sanity check failed: asked to delete handle {handle}, but there is no such handle"
                             )
-                        print('MEMFREE', handle, "REMAINING", len(self._allocated_tensors))
                         self._allocated_tensors.pop(handle, None)
         yield tuple(self._allocated_tensors[handle] for handle in handles)
 

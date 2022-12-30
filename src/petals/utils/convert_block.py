@@ -60,7 +60,12 @@ def make_tensor_parallel(
     assert isinstance(block, (WrappedBloomBlock, CustomLinear8bitLt))
     tp_config = get_bloom_config(model_config, devices)
     del tp_config.state_rules[re.compile(".*word_embeddings.weight$")]
-    return tp.TensorParallel(block, devices, config=tp_config, output_device=output_device)
+    tp_block = tp.TensorParallel(block, devices, config=tp_config, output_device=output_device)
+    total_heads = 0
+    for tp_shard in tp_block.module_shards:
+        total_heads += tp_shard.self_attention.module.num_heads
+    assert total_heads == model_config.n_head
+    return tp_block
 
 
 def check_device_balance(devices: Sequence[torch.device]):

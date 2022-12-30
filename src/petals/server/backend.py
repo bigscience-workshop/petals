@@ -57,14 +57,16 @@ class TransformerBackend(ModuleBackend):
 
     def get_inference_cache_descriptors(self, batch_size: int, max_length: int) -> Tuple[TensorDescriptor, ...]:
         """Create tensor descriptors for attention cache tensors used during inference_step"""
-        num_heads = self.config.n_head
-        head_dim = self.config.hidden_size // num_heads
+        head_dim = self.config.hidden_size // self.config.n_head
+        total_heads = 0
         cache_tensors = []
         for device, tp_shard in zip(self.module.devices, self.module.module_shards):
-            num_heads = tp_shard.num_heads
-            keys = TensorDescriptor((batch_size, num_heads, head_dim, max_length), dtype=self.dtype, device=device)
-            values = TensorDescriptor((batch_size, num_heads, max_length, head_dim), dtype=self.dtype, device=device)
+            shard_heads = tp_shard.self_attention.module.num_heads
+            keys = TensorDescriptor((batch_size, shard_heads, head_dim, max_length), dtype=self.dtype, device=device)
+            values = TensorDescriptor((batch_size, shard_heads, max_length, head_dim), dtype=self.dtype, device=device)
             cache_tensors.extend((keys, values))
+            total_heads += shard_heads
+        assert total_heads == self.config.n_head
         return tuple(cache_tensors)
 
     def inference_step(
