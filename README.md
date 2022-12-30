@@ -16,7 +16,7 @@ inputs = tokenizer("A cat sat", return_tensors="pt")["input_ids"]
 outputs = model.generate(inputs, max_new_tokens=5)
 print(tokenizer.decode(outputs[0]))  # A cat sat on a mat...
 
-# Fine-tuning updates only prompts or adapters hosted locally
+# Fine-tune model (updates only prompts or adapters hosted locally)
 model = DistributedBloomForCausalLM.from_pretrained("bigscience/bloom-petals",
                                                     tuning_mode="ptune", pre_seq_len=16)
 optimizer = torch.optim.AdamW(model.parameters())
