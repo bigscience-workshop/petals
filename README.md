@@ -9,14 +9,16 @@ Generate text using distributed BLOOM and fine-tune it for your own tasks:
 ```python
 from petals import DistributedBloomForCausalLM
 
-# Embeddings & prompts are on your device, BLOOM blocks are distributed across the Internet
-model = DistributedBloomForCausalLM.from_pretrained("bigscience/bloom-petals", tuning_mode="ptune")
+# Generate text (embeddings are on your device, BLOOM blocks are distributed)
+model = DistributedBloomForCausalLM.from_pretrained("bigscience/bloom-petals")
 
 inputs = tokenizer("A cat sat", return_tensors="pt")["input_ids"]
 outputs = model.generate(inputs, max_new_tokens=5)
-print(tokenizer.decode(remote_outputs[0]))  # A cat sat on a mat...
+print(tokenizer.decode(outputs[0]))  # A cat sat on a mat...
 
-# Training (updates only prompts or adapters hosted locally)
+# Fine-tuning updates only prompts or adapters hosted locally
+model = DistributedBloomForCausalLM.from_pretrained("bigscience/bloom-petals",
+                                                    tuning_mode="ptune", pre_seq_len=16)
 optimizer = torch.optim.AdamW(model.parameters())
 for input_ids, labels in data_loader:
     outputs = model.forward(input_ids)
@@ -34,13 +36,13 @@ Connect your own GPU and increase Petals capacity:
 
 ```bash
 # In an Anaconda env
-(conda) $ conda install pytorch cudatoolkit=11.3 -c pytorch
-(conda) $ pip install git+https://github.com/bigscience-workshop/petals
-(conda) $ python -m petals.cli.run_server bigscience/bloom-petals
+conda install pytorch cudatoolkit=11.3 -c pytorch
+pip install git+https://github.com/bigscience-workshop/petals
+python -m petals.cli.run_server bigscience/bloom-petals
 
-# Or using a GPU-enabled Docker image
-sudo docker run --net host --ipc host --gpus all --volume petals-cache:/cache --rm learningathome/petals:main \
-    python -m petals.cli.run_server bigscience/bloom-petals
+# Or using our GPU-enabled Docker image
+sudo docker run --net host --ipc host --gpus all --volume petals-cache:/cache --rm \
+    learningathome/petals:main python -m petals.cli.run_server bigscience/bloom-petals
 ```
 
 💬 If you have any issues or feedback, please join [our Discord server](https://discord.gg/D9MwApKgWa)!
