@@ -86,7 +86,7 @@ class MemoryCache:
             logger.info(f"rpc_inference.alloc(size={max_alloc_size / gib:.2f})")
             yield handles
         finally:
-            await shield_and_wait(self._schedule_free(alloc_size, alloc_task))
+            await shield_and_wait(self._schedule_free(max_alloc_size, alloc_task))
 
     @staticmethod
     def get_allocation_size(*descriptors: TensorDescriptor) -> int:
