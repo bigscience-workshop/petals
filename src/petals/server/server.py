@@ -398,7 +398,10 @@ class ModuleContainer(threading.Thread):
         joining_announcer.start()
         logger.info(f"Announced that blocks {block_indices} are joining")
 
-        memory_cache = MemoryCache(device, attn_cache_size, alloc_timeout)
+        memory_cache = MemoryCache(attn_cache_size, alloc_timeout)
+        if not tensor_parallel_devices:
+            tensor_parallel_devices = (device,)
+
         blocks = {}
         try:
             for module_uid, block_index in zip(module_uids, block_indices):
@@ -412,16 +415,14 @@ class ModuleContainer(threading.Thread):
                     max_disk_space=max_disk_space,
                 )
 
-                if load_in_8bit:
-                    block = replace_8bit_linear(block)
-
                 for param in block.parameters():
                     param.requires_grad = False
 
-                if tensor_parallel_devices:
-                    block = make_tensor_parallel(block, block_config, tensor_parallel_devices, output_device=device)
-                else:
-                    block = block.to(device)
+                block = make_tensor_parallel(block, block_config, tensor_parallel_devices, output_device=device)
+                # note: if tensor_parallel_devices is None, tensor_parallel acts as a thin wrapper over block
+
+                if load_in_8bit:
+                    block = replace_8bit_linear(block)
 
                 backend_dtype = next(block.parameters()).dtype if torch_dtype == "auto" else torch_dtype
                 blocks[module_uid] = TransformerBackend(
