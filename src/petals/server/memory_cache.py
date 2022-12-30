@@ -83,7 +83,7 @@ class MemoryCache:
         alloc_task = asyncio.create_task(self._schedule_alloc(max_alloc_size, *descriptors))
         try:
             handles = await shield_and_wait(alloc_task)
-            logger.info(f"rpc_inference.alloc(size={max_alloc_size / gib:.2f})")
+            logger.info(f"rpc_inference.alloc(size={max_alloc_size / gib:.2f} GiB)")
             yield handles
         finally:
             await shield_and_wait(self._schedule_free(max_alloc_size, alloc_task))
