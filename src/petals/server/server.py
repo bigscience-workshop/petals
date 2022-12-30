@@ -398,7 +398,7 @@ class ModuleContainer(threading.Thread):
         joining_announcer.start()
         logger.info(f"Announced that blocks {block_indices} are joining")
 
-        memory_cache = MemoryCache(device, attn_cache_size, alloc_timeout)
+        memory_cache = MemoryCache(attn_cache_size, alloc_timeout)
         blocks = {}
         try:
             for module_uid, block_index in zip(module_uids, block_indices):
