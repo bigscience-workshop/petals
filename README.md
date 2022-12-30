@@ -109,6 +109,7 @@ __System requirements:__ Petals only supports Linux for now. If you don't have a
 Petals uses pytest with a few plugins. To install them, run:
 
 ```python
+conda install pytorch torchvision torchaudio cudatoolkit=11.3 -c pytorch
 git clone https://github.com/bigscience-workshop/petals.git && cd petals
 pip install -e .[dev]
 ```
