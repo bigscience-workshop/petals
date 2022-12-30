@@ -1,6 +1,7 @@
 """
 Tools for converting transformer blocks, applying quantization and/or tensor parallelism
 """
+import re
 from typing import Sequence
 import re
 import bitsandbytes as bnb
