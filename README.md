@@ -2,6 +2,7 @@
     <img src="https://i.imgur.com/7eR7Pan.png" width="400"><br>
     Run 100B+ language models at home, BitTorrent-style.<br>
     Fine-tuning and inference up to 10x faster than offloading<br><br>
+    <img src="https://img.shields.io/pypi/v/petals.svg?color=green"><br>
 </p>
 
 Generate text using distributed BLOOM and fine-tune it for your own tasks:
@@ -48,8 +49,8 @@ sudo docker run --net host --ipc host --gpus all --volume petals-cache:/cache --
 Check out more examples and tutorials:
 
 - Chatbot web app: [link](http://chat.petals.ml), [source code](https://github.com/borzunov/petals-chat)
-- Training a personified chatbot: [notebook](./examples/prompt-tuning-personachat.ipynb)
-- Fine-tuning BLOOM for text semantic classification: [notebook](./examples/prompt-tuning-sst2.ipynb)
+- Training a personified chatbot: [notebook](https://github.com/bigscience-workshop/petals/blob/main/examples/prompt-tuning-personachat.ipynb)
+- Fine-tuning BLOOM for text semantic classification: [notebook](https://github.com/bigscience-workshop/petals/blob/main/examples/prompt-tuning-sst2.ipynb)
 - Launching your own swarm: [tutorial](https://github.com/bigscience-workshop/petals/wiki/Launch-your-own-swarm)
 - Running a custom foundation model: [tutorial](https://github.com/bigscience-workshop/petals/wiki/Run-a-custom-model-with-Petals)
 
@@ -93,11 +94,11 @@ Before building your own application that runs a language model with Petals, ple
 
 Here's how to install Petals with conda:
 ```
-conda install pytorch torchvision torchaudio cudatoolkit=11.3 -c pytorch
+conda install pytorch cudatoolkit=11.3 -c pytorch
 pip install git+https://github.com/bigscience-workshop/petals
 ```
 
-This script uses Anaconda to install cuda-enabled PyTorch.
+This script uses Anaconda to install CUDA-enabled PyTorch.
 If you don't have anaconda, you can get it from [here](https://www.anaconda.com/products/distribution).
 If you don't want anaconda, you can install PyTorch [any other way](https://pytorch.org/get-started/locally/).
 If you want to run models with 8-bit weights, please install **PyTorch with CUDA 11** or newer for compatility with [bitsandbytes](https://github.com/timDettmers/bitsandbytes).
@@ -109,7 +110,7 @@ __System requirements:__ Petals only supports Linux for now. If you don't have a
 Petals uses pytest with a few plugins. To install them, run:
 
 ```python
-conda install pytorch torchvision torchaudio cudatoolkit=11.3 -c pytorch
+conda install pytorch cudatoolkit=11.3 -c pytorch
 git clone https://github.com/bigscience-workshop/petals.git && cd petals
 pip install -e .[dev]
 ```
