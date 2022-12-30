@@ -1,5 +1,6 @@
 import asyncio
 import contextlib
+from itertools import chain
 from typing import Any, AsyncIterator, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 
 import torch
@@ -8,7 +9,6 @@ from hivemind import (
     DHT,
     MSGPackSerializer,
     P2PContext,
-    TensorDescriptor,
     deserialize_tensor_stream,
     deserialize_torch_tensor,
     nested_flatten,
@@ -357,26 +357,11 @@ class TransformerConnectionHandler(ConnectionHandler):
         self, backends: Sequence[TransformerBackend], batch_size: int, max_length: int
     ) -> Sequence[int]:
         """Allocate memory cache for all transformer blocks, return cache handle"""
-
-        n_blocks = len(backends)
-        backend = backends[0]
-        num_heads = backend.config.n_head
-        head_dim = backend.config.hidden_size // num_heads
-        descr = TensorDescriptor(size=(n_blocks, 2, batch_size, num_heads * head_dim * max_length), dtype=backend.dtype)
-        alloc_size = descr.numel() * torch.finfo(descr.dtype).bits // 8
-
-        gib = 1024**3
-        cur_size = backend.memory_cache.current_size_bytes
-        max_size = backend.memory_cache.max_size_bytes
-        friendly_max_size = f"{max_size / gib:.2f}" if max_size != 2**64 - 1 else "inf"
-        logger.info(
-            f"rpc_inference.wait_for_alloc(size={alloc_size / gib:.2f} GiB), "
-            f"already used {cur_size / gib:.2f}/{friendly_max_size} GiB ({cur_size / max_size * 100:.1f}%)"
-        )
-
-        async with backend.memory_cache.allocate_cache(descr) as handle:
-            logger.info(f"rpc_inference.alloc(size={alloc_size / gib:.2f} GiB)")
-            yield handle
+        cache_descriptors = tuple(chain(
+            backend.get_inference_cache_descriptors(batch_size, max_length) for backend in backends))
+        first_backend = backends[0]
+        async with first_backend.memory_cache.allocate_cache(*cache_descriptors) as handles:
+            yield handles
 
     def _log_request(
         self, method: str, uids: Optional[Sequence[ModuleUID]], context: P2PContext, *, warning: Optional[str] = None

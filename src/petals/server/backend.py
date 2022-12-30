@@ -2,7 +2,7 @@
 from typing import Any, Dict, Sequence, Tuple
 
 import torch
-from hivemind import BatchTensorDescriptor
+from hivemind import BatchTensorDescriptor, TensorDescriptor
 from hivemind.moe.server.module_backend import ModuleBackend
 from hivemind.utils import get_logger
 from tensor_parallel import TensorParallel
@@ -42,6 +42,7 @@ class TransformerBackend(ModuleBackend):
 
         assert backend_dtype is not None
         self.dtype = backend_dtype
+        self.device = next(self.module.parameters()).device
         self.inference_schema = (
             (
                 *self.args_schema,
@@ -51,6 +52,19 @@ class TransformerBackend(ModuleBackend):
             self.kwargs_schema,
         )
 
+    def get_inference_cache_descriptors(self, batch_size: int, max_length: int) -> Tuple[TensorDescriptor, ...]:
+        """Create tensor descriptors for attention cache tensors used during inference_step"""
+        num_heads = self.config.n_head
+        head_dim = self.config.hidden_size // num_heads
+        if isinstance(self.module, WrappedBloomBlock):
+            device = self.device
+            keys = TensorDescriptor((batch_size, num_heads, head_dim, max_length), dtype=self.dtype, device=device)
+            values = TensorDescriptor((batch_size, num_heads, max_length, head_dim), dtype=self.dtype, device=device)
+            return keys, values
+        else:
+            assert isinstance(self.module, TensorParallel)
+            raise NotImplementedError("TODO")
+
     def inference_step(
         self, hidden_states: torch.Tensor, hypo_ids: torch.LongTensor, cache_metadata: torch.LongTensor
     ) -> Tuple[torch.Tensor, ...]:
@@ -59,7 +73,7 @@ class TransformerBackend(ModuleBackend):
             assert (
                 hidden_states.ndim == 3
             ), "expected hidden states to be 3-dimensional: [batch_size, seq_len, hid_size]"
-            cache_handle, rel_index, prefix_length = map(int, cache_metadata[0])
+            cache_handles, prefix_length = map(int, cache_metadata[0])
 
             with self.memory_cache.use_cache(cache_handle) as cache:
                 batch_size = cache.shape[2]
