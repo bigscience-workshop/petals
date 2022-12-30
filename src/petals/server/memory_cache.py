@@ -95,7 +95,7 @@ class MemoryCache:
         for descr in descriptors:
             tensor_size = descr.numel() * torch.finfo(descr.dtype).bits // 8
             alloc_size_by_device[descr.device] = alloc_size_by_device.get(descr.device, 0) + tensor_size
-        return max(alloc_size_by_device)
+        return max(alloc_size_by_device.values())
 
     async def _schedule_alloc(self, alloc_size: int, *descriptors: TensorDescriptor) -> Sequence[Handle]:
         """
