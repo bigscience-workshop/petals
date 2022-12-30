@@ -2,7 +2,7 @@
     <img src="https://i.imgur.com/7eR7Pan.png" width="400"><br>
     Run 100B+ language models at home, BitTorrent-style.<br>
     Fine-tuning and inference up to 10x faster than offloading<br><br>
-    <img src="https://img.shields.io/pypi/v/petals.svg?color=green"><br>
+    <a href="https://pypi.org/project/petals/"><img src="https://img.shields.io/pypi/v/petals.svg?color=green"></a><br>
 </p>
 
 Generate text using distributed BLOOM and fine-tune it for your own tasks:
