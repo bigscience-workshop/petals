@@ -11,6 +11,7 @@ import torch.nn as nn
 from hivemind.utils.logging import get_logger, use_hivemind_log_handler
 from tensor_parallel.slicing_configs import get_bloom_config
 from transformers import BloomConfig
+from transformers.models.bloom.modeling_bloom import BloomAttention
 
 from petals.bloom.block import WrappedBloomBlock
 from petals.utils.linear8bitlt_patch import CustomLinear8bitLt
@@ -63,7 +64,9 @@ def make_tensor_parallel(
     tp_block = tp.TensorParallel(block, devices, config=tp_config, output_device=output_device)
     total_heads = 0
     for tp_shard in tp_block.module_shards:
-        total_heads += tp_shard.self_attention.module.num_heads
+        for submodule in tp_shard.modules():
+            if isinstance(submodule, BloomAttention):
+                total_heads += submodule.num_heads
     assert total_heads == model_config.n_head
     return tp_block
 

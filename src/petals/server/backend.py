@@ -10,8 +10,8 @@ from hivemind.moe.server.module_backend import ModuleBackend
 from hivemind.utils import get_logger
 from tensor_parallel import TensorParallel
 from transformers import BloomConfig
+from transformers.models.bloom.modeling_bloom import BloomAttention
 
-from petals.bloom.block import WrappedBloomBlock
 from petals.data_structures import InferenceMetadata
 from petals.server.memory_cache import MemoryCache
 from petals.server.task_pool import PrioritizedTaskPool
@@ -46,6 +46,13 @@ class TransformerBackend(ModuleBackend):
 
         assert backend_dtype is not None
         self.dtype = backend_dtype
+        self.shard_num_heads = []
+        for shard in self.module.module_shards:
+            for submodule in shard.modules():
+                if isinstance(submodule, BloomAttention):
+                    self.shard_num_heads.append(submodule.num_heads)
+        assert len(self.shard_num_heads) == len(self.module.devices) and sum(self.shard_num_heads) == config.n_head
+
         self.inference_schema = (
             (
                 *self.args_schema,
@@ -58,15 +65,11 @@ class TransformerBackend(ModuleBackend):
     def get_inference_cache_descriptors(self, batch_size: int, max_length: int) -> Tuple[TensorDescriptor, ...]:
         """Create tensor descriptors for attention cache tensors used during inference_step"""
         head_dim = self.config.hidden_size // self.config.n_head
-        total_heads = 0
         cache_tensors = []
-        for device, tp_shard in zip(self.module.devices, self.module.module_shards):
-            shard_heads = tp_shard.self_attention.module.num_heads
-            keys = TensorDescriptor((batch_size, shard_heads, head_dim, max_length), dtype=self.dtype, device=device)
-            values = TensorDescriptor((batch_size, shard_heads, max_length, head_dim), dtype=self.dtype, device=device)
+        for device, num_heads in zip(self.module.devices, self.shard_num_heads):
+            keys = TensorDescriptor((batch_size, num_heads, head_dim, max_length), dtype=self.dtype, device=device)
+            values = TensorDescriptor((batch_size, num_heads, max_length, head_dim), dtype=self.dtype, device=device)
             cache_tensors.extend((keys, values))
-            total_heads += shard_heads
-        assert total_heads == self.config.n_head
         return tuple(cache_tensors)
 
     def inference_step(
