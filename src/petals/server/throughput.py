@@ -139,14 +139,13 @@ def measure_compute_rps(
     n_tokens: int = 16,
     n_steps: int = 500,
 ) -> float:
+    if not tensor_parallel_devices:
+        tensor_parallel_devices = (device,)
     with torch.inference_mode():
         block = WrappedBloomBlock(config).to(dtype)
+        block = make_tensor_parallel(block, config, tensor_parallel_devices, output_device=device)
         if load_in_8bit:
             block = replace_8bit_linear(block)
-        if tensor_parallel_devices:
-            block = make_tensor_parallel(block, config, tensor_parallel_devices, output_device=device)
-        else:
-            block = block.to(device)
 
         cache = None
         elapsed = 0
