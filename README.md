@@ -2,6 +2,7 @@
     <img src="https://i.imgur.com/7eR7Pan.png" width="400"><br>
     Run 100B+ language models at home, BitTorrent-style.<br>
     Fine-tuning and inference up to 10x faster than offloading<br><br>
+    <a href="https://pypi.org/project/petals/"><img src="https://img.shields.io/pypi/v/petals.svg?color=green"></a><br>
 </p>
 
 Generate text using distributed BLOOM and fine-tune it for your own tasks:
@@ -35,7 +36,7 @@ Connect your own GPU and increase Petals capacity:
 ```bash
 # In an Anaconda env
 conda install pytorch cudatoolkit=11.3 -c pytorch
-pip install git+https://github.com/bigscience-workshop/petals
+pip install -U petals
 python -m petals.cli.run_server bigscience/bloom-petals
 
 # Or using our GPU-enabled Docker image
@@ -48,8 +49,8 @@ sudo docker run --net host --ipc host --gpus all --volume petals-cache:/cache --
 Check out more examples and tutorials:
 
 - Chatbot web app: [link](http://chat.petals.ml), [source code](https://github.com/borzunov/petals-chat)
-- Training a personified chatbot: [notebook](./examples/prompt-tuning-personachat.ipynb)
-- Fine-tuning BLOOM for text semantic classification: [notebook](./examples/prompt-tuning-sst2.ipynb)
+- Training a personified chatbot: [notebook](https://github.com/bigscience-workshop/petals/blob/main/examples/prompt-tuning-personachat.ipynb)
+- Fine-tuning BLOOM for text semantic classification: [notebook](https://github.com/bigscience-workshop/petals/blob/main/examples/prompt-tuning-sst2.ipynb)
 - Launching your own swarm: [tutorial](https://github.com/bigscience-workshop/petals/wiki/Launch-your-own-swarm)
 - Running a custom foundation model: [tutorial](https://github.com/bigscience-workshop/petals/wiki/Run-a-custom-model-with-Petals)
 
@@ -92,12 +93,13 @@ Before building your own application that runs a language model with Petals, ple
 ## Installation
 
 Here's how to install Petals with conda:
-```
-conda install pytorch torchvision torchaudio cudatoolkit=11.3 -c pytorch
-pip install git+https://github.com/bigscience-workshop/petals
+
+```bash
+conda install pytorch cudatoolkit=11.3 -c pytorch
+pip install -U petals
 ```
 
-This script uses Anaconda to install cuda-enabled PyTorch.
+This script uses Anaconda to install CUDA-enabled PyTorch.
 If you don't have anaconda, you can get it from [here](https://www.anaconda.com/products/distribution).
 If you don't want anaconda, you can install PyTorch [any other way](https://pytorch.org/get-started/locally/).
 If you want to run models with 8-bit weights, please install **PyTorch with CUDA 11** or newer for compatility with [bitsandbytes](https://github.com/timDettmers/bitsandbytes).
@@ -108,8 +110,8 @@ __System requirements:__ Petals only supports Linux for now. If you don't have a
 
 Petals uses pytest with a few plugins. To install them, run:
 
-```python
-conda install pytorch torchvision torchaudio cudatoolkit=11.3 -c pytorch
+```bash
+conda install pytorch cudatoolkit=11.3 -c pytorch
 git clone https://github.com/bigscience-workshop/petals.git && cd petals
 pip install -e .[dev]
 ```
@@ -131,7 +133,7 @@ tail -f server1.log server2.log  # view logs for both servers
 
 Then launch pytest:
 
-```
+```bash
 export MODEL_NAME=bloom-testing/test-bloomd-560m-main REF_NAME=bigscience/bloom-560m
 export INITIAL_PEERS=/ip4/127.0.0.1/tcp/31337/p2p/QmS9KwZptnVdB9FFV7uGgaTq4sEKBwcYeKZDfSpyKDUd1g
 PYTHONPATH=. pytest tests --durations=0 --durations-min=1.0 -v
