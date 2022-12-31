@@ -40,7 +40,7 @@ def test_remote_sequential():
     assert hidden.shape == test_inputs.shape
     assert hidden.requires_grad
     second_half_outputs = second_half(hidden)
-    assert torch.allclose(second_half_outputs, full_outputs, atol=1e-5)
+    assert torch.allclose(second_half_outputs, full_outputs, atol=1e-4)
 
     (second_half_outputs * grad_proj).sum().backward()
     assert torch.allclose(test_inputs.grad, full_grad, atol=1e-4)
