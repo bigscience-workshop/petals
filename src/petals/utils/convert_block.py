@@ -3,7 +3,7 @@ Tools for converting transformer blocks, applying quantization and/or tensor par
 """
 import re
 from typing import Sequence
-import re
+
 import bitsandbytes as bnb
 import tensor_parallel as tp
 import torch
@@ -69,7 +69,7 @@ def make_tensor_parallel(
 
 
 def check_device_balance(devices: Sequence[torch.device]):
-    if not all(device.type == 'cuda' for device in devices):
+    if not all(device.type == "cuda" for device in devices):
         logger.warning("Running tensor parallelism on non-GPU devices; proceed at your own risk")
         return
     unique_device_capabilities = set(map(torch.cuda.get_device_capability, devices))
