@@ -51,6 +51,8 @@ def replace_8bit_linear(model: nn.Module, threshold=6.0):
             model._modules[n].weight = bnb.nn.Int8Params(
                 module.weight.data, requires_grad=False, has_fp16_weights=False
             ).to(module.weight.dtype)
+            if module.weight.data.device.type == 'cuda':
+                module.weight.cuda()  # trigger quantization to CB
             model._modules[n].bias = module.bias
     return model
 
