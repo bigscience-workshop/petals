@@ -129,9 +129,14 @@ def main():
 
     parser.add_argument("--use_auth_token", action='store_true', help="auth token for from_pretrained")
     parser.add_argument('--load_in_8bit', type=str, default=None,
-                        help="Convert the loaded model into mixed-8bit quantized model. "
+                        help="Convert the loaded transformer blocks into mixed-8bit quantized model. "
                              "Default: True if GPU is available. Use `--load_in_8bit False` to disable this")
-    parser.add_argument("--tensor_parallel_devices", nargs='+', default=None)
+    parser.add_argument("--tensor_parallel_devices", nargs='+', default=None,
+                        help=
+                        "Split each block between the specified GPUs such that each device holds a portion of every "
+                        "weight matrix. The general idea is described in Section 3.2 of the AlexNet paper "
+                        "https://proceedings.neurips.cc/paper/2012/file/c399862d3b9d6b76c8436e924a68c45b-Paper.pdf "
+                        ", while the strategy for Transformers is described in https://arxiv.org/pdf/2104.04473.pdf .")
 
     parser.add_argument("--skip_reachability_check", action='store_true',
                         help="Skip checking this server's reachability via health.petals.ml "
