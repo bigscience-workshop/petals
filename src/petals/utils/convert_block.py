@@ -20,7 +20,7 @@ use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
 
 
-def replace_8bit_linear(module: nn.Module, threshold=6.0) -> nn.Module:
+def replace_8bit_linear(model: nn.Module, threshold=6.0):
     """
     A helper function to convert all `torch.nn.Linear` modules to `bnb.nn.Linear8bit` modules from the `bitsandbytes`
     library. This will enable running your models using mixed int8 precision as described by the paper `GPT3.int8():
@@ -30,29 +30,29 @@ def replace_8bit_linear(module: nn.Module, threshold=6.0) -> nn.Module:
     The function will be run recursively and replace all `torch.nn.Linear` modules except for the `lm_head` and 'score' that should
     be kept as a `torch.nn.Linear` module.
     Parameters:
-        module (`torch.nn.Module`):
-            Input module or `torch.nn.Module` as the function is run recursively.
+        model (`torch.nn.Module`):
+            Input model or `torch.nn.Module` as the function is run recursively.
         threshold (`float`, *optional*):
             `int8_threshold` for outlier detection as described in the formentioned paper. This parameters is set to
             `6.0` as described by the paper.
     """
-    for n, submodule in module.named_children():
-        if len(list(submodule.children())) > 0:
-            replace_8bit_linear(submodule, threshold)
+    for n, module in model.named_children():
+        if len(list(module.children())) > 0:
+            replace_8bit_linear(module, threshold)
 
-        if isinstance(submodule, torch.nn.Linear) and n not in ["lm_head", "score"]:
-            module._modules[n] = CustomLinear8bitLt(
-                submodule.in_features,
-                submodule.out_features,
-                submodule.bias is not None,
+        if isinstance(module, torch.nn.Linear) and n not in ["lm_head", "score"]:
+            model._modules[n] = CustomLinear8bitLt(
+                module.in_features,
+                module.out_features,
+                module.bias is not None,
                 has_fp16_weights=False,
                 threshold=threshold,
             )
-            module._modules[n].weight = bnb.nn.Int8Params(
-                submodule.weight.data, requires_grad=False, has_fp16_weights=False
-            ).to(submodule.weight.dtype)
-            module._modules[n].bias = submodule.bias
-    return module
+            model._modules[n].weight = bnb.nn.Int8Params(
+                module.weight.data, requires_grad=False, has_fp16_weights=False
+            ).to(module.weight.dtype)
+            model._modules[n].bias = module.bias
+    return model
 
 
 def make_tensor_parallel(
