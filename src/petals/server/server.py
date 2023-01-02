@@ -484,6 +484,7 @@ class ModuleContainer(threading.Thread):
         request_timeout: float,
         session_timeout: float,
         step_timeout: float,
+        device: Union[str, torch.device],
         start: bool,
         **kwargs,
     ):
@@ -502,7 +503,8 @@ class ModuleContainer(threading.Thread):
             )
             for _ in range(num_handlers)
         ]
-        self.runtime = Runtime(self.module_backends, **kwargs)
+        self.runtime = Runtime(self.module_backends, device=None, **kwargs)
+        # note: we set device=None in runtime to avoid casting all modules to device 0 in .run; we'll cast them manually
         self.online_announcer = ModuleAnnouncerThread(
             list(self.module_backends.keys()),
             dht,

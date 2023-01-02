@@ -43,6 +43,7 @@ class PrioritizedTaskPool(TaskPoolBase):
 
     :param name: pool name, used for logging
     :param min_batch_size: process at least this many inputs in a batch, otherwise wait for more
+    :param device: if specified, input tensors will be moved to that device by default
     :param start: if True, start automatically at the end of __init__
     """
 
@@ -52,11 +53,13 @@ class PrioritizedTaskPool(TaskPoolBase):
         max_batch_size: int,
         name: str,
         min_batch_size=1,
+        device: Optional[torch.device] = None,
         daemon=True,
         start=False,
     ):
         super().__init__(process_func, daemon=daemon, name=name)
         self.min_batch_size, self.max_batch_size = min_batch_size, max_batch_size
+        self.device = device
 
         self.submitted_tasks = mp.SimpleQueue()  # interaction with ConnectionHandlers
         self._ordered_tasks = PriorityQueue()  # interaction with Runtime - only valid inside Runtime
@@ -129,6 +132,7 @@ class PrioritizedTaskPool(TaskPoolBase):
         self, timeout: Optional[float] = None, device: Optional[torch.device] = None
     ) -> Tuple[Any, List[torch.Tensor]]:
         """receive next batch of arrays"""
+        device = device if device is not None else self.device
         task = self._ordered_tasks.get(block=True, timeout=timeout)
         batch_inputs = [_move_to_device_if_tensor(arg, device) for arg in task.args]
         self._dispatched_tasks[task.uid] = task
