@@ -65,6 +65,8 @@ def make_tensor_parallel(
     tp_config = get_bloom_config(model_config, devices)
     del tp_config.state_rules[re.compile(".*word_embeddings.weight$")]
     tp_block = tp.TensorParallel(block, devices, config=tp_config, output_device=output_device)
+    if len(devices) == 1:
+        tp_block.to(devices[0])
     total_heads = 0
     for tp_shard in tp_block.module_shards:
         for submodule in tp_shard.modules():
