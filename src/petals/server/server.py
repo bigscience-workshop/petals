@@ -145,12 +145,9 @@ class Server:
         self.load_in_8bit = load_in_8bit
 
         if tensor_parallel_devices is None:
-            if torch.cuda.is_available() and torch.cuda.device_count() > 1:
-                tensor_parallel_devices = tuple(torch.device(i) for i in range(torch.cuda.device_count()))
-            else:
-                tensor_parallel_devices = tuple()
+            tensor_parallel_devices = (device,)
         self.tensor_parallel_devices = tuple(map(torch.device, tensor_parallel_devices))
-        if self.tensor_parallel_devices:
+        if len(self.tensor_parallel_devices) > 1:
             logger.info(f"Model weights will be split between {', '.join(tensor_parallel_devices)}")
             check_device_balance(self.tensor_parallel_devices)
 
@@ -382,7 +379,7 @@ class ModuleContainer(threading.Thread):
         expiration: Optional[float],
         use_auth_token: Optional[str],
         load_in_8bit: bool,
-        tensor_parallel_devices: Optional[Sequence[torch.device]],
+        tensor_parallel_devices: Sequence[torch.device],
         **kwargs,
     ) -> ModuleContainer:
         module_uids = [f"{prefix}.{block_index}" for block_index in block_indices]
@@ -398,10 +395,9 @@ class ModuleContainer(threading.Thread):
         joining_announcer.start()
         logger.info(f"Announced that blocks {block_indices} are joining")
 
-        memory_cache = MemoryCache(attn_cache_size, alloc_timeout)
-        if not tensor_parallel_devices:
-            tensor_parallel_devices = (device,)
+        assert len(tensor_parallel_devices) >= 1 and all(isinstance(d, torch.device) for d in tensor_parallel_devices)
 
+        memory_cache = MemoryCache(attn_cache_size, alloc_timeout)
         blocks = {}
         try:
             for module_uid, block_index in zip(module_uids, block_indices):
