@@ -20,6 +20,7 @@ use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
 
 
+@torch.no_grad()
 def replace_8bit_linear(model: nn.Module, threshold=6.0):
     """
     A helper function to convert all `torch.nn.Linear` modules to `bnb.nn.Linear8bit` modules from the `bitsandbytes`
