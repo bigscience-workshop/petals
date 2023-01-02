@@ -131,7 +131,7 @@ def main():
     parser.add_argument('--load_in_8bit', type=str, default=None,
                         help="Convert the loaded model into mixed-8bit quantized model. "
                              "Default: True if GPU is available. Use `--load_in_8bit False` to disable this")
-    parser.add_argument("--tensor_parallel_devices", nargs='+', default=[])  # disabled by default
+    parser.add_argument("--tensor_parallel_devices", nargs='+', default=None)
 
     parser.add_argument("--skip_reachability_check", action='store_true',
                         help="Skip checking this server's reachability via health.petals.ml "
