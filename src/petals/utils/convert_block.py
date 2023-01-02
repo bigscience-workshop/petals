@@ -48,11 +48,12 @@ def replace_8bit_linear(model: nn.Module, threshold=6.0):
                 has_fp16_weights=False,
                 threshold=threshold,
             )
-            model._modules[n].weight = bnb.nn.Int8Params(
+            model._modules[n].weight = weight_8bit = bnb.nn.Int8Params(
                 module.weight.data, requires_grad=False, has_fp16_weights=False
             ).to(module.weight.dtype)
-            if module.weight.data.device.type == 'cuda':
-                module.weight.cuda()  # trigger quantization to CB
+            if weight_8bit.device.type == 'cuda' and weight_8bit.data.dtype != torch.int8:
+                # by default, bnb performs quantization implicitly, when module moves to cuda; if weight is already
+                weight_8bit.cuda(device=weight_8bit.device)  # on cuda, we need to trigger quantization explicitly
             model._modules[n].bias = module.bias
     return model
 
