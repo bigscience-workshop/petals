@@ -58,6 +58,10 @@ def get_host_throughput(
         cache_key = f"config_{sha256(str(config).encode()).hexdigest()[-16:]}"
         cache_key += f"_device_{get_device_name(device).replace(' ', '_')}"
         cache_key += f"_dtype_{get_dtype_name(dtype, load_in_8bit)}"
+        if len(tensor_parallel_devices) > 1:
+            for i, device_i in enumerate(tensor_parallel_devices):
+                cache_key += f"_tp{i}_{get_device_name(device_i).replace(' ', '_')}"
+        print('!!', cache_key)
 
         cache = {}
         try:
