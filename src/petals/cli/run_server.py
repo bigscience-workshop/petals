@@ -129,8 +129,12 @@ def main():
 
     parser.add_argument("--use_auth_token", action='store_true', help="auth token for from_pretrained")
     parser.add_argument('--load_in_8bit', type=str, default=None,
-                        help="Convert the loaded model into mixed-8bit quantized model. "
+                        help="Convert the loaded transformer blocks into mixed-8bit quantized model. "
                              "Default: True if GPU is available. Use `--load_in_8bit False` to disable this")
+    parser.add_argument("--tensor_parallel_devices", nargs='+', default=None,
+                        help=
+                        "Split each block between the specified GPUs such that each device holds a portion of every "
+                        "weight matrix. See https://huggingface.co/transformers/v4.9.0/parallelism.html#tensor-parallelism")
 
     parser.add_argument("--skip_reachability_check", action='store_true',
                         help="Skip checking this server's reachability via health.petals.ml "

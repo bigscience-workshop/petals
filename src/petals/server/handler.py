@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import asyncio
 import contextlib
+from itertools import chain
 from typing import Any, AsyncIterator, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 
 import torch
@@ -8,10 +11,10 @@ from hivemind import (
     DHT,
     MSGPackSerializer,
     P2PContext,
-    TensorDescriptor,
     deserialize_tensor_stream,
     deserialize_torch_tensor,
     nested_flatten,
+    nested_pack,
     serialize_torch_tensor,
 )
 from hivemind.moe.server.connection_handler import ConnectionHandler
@@ -21,8 +24,9 @@ from hivemind.utils.asyncio import amap_in_executor, anext
 from hivemind.utils.logging import get_logger
 from hivemind.utils.streaming import split_for_streaming
 
-from petals.data_structures import CHAIN_DELIMITER, ModuleUID
+from petals.data_structures import CHAIN_DELIMITER, InferenceMetadata, ModuleUID
 from petals.server.backend import TransformerBackend
+from petals.server.memory_cache import Handle
 from petals.server.task_pool import PrioritizedTaskPool
 from petals.server.task_prioritizer import DummyTaskPrioritizer, TaskPrioritizerBase
 from petals.utils.misc import DUMMY, is_dummy
@@ -122,17 +126,12 @@ class TransformerConnectionHandler(ConnectionHandler):
 
                 point_per_piece = points / max_length if max_length > 0 else 0.0
                 batch_size = request.tensors[0].size[0] if request.tensors else 1
-
-                cache_metadata = torch.tensor(
-                    [[-1, -1, -1] for _ in range(batch_size)], dtype=torch.int64
-                )  # [cache_handle, rel_index, prefix_length]
                 prefix_length = 0
 
-                async with self._allocate_cache(requested_backends, batch_size, max_length) as cache_handle:
+                async with self._allocate_cache(requested_backends, batch_size, max_length) as cache_handles:
+                    assert len(cache_handles) == len(requested_backends)
                     while request.tensors:  # iterate while user is willing to supply tensors
-                        hidden_states, prompts, hypo_ids = [
-                            deserialize_torch_tensor(tensor) for tensor in request.tensors
-                        ]
+                        hidden_states, prompts, hypo_ids = map(deserialize_torch_tensor, request.tensors)
 
                         # Cast inputs to backend dtype
                         hidden_states = hidden_states.to(requested_backends[0].dtype)
@@ -155,16 +154,14 @@ class TransformerConnectionHandler(ConnectionHandler):
                             )
 
                         # run request tensors through all requested modules, update caches
-                        for rel_index, (backend, prompt) in enumerate(zip(requested_backends, prompts)):
+                        for backend, backend_cache_handles, prompt in zip(requested_backends, cache_handles, prompts):
                             if not is_dummy(prompt):
                                 hidden_states[:, : prompt.shape[1]] += prompt
                             if hidden_states.numel() == 0:
                                 continue  # user passed a tensor with 0 tokens. This is a special case that occurs, e.g.
                                 # when user wants to pre-allocate cache or check that server *can* allocate that cache
 
-                            cache_metadata[:] = torch.tensor(
-                                [cache_handle, rel_index, prefix_length], dtype=torch.int64
-                            )
+                            metadata = InferenceMetadata(prefix_length, tuple(backend_cache_handles))
                             assert isinstance(
                                 hidden_states, torch.Tensor
                             ), f"hidden states must be tensor, got {type(hidden_states)}"
@@ -175,7 +172,6 @@ class TransformerConnectionHandler(ConnectionHandler):
                                 backend.inference_pool, PrioritizedTaskPool
                             ), "petals support only prioritized pools"
                             priority = self._prioritizer.prioritize(
-                                cache_metadata,
                                 hidden_states,
                                 hypo_ids,
                                 points=point_per_piece / len(requested_backends),
@@ -183,7 +179,7 @@ class TransformerConnectionHandler(ConnectionHandler):
                                 type="inference",
                             )
                             (hidden_states,) = await backend.inference_pool.submit_task(
-                                hidden_states, hypo_ids, cache_metadata, priority=priority
+                                hidden_states, hypo_ids, metadata, priority=priority
                             )
 
                         # serialize and send last layer outputs
@@ -355,28 +351,14 @@ class TransformerConnectionHandler(ConnectionHandler):
     @contextlib.asynccontextmanager
     async def _allocate_cache(
         self, backends: Sequence[TransformerBackend], batch_size: int, max_length: int
-    ) -> Sequence[int]:
-        """Allocate memory cache for all transformer blocks, return cache handle"""
-
-        n_blocks = len(backends)
-        backend = backends[0]
-        n_heads = backend.module.self_attention.num_heads
-        head_dim = backend.module.self_attention.head_dim
-        descr = TensorDescriptor(size=(n_blocks, 2, batch_size, n_heads * head_dim * max_length), dtype=backend.dtype)
-        alloc_size = descr.numel() * torch.finfo(descr.dtype).bits // 8
-
-        gib = 1024**3
-        cur_size = backend.memory_cache.current_size_bytes
-        max_size = backend.memory_cache.max_size_bytes
-        friendly_max_size = f"{max_size / gib:.2f}" if max_size != 2**64 - 1 else "inf"
-        logger.info(
-            f"rpc_inference.wait_for_alloc(size={alloc_size / gib:.2f} GiB), "
-            f"already used {cur_size / gib:.2f}/{friendly_max_size} GiB ({cur_size / max_size * 100:.1f}%)"
-        )
-
-        async with backend.memory_cache.allocate_cache(descr) as handle:
-            logger.info(f"rpc_inference.alloc(size={alloc_size / gib:.2f} GiB)")
-            yield handle
+    ) -> Sequence[Sequence[Handle, ...]]:
+        """
+        Allocate memory cache for all transformer blocks, return cache handle
+        :returns: a list of {len(backends)} elements, where i-th element is a tuple of cache handles for i-th backend
+        """
+        descriptors = [backend.get_inference_cache_descriptors(batch_size, max_length) for backend in backends]
+        async with backends[0].memory_cache.allocate_cache(*chain(*descriptors)) as handles:
+            yield nested_pack(handles, descriptors)
 
     def _log_request(
         self, method: str, uids: Optional[Sequence[ModuleUID]], context: P2PContext, *, warning: Optional[str] = None

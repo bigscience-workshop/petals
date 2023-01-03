@@ -6,7 +6,7 @@ import multiprocessing as mp
 import random
 import threading
 import time
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Sequence, Union
 
 import numpy as np
 import psutil
@@ -29,7 +29,7 @@ from petals.server.block_utils import get_block_size
 from petals.server.handler import TransformerConnectionHandler
 from petals.server.memory_cache import MemoryCache
 from petals.server.throughput import get_host_throughput
-from petals.utils.convert_8bit import replace_8bit_linear
+from petals.utils.convert_block import check_device_balance, convert_block
 from petals.utils.disk_cache import DEFAULT_CACHE_DIR
 
 logger = get_logger(__file__)
@@ -76,6 +76,7 @@ class Server:
         mean_block_selection_delay: float = 2.5,
         use_auth_token: Optional[str] = None,
         load_in_8bit: Optional[bool] = None,
+        tensor_parallel_devices: Optional[Sequence[torch.device]] = None,
         skip_reachability_check: bool = False,
         **kwargs,
     ):
@@ -128,6 +129,8 @@ class Server:
         if device is None:
             device = "cuda" if torch.cuda.is_available() else "cpu"
         device = torch.device(device)
+        if device.type == "cuda" and device.index is None:
+            device = torch.device(device.type, index=0)
         self.device = device
 
         if isinstance(torch_dtype, str):
@@ -140,6 +143,13 @@ class Server:
         if load_in_8bit:
             logger.info("Model weights will be loaded in 8-bit format")
         self.load_in_8bit = load_in_8bit
+
+        if tensor_parallel_devices is None:
+            tensor_parallel_devices = (device,)
+        self.tensor_parallel_devices = tuple(map(torch.device, tensor_parallel_devices))
+        if len(self.tensor_parallel_devices) > 1:
+            logger.info(f"Model weights will be split between {', '.join(tensor_parallel_devices)}")
+            check_device_balance(self.tensor_parallel_devices)
 
         assert num_blocks is None or block_indices is None, "Please specify num_blocks or block_indices, not both"
         if num_blocks is None and block_indices is None:
@@ -174,6 +184,7 @@ class Server:
                 device,
                 torch_dtype,
                 load_in_8bit=load_in_8bit,
+                tensor_parallel_devices=self.tensor_parallel_devices,
                 force_eval=(throughput == "eval"),
                 cache_dir=cache_dir,
             )
@@ -214,13 +225,28 @@ class Server:
             self.converted_model_name_or_path == "bigscience/bloom-petals"
         ), "If you use a model other than bigscience/bloom-petals, please specify --num_blocks manually"
         assert self.device.type == "cuda", "If you run a non-GPU server, please specify --num_blocks manually"
+        num_devices = len(self.tensor_parallel_devices) if self.tensor_parallel_devices else 1
 
-        total_memory = torch.cuda.get_device_properties(self.device).total_memory
+        if num_devices > 1:
+            memory_per_device = tuple(
+                torch.cuda.get_device_properties(device).total_memory for device in self.tensor_parallel_devices
+            )
+            total_memory = min(memory_per_device) * num_devices
+            if max(memory_per_device) / min(memory_per_device) > 1.5:
+                raise ValueError(
+                    "GPU devices have highly uneven memory, which makes tensor parallelism inefficient. "
+                    "Please launch individual servers on each GPU or set --num_blocks manually to "
+                    "override this exception."
+                )
+        else:
+            total_memory = torch.cuda.get_device_properties(self.device).total_memory
+
         block_size = get_block_size(self.block_config, "memory", dtype=self.torch_dtype, load_in_8bit=self.load_in_8bit)
         gib = 1024**3
-        attn_cache_per_block = 0.5 * gib  # TODO: This does not account for manually set --attn_cache_size
+        attn_cache_per_block = 0.5 * gib * num_devices  # TODO: This does not account for manually set --attn_cache_size
 
-        num_blocks = math.floor((total_memory - 2 * gib) / (block_size + attn_cache_per_block))
+        autograd_memory = 2 * gib * num_devices  # gpu memory used for intermediate tensors in rpc_backward
+        num_blocks = math.floor((total_memory - autograd_memory) / (block_size + attn_cache_per_block))
         assert num_blocks >= 1, "Your GPU does not have enough memory to serve at least one block"
 
         logger.info(
@@ -260,6 +286,7 @@ class Server:
                 sender_threads=self.sender_threads,
                 use_auth_token=self.use_auth_token,
                 load_in_8bit=self.load_in_8bit,
+                tensor_parallel_devices=self.tensor_parallel_devices,
                 start=True,
             )
             try:
@@ -352,6 +379,7 @@ class ModuleContainer(threading.Thread):
         expiration: Optional[float],
         use_auth_token: Optional[str],
         load_in_8bit: bool,
+        tensor_parallel_devices: Sequence[torch.device],
         **kwargs,
     ) -> ModuleContainer:
         module_uids = [f"{prefix}.{block_index}" for block_index in block_indices]
@@ -367,7 +395,9 @@ class ModuleContainer(threading.Thread):
         joining_announcer.start()
         logger.info(f"Announced that blocks {block_indices} are joining")
 
-        memory_cache = MemoryCache(device, attn_cache_size, alloc_timeout)
+        assert len(tensor_parallel_devices) >= 1 and all(isinstance(d, torch.device) for d in tensor_parallel_devices)
+
+        memory_cache = MemoryCache(attn_cache_size, alloc_timeout)
         blocks = {}
         try:
             for module_uid, block_index in zip(module_uids, block_indices):
@@ -380,18 +410,13 @@ class ModuleContainer(threading.Thread):
                     cache_dir=cache_dir,
                     max_disk_space=max_disk_space,
                 )
+                block = convert_block(block, block_config, tensor_parallel_devices, device, load_in_8bit, freeze=True)
 
-                if load_in_8bit:
-                    block = replace_8bit_linear(block)
-
-                block = block.to(device)
-                for param in block.parameters():
-                    param.requires_grad = False
-
-                backend_dtype = block.input_layernorm.weight.dtype if torch_dtype == "auto" else torch_dtype
+                backend_dtype = next(block.parameters()).dtype if torch_dtype == "auto" else torch_dtype
                 blocks[module_uid] = TransformerBackend(
                     module_uid,
                     block,
+                    config=block_config,
                     memory_cache=memory_cache,
                     backend_dtype=backend_dtype,
                     args_schema=(
@@ -451,6 +476,7 @@ class ModuleContainer(threading.Thread):
         request_timeout: float,
         session_timeout: float,
         step_timeout: float,
+        device: Union[str, torch.device],
         start: bool,
         **kwargs,
     ):
@@ -469,7 +495,8 @@ class ModuleContainer(threading.Thread):
             )
             for _ in range(num_handlers)
         ]
-        self.runtime = Runtime(self.module_backends, **kwargs)
+        self.runtime = Runtime(self.module_backends, device=None, **kwargs)
+        # note: We set device=None in runtime to avoid moving all modules to device 0 in runtime.run(). tensor_parallel has already moved it as needed.
         self.online_announcer = ModuleAnnouncerThread(
             list(self.module_backends.keys()),
             dht,
