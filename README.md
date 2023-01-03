@@ -31,7 +31,7 @@ for input_ids, labels in data_loader:
     🚀 &nbsp;<b><a href="https://colab.research.google.com/drive/1Ervk6HPNS6AYVr3xVdQnY5a-TjjmLCdQ?usp=sharing">Try now in Colab</a></b>
 </p>
 
-Connect your own GPU and increase Petals capacity — by running this in an [Anaconda](https://www.anaconda.com) env:
+Connect your own GPU and increase Petals capacity — run this in an [Anaconda](https://www.anaconda.com) env:
 
 ```bash
 conda install pytorch cudatoolkit=11.3 -c pytorch
@@ -39,7 +39,7 @@ pip install -U petals
 python -m petals.cli.run_server bigscience/bloom-petals
 ```
 
-Or running our [Docker](https://www.docker.com) image:
+Or use our [Docker](https://www.docker.com) image:
 
 ```bash
 sudo docker run --net host --ipc host --gpus all --volume petals-cache:/cache --rm \
