@@ -160,7 +160,6 @@ def measure_compute_rps(
                 elapsed += time.perf_counter() - start_time
         device_rps = n_steps * n_tokens / elapsed
 
-
     devices_repr = get_device_name(device)
     if len(tensor_parallel_devices) > 1:
         device_names = tuple(map(get_device_name, tensor_parallel_devices))
