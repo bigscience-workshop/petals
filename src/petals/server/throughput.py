@@ -61,7 +61,6 @@ def get_host_throughput(
         if len(tensor_parallel_devices) > 1:
             for i, device_i in enumerate(tensor_parallel_devices):
                 cache_key += f"_tp{i}_{get_device_name(device_i).replace(' ', '_')}"
-        print('!!', cache_key)
 
         cache = {}
         try:
