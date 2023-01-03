@@ -162,7 +162,7 @@ def measure_compute_rps(
 
     devices_repr = get_device_name(device)
     if len(tensor_parallel_devices) > 1:
-        device_names = tuple(map(get_device_name, tensor_parallel_devices))
+        device_names = tuple(map(get_device_name, map(torch.device, tensor_parallel_devices)))
         devices_repr = ", ".join(f"{count}x {name}" for name, count in Counter(device_names).most_common())
 
     logger.info(
