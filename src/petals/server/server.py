@@ -29,7 +29,7 @@ from petals.server.block_utils import get_block_size
 from petals.server.handler import TransformerConnectionHandler
 from petals.server.memory_cache import MemoryCache
 from petals.server.throughput import get_host_throughput
-from petals.utils.convert_block import check_device_balance, make_tensor_parallel, replace_8bit_linear
+from petals.utils.convert_block import check_device_balance, convert_block
 from petals.utils.disk_cache import DEFAULT_CACHE_DIR
 
 logger = get_logger(__file__)
@@ -410,15 +410,7 @@ class ModuleContainer(threading.Thread):
                     cache_dir=cache_dir,
                     max_disk_space=max_disk_space,
                 )
-
-                for param in block.parameters():
-                    param.requires_grad = False
-
-                block = make_tensor_parallel(block, block_config, tensor_parallel_devices, output_device=device)
-                # note: if tensor_parallel_devices is None, tensor_parallel acts as a thin wrapper over block
-
-                if load_in_8bit:
-                    block = replace_8bit_linear(block)
+                block = convert_block(block, block_config, tensor_parallel_devices, device, load_in_8bit, freeze=True)
 
                 backend_dtype = next(block.parameters()).dtype if torch_dtype == "auto" else torch_dtype
                 blocks[module_uid] = TransformerBackend(

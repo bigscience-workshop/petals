@@ -20,7 +20,41 @@ use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__file__)
 
 
-@torch.no_grad()
+def convert_block(
+    block: WrappedBloomBlock,
+    config: BloomConfig,
+    tensor_parallel_devices: Sequence[torch.device],
+    output_device: torch.device,
+    load_in_8bit: bool,
+    threshold: float = 6.0,
+    freeze: bool = True,
+) -> tp.TensorParallel:
+    """
+    Optimize a transformer block for use in a Petals server, apply tensor parallelism and/or LLM.8bit quantization
+
+    :note: some optimizations will modify the input block in-place!
+    :param block: a single transformer block, either pre-trained or newly initialized
+    :param config: HF transformers config for the full model
+    :param tensor_parallel_devices: if specified, use tensor parallelism to split the model between these devices
+    :note: if there is only a single device, model wil still be wrapped with TensorParallel (for uniformity)
+    :param output_device: if tensor_parallel_devices is True, output
+    :param load_in_8bit: if True, use LLM.int8() quantization to reduce the model memory footprint
+    :param threshold: a quantization threshold from LLM.int8() paper ( https://arxiv.org/abs/2208.07339 )
+    :param freeze: if True (default), make all module parameters non-trainable
+    :return: a module that acts like the original block, but runs with all specified optimizations
+
+    """
+    if freeze:
+        for param in block.parameters():
+            param.requires_grad = False
+
+    block = make_tensor_parallel(block, config, tensor_parallel_devices, output_device=output_device)
+
+    if load_in_8bit:
+        block = replace_8bit_linear(block, threshold=threshold)
+    return block
+
+
 def replace_8bit_linear(model: nn.Module, threshold=6.0):
     """
     A helper function to convert all `torch.nn.Linear` modules to `bnb.nn.Linear8bit` modules from the `bitsandbytes`
@@ -42,7 +76,7 @@ def replace_8bit_linear(model: nn.Module, threshold=6.0):
             replace_8bit_linear(module, threshold)
 
         if isinstance(module, torch.nn.Linear) and n not in ["lm_head", "score"]:
-            assert module.weight.device.type == "cpu", "quantization must be performed while block is on cpu"
+            assert module.weight.device.type == "cpu", "quantization must be performed while the block is on cpu"
             model._modules[n] = CustomLinear8bitLt(
                 module.in_features,
                 module.out_features,
@@ -50,7 +84,7 @@ def replace_8bit_linear(model: nn.Module, threshold=6.0):
                 has_fp16_weights=False,
                 threshold=threshold,
             )
-            model._modules[n].weight = weight_8bit = bnb.nn.Int8Params(
+            model._modules[n].weight = bnb.nn.Int8Params(
                 module.weight.data, requires_grad=False, has_fp16_weights=False
             ).to(module.weight.dtype)
             model._modules[n].bias = module.bias
@@ -63,7 +97,7 @@ def make_tensor_parallel(
     assert isinstance(block, (WrappedBloomBlock, CustomLinear8bitLt))
     tp_config = get_bloom_config(model_config, devices)
     del tp_config.state_rules[re.compile(".*word_embeddings.weight$")]
-    tp_block = tp.TensorParallel(block, devices, config=tp_config, output_device=output_device)
+    tp_block = tp.TensorParallel(block, devices, config=tp_config, output_device=output_device, delay_init=True)
     if len(devices) == 1:
         tp_block.to(devices[0])
     total_heads = 0

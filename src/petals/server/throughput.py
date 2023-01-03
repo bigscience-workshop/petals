@@ -12,7 +12,7 @@ from transformers import BloomConfig
 
 from petals.bloom.block import WrappedBloomBlock
 from petals.server.block_utils import resolve_block_dtype
-from petals.utils.convert_block import make_tensor_parallel, replace_8bit_linear
+from petals.utils.convert_block import convert_block
 from petals.utils.disk_cache import DEFAULT_CACHE_DIR
 
 logger = get_logger(__file__)
@@ -143,9 +143,7 @@ def measure_compute_rps(
         tensor_parallel_devices = (device,)
     with torch.inference_mode():
         block = WrappedBloomBlock(config).to(dtype)
-        block = make_tensor_parallel(block, config, tensor_parallel_devices, output_device=device)
-        if load_in_8bit:
-            block = replace_8bit_linear(block)
+        block = convert_block(block, config, tensor_parallel_devices, device, load_in_8bit=load_in_8bit, freeze=True)
 
         cache = None
         elapsed = 0
