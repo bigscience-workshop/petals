@@ -72,7 +72,7 @@ class TransformerBackend(ModuleBackend):
             keys = TensorDescriptor((batch_size, num_heads, head_dim, max_length), dtype=self.dtype, device=device)
             values = TensorDescriptor((batch_size, num_heads, max_length, head_dim), dtype=self.dtype, device=device)
             cache_tensors.extend((keys, values))
-        return tuple(cache_tensors)
+        return cache_tensors
 
     def inference_step(
         self,
