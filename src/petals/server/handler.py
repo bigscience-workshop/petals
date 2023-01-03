@@ -161,7 +161,7 @@ class TransformerConnectionHandler(ConnectionHandler):
                                 continue  # user passed a tensor with 0 tokens. This is a special case that occurs, e.g.
                                 # when user wants to pre-allocate cache or check that server *can* allocate that cache
 
-                            metadata = InferenceMetadata(prefix_length, backend_cache_handles)
+                            metadata = InferenceMetadata(prefix_length, tuple(backend_cache_handles))
                             assert isinstance(
                                 hidden_states, torch.Tensor
                             ), f"hidden states must be tensor, got {type(hidden_states)}"
@@ -351,7 +351,7 @@ class TransformerConnectionHandler(ConnectionHandler):
     @contextlib.asynccontextmanager
     async def _allocate_cache(
         self, backends: Sequence[TransformerBackend], batch_size: int, max_length: int
-    ) -> Sequence[Tuple[Handle, ...]]:
+    ) -> Sequence[Sequence[Handle, ...]]:
         """
         Allocate memory cache for all transformer blocks, return cache handle
         :returns: a list of {len(backends)} elements, where i-th element is a tuple of cache handles for i-th backend

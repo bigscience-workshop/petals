@@ -64,7 +64,7 @@ class TransformerBackend(ModuleBackend):
             self.kwargs_schema,
         )
 
-    def get_inference_cache_descriptors(self, batch_size: int, max_length: int) -> Tuple[TensorDescriptor, ...]:
+    def get_inference_cache_descriptors(self, batch_size: int, max_length: int) -> Sequence[TensorDescriptor]:
         """Create tensor descriptors for attention cache tensors used during inference_step"""
         head_dim = self.config.hidden_size // self.config.n_head
         cache_tensors = []

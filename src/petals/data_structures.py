@@ -46,7 +46,7 @@ class RemoteSpanInfo:
 RPCInfo = Dict[str, Any]
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(frozen=True)
 class InferenceMetadata:
     prefix_length: int
     cache_handles: Tuple[Handle, ...]

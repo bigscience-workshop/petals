@@ -32,7 +32,7 @@ class MemoryCache:
         self._lock_metadata, self.size_decreased_event = mp.Lock(), mp.Event()
         self._current_size = mp.Value(ctypes.c_int64, 0, lock=False)
         self._handle_counter = mp.Value(ctypes.c_int64, 0, lock=False)
-        self._allocated_tensors: Dict[Handle, Tuple[torch.Tensor, ...]] = {}
+        self._allocated_tensors: Dict[Handle, torch.Tensor] = {}
         self.runtime_pid = os.getpid()
 
         self._pipe_recv, self._pipe_send = mp.Pipe(duplex=False)  # any ConnectionHandler -> runtime
@@ -146,7 +146,7 @@ class MemoryCache:
             self._memory_freed_event.clear()
 
     @contextlib.contextmanager
-    def use_cache(self, *handles: Handle) -> Tuple[torch.Tensor, ...]:
+    def use_cache(self, *handles: Handle) -> Sequence[torch.Tensor]:
         """
         Return one or more tensors previously allocated with allocate_cache,
 
