@@ -163,11 +163,10 @@ def measure_compute_rps(
     devices_repr = get_device_name(device)
     if len(tensor_parallel_devices) > 1:
         device_names = tuple(map(get_device_name, tensor_parallel_devices))
-        devices_repr = ', '.join(f'{count}x {name}' for name, count in Counter(device_names).most_common())
+        devices_repr = ", ".join(f"{count}x {name}" for name, count in Counter(device_names).most_common())
 
     logger.info(
-        f"Forward pass throughput ({devices_repr}, {get_dtype_name(dtype, load_in_8bit)}): "
-        f"{device_rps:.1f} RPS"
+        f"Forward pass throughput ({devices_repr}, {get_dtype_name(dtype, load_in_8bit)}): " f"{device_rps:.1f} RPS"
     )
     return device_rps
 
