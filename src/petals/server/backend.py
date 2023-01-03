@@ -9,6 +9,7 @@ from hivemind import BatchTensorDescriptor, TensorDescriptor
 from hivemind.moe.server.module_backend import ModuleBackend
 from hivemind.utils import get_logger
 from tensor_parallel import TensorParallel
+from tensor_parallel.tensor_parallel import PerDeviceTensors
 from transformers import BloomConfig
 from transformers.models.bloom.modeling_bloom import BloomAttention
 
@@ -102,7 +103,8 @@ class TransformerBackend(ModuleBackend):
         for i in range(len(key_cache)):
             key_cache[i] = key_cache[i].flatten(0, 1)[:, :, :prefix_length]  # [batch * num_heads, head_dim, kv_length]
             value_cache[i] = value_cache[i].flatten(0, 1)[:, :prefix_length]  # [batch * num_heads, kv_length, head_dim]
-        return tuple(chain(*zip(key_cache, value_cache)))
+        layer_past = tuple(chain(*zip(key_cache, value_cache)))
+        return PerDeviceTensors(*layer_past) if len(self.module.module_shards) > 1 else layer_past
 
     def _update_cache_inplace(
         self, cache_tensors: Sequence[torch.Tensor], new_kvs: Sequence[torch.Tensor], prefix_length: int
