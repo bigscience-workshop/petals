@@ -76,7 +76,7 @@ def replace_8bit_linear(model: nn.Module, threshold=6.0):
             replace_8bit_linear(module, threshold)
 
         if isinstance(module, torch.nn.Linear) and n not in ["lm_head", "score"]:
-            assert module.weight.device.type == "cpu", "quantization must be performed while the block is on cpu"
+            assert module.weight.device.type == "cpu", f"expected linear layers on CPU, got {module.weight.device}"
             model._modules[n] = CustomLinear8bitLt(
                 module.in_features,
                 module.out_features,
@@ -98,8 +98,6 @@ def make_tensor_parallel(
     tp_config = get_bloom_config(model_config, devices)
     del tp_config.state_rules[re.compile(".*word_embeddings.weight$")]
     tp_block = tp.TensorParallel(block, devices, config=tp_config, output_device=output_device, delay_init=True)
-    if len(devices) == 1:
-        tp_block.to(devices[0])
     total_heads = 0
     for tp_shard in tp_block.module_shards:
         for submodule in tp_shard.modules():
