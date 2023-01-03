@@ -56,12 +56,6 @@ def convert_block(
     for shard, device in zip(block.module_shards, block.devices):
         shard.to(device)
 
-    with torch.no_grad():
-        dummy_inputs = torch.randn(
-            1, 2, config.hidden_size, dtype=next(block.parameters()).dtype, device=output_device
-        )  # trigger module parameters to initialize (otherwise, the first forward pass may be incorrect)
-        block(dummy_inputs)[0].cpu()
-        torch.cuda.synchronize(device=output_device)
     return block
 
 
