@@ -496,7 +496,7 @@ class ModuleContainer(threading.Thread):
             for _ in range(num_handlers)
         ]
         self.runtime = Runtime(self.module_backends, device=None, **kwargs)
-        # note: we set device=None in runtime to avoid casting all modules to device 0 in .run; we'll cast them manually
+        # note: We set device=None in runtime to avoid moving all modules to device 0 in runtime.run(). tensor_parallel has already moved it as needed.
         self.online_announcer = ModuleAnnouncerThread(
             list(self.module_backends.keys()),
             dht,
