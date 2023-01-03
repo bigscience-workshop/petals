@@ -58,7 +58,9 @@ def convert_block(
 
     with torch.no_grad():
         # trigger module parameters to initialize (otherwise, the first forward pass may be incorrect)
-        dummy_inputs = torch.randn(1, 2, config.hidden_size, dtype=next(block.parameters()).dtype)
+        dummy_inputs = torch.randn(
+            1, 2, config.hidden_size, dtype=next(block.parameters()).dtype, device=output_device
+        )
         dummy_outputs = block(dummy_inputs)
         torch.cuda.synchronize()
         del dummy_inputs, dummy_outputs
