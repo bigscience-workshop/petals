@@ -53,8 +53,8 @@ def convert_block(
     if load_in_8bit:
         block = replace_8bit_linear(block, threshold=threshold)
 
-    for block, device in zip(block.module_shards, block.devices):
-        block.to(device)
+    for shard, device in zip(block.module_shards, block.devices):
+        shard.to(device)
     return block
 
 
