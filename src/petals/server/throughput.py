@@ -2,6 +2,7 @@ import fcntl
 import json
 import os
 import time
+from collections import Counter
 from hashlib import sha256
 from pathlib import Path
 from typing import Optional, Sequence, Union
@@ -159,8 +160,14 @@ def measure_compute_rps(
                 elapsed += time.perf_counter() - start_time
         device_rps = n_steps * n_tokens / elapsed
 
+
+    devices_repr = get_device_name(device)
+    if len(tensor_parallel_devices) > 1:
+        device_names = tuple(map(get_device_name, tensor_parallel_devices))
+        devices_repr = ', '.join([f'{count}x {name}' for name, count in Counter(device_names).most_common()])
+
     logger.info(
-        f"Forward pass throughput ({get_device_name(device)}, {get_dtype_name(dtype, load_in_8bit)}): "
+        f"Forward pass throughput ({devices_repr}, {get_dtype_name(dtype, load_in_8bit)}): "
         f"{device_rps:.1f} RPS"
     )
     return device_rps
