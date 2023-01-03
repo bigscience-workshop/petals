@@ -134,7 +134,7 @@ class PrioritizedTaskPool(TaskPoolBase):
         """receive next batch of arrays"""
         device = device if device is not None else self.device
         task = self._ordered_tasks.get(block=True, timeout=timeout)
-        batch_inputs = [_move_to_device_if_tensor(arg, device) for arg in task.args]
+        batch_inputs = [_move_to_device_if_tensor(arg, device, share_memory=False) for arg in task.args]
         self._dispatched_tasks[task.uid] = task
         self.batch_receiver.recv()  # reduce the number of active batches
         if not self._ordered_tasks.empty():
@@ -184,7 +184,9 @@ class PrioritizedTaskPool(TaskPoolBase):
 
 def _move_to_device_if_tensor(arg: Any, device: Union[torch.device, str], share_memory: bool = False):
     if isinstance(arg, torch.Tensor):
-        arg = arg.detach().to(device, non_blocking=True).requires_grad_(arg.requires_grad)
+        arg = arg.detach().to(device, non_blocking=not share_memory).requires_grad_(arg.requires_grad)
+        # note: it is important that non_blocking is disabled if share_memory=True; using share_memory on a tensor
+        # produced by a non-blocking copy will result in undefined behavior (depending on your gpu speed)
         if share_memory:
             arg = arg.share_memory_()
     return arg
