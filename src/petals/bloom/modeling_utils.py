@@ -45,8 +45,11 @@ class LMHead(nn.Module):
     def forward(self, hidden_states):
         word_embeddings = self.word_embeddings.weight
 
-        # We use 'chunked_forward' only when embeddings are in half-precision on CPU.
-        if word_embeddings.dtype in [torch.float16, torch.bfloat16] and word_embeddings.device.type == "cpu":
+        if (
+            self.chunk_size is not None
+            and word_embeddings.dtype in [torch.float16, torch.bfloat16]
+            and word_embeddings.device.type == "cpu"
+        ):
             lm_logits = self.chunked_forward(hidden_states)
         else:
             # Switch dtype in case word_embeddings are fp16/bf16
