@@ -41,7 +41,7 @@ class DistributedBloomConfig(BloomConfig):
 
     # This settings matter for running the client with dtype bfloat16 on CPU.
     # If the CPU doesn't support AVX512, chunked_forward() significantly speeds up computations.
-    use_chunked_forward: Union[Literal['auto'], bool] = 'auto'
+    use_chunked_forward: Union[Literal["auto"], bool] = "auto"
     chunked_forward_step: int = 16384
 
 
