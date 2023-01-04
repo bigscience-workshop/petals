@@ -1,6 +1,6 @@
 import os
 from contextlib import contextmanager
-from typing import List, Optional
+from typing import Literal, List, Optional, Union
 
 import hivemind
 import torch
@@ -34,11 +34,15 @@ class DistributedBloomConfig(BloomConfig):
     dht_prefix: str  # a prefix for all dht keys that correspond to this model (usually equal to model name)
     daemon_startup_timeout: int = 30
     dht: Optional[hivemind.DHT] = None  # a running DHT instance, e.g. when using the same DHT for multiple models
-    chunk_size_for_efficient_fp16_on_cpu: Optional[int] = 10000
-    # Chunk size for efficient half-precision on CPU in the LM head. Set to None if your CPU works fast with bfloat16.
+
     pre_seq_len: int = 0  # a number of tokens for prompt tuning.
     tuning_mode: Optional[str] = None  # One of the finetune options: [None, 'shallow_ptune', 'deep_ptune', 'adapters']
     request_timeout: int = 30  # a number of seconds for waiting result from each node
+
+    # This settings matter for running the client with dtype bfloat16 on CPU.
+    # If the CPU doesn't support AVX512, chunked_forward() significantly speeds up computations.
+    use_chunked_forward: Union[Literal['auto'], bool] = 'auto'
+    chunked_forward_step: int = 16384
 
 
 original_register_parameter = nn.Module.register_parameter

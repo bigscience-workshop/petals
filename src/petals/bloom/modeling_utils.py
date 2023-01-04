@@ -4,9 +4,11 @@ Based on https://github.com/huggingface/transformers/commit/ca2a55e9dfb245527b5e
 See commit history for authorship.
 """
 
+import psutil
 import torch
 import torch.nn.functional as F
 import torch.utils.checkpoint
+from cpufeature import CPUFeature
 from hivemind import get_logger
 from torch import nn
 from transformers import BloomConfig
@@ -24,7 +26,14 @@ class LMHead(nn.Module):
     def __init__(self, config: BloomConfig, word_embeddings: nn.Embedding):
         super().__init__()
         self.word_embeddings = word_embeddings
-        self.chunk_size = config.chunk_size_for_efficient_fp16_on_cpu
+
+        self.use_chunked_forward = config.use_chunked_forward
+        if self.use_chunked_forward == 'auto':
+            # If the CPU supports AVX512, plain bfloat16 is ~10x faster than chunked_forward().
+            # Otherwise, it's ~8x slower.
+            self.use_chunked_forward = not (CPUFeature.AVX512f and CPUFeature.OS_AVX512)
+        self.chunked_forward_step = config.chunked_forward_step
+        self._bf16_warning_shown = False
 
     @property
     def in_features(self) -> int:
@@ -46,7 +55,7 @@ class LMHead(nn.Module):
         word_embeddings = self.word_embeddings.weight
 
         if (
-            self.chunk_size is not None
+            self.use_chunked_forward
             and word_embeddings.dtype in [torch.float16, torch.bfloat16]
             and word_embeddings.device.type == "cpu"
         ):
@@ -59,9 +68,17 @@ class LMHead(nn.Module):
 
     def chunked_forward(self, hidden_states):
         """Splits word embeddings on chunks and iteratively casts them into fp32 to perform matmul more efficiently on CPU.
-        chunk_size: provides trade-off between efficiency and extra memory consumption.
+        chunked_forward_step: provides trade-off between efficiency and extra memory consumption.
         """
-        assert self.chunk_size > 0, "Chunk size for chunked forward must be positive"
+        assert self.chunked_forward_step > 0, "Chunk size for chunked forward must be positive"
+
+        if not self._bf16_warning_shown:
+            if self.word_embeddings.weight.numel() * 4 < 0.9 * psutil.virtual_memory().total:
+                logger.warning(
+                    "Running the client with dtype bfloat16 on CPU may be slow, since your CPU doesn't support AVX512. "
+                    "Consider using torch_dtype=torch.float32"
+                )
+            self._bf16_warning_shown = True
 
         word_embeddings = self.word_embeddings.weight
         num_embeddings = self.word_embeddings.num_embeddings
@@ -69,7 +86,7 @@ class LMHead(nn.Module):
         hidden_states = hidden_states.float()
         output = torch.empty(*hidden_states.shape[:-1], num_embeddings)
 
-        for i in range(0, num_embeddings, self.chunk_size):
-            chunk = word_embeddings[i : i + self.chunk_size].float()
-            output[..., i : i + self.chunk_size] = F.linear(hidden_states, chunk)
+        for i in range(0, num_embeddings, self.chunked_forward_step):
+            chunk = word_embeddings[i : i + self.chunked_forward_step].float()
+            output[..., i : i + self.chunked_forward_step] = F.linear(hidden_states, chunk)
         return output
