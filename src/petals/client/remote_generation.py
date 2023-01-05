@@ -40,7 +40,7 @@ class RemoteGenerationMixin:
 
         return self.transformer.h.inference_session(**kwargs)
 
-    @torch.no_grad()
+    @torch.inference_mode()
     def generate(
         self,
         inputs: Optional[torch.Tensor] = None,
@@ -177,7 +177,9 @@ class RemoteGenerationMixin:
                     prompts, intermediate_prompts = self.transformer.get_prompt(hidden_state.size(0))
                     hidden_state = torch.cat([prompts, hidden_state], dim=1)
                 hidden_state = self.transformer.word_embeddings_layernorm(hidden_state)
+
                 hidden_state = session.step(hidden_state, prompts=intermediate_prompts, hypo_ids=hypo_ids)[:, -1]
+
                 hidden_state = self.transformer.ln_f(hidden_state)
                 lm_logits = self.lm_head(hidden_state)
 
