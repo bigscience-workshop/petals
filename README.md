@@ -5,7 +5,7 @@
     <a href="https://pypi.org/project/petals/"><img src="https://img.shields.io/pypi/v/petals.svg?color=green"></a><br>
 </p>
 
-Generate text using distributed BLOOM and fine-tune it for your own tasks:
+Generate text using distributed [BLOOM-176B](https://huggingface.co/bigscience/bloom) and fine-tune it for your own tasks:
 
 ```python
 from petals import DistributedBloomForCausalLM
@@ -58,7 +58,7 @@ Check out more examples and tutorials:
 
 ## How does it work?
 
-- Petals runs large language models like BLOOM-176B **collaboratively** — you load a small part of the model, then team up with people serving the other parts to run inference or fine-tuning.
+- Petals runs large language models like [BLOOM-176B](https://huggingface.co/bigscience/bloom) **collaboratively** — you load a small part of the model, then team up with people serving the other parts to run inference or fine-tuning.
 - Inference runs at ≈ 1 sec per step (token) — 10x faster than possible with offloading, enough for chatbots and other interactive apps. Parallel inference reaches hundreds of tokens/sec.
 - Beyond classic language model APIs — you can employ any fine-tuning and sampling methods by executing custom paths through the model or accessing its hidden states. You get the comforts of an API with the flexibility of PyTorch.
 
