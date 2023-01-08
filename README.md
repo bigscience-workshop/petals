@@ -52,7 +52,7 @@ sudo docker run --net host --ipc host --gpus all --volume petals-cache:/cache --
 
 🔒 This does not allow others to run custom code on your computer. Learn more about security [here](https://github.com/bigscience-workshop/petals/wiki/Security,-privacy,-and-AI-safety).
 
-💬 If you have any issues or feedback, please join [our Discord server](https://discord.gg/D9MwApKgWa)!
+💬 If you have any issues or feedback, let us know on [our Discord server](https://discord.gg/D9MwApKgWa)!
 
 ### Check out examples, tutorials, and more
 
