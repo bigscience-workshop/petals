@@ -54,7 +54,7 @@ sudo docker run --net host --ipc host --gpus all --volume petals-cache:/cache --
 
 Example apps built with Petals:
 
-- [Chatbot](http://chat.petals.ml) web app (connects to Petals via an HTTP endpoint): [source code](https://github.com/borzunov/chat.petals.ml)
+- [Chatbot web app](http://chat.petals.ml) (connects to Petals via an HTTP endpoint): [source code](https://github.com/borzunov/chat.petals.ml)
 
 Fine-tuning the model for your own tasks:
 
