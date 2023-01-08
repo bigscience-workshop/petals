@@ -31,7 +31,9 @@ for input_ids, labels in data_loader:
     🚀 &nbsp;<b><a href="https://colab.research.google.com/drive/1Ervk6HPNS6AYVr3xVdQnY5a-TjjmLCdQ?usp=sharing">Try now in Colab</a></b>
 </p>
 
-Connect your own GPU and increase Petals capacity — run this in an [Anaconda](https://www.anaconda.com) env:
+### Connect your GPU and increase Petals capacity
+
+Run this in an [Anaconda](https://www.anaconda.com) env:
 
 ```bash
 conda install pytorch cudatoolkit=11.3 -c pytorch
@@ -48,11 +50,19 @@ sudo docker run --net host --ipc host --gpus all --volume petals-cache:/cache --
 
 💬 If you have any issues or feedback, please join [our Discord server](https://discord.gg/D9MwApKgWa)!
 
-Check out more examples, tools, and tutorials:
+### Check out examples, tutorials, and more
+
+Example apps built with Petals:
 
 - Chatbot web app (connects to Petals via an HTTP endpoint): [link](http://chat.petals.ml), [source code](https://github.com/borzunov/chat.petals.ml)
-- Training a personified chatbot: [notebook](https://github.com/bigscience-workshop/petals/blob/main/examples/prompt-tuning-personachat.ipynb)
-- Fine-tuning BLOOM for text semantic classification: [notebook](https://github.com/bigscience-workshop/petals/blob/main/examples/prompt-tuning-sst2.ipynb)
+
+Fine-tuning the model for your own tasks:
+
+- Training a personified chatbot: [tutorial](https://github.com/bigscience-workshop/petals/blob/main/examples/prompt-tuning-personachat.ipynb)
+- Fine-tuning BLOOM for text semantic classification: [tutorial](https://github.com/bigscience-workshop/petals/blob/main/examples/prompt-tuning-sst2.ipynb)
+
+Useful tools and advanced tutorials:
+
 - Public swarm monitor: [link](http://health.petals.ml), [source code](https://github.com/borzunov/health.petals.ml)
 - Launching your own swarm: [tutorial](https://github.com/bigscience-workshop/petals/wiki/Launch-your-own-swarm)
 - Running a custom foundation model: [tutorial](https://github.com/bigscience-workshop/petals/wiki/Run-a-custom-model-with-Petals)
