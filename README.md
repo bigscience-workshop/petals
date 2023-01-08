@@ -54,7 +54,7 @@ sudo docker run --net host --ipc host --gpus all --volume petals-cache:/cache --
 
 Example apps built with Petals:
 
-- Chatbot web app (connects to Petals via an HTTP endpoint): [link](http://chat.petals.ml), [source code](https://github.com/borzunov/chat.petals.ml)
+- [Chatbot](http://chat.petals.ml) web app (connects to Petals via an HTTP endpoint): [source code](https://github.com/borzunov/chat.petals.ml)
 
 Fine-tuning the model for your own tasks:
 
@@ -63,7 +63,7 @@ Fine-tuning the model for your own tasks:
 
 Useful tools and advanced tutorials:
 
-- Public swarm monitor: [link](http://health.petals.ml), [source code](https://github.com/borzunov/health.petals.ml)
+- [Monitor](http://health.petals.ml) for the public swarm: [source code](https://github.com/borzunov/health.petals.ml)
 - Launching your own swarm: [tutorial](https://github.com/bigscience-workshop/petals/wiki/Launch-your-own-swarm)
 - Running a custom foundation model: [tutorial](https://github.com/bigscience-workshop/petals/wiki/Run-a-custom-model-with-Petals)
 
