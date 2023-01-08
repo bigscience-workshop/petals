@@ -127,7 +127,10 @@ def main():
     parser.add_argument("--mean_balance_check_period", type=float, default=60,
                         help="Check the swarm's balance every N seconds (and rebalance it if necessary)")
 
+    parser.add_argument("--auto_relay", action='store_true', help="Enabling relay for NAT traversal")
+    parser.add_argument('--no-auto_relay', dest='auto_relay', action='store_false')
     parser.add_argument("--use_auth_token", action='store_true', help="auth token for from_pretrained")
+
     parser.add_argument('--load_in_8bit', type=str, default=None,
                         help="Convert the loaded transformer blocks into mixed-8bit quantized model. "
                              "Default: True if GPU is available. Use `--load_in_8bit False` to disable this")
@@ -140,7 +143,7 @@ def main():
                         help="Skip checking this server's reachability via health.petals.ml "
                              "when connecting to the public swarm. If you connect to a private swarm, "
                              "the check is skipped by default. Use this option only if you know what you are doing")
-
+    parser.set_defaults(auto_relay=True)
     # fmt:on
     args = vars(parser.parse_args())
     args.pop("config", None)
@@ -158,6 +161,8 @@ def main():
 
     announce_maddrs = args.pop("announce_maddrs")
     public_ip = args.pop("public_ip")
+    use_auto_relay = args.pop("auto_relay")
+
     if public_ip is not None:
         assert announce_maddrs is None, "You can't use --public_ip and --announce_maddrs at the same time"
         assert port != 0, "Please specify a fixed non-zero --port when you use --public_ip (e.g., --port 31337)"
@@ -197,6 +202,7 @@ def main():
         compression=compression,
         max_disk_space=max_disk_space,
         attn_cache_size=attn_cache_size,
+        use_auto_relay=use_auto_relay,
     )
     try:
         server.run()

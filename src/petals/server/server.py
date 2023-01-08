@@ -78,6 +78,8 @@ class Server:
         load_in_8bit: Optional[bool] = None,
         tensor_parallel_devices: Optional[Sequence[torch.device]] = None,
         skip_reachability_check: bool = False,
+        use_relay: bool = True,
+        use_auto_relay: bool = True,
         **kwargs,
     ):
         """Create a server with one or more bloom blocks. See run_server.py for documentation."""
@@ -117,7 +119,8 @@ class Server:
         )
         self.module_uids = [f"{self.prefix}.{block_index}" for block_index in range(self.block_config.n_layer)]
 
-        self.dht = DHT(initial_peers=initial_peers, start=True, num_workers=self.block_config.n_layer, **kwargs)
+        self.dht = DHT(initial_peers=initial_peers, start=True, num_workers=self.block_config.n_layer,
+                       use_relay=use_relay, use_auto_relay=use_auto_relay, **kwargs)
         visible_maddrs_str = [str(a) for a in self.dht.get_visible_maddrs()]
         if initial_peers == PUBLIC_INITIAL_PEERS:
             logger.info(f"Connecting to the public swarm, peer_id = {self.dht.peer_id}")
