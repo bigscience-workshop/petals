@@ -31,6 +31,8 @@ for input_ids, labels in data_loader:
     🚀 &nbsp;<b><a href="https://colab.research.google.com/drive/1Ervk6HPNS6AYVr3xVdQnY5a-TjjmLCdQ?usp=sharing">Try now in Colab</a></b>
 </p>
 
+🔏 Your data will be processed by other people in the public swarm. Learn more about privacy [here](https://github.com/bigscience-workshop/petals/wiki/Security,-privacy,-and-AI-safety).
+
 ### Connect your GPU and increase Petals capacity
 
 Run this in an [Anaconda](https://www.anaconda.com) env:
@@ -47,6 +49,8 @@ Or use our [Docker](https://www.docker.com) image:
 sudo docker run --net host --ipc host --gpus all --volume petals-cache:/cache --rm \
     learningathome/petals:main python -m petals.cli.run_server bigscience/bloom-petals
 ```
+
+🔒 This does not allow others to run custom code on your computer. Learn more about security [here](https://github.com/bigscience-workshop/petals/wiki/Security,-privacy,-and-AI-safety).
 
 💬 If you have any issues or feedback, please join [our Discord server](https://discord.gg/D9MwApKgWa)!
 
