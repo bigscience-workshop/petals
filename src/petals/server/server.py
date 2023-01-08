@@ -119,8 +119,14 @@ class Server:
         )
         self.module_uids = [f"{self.prefix}.{block_index}" for block_index in range(self.block_config.n_layer)]
 
-        self.dht = DHT(initial_peers=initial_peers, start=True, num_workers=self.block_config.n_layer,
-                       use_relay=use_relay, use_auto_relay=use_auto_relay, **kwargs)
+        self.dht = DHT(
+            initial_peers=initial_peers,
+            start=True,
+            num_workers=self.block_config.n_layer,
+            use_relay=use_relay,
+            use_auto_relay=use_auto_relay,
+            **kwargs,
+        )
         visible_maddrs_str = [str(a) for a in self.dht.get_visible_maddrs()]
         if initial_peers == PUBLIC_INITIAL_PEERS:
             logger.info(f"Connecting to the public swarm, peer_id = {self.dht.peer_id}")
