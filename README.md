@@ -48,11 +48,12 @@ sudo docker run --net host --ipc host --gpus all --volume petals-cache:/cache --
 
 💬 If you have any issues or feedback, please join [our Discord server](https://discord.gg/D9MwApKgWa)!
 
-Check out more examples and tutorials:
+Check out more examples, tools, and tutorials:
 
-- Chatbot web app (connects to Petals via an HTTP endpoint): [link](http://chat.petals.ml), [source code](https://github.com/borzunov/petals-chat)
+- Chatbot web app (connects to Petals via an HTTP endpoint): [link](http://chat.petals.ml), [source code](https://github.com/borzunov/chat.petals.ml)
 - Training a personified chatbot: [notebook](https://github.com/bigscience-workshop/petals/blob/main/examples/prompt-tuning-personachat.ipynb)
 - Fine-tuning BLOOM for text semantic classification: [notebook](https://github.com/bigscience-workshop/petals/blob/main/examples/prompt-tuning-sst2.ipynb)
+- Public swarm monitor: [link](http://health.petals.ml), [source code](https://github.com/borzunov/health.petals.ml)
 - Launching your own swarm: [tutorial](https://github.com/bigscience-workshop/petals/wiki/Launch-your-own-swarm)
 - Running a custom foundation model: [tutorial](https://github.com/bigscience-workshop/petals/wiki/Run-a-custom-model-with-Petals)
 
