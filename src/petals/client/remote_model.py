@@ -107,6 +107,8 @@ class DistributedBloomModel(_LowCPUMemoryMixin, BloomModel):
                 num_workers=n_layer,
                 startup_timeout=config.daemon_startup_timeout,
                 start=True,
+                use_relay=True,
+                use_auto_relay=True,
             )
         )
         assert isinstance(dht, hivemind.DHT) and dht.is_alive(), "dht must be a running hivemind.DHT instance"
