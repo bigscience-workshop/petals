@@ -12,9 +12,6 @@ from petals.server.server import Server
 logger = get_logger(__file__)
 
 
-TRUE_CONSTANTS = ["TRUE", "1"]
-
-
 def main():
     # fmt:off
     parser = configargparse.ArgParser(default_config_files=["config.yml"],
@@ -40,6 +37,9 @@ def main():
                         help='Your public IPv4 address, which is visible from the Internet. '
                              'This is a simplified way to set the --announce_maddrs option (see below).'
                              'Default: server announces IPv4/IPv6 addresses of your network interfaces')
+
+    parser.add_argument("--no_auto_relay", action="store_false", dest="use_auto_relay",
+                        help="Do not look for libp2p relays to reach peers behind NATs/firewalls")
 
     parser.add_argument('--host_maddrs', nargs='+', required=False,
                         help='Multiaddrs to listen for external connections from other peers')
@@ -130,11 +130,7 @@ def main():
     parser.add_argument("--mean_balance_check_period", type=float, default=60,
                         help="Check the swarm's balance every N seconds (and rebalance it if necessary)")
 
-    parser.add_argument("--use_auto_relay", type=str, default="True",
-                        help="Look for libp2p relays for NAT traversal. "
-                             "Use `--use_auto_relay False/True` to disable/enable this")
     parser.add_argument("--use_auth_token", action='store_true', help="auth token for from_pretrained")
-
     parser.add_argument('--load_in_8bit', type=str, default=None,
                         help="Convert the loaded transformer blocks into mixed-8bit quantized model. "
                              "Default: True if GPU is available. Use `--load_in_8bit False` to disable this")
@@ -193,11 +189,9 @@ def main():
     if args.pop("new_swarm"):
         args["initial_peers"] = []
 
-    use_auto_relay = args.pop("use_auto_relay").upper() in TRUE_CONSTANTS
-
     load_in_8bit = args.pop("load_in_8bit")
     if load_in_8bit is not None:
-        load_in_8bit = load_in_8bit.upper() in TRUE_CONSTANTS
+        args["load_in_8bit"] = load_in_8bit.lower() in ["true", "1"]
 
     server = Server(
         **args,
@@ -206,8 +200,6 @@ def main():
         compression=compression,
         max_disk_space=max_disk_space,
         attn_cache_size=attn_cache_size,
-        use_auto_relay=use_auto_relay,
-        load_in_8bit=load_in_8bit,
     )
     try:
         server.run()
