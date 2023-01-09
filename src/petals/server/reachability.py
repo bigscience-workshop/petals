@@ -6,7 +6,7 @@ from hivemind.utils.logging import get_logger
 logger = get_logger(__file__)
 
 
-def check_reachability(peer_id, wait_time: float = 600, retry_delay: float = 15) -> None:
+def check_reachability(peer_id, wait_time: float = 7 * 60, retry_delay: float = 15) -> None:
     for attempt_no in range(math.floor(wait_time / retry_delay) + 1):
         try:
             r = requests.get(f"http://health.petals.ml/api/v1/is_reachable/{peer_id}", timeout=10)
@@ -18,7 +18,8 @@ def check_reachability(peer_id, wait_time: float = 600, retry_delay: float = 15)
                 return
 
             if attempt_no == 0:
-                # If health.petals.ml didn't manage to connect right away, we need to wait for libp2p to set up relays
+                # Usually, libp2p manages to set up relays before we finish loading blocks.
+                # In other cases, we may need to wait for up to `wait_time` seconds before it's done.
                 logger.info("Detected a NAT or a firewall, connecting to libp2p relays. This takes a few minutes")
             time.sleep(retry_delay)
         except Exception as e:
