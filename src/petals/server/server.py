@@ -215,10 +215,7 @@ class Server:
                 response = r.json()
 
                 if response["success"]:
-                    logger.info(
-                        f"Server is reachable from the Internet. "
-                        f"It will appear at http://health.petals.ml soon, peer_id = {self.dht.peer_id}"
-                    )
+                    logger.info("Server is reachable from the Internet. It will appear at http://health.petals.ml soon")
                     return
 
                 if i < n_retries - 1:
