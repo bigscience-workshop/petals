@@ -240,7 +240,9 @@ class Server:
         assert (
             self.converted_model_name_or_path == "bigscience/bloom-petals"
         ), "If you use a model other than bigscience/bloom-petals, please specify --num_blocks manually"
-        assert self.device.type == "cuda", "If you run a non-GPU server, please specify --num_blocks manually"
+        assert self.device.type == "cuda", \
+            "GPU is not available. If you want to run a CPU-only server, please specify --num_blocks. " \
+            "CPU-only servers in the public swarm are discouraged since they are much slower"
         num_devices = len(self.tensor_parallel_devices) if self.tensor_parallel_devices else 1
 
         if num_devices > 1:
