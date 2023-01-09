@@ -130,8 +130,6 @@ class Server:
         visible_maddrs_str = [str(a) for a in self.dht.get_visible_maddrs()]
         if initial_peers == PUBLIC_INITIAL_PEERS:
             logger.info(f"Connecting to the public swarm, peer_id = {self.dht.peer_id}")
-            if not skip_reachability_check:
-                self._check_reachability()
         else:
             logger.info(f"Running DHT node on {visible_maddrs_str}, initial peers = {initial_peers}")
 
@@ -203,31 +201,43 @@ class Server:
         self.mean_balance_check_period = mean_balance_check_period
         self.mean_block_selection_delay = mean_block_selection_delay
 
+        # We delay the reachability check to the end of init, so the server has time to join libp2p relays
+        if not skip_reachability_check and initial_peers == PUBLIC_INITIAL_PEERS:
+            self._check_reachability()
+
         self.stop = threading.Event()
 
-    def _check_reachability(self):
-        try:
-            r = requests.get(f"http://health.petals.ml/api/v1/is_reachable/{self.dht.peer_id}", timeout=10)
-            r.raise_for_status()
-            response = r.json()
-        except Exception as e:
-            logger.warning(f"Skipping reachability check because health.petals.ml is down: {repr(e)}")
-            return
+    def _check_reachability(self, n_retries=10, retry_delay=30):
+        for i in range(n_retries):
+            try:
+                r = requests.get(f"http://health.petals.ml/api/v1/is_reachable/{self.dht.peer_id}", timeout=10)
+                r.raise_for_status()
+                response = r.json()
 
-        if not response["success"]:
-            # This happens only if health.petals.ml is up and explicitly told us that we are unreachable
-            raise RuntimeError(
-                f"Server is not reachable from the Internet:\n\n"
-                f"{response['message']}\n\n"
-                f"You need to fix your port forwarding and/or firewall settings. How to do that:\n\n"
-                f"    1. Choose a specific port for the Petals server, for example, 31337.\n"
-                f"    2. Ensure that this port is accessible from the Internet and not blocked by your firewall.\n"
-                f"    3. Add these arguments to explicitly announce your IP address and port to other peers:\n"
-                f"        python -m petals.cli.run_server ... --public_ip {response['your_ip']} --port 31337\n"
-                f"    4. If it does not help, ask for help in our Discord: https://discord.gg/Wuk8BnrEPH\n"
-            )
+                if response["success"]:
+                    logger.info(
+                        f"Server is reachable from the Internet. "
+                        f"It will appear at http://health.petals.ml soon, peer_id = {self.dht.peer_id}"
+                    )
+                    return
 
-        logger.info("Server is reachable from the Internet, it will appear at http://health.petals.ml soon")
+                if i < n_retries - 1:
+                    logger.info(f"Server is not reachable from the Internet yet. Retrying in {retry_delay} sec")
+                    time.sleep(retry_delay)
+            except Exception as e:
+                logger.warning(f"Skipping reachability check because health.petals.ml is down: {repr(e)}")
+                return
+
+        raise RuntimeError(
+            f"Server has not become reachable from the Internet:\n\n"
+            f"{response['message']}\n\n"
+            f"You need to fix your port forwarding and/or firewall settings. How to do that:\n\n"
+            f"    1. Choose a specific port for the Petals server, for example, 31337.\n"
+            f"    2. Ensure that this port is accessible from the Internet and not blocked by your firewall.\n"
+            f"    3. Add these arguments to explicitly announce your IP address and port to other peers:\n"
+            f"        python -m petals.cli.run_server ... --public_ip {response['your_ip']} --port 31337\n"
+            f"    4. If it does not help, ask for help in our Discord: https://discord.gg/Wuk8BnrEPH\n"
+        )
 
     def _choose_num_blocks(self) -> int:
         assert (
