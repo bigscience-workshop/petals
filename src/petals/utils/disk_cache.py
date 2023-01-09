@@ -73,14 +73,14 @@ def free_disk_space_for(
         if freed_space >= extra_space_needed:
             break
 
+    gib = 1024**3
     if pending_removal:
-        gib = 1024**3
         logger.info(f"Removing {len(pending_removal)} blocks to free {freed_space / gib:.1f} GiB of disk space")
         delete_strategy = cache_info.delete_revisions(*pending_removal)
         delete_strategy.execute()
 
     if freed_space < extra_space_needed:
         raise RuntimeError(
-            f"Insufficient disk space to load a block. Please free {extra_space_needed - freed_space:.1f} GiB "
+            f"Insufficient disk space to load a block. Please free {(extra_space_needed - freed_space) / gib:.1f} GiB "
             f"on the volume for {cache_dir} or increase --max_disk_space if you set it manually"
         )
