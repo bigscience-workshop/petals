@@ -9,7 +9,6 @@ import time
 from typing import Dict, List, Optional, Sequence, Union
 
 import numpy as np
-import psutil
 import torch
 from hivemind import DHT, MAX_DHT_TIME_DISCREPANCY_SECONDS, BatchTensorDescriptor, get_dht_time
 from hivemind.moe.server.layers import add_custom_models_from_file
@@ -300,10 +299,6 @@ class Server:
     def _clean_memory_and_fds(self):
         del self.module_container
         gc.collect()  # In particular, this closes unused file descriptors
-
-        cur_proc = psutil.Process()
-        num_fds = [proc.num_fds() for proc in [cur_proc] + cur_proc.children(recursive=True)]
-        logger.info(f"Cleaning up, left {sum(num_fds)} open file descriptors")
 
         if self.device.type == "cuda":
             torch.cuda.empty_cache()
