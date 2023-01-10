@@ -394,7 +394,7 @@ class TransformerConnectionHandler(ConnectionHandler):
         bits_per_token = 2 * backend.args_schema[0].shape[-1] * torch.finfo(backend.args_schema[0].dtype).bits // 8
         # TODO does not account for tensor parallelism! switch to backend.get_descriptors once TP is merged, save as property to avoid recomputation
         if CACHE_TOKENS_AVAILABLE in rpc_info:
-            logger.error(f"Block rpc_info dict has a reserved field {CACHE_TOKENS_AVAILABLE} : {rpc_info}")
+            raise RuntimeError(f"Block rpc_info dict has a reserved field {CACHE_TOKENS_AVAILABLE} : {rpc_info}")
         rpc_info[CACHE_TOKENS_AVAILABLE] = cache_bytes_left // bits_per_token
         return runtime_pb2.ExpertInfo(serialized_info=MSGPackSerializer.dumps(rpc_info))
 
