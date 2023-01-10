@@ -388,6 +388,7 @@ class TransformerConnectionHandler(ConnectionHandler):
             rpc_info.update(self.module_backends[request.uid].get_info())
         else:
             backend = next(iter(self.module_backends.values()))
+            # not saving keys to rpc_info since user did not request any uid
 
         cache_bytes_left = max(0, backend.memory_cache.max_size_bytes - backend.memory_cache.current_size_bytes)
         bits_per_token = 2 * backend.args_schema[0].shape[-1] * torch.finfo(backend.args_schema[0].dtype).bits // 8
