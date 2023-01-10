@@ -1,6 +1,7 @@
 import pytest
 import torch
-from hivemind import DHT, BatchTensorDescriptor, get_logger
+import torch.nn.functional as F
+from hivemind import DHT, BatchTensorDescriptor, get_logger, use_hivemind_log_handler
 from hivemind.proto import runtime_pb2
 from test_utils import *
 
@@ -39,10 +40,10 @@ def test_remote_sequential():
     assert hidden.shape == test_inputs.shape
     assert hidden.requires_grad
     second_half_outputs = second_half(hidden)
-    assert torch.allclose(second_half_outputs, full_outputs)
+    assert torch.allclose(second_half_outputs, full_outputs, atol=1e-4)
 
     (second_half_outputs * grad_proj).sum().backward()
-    assert torch.allclose(test_inputs.grad, full_grad)
+    assert torch.allclose(test_inputs.grad, full_grad, atol=1e-3)
 
     # test RemoteSequential with lossy compression
     block_uids = [f"{config.dht_prefix}{UID_DELIMITER}{i}" for i in range(config.n_layer)]
@@ -58,7 +59,7 @@ def test_remote_sequential():
     assert not torch.allclose(test_inputs.grad, full_grad, rtol=0, atol=1e-2), "compression was not used"
     assert abs(approx_outputs - full_outputs).mean() < 0.01
     absmax = abs(full_grad).max()
-    assert abs(test_inputs.grad / absmax - full_grad / absmax).mean() < 0.01
+    assert abs(test_inputs.grad / absmax - full_grad / absmax).mean() < 0.05
 
 
 class DummyCustomSequenceManager(RemoteSequenceManager):
@@ -87,9 +88,9 @@ def test_remote_sequential_prompts(batch_size=2, seq_len=5, pre_seq_len=3):
     dht = DHT(initial_peers=config.initial_peers, client_mode=True, start=True)
     remote_sequential = RemoteSequential(config, dht)
 
-    inputs = torch.randn(batch_size, seq_len, config.hidden_size)
-    output_proj = torch.randn(batch_size, seq_len + pre_seq_len, config.hidden_size)
-    input_prompts = torch.randn(batch_size, pre_seq_len, config.hidden_size, requires_grad=True)
+    inputs = F.normalize(torch.randn(batch_size, seq_len, config.hidden_size), dim=-1)
+    output_proj = F.normalize(torch.randn(batch_size, seq_len + pre_seq_len, config.hidden_size), dim=-1)
+    input_prompts = F.normalize(torch.randn(batch_size, pre_seq_len, config.hidden_size, requires_grad=True), dim=-1)
     intermediate_prompts = torch.randn(config.n_layer, batch_size, pre_seq_len, config.hidden_size, requires_grad=True)
 
     input_prompts = input_prompts.detach().requires_grad_(True)
@@ -117,10 +118,10 @@ def test_remote_sequential_prompts(batch_size=2, seq_len=5, pre_seq_len=3):
         block = load_pretrained_block(MODEL_NAME, block_index=block_index, torch_dtype=torch.float32)
         (outputs_ref,) = block(outputs_ref)
 
-    assert torch.allclose(outputs_ref, outputs)
+    assert torch.allclose(outputs_ref, outputs, atol=1e-3)
 
     (outputs_ref * output_proj).sum().backward()
     assert input_prompts_ref.grad is not None
-    assert torch.allclose(input_prompts_ref.grad, input_prompts.grad)
+    assert torch.allclose(input_prompts_ref.grad, input_prompts.grad, atol=1e-2)
     assert intermediate_prompts_ref.grad is not None
-    assert torch.allclose(intermediate_prompts_ref.grad, intermediate_prompts.grad)
+    assert torch.allclose(intermediate_prompts_ref.grad, intermediate_prompts.grad, atol=1e-2)

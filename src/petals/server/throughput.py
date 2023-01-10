@@ -2,9 +2,10 @@ import fcntl
 import json
 import os
 import time
+from collections import Counter
 from hashlib import sha256
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional, Sequence, Union
 
 import torch
 from hivemind.utils.logging import get_logger
@@ -12,7 +13,7 @@ from transformers import BloomConfig
 
 from petals.bloom.block import WrappedBloomBlock
 from petals.server.block_utils import resolve_block_dtype
-from petals.utils.convert_8bit import replace_8bit_linear
+from petals.utils.convert_block import convert_block
 from petals.utils.disk_cache import DEFAULT_CACHE_DIR
 
 logger = get_logger(__file__)
@@ -37,6 +38,7 @@ def get_host_throughput(
     dtype: Union[str, torch.dtype],
     *,
     load_in_8bit: bool,
+    tensor_parallel_devices: Sequence[torch.device],
     force_eval: bool = False,
     cache_dir: Optional[str] = None,
 ) -> float:
@@ -57,6 +59,9 @@ def get_host_throughput(
         cache_key = f"config_{sha256(str(config).encode()).hexdigest()[-16:]}"
         cache_key += f"_device_{get_device_name(device).replace(' ', '_')}"
         cache_key += f"_dtype_{get_dtype_name(dtype, load_in_8bit)}"
+        if len(tensor_parallel_devices) > 1:
+            for i, device_i in enumerate(tensor_parallel_devices):
+                cache_key += f"_tp{i}_{get_device_name(device_i).replace(' ', '_')}"
 
         cache = {}
         try:
@@ -69,7 +74,9 @@ def get_host_throughput(
             cache = {}
 
         if cache_key not in cache:
-            cache[cache_key] = measure_throughput_info(config, device, dtype, load_in_8bit=load_in_8bit)
+            cache[cache_key] = measure_throughput_info(
+                config, device, dtype, load_in_8bit=load_in_8bit, tensor_parallel_devices=tensor_parallel_devices
+            )
 
             try:
                 os.makedirs(cache_path.parent, exist_ok=True)
@@ -87,6 +94,7 @@ def measure_throughput_info(
     dtype: torch.dtype,
     *,
     load_in_8bit: bool,
+    tensor_parallel_devices: Sequence[torch.device],
 ) -> float:
     """Measure network and compute throughput in forward pass tokens per second"""
 
@@ -95,7 +103,9 @@ def measure_throughput_info(
     )
     return min(
         measure_network_rps(config),
-        measure_compute_rps(config, device, dtype, load_in_8bit=load_in_8bit),
+        measure_compute_rps(
+            config, device, dtype, load_in_8bit=load_in_8bit, tensor_parallel_devices=tensor_parallel_devices
+        ),
     )
 
 
@@ -129,14 +139,15 @@ def measure_compute_rps(
     dtype: torch.dtype,
     *,
     load_in_8bit: bool,
+    tensor_parallel_devices: Sequence[torch.device],
     n_tokens: int = 16,
     n_steps: int = 500,
 ) -> float:
+    if not tensor_parallel_devices:
+        tensor_parallel_devices = (device,)
     with torch.inference_mode():
         block = WrappedBloomBlock(config).to(dtype)
-        if load_in_8bit:
-            block = replace_8bit_linear(block)
-        block = block.to(device)
+        block = convert_block(block, config, tensor_parallel_devices, device, load_in_8bit=load_in_8bit, freeze=True)
 
         cache = None
         elapsed = 0
@@ -149,9 +160,13 @@ def measure_compute_rps(
                 elapsed += time.perf_counter() - start_time
         device_rps = n_steps * n_tokens / elapsed
 
+    devices_repr = get_device_name(device)
+    if len(tensor_parallel_devices) > 1:
+        device_names = tuple(map(get_device_name, map(torch.device, tensor_parallel_devices)))
+        devices_repr = ", ".join(f"{count}x {name}" for name, count in Counter(device_names).most_common())
+
     logger.info(
-        f"Forward pass throughput ({get_device_name(device)}, {get_dtype_name(dtype, load_in_8bit)}): "
-        f"{device_rps:.1f} RPS"
+        f"Forward pass throughput ({devices_repr}, {get_dtype_name(dtype, load_in_8bit)}): " f"{device_rps:.1f} RPS"
     )
     return device_rps
 

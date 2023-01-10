@@ -7,10 +7,17 @@ from petals.server.throughput import measure_compute_rps, measure_network_rps
 
 
 @pytest.mark.forked
-def test_throughput_basic():
+@pytest.mark.parametrize("tensor_parallel", [False, True])
+def test_throughput_basic(tensor_parallel: bool):
     config = DistributedBloomConfig.from_pretrained(MODEL_NAME)
+    tensor_parallel_devices = ("cpu", "cpu") if tensor_parallel else ()
     compute_rps = measure_compute_rps(
-        config, device=torch.device("cpu"), dtype=torch.bfloat16, load_in_8bit=False, n_steps=10
+        config,
+        device=torch.device("cpu"),
+        dtype=torch.bfloat16,
+        load_in_8bit=False,
+        tensor_parallel_devices=tensor_parallel_devices,
+        n_steps=10,
     )
     assert isinstance(compute_rps, float) and compute_rps > 0
     network_rps = measure_network_rps(config)

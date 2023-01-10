@@ -6,11 +6,9 @@ import multiprocessing as mp
 import random
 import threading
 import time
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Sequence, Union
 
 import numpy as np
-import psutil
-import requests
 import torch
 from hivemind import DHT, MAX_DHT_TIME_DISCREPANCY_SECONDS, BatchTensorDescriptor, get_dht_time
 from hivemind.moe.server.layers import add_custom_models_from_file
@@ -28,8 +26,9 @@ from petals.server.backend import TransformerBackend
 from petals.server.block_utils import get_block_size
 from petals.server.handler import TransformerConnectionHandler
 from petals.server.memory_cache import MemoryCache
-from petals.server.throughput import get_host_throughput
-from petals.utils.convert_8bit import replace_8bit_linear
+from petals.server.reachability import check_reachability
+from petals.server.throughput import get_dtype_name, get_host_throughput
+from petals.utils.convert_block import check_device_balance, convert_block
 from petals.utils.disk_cache import DEFAULT_CACHE_DIR
 
 logger = get_logger(__file__)
@@ -76,7 +75,10 @@ class Server:
         mean_block_selection_delay: float = 2.5,
         use_auth_token: Optional[str] = None,
         load_in_8bit: Optional[bool] = None,
+        tensor_parallel_devices: Optional[Sequence[torch.device]] = None,
         skip_reachability_check: bool = False,
+        use_relay: bool = True,
+        use_auto_relay: bool = True,
         **kwargs,
     ):
         """Create a server with one or more bloom blocks. See run_server.py for documentation."""
@@ -116,18 +118,26 @@ class Server:
         )
         self.module_uids = [f"{self.prefix}.{block_index}" for block_index in range(self.block_config.n_layer)]
 
-        self.dht = DHT(initial_peers=initial_peers, start=True, num_workers=self.block_config.n_layer, **kwargs)
+        self.dht = DHT(
+            initial_peers=initial_peers,
+            start=True,
+            num_workers=self.block_config.n_layer,
+            use_relay=use_relay,
+            use_auto_relay=use_auto_relay,
+            **kwargs,
+        )
         visible_maddrs_str = [str(a) for a in self.dht.get_visible_maddrs()]
         if initial_peers == PUBLIC_INITIAL_PEERS:
             logger.info(f"Connecting to the public swarm, peer_id = {self.dht.peer_id}")
-            if not skip_reachability_check:
-                self._check_reachability()
         else:
             logger.info(f"Running DHT node on {visible_maddrs_str}, initial peers = {initial_peers}")
+        self.need_reachability_check = not skip_reachability_check and initial_peers == PUBLIC_INITIAL_PEERS
 
         if device is None:
             device = "cuda" if torch.cuda.is_available() else "cpu"
         device = torch.device(device)
+        if device.type == "cuda" and device.index is None:
+            device = torch.device(device.type, index=0)
         self.device = device
 
         if isinstance(torch_dtype, str):
@@ -135,11 +145,23 @@ class Server:
         assert torch_dtype in DTYPE_MAP.values(), f"torch_dtype must be one of {list(DTYPE_MAP.values())}"
         self.torch_dtype = torch_dtype
 
+        if tensor_parallel_devices is None:
+            tensor_parallel_devices = (device,)
+        self.tensor_parallel_devices = tuple(map(torch.device, tensor_parallel_devices))
+        if len(self.tensor_parallel_devices) > 1:
+            logger.info(f"Model weights will be split between {', '.join(tensor_parallel_devices)}")
+            check_device_balance(self.tensor_parallel_devices)
+
         if load_in_8bit is None:
             load_in_8bit = device.type == "cuda"
-        if load_in_8bit:
-            logger.info("Model weights will be loaded in 8-bit format")
+            if load_in_8bit and len(self.tensor_parallel_devices) > 1:
+                load_in_8bit = False
+                logger.warning(
+                    "Tensor parallelism doesn't work properly with 8-bit weights yet, loading weights in 16-bit. "
+                    "You can explicitly set `--load_in_8bit True` to override this"
+                )
         self.load_in_8bit = load_in_8bit
+        logger.info(f"Model weights will be loaded in {get_dtype_name(torch_dtype, load_in_8bit)} format")
 
         assert num_blocks is None or block_indices is None, "Please specify num_blocks or block_indices, not both"
         if num_blocks is None and block_indices is None:
@@ -149,8 +171,7 @@ class Server:
                 first_block_index, last_block_index = block_indices.split(":")
                 first_block_index, last_block_index = map(int, map(str.strip, (first_block_index, last_block_index)))
             except Exception as e:
-                logger.error(f"Failed to parse --block_indices ({e}), must be start:end (e.g. 0:18)")
-                raise
+                raise ValueError(f"Failed to parse `--block_indices {block_indices}`, must be start:end (e.g. 0:18)")
             block_indices = range(first_block_index, last_block_index)
             num_blocks = len(block_indices)
         self.strict_block_indices, self.num_blocks = block_indices, num_blocks
@@ -174,6 +195,7 @@ class Server:
                 device,
                 torch_dtype,
                 load_in_8bit=load_in_8bit,
+                tensor_parallel_devices=self.tensor_parallel_devices,
                 force_eval=(throughput == "eval"),
                 cache_dir=cache_dir,
             )
@@ -185,42 +207,36 @@ class Server:
 
         self.stop = threading.Event()
 
-    def _check_reachability(self):
-        try:
-            r = requests.get(f"http://health.petals.ml/api/v1/is_reachable/{self.dht.peer_id}", timeout=10)
-            r.raise_for_status()
-            response = r.json()
-        except Exception as e:
-            logger.warning(f"Skipping reachability check because health.petals.ml is down: {repr(e)}")
-            return
-
-        if not response["success"]:
-            # This happens only if health.petals.ml is up and explicitly told us that we are unreachable
-            raise RuntimeError(
-                f"Server is not reachable from the Internet:\n\n"
-                f"{response['message']}\n\n"
-                f"You need to fix your port forwarding and/or firewall settings. How to do that:\n\n"
-                f"    1. Choose a specific port for the Petals server, for example, 31337.\n"
-                f"    2. Ensure that this port is accessible from the Internet and not blocked by your firewall.\n"
-                f"    3. Add these arguments to explicitly announce your IP address and port to other peers:\n"
-                f"        python -m petals.cli.run_server ... --public_ip {response['your_ip']} --port 31337\n"
-                f"    4. If it does not help, ask for help in our Discord: https://discord.gg/Wuk8BnrEPH\n"
-            )
-
-        logger.info("Server is reachable from the Internet, it will appear at http://health.petals.ml soon")
-
     def _choose_num_blocks(self) -> int:
         assert (
             self.converted_model_name_or_path == "bigscience/bloom-petals"
         ), "If you use a model other than bigscience/bloom-petals, please specify --num_blocks manually"
-        assert self.device.type == "cuda", "If you run a non-GPU server, please specify --num_blocks manually"
+        assert self.device.type == "cuda", (
+            "GPU is not available. If you want to run a CPU-only server, please specify --num_blocks. "
+            "CPU-only servers in the public swarm are discouraged since they are much slower"
+        )
+        num_devices = len(self.tensor_parallel_devices) if self.tensor_parallel_devices else 1
 
-        total_memory = torch.cuda.get_device_properties(self.device).total_memory
+        if num_devices > 1:
+            memory_per_device = tuple(
+                torch.cuda.get_device_properties(device).total_memory for device in self.tensor_parallel_devices
+            )
+            total_memory = min(memory_per_device) * num_devices
+            if max(memory_per_device) / min(memory_per_device) > 1.5:
+                raise ValueError(
+                    "GPU devices have highly uneven memory, which makes tensor parallelism inefficient. "
+                    "Please launch individual servers on each GPU or set --num_blocks manually to "
+                    "override this exception."
+                )
+        else:
+            total_memory = torch.cuda.get_device_properties(self.device).total_memory
+
         block_size = get_block_size(self.block_config, "memory", dtype=self.torch_dtype, load_in_8bit=self.load_in_8bit)
         gib = 1024**3
-        attn_cache_per_block = 0.5 * gib  # TODO: This does not account for manually set --attn_cache_size
+        attn_cache_per_block = 0.5 * gib * num_devices  # TODO: This does not account for manually set --attn_cache_size
 
-        num_blocks = math.floor((total_memory - 2 * gib) / (block_size + attn_cache_per_block))
+        autograd_memory = 2 * gib * num_devices  # gpu memory used for intermediate tensors in rpc_backward
+        num_blocks = math.floor((total_memory - autograd_memory) / (block_size + attn_cache_per_block))
         assert num_blocks >= 1, "Your GPU does not have enough memory to serve at least one block"
 
         logger.info(
@@ -260,6 +276,8 @@ class Server:
                 sender_threads=self.sender_threads,
                 use_auth_token=self.use_auth_token,
                 load_in_8bit=self.load_in_8bit,
+                tensor_parallel_devices=self.tensor_parallel_devices,
+                need_reachability_check=self.need_reachability_check,
                 start=True,
             )
             try:
@@ -285,10 +303,6 @@ class Server:
     def _clean_memory_and_fds(self):
         del self.module_container
         gc.collect()  # In particular, this closes unused file descriptors
-
-        cur_proc = psutil.Process()
-        num_fds = [proc.num_fds() for proc in [cur_proc] + cur_proc.children(recursive=True)]
-        logger.info(f"Cleaning up, left {sum(num_fds)} open file descriptors")
 
         if self.device.type == "cuda":
             torch.cuda.empty_cache()
@@ -352,6 +366,8 @@ class ModuleContainer(threading.Thread):
         expiration: Optional[float],
         use_auth_token: Optional[str],
         load_in_8bit: bool,
+        tensor_parallel_devices: Sequence[torch.device],
+        need_reachability_check: bool,
         **kwargs,
     ) -> ModuleContainer:
         module_uids = [f"{prefix}.{block_index}" for block_index in block_indices]
@@ -367,7 +383,9 @@ class ModuleContainer(threading.Thread):
         joining_announcer.start()
         logger.info(f"Announced that blocks {block_indices} are joining")
 
-        memory_cache = MemoryCache(device, attn_cache_size, alloc_timeout)
+        assert len(tensor_parallel_devices) >= 1 and all(isinstance(d, torch.device) for d in tensor_parallel_devices)
+
+        memory_cache = MemoryCache(attn_cache_size, alloc_timeout)
         blocks = {}
         try:
             for module_uid, block_index in zip(module_uids, block_indices):
@@ -380,18 +398,13 @@ class ModuleContainer(threading.Thread):
                     cache_dir=cache_dir,
                     max_disk_space=max_disk_space,
                 )
+                block = convert_block(block, block_config, tensor_parallel_devices, device, load_in_8bit, freeze=True)
 
-                if load_in_8bit:
-                    block = replace_8bit_linear(block)
-
-                block = block.to(device)
-                for param in block.parameters():
-                    param.requires_grad = False
-
-                backend_dtype = block.input_layernorm.weight.dtype if torch_dtype == "auto" else torch_dtype
+                backend_dtype = next(block.parameters()).dtype if torch_dtype == "auto" else torch_dtype
                 blocks[module_uid] = TransformerBackend(
                     module_uid,
                     block,
+                    config=block_config,
                     memory_cache=memory_cache,
                     backend_dtype=backend_dtype,
                     args_schema=(
@@ -408,6 +421,9 @@ class ModuleContainer(threading.Thread):
                     min_batch_size=min_batch_size,
                     max_batch_size=max_batch_size,
                 )
+
+            if need_reachability_check:
+                check_reachability(dht.peer_id)
         except:
             logger.debug("Shutting down backends")
             for backend in blocks.values():
@@ -451,6 +467,7 @@ class ModuleContainer(threading.Thread):
         request_timeout: float,
         session_timeout: float,
         step_timeout: float,
+        device: Union[str, torch.device],
         start: bool,
         **kwargs,
     ):
@@ -469,7 +486,8 @@ class ModuleContainer(threading.Thread):
             )
             for _ in range(num_handlers)
         ]
-        self.runtime = Runtime(self.module_backends, **kwargs)
+        self.runtime = Runtime(self.module_backends, device=None, **kwargs)
+        # note: We set device=None in runtime to avoid moving all modules to device 0 in runtime.run(). tensor_parallel has already moved it as needed.
         self.online_announcer = ModuleAnnouncerThread(
             list(self.module_backends.keys()),
             dht,

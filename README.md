@@ -5,7 +5,7 @@
     <a href="https://pypi.org/project/petals/"><img src="https://img.shields.io/pypi/v/petals.svg?color=green"></a><br>
 </p>
 
-Generate text using distributed BLOOM and fine-tune it for your own tasks:
+Generate text using distributed [BLOOM-176B](https://huggingface.co/bigscience/bloom) and fine-tune it for your own tasks:
 
 ```python
 from petals import DistributedBloomForCausalLM
@@ -31,32 +31,51 @@ for input_ids, labels in data_loader:
     🚀 &nbsp;<b><a href="https://colab.research.google.com/drive/1Ervk6HPNS6AYVr3xVdQnY5a-TjjmLCdQ?usp=sharing">Try now in Colab</a></b>
 </p>
 
-Connect your own GPU and increase Petals capacity:
+🔏 Your data will be processed by other people in the public swarm. Learn more about privacy [here](https://github.com/bigscience-workshop/petals/wiki/Security,-privacy,-and-AI-safety). For sensitive data, you can set up a [private swarm](https://github.com/bigscience-workshop/petals/wiki/Launch-your-own-swarm) among people you trust.
+
+### Connect your GPU and increase Petals capacity
+
+Run this in an [Anaconda](https://www.anaconda.com) env:
 
 ```bash
-# In an Anaconda env
 conda install pytorch cudatoolkit=11.3 -c pytorch
 pip install -U petals
 python -m petals.cli.run_server bigscience/bloom-petals
+```
 
-# Or using our GPU-enabled Docker image
+Or use our [Docker](https://www.docker.com) image:
+
+```bash
 sudo docker run --net host --ipc host --gpus all --volume petals-cache:/cache --rm \
     learningathome/petals:main python -m petals.cli.run_server bigscience/bloom-petals
 ```
 
-💬 If you have any issues or feedback, please join [our Discord server](https://discord.gg/D9MwApKgWa)!
+🔒 This does not allow others to run custom code on your computer. Learn more about security [here](https://github.com/bigscience-workshop/petals/wiki/Security,-privacy,-and-AI-safety).
 
-Check out more examples and tutorials:
+💬 If you have any issues or feedback, let us know on [our Discord server](https://discord.gg/D9MwApKgWa)!
 
-- Chatbot web app: [link](http://chat.petals.ml), [source code](https://github.com/borzunov/petals-chat)
-- Training a personified chatbot: [notebook](https://github.com/bigscience-workshop/petals/blob/main/examples/prompt-tuning-personachat.ipynb)
-- Fine-tuning BLOOM for text semantic classification: [notebook](https://github.com/bigscience-workshop/petals/blob/main/examples/prompt-tuning-sst2.ipynb)
+### Check out examples, tutorials, and more
+
+Example apps built with Petals:
+
+- [Chatbot web app](http://chat.petals.ml) (connects to Petals via an HTTP endpoint): [source code](https://github.com/borzunov/chat.petals.ml)
+
+Fine-tuning the model for your own tasks:
+
+- Training a personified chatbot: [tutorial](https://github.com/bigscience-workshop/petals/blob/main/examples/prompt-tuning-personachat.ipynb)
+- Fine-tuning BLOOM for text semantic classification: [tutorial](https://github.com/bigscience-workshop/petals/blob/main/examples/prompt-tuning-sst2.ipynb)
+
+Useful tools and advanced tutorials:
+
+- [Monitor](http://health.petals.ml) for the public swarm: [source code](https://github.com/borzunov/health.petals.ml)
 - Launching your own swarm: [tutorial](https://github.com/bigscience-workshop/petals/wiki/Launch-your-own-swarm)
 - Running a custom foundation model: [tutorial](https://github.com/bigscience-workshop/petals/wiki/Run-a-custom-model-with-Petals)
 
+📋 If you build an app running BLOOM with Petals, make sure it follows the BLOOM's [terms of use](https://huggingface.co/bigscience/bloom).
+
 ## How does it work?
 
-- Petals runs large language models like BLOOM-176B **collaboratively** — you load a small part of the model, then team up with people serving the other parts to run inference or fine-tuning.
+- Petals runs large language models like [BLOOM-176B](https://huggingface.co/bigscience/bloom) **collaboratively** — you load a small part of the model, then team up with people serving the other parts to run inference or fine-tuning.
 - Inference runs at ≈ 1 sec per step (token) — 10x faster than possible with offloading, enough for chatbots and other interactive apps. Parallel inference reaches hundreds of tokens/sec.
 - Beyond classic language model APIs — you can employ any fine-tuning and sampling methods by executing custom paths through the model or accessing its hidden states. You get the comforts of an API with the flexibility of PyTorch.
 
@@ -67,14 +86,6 @@ Check out more examples and tutorials:
 <p align="center">
     📜 &nbsp;<b><a href="https://arxiv.org/pdf/2209.01188.pdf">Read paper</a></b>
 </p>
-
-### 🔒 Privacy and security
-
-The Petals public swarm is designed for research and academic use. **Please do not use the public swarm to process sensitive data.** We ask for that because it is an open network, and it is technically possible for peers serving model layers to recover input data and model outputs or modify them in a malicious way. Instead, you can [set up a private Petals swarm](https://github.com/bigscience-workshop/petals/wiki/Launch-your-own-swarm) hosted by people and organization you trust, who are authorized to process your data. We discuss privacy and security in more detail [here](https://github.com/bigscience-workshop/petals/wiki/Security,-privacy,-and-AI-safety).
-
-### 📋 Model's terms of use
-
-Before building your own application that runs a language model with Petals, please check out the model's **terms of use, risks, and limitations**. In case of BLOOM, they are described in its [model card](https://huggingface.co/bigscience/bloom) and [license](https://huggingface.co/spaces/bigscience/license).
 
 ## FAQ
 

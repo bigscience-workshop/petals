@@ -1,6 +1,6 @@
 import os
 from contextlib import contextmanager
-from typing import List, Optional
+from typing import List, Optional, Union
 
 import hivemind
 import torch
@@ -34,10 +34,15 @@ class DistributedBloomConfig(BloomConfig):
     dht_prefix: str  # a prefix for all dht keys that correspond to this model (usually equal to model name)
     daemon_startup_timeout: int = 30
     dht: Optional[hivemind.DHT] = None  # a running DHT instance, e.g. when using the same DHT for multiple models
-    chunk_size_for_efficient_fp16_on_cpu: int = 10000  # a chunk size for a LM head for efficient half-precision on CPU
+    request_timeout: int = 30  # a number of seconds for waiting result from each node
+
     pre_seq_len: int = 0  # a number of tokens for prompt tuning.
     tuning_mode: Optional[str] = None  # One of the finetune options: [None, 'shallow_ptune', 'deep_ptune', 'adapters']
-    request_timeout: int = 30  # a number of seconds for waiting result from each node
+
+    # This settings matter for running the client with dtype bfloat16 on CPU.
+    # If the CPU doesn't support AVX512, chunked_forward() significantly speeds up computations.
+    use_chunked_forward: Union[str, bool] = "auto"
+    chunked_forward_step: int = 16384
 
 
 original_register_parameter = nn.Module.register_parameter
@@ -102,6 +107,8 @@ class DistributedBloomModel(_LowCPUMemoryMixin, BloomModel):
                 num_workers=n_layer,
                 startup_timeout=config.daemon_startup_timeout,
                 start=True,
+                use_relay=True,
+                use_auto_relay=True,
             )
         )
         assert isinstance(dht, hivemind.DHT) and dht.is_alive(), "dht must be a running hivemind.DHT instance"
