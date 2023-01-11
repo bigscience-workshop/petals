@@ -11,46 +11,36 @@ from hivemind.utils import get_logger
 logger = get_logger(__name__)
 
 
-async def check_reachability(
-    initial_peers: Sequence[str], max_peers: int = 5, threshold: float = 0.5, **kwargs
-) -> Optional[bool]:
+async def check_reachability(max_peers: int = 5, threshold: float = 0.5, **kwargs) -> Optional[bool]:
     """test if your peer is accessible by others in the swarm with the specified network options in **kwargs"""
-    probe = await P2P.create(initial_peers=initial_peers, **kwargs)
+    dht_tester = await DHTNode.create(client_mode=True, **kwargs)
+    protocol = ReachabilityProtocol(dht_tester.protocol.p2p)
     cancel_event = asyncio.Event()
-    probe_task = asyncio.create_task(ReachabilityProtocol(probe).serve(cancel_event))
-    dht_tester = await DHTNode.create(initial_peers=initial_peers, client_mode=True, no_listen=True)
-
+    serve_task = asyncio.create_task(protocol.serve(cancel_event))
     try:
-        past_connected_peers = await probe._client.list_peers()
-        for peer_info in past_connected_peers:
-            await probe._client.disconnect(peer_info.peer_id)
-        protocol = ReachabilityProtocol(dht_tester.protocol.p2p)
-        found_dht_peers = dht_tester.protocol.routing_table.peer_id_to_uid.keys()
-
         successes = requests = 0
-        for remote_peer in sorted(found_dht_peers, key=lambda p: p not in past_connected_peers):
-            probe_available = await protocol.call_check(remote_peer=remote_peer, check_peer=probe.peer_id)
+        for remote_peer in list(dht_tester.protocol.routing_table.peer_id_to_uid.keys()):
+            probe_available = await protocol.call_check(remote_peer=remote_peer, check_peer=dht_tester.peer_id)
             if probe_available is None:
                 continue  # remote peer failed to check probe
             successes += probe_available
             requests += 1
             if requests >= max_peers:
                 break
-
         logger.debug(f"Reachability: observed {successes} successes out of {requests} requests")
         return (successes / requests) >= threshold if requests > 0 else None
     finally:
         cancel_event.set()
-        await probe_task
-        await probe.shutdown()
+        await serve_task
         await dht_tester.shutdown()
 
 
 class ReachabilityProtocol(ServicerBase):
     """Mini protocol to test if a locally running peer is accessible by other devices in the swarm"""
 
-    def __init__(self, p2p: P2P, wait_timeout: float = 5.0):
-        self.p2p, self.wait_timeout = p2p, wait_timeout
+    def __init__(self, p2p: P2P, *, probe: Optional[P2P] = None, wait_timeout: float = 5.0):
+        probe = probe if probe is not None else p2p
+        self.p2p, self.probe, self.wait_timeout = p2p, probe, wait_timeout
         super().__init__()
 
     async def call_check(self, remote_peer: PeerID, *, check_peer: PeerID) -> Optional[bool]:
@@ -58,7 +48,7 @@ class ReachabilityProtocol(ServicerBase):
         try:
             request = dht_pb2.PingRequest(peer=dht_pb2.NodeInfo(node_id=check_peer.to_bytes()))
             timeout = self.wait_timeout if check_peer == remote_peer else self.wait_timeout * 2
-            response = await self.get_stub(self.p2p, remote_peer).rpc_check(request, timeout=timeout)
+            response = await self.get_stub(self.probe, remote_peer).rpc_check(request, timeout=timeout)
             return response.available
         except Exception as e:
             logger.debug(f"requested {remote_peer} to check {check_peer}, but got {repr(e)}", exc_info=True)
@@ -84,4 +74,8 @@ class ReachabilityProtocol(ServicerBase):
 
 
 async def _attach_to_dht(_: hivemind.DHT, node: DHTNode, cls: callable, **kwargs):
-    asyncio.create_task(cls(node.protocol.p2p, **kwargs).serve())
+    p2p = node.protocol.p2p
+    initial_peers = [f"{addr}/p2p/{info.peer_id.to_base58()}" for info in await p2p.list_peers() for addr in info.addrs]
+    initial_peers.extend(map(str, await p2p.get_visible_maddrs()))
+    probe = await P2P.create(initial_peers=initial_peers, dht_mode="client", no_listen=True)
+    asyncio.create_task(cls(p2p, probe=probe, **kwargs).serve())
