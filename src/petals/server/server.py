@@ -124,6 +124,7 @@ class Server:
             num_workers=self.block_config.n_layer,
             use_relay=use_relay,
             use_auto_relay=use_auto_relay,
+            startup_timeout=60,
             **kwargs,
         )
         visible_maddrs_str = [str(a) for a in self.dht.get_visible_maddrs()]
