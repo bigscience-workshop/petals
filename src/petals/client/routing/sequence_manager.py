@@ -156,10 +156,20 @@ class RemoteSequenceManager:
                 for block_info in new_block_infos:
                     if not block_info:
                         continue
-                    for peer_id in tuple(block_info.servers.keys()):
-                        if peer_id in self.banned_peers:
-                            logger.debug(f"Ignoring banned {peer_id} for block {block_info.uid}")
-                            block_info.servers.pop(peer_id)
+                    valid_servers = {
+                        peer_id: server_info
+                        for peer_id, server_info in block_info.servers.items()
+                        if peer_id not in self.banned_peers
+                    }
+                    if len(valid_servers) < len(block_info.servers):
+                        if valid_servers:
+                            logger.debug(
+                                f"Kept {len(valid_servers)} out of {len(block_info.servers)} servers holding {block_info.uid}"
+                            )
+                            block_info.servers = valid_servers
+                        else:
+                            # If we blacklisted all servers, the error may actually be client-caused
+                            logger.debug(f"All servers holding {block_info.uid} are blacklisted, ignoring blacklist")
 
                 with self.lock_changes:
                     self.sequence_info.update_(new_block_infos)
