@@ -25,8 +25,10 @@ async def check_reachability(
         for peer_info in past_connected_peers:
             await probe._client.disconnect(peer_info.peer_id)
         protocol = ReachabilityProtocol(dht_tester.protocol.p2p)
+        found_dht_peers = dht_tester.protocol.routing_table.peer_id_to_uid.keys()
+
         successes = requests = 0
-        for remote_peer in dht_tester.protocol.routing_table.peer_id_to_uid.keys():
+        for remote_peer in sorted(found_dht_peers, key=lambda p: p not in past_connected_peers):
             probe_available = await protocol.call_check(remote_peer=remote_peer, check_peer=probe.peer_id)
             if probe_available is None:
                 continue  # remote peer failed to check probe
@@ -35,9 +37,8 @@ async def check_reachability(
             if requests >= max_peers:
                 break
 
-        logger.debug(f"Reachability: found {successes} successes out of {requests} requests")
-        if requests:
-            return (successes / requests) >= threshold  # if no requests, return None
+        logger.debug(f"Reachability: observed {successes} successes out of {requests} requests")
+        return (successes / requests) >= threshold if requests > 0 else None
     finally:
         cancel_event.set()
         await probe_task
