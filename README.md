@@ -38,7 +38,7 @@ for input_ids, labels in data_loader:
 Run this in an [Anaconda](https://www.anaconda.com) env:
 
 ```bash
-conda install pytorch cudatoolkit=11.3 -c pytorch
+conda install pytorch pytorch-cuda=11.7 -c pytorch -c nvidia
 pip install -U petals
 python -m petals.cli.run_server bigscience/bloom-petals
 ```
@@ -122,7 +122,7 @@ __System requirements:__ Petals only supports Linux for now. If you don't have a
 Petals uses pytest with a few plugins. To install them, run:
 
 ```bash
-conda install pytorch cudatoolkit=11.3 -c pytorch
+conda install pytorch pytorch-cuda=11.7 -c pytorch -c nvidia
 git clone https://github.com/bigscience-workshop/petals.git && cd petals
 pip install -e .[dev]
 ```
