@@ -39,7 +39,7 @@ def main():
                              'Default: server announces IPv4/IPv6 addresses of your network interfaces')
 
     parser.add_argument("--no_auto_relay", action="store_false", dest="use_auto_relay",
-                        help="Do not join libp2p relays to become reachable if we are behind NAT/firewall")
+                        help="Do not look for libp2p relays to become reachable if we are behind NAT/firewall")
 
     parser.add_argument('--host_maddrs', nargs='+', required=False,
                         help='Multiaddrs to listen for external connections from other peers')
