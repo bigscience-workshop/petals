@@ -15,7 +15,7 @@ logger = get_logger(__file__)
 
 @pytest.mark.forked
 @pytest.mark.parametrize("mode", ["fastest", "random"])
-def test_sequence_manager_shutdown(mode: str):
+def test_sequence_manager_basics(mode: str):
     config = DistributedBloomConfig.from_pretrained(MODEL_NAME, initial_peers=INITIAL_PEERS)
     dht = DHT(initial_peers=config.initial_peers, client_mode=True, start=True)
     sequential = RemoteSequential(config, dht)

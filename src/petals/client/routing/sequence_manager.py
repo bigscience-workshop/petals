@@ -8,8 +8,8 @@ import threading
 import time
 from typing import Any, Dict, List, Optional, Sequence, Union
 from weakref import WeakMethod
-import numpy as np
 
+import numpy as np
 from hivemind import DHT, P2P, MSGPackSerializer, PeerID
 from hivemind.dht.node import Blacklist
 from hivemind.moe.client.remote_expert_worker import RemoteExpertWorker
@@ -93,7 +93,9 @@ class RemoteSequenceManager:
         if await_ready:
             self._thread.ready.wait(timeout)
 
-    def make_sequence(self, start_index: int = 0, end_index: Optional[int] = None, mode: str='random') -> List[RemoteSpanInfo]:
+    def make_sequence(
+        self, start_index: int = 0, end_index: Optional[int] = None, mode: str = "random"
+    ) -> List[RemoteSpanInfo]:
         """
         Form a sequence of remote servers that collectively serve all consecutive layers
 
@@ -112,11 +114,11 @@ class RemoteSequenceManager:
         current_index = start_index
         while current_index < end_index:
             candidate_spans = self.sequence_info.spans_containing_block[current_index]
-            if mode == 'random':
+            if mode == "random":
                 chosen_span = random.choice(candidate_spans)  # TODO this should be replaced with proper load balancing
-            elif mode == 'fastest':
+            elif mode == "fastest":
                 # note: this too is a heuristic that will be replaced once we integrate fastest wall time routing
-                span_weights = np.array([span.end - current_index for span in candidate_spans], dtype='float64')
+                span_weights = np.array([span.end - current_index for span in candidate_spans], dtype=np.float64)
                 chosen_span = np.random.choice(candidate_spans, p=span_weights / span_weights.sum())
             else:
                 raise RuntimeError(f"Unexpected mode {mode}")
