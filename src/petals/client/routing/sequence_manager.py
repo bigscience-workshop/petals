@@ -158,7 +158,7 @@ class RemoteSequenceManager:
                         continue
                     valid_servers = {
                         peer_id: server_info
-                        for peer_id, server_info in block_info.servers
+                        for peer_id, server_info in block_info.servers.items()
                         if peer_id not in self.banned_peers
                     }
                     if len(valid_servers) < len(block_info.servers):
