@@ -12,7 +12,8 @@ logger = get_logger(__name__)
 
 
 async def check_reachability(
-        initial_peers: Sequence[str], max_peers: int = 5, threshold: float = 0.5, **kwargs) -> Optional[bool]:
+    initial_peers: Sequence[str], max_peers: int = 5, threshold: float = 0.5, **kwargs
+) -> Optional[bool]:
     """test if your peer is accessible by others in the swarm with the specified network options in **kwargs"""
     probe = await P2P.create(initial_peers=initial_peers, **kwargs)
     cancel_event = asyncio.Event()
@@ -21,7 +22,7 @@ async def check_reachability(
 
     try:
         # close existing connections so that remote peers will attempt to open new ones
-        for peer_info in (await probe._client.list_peers()):
+        for peer_info in await probe._client.list_peers():
             await probe._client.disconnect(peer_info.peer_id)
         protocol = ReachabilityProtocol(dht_tester.protocol.p2p)
         successes = requests = 0
@@ -36,9 +37,7 @@ async def check_reachability(
 
         logger.debug(f"Reachability: found {successes} successes out of {requests} requests")
         if requests:
-            return (successes / requests) >= threshold
-        else:
-            return None  # could not determine result
+            return (successes / requests) >= threshold  # else return None
     finally:
         cancel_event.set()
         await probe_task
@@ -48,6 +47,7 @@ async def check_reachability(
 
 class ReachabilityProtocol(ServicerBase):
     """Mini protocol to test if a locally running peer is accessible by other devices in the swarm"""
+
     def __init__(self, p2p: P2P, wait_timeout: float = 5.0):
         self.p2p, self.wait_timeout = p2p, wait_timeout
         super().__init__()
