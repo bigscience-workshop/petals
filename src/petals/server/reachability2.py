@@ -11,7 +11,7 @@ from hivemind.utils import get_logger
 logger = get_logger(__name__)
 
 
-async def check_if_reachable(
+async def check_reachability(
         initial_peers: Sequence[str], max_peers: int = 5, threshold: float = 0.5, **kwargs) -> Optional[bool]:
     """test if your peer is accessible by others in the swarm with the specified network options in **kwargs"""
     probe = await P2P.create(initial_peers=initial_peers, **kwargs)
