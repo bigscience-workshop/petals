@@ -26,7 +26,7 @@ from petals.server.backend import TransformerBackend
 from petals.server.block_utils import get_block_size
 from petals.server.handler import TransformerConnectionHandler
 from petals.server.memory_cache import MemoryCache
-from petals.server.reachability import check_reachability
+from petals.server.reachability import ReachabilityProtocol, check_direct_reachability, validate_reachability
 from petals.server.throughput import get_dtype_name, get_host_throughput
 from petals.utils.convert_block import check_device_balance, convert_block
 from petals.utils.disk_cache import DEFAULT_CACHE_DIR
@@ -77,6 +77,7 @@ class Server:
         load_in_8bit: Optional[bool] = None,
         tensor_parallel_devices: Optional[Sequence[torch.device]] = None,
         skip_reachability_check: bool = False,
+        dht_client_mode: Optional[bool] = None,
         use_relay: bool = True,
         use_auto_relay: bool = True,
         **kwargs,
@@ -118,20 +119,27 @@ class Server:
         )
         self.module_uids = [f"{self.prefix}.{block_index}" for block_index in range(self.block_config.n_layer)]
 
+        if dht_client_mode is None:
+            is_reachable = check_direct_reachability(initial_peers=initial_peers, use_relay=False, **kwargs)
+            dht_client_mode = is_reachable is False  # if could not check reachability (returns None), run a full peer
+            logger.info(f"This server will run DHT in {'client' if dht_client_mode else 'full peer'} mode")
         self.dht = DHT(
             initial_peers=initial_peers,
             start=True,
             num_workers=self.block_config.n_layer,
             use_relay=use_relay,
             use_auto_relay=use_auto_relay,
+            client_mode=dht_client_mode,
             **kwargs,
         )
+        self.reachability_protocol = ReachabilityProtocol.attach_to_dht(self.dht) if not dht_client_mode else None
+
         visible_maddrs_str = [str(a) for a in self.dht.get_visible_maddrs()]
         if initial_peers == PUBLIC_INITIAL_PEERS:
             logger.info(f"Connecting to the public swarm, peer_id = {self.dht.peer_id}")
         else:
             logger.info(f"Running DHT node on {visible_maddrs_str}, initial peers = {initial_peers}")
-        self.need_reachability_check = not skip_reachability_check and initial_peers == PUBLIC_INITIAL_PEERS
+        self.should_validate_reachability = not skip_reachability_check and initial_peers == PUBLIC_INITIAL_PEERS
 
         if device is None:
             device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -277,7 +285,7 @@ class Server:
                 use_auth_token=self.use_auth_token,
                 load_in_8bit=self.load_in_8bit,
                 tensor_parallel_devices=self.tensor_parallel_devices,
-                need_reachability_check=self.need_reachability_check,
+                should_validate_reachability=self.should_validate_reachability,
                 start=True,
             )
             try:
@@ -335,6 +343,8 @@ class Server:
     def shutdown(self):
         self.stop.set()
 
+        if self.reachability_protocol is not None:
+            self.reachability_protocol.shutdown()
         self.dht.shutdown()
         self.dht.join()
 
@@ -367,7 +377,7 @@ class ModuleContainer(threading.Thread):
         use_auth_token: Optional[str],
         load_in_8bit: bool,
         tensor_parallel_devices: Sequence[torch.device],
-        need_reachability_check: bool,
+        should_validate_reachability: bool,
         **kwargs,
     ) -> ModuleContainer:
         module_uids = [f"{prefix}.{block_index}" for block_index in block_indices]
@@ -422,8 +432,8 @@ class ModuleContainer(threading.Thread):
                     max_batch_size=max_batch_size,
                 )
 
-            if need_reachability_check:
-                check_reachability(dht.peer_id)
+            if should_validate_reachability:
+                validate_reachability(dht.peer_id)
         except:
             logger.debug("Shutting down backends")
             for backend in blocks.values():
