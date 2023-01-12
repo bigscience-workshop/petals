@@ -33,6 +33,8 @@ from petals.utils.misc import DUMMY, is_dummy
 
 logger = get_logger(__file__)
 
+CACHE_TOKENS_AVAILABLE = "cache_tokens_available"
+
 
 class TransformerConnectionHandler(ConnectionHandler):
     """Handles three request types: forward, backward and forward-incremental (inference)"""
@@ -377,6 +379,22 @@ class TransformerConnectionHandler(ConnectionHandler):
             logger.info(message)
         else:
             logger.warning(f"{message}: {warning}")
+
+    async def rpc_info(self, request: runtime_pb2.ExpertUID, context: P2PContext) -> runtime_pb2.ExpertInfo:
+        """Return metadata about stored block uids and current load"""
+        rpc_info = {}
+        if request.uid:
+            backend = self.module_backends[request.uid]
+            rpc_info.update(self.module_backends[request.uid].get_info())
+        else:
+            backend = next(iter(self.module_backends.values()))
+            # not saving keys to rpc_info since user did not request any uid
+
+        cache_bytes_left = max(0, backend.memory_cache.max_size_bytes - backend.memory_cache.current_size_bytes)
+        if CACHE_TOKENS_AVAILABLE in rpc_info:
+            raise RuntimeError(f"Block rpc_info dict has a reserved field {CACHE_TOKENS_AVAILABLE} : {rpc_info}")
+        rpc_info[CACHE_TOKENS_AVAILABLE] = cache_bytes_left // max(backend.cache_bytes_per_token.values())
+        return runtime_pb2.ExpertInfo(serialized_info=MSGPackSerializer.dumps(rpc_info))
 
 
 async def _rpc_forward(
