@@ -55,13 +55,13 @@ def check_direct_reachability(max_peers: int = 5, threshold: float = 0.5, **kwar
     """test if your peer is accessible by others in the swarm with the specified network options in **kwargs"""
 
     async def _check_direct_reachability():
+        target_dht = await DHTNode.create(client_mode=True, **kwargs)
         try:
-            dht_tester = await DHTNode.create(client_mode=True, **kwargs)
-            protocol = ReachabilityProtocol(dht_tester.protocol.p2p)
+            protocol = ReachabilityProtocol(target_dht.protocol.p2p)
             async with protocol.serve():
                 successes = requests = 0
-                for remote_peer in list(dht_tester.protocol.routing_table.peer_id_to_uid.keys()):
-                    probe_available = await protocol.call_check(remote_peer=remote_peer, check_peer=dht_tester.peer_id)
+                for remote_peer in list(target_dht.protocol.routing_table.peer_id_to_uid.keys()):
+                    probe_available = await protocol.call_check(remote_peer=remote_peer, check_peer=target_dht.peer_id)
                     if probe_available is None:
                         continue  # remote peer failed to check probe
                     successes += probe_available
@@ -72,7 +72,7 @@ def check_direct_reachability(max_peers: int = 5, threshold: float = 0.5, **kwar
             logger.debug(f"Direct reachability: observed {successes} successes out of {requests} requests")
             return (successes / requests) >= threshold if requests > 0 else None
         finally:
-            await dht_tester.shutdown()
+            await target_dht.shutdown()
 
     return RemoteExpertWorker.run_coroutine(_check_direct_reachability())
 
@@ -88,7 +88,7 @@ class ReachabilityProtocol(ServicerBase):
         self.p2p, self.probe, self.wait_timeout = p2p, probe, wait_timeout
 
     async def call_check(self, remote_peer: PeerID, *, check_peer: PeerID) -> Optional[bool]:
-        """return True if remote_peer can reach check_peer, False if cannot, None means remote_peer did not respond"""
+        """Returns True if remote_peer can reach check_peer, False if it cannot, None if it did not respond"""
         try:
             request = dht_pb2.PingRequest(peer=dht_pb2.NodeInfo(node_id=check_peer.to_bytes()))
             timeout = self.wait_timeout if check_peer == remote_peer else self.wait_timeout * 2
@@ -99,7 +99,7 @@ class ReachabilityProtocol(ServicerBase):
             return None
 
     async def rpc_check(self, request: dht_pb2.PingRequest, context: P2PContext) -> dht_pb2.PingResponse:
-        """Another peer wants us to help it check reachability"""
+        """Help another peer to check its reachability"""
         response = dht_pb2.PingResponse(available=True)
         check_peer = PeerID(request.peer.node_id)
         if check_peer != context.local_id:  # remote peer wants us to check someone other than ourselves
@@ -120,7 +120,7 @@ class ReachabilityProtocol(ServicerBase):
             protocol = cls(p2p=await dht.replicate_p2p(), **kwargs)
             initial_peers = list(map(str, await protocol.p2p.get_visible_maddrs(latest=True)))
             for info in await protocol.p2p.list_peers():
-                initial_peers.extend((f"{addr}/p2p/{info.peer_id.to_base58()}" for addr in info.addrs))
+                initial_peers.extend(f"{addr}/p2p/{info.peer_id}" for addr in info.addrs)
             protocol.probe = await P2P.create(initial_peers, **PROBE_P2P_ARGS)
             try:
                 async with protocol.serve():
