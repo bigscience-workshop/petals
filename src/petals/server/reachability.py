@@ -63,8 +63,8 @@ def check_direct_reachability(max_peers: int = 5, threshold: float = 0.5, **kwar
         logger.debug(f"DHT neighbor count: {len(target_dht.protocol.routing_table.peer_id_to_uid)}")
 
         try:
-            protocol = ReachabilityProtocol(target_dht.protocol.p2p)
-            async with protocol.serve():
+            protocol = ReachabilityProtocol(probe=target_dht.protocol.p2p)
+            async with protocol.serve(target_dht.protocol.p2p):
                 successes = requests = 0
                 for remote_peer in list(target_dht.protocol.routing_table.peer_id_to_uid.keys()):
                     probe_available = await protocol.call_check(remote_peer=remote_peer, check_peer=target_dht.peer_id)
@@ -91,9 +91,9 @@ PROBE_P2P_ARGS = dict(
 class ReachabilityProtocol(ServicerBase):
     """Mini protocol to test if a locally running peer is accessible by other devices in the swarm"""
 
-    def __init__(self, p2p: P2P, *, probe: Optional[P2P] = None, wait_timeout: float = 5.0):
-        probe = probe if probe is not None else p2p
-        self.p2p, self.probe, self.wait_timeout = p2p, probe, wait_timeout
+    def __init__(self, *, probe: Optional[P2P] = None, wait_timeout: float = 5.0):
+        self.probe = probe
+        self.wait_timeout = wait_timeout
         self._event_loop = self._stop = None
 
     async def call_check(self, remote_peer: PeerID, *, check_peer: PeerID) -> Optional[bool]:
@@ -118,45 +118,49 @@ class ReachabilityProtocol(ServicerBase):
         return response
 
     @asynccontextmanager
-    async def serve(self):
+    async def serve(self, p2p: P2P):
         try:
-            await self.add_p2p_handlers(self.p2p)
+            await self.add_p2p_handlers(p2p)
             yield self
         finally:
-            await self.remove_p2p_handlers(self.p2p)
+            await self.remove_p2p_handlers(p2p)
 
     @classmethod
-    def attach_to_dht(cls, dht: DHT, **kwargs) -> Optional["ReachabilityProtocol"]:
-        protocol_fut = Future()
+    def attach_to_dht(cls, dht: DHT, await_ready: bool = False, **kwargs) -> Optional["ReachabilityProtocol"]:
+        protocol = cls(**kwargs)
+        ready = Future()
 
         async def _serve_with_probe():
             try:
-                protocol = cls(p2p=await dht.replicate_p2p(), **kwargs)
+                common_p2p = await dht.replicate_p2p()
                 protocol._event_loop = asyncio.get_event_loop()
                 protocol._stop = asyncio.Event()
-                protocol_fut.set_result(protocol)
 
-                initial_peers = [str(addr) for addr in await protocol.p2p.get_visible_maddrs(latest=True)]
-                for info in await protocol.p2p.list_peers():
+                initial_peers = [str(addr) for addr in await common_p2p.get_visible_maddrs(latest=True)]
+                for info in await common_p2p.list_peers():
                     initial_peers.extend(f"{addr}/p2p/{info.peer_id}" for addr in info.addrs)
                 protocol.probe = await P2P.create(initial_peers, **PROBE_P2P_ARGS)
-                logger.debug("Optional reachability service started")
 
-                async with protocol.serve():
+                ready.set_result(True)
+                logger.debug("Reachability service started")
+
+                async with protocol.serve(common_p2p):
                     await protocol._stop.wait()
             except Exception as e:
-                logger.warning(f"Optional reachability service failed: {repr(e)}")
+                logger.warning(f"Reachability service failed: {repr(e)}")
                 logger.debug("See detailed traceback below:", exc_info=True)
 
-                if not protocol_fut.done():
-                    protocol_fut.set_result(None)
+                if not ready.done():
+                    ready.set_exception(e)
             finally:
-                if protocol.probe is not None:
+                if protocol is not None and protocol.probe is not None:
                     await protocol.probe.shutdown()
-                logger.debug("ReachabilityProtocol shut down")
+                logger.debug("Reachability service shut down")
 
         threading.Thread(target=partial(asyncio.run, _serve_with_probe()), daemon=True).start()
-        return protocol_fut.result()
+        if await_ready:
+            ready.result()  # Propagates startup exceptions, if any
+        return protocol
 
     def shutdown(self):
         if self._event_loop is not None and self._stop is not None:
