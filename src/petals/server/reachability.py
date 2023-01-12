@@ -110,10 +110,10 @@ class ReachabilityProtocol(ServicerBase):
         check_peer = PeerID(request.peer.node_id)
         if check_peer != context.local_id:  # remote peer wants us to check someone other than ourselves
             response.available = await self.call_check(check_peer, check_peer=check_peer) is True
-        logger.info(
-            f"reachability.rpc_check(remote_peer=...{str(context.remote_id)[-6:]}, check_peer=...{str(check_peer)[-6:]}) "
-            f"-> {response.available}"
-        )
+            logger.info(
+                f"reachability.rpc_check(remote_peer=...{str(context.remote_id)[-6:]}, "
+                f"check_peer=...{str(check_peer)[-6:]}) -> {response.available}"
+            )
         return response
 
     @asynccontextmanager
