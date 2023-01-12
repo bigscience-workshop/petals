@@ -132,8 +132,8 @@ class Server:
             client_mode=dht_client_mode,
             **kwargs,
         )
-        if not dht_client_mode:
-            ReachabilityProtocol.attach_to_dht(self.dht)
+        self.reachability_protocol = ReachabilityProtocol.attach_to_dht(self.dht) if not dht_client_mode else None
+
         visible_maddrs_str = [str(a) for a in self.dht.get_visible_maddrs()]
         if initial_peers == PUBLIC_INITIAL_PEERS:
             logger.info(f"Connecting to the public swarm, peer_id = {self.dht.peer_id}")
@@ -343,6 +343,8 @@ class Server:
     def shutdown(self):
         self.stop.set()
 
+        if self.reachability_protocol is not None:
+            self.reachability_protocol.shutdown()
         self.dht.shutdown()
         self.dht.join()
 

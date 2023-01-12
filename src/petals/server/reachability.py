@@ -69,7 +69,7 @@ def check_direct_reachability(max_peers: int = 5, threshold: float = 0.5, **kwar
                     if requests >= max_peers:
                         break
 
-            logger.debug(f"Direct reachability: observed {successes} successes out of {requests} requests")
+            logger.info(f"Direct reachability: {successes}/{requests}")
             return (successes / requests) >= threshold if requests > 0 else None
         finally:
             await target_dht.shutdown()
@@ -86,6 +86,7 @@ class ReachabilityProtocol(ServicerBase):
     def __init__(self, p2p: P2P, *, probe: Optional[P2P] = None, wait_timeout: float = 5.0):
         probe = probe if probe is not None else p2p
         self.p2p, self.probe, self.wait_timeout = p2p, probe, wait_timeout
+        self._event_loop = self._stop = None
 
     async def call_check(self, remote_peer: PeerID, *, check_peer: PeerID) -> Optional[bool]:
         """Returns True if remote_peer can reach check_peer, False if it cannot, None if it did not respond"""
@@ -93,6 +94,7 @@ class ReachabilityProtocol(ServicerBase):
             request = dht_pb2.PingRequest(peer=dht_pb2.NodeInfo(node_id=check_peer.to_bytes()))
             timeout = self.wait_timeout if check_peer == remote_peer else self.wait_timeout * 2
             response = await self.get_stub(self.probe, remote_peer).rpc_check(request, timeout=timeout)
+            logger.debug(f"call_check(remote_peer={remote_peer}, check_peer={check_peer}) -> {response.available}")
             return response.available
         except Exception as e:
             logger.debug(f"Requested {remote_peer} to check {check_peer}, but got:", exc_info=True)
@@ -104,6 +106,7 @@ class ReachabilityProtocol(ServicerBase):
         check_peer = PeerID(request.peer.node_id)
         if check_peer != context.local_id:  # remote peer wants us to check someone other than ourselves
             response.available = await self.call_check(check_peer, check_peer=check_peer) is True
+        logger.debug(f"rpc_check(check_peer={check_peer}) -> {response.available}")
         return response
 
     @asynccontextmanager
@@ -115,18 +118,33 @@ class ReachabilityProtocol(ServicerBase):
             await self.remove_p2p_handlers(self.p2p)
 
     @classmethod
-    def attach_to_dht(cls, dht: DHT, **kwargs):
+    def attach_to_dht(cls, dht: DHT, **kwargs) -> "ReachabilityProtocol":
+        protocol = None
+        ready = threading.Event()
+
         async def _serve_with_probe():
+            nonlocal protocol
             protocol = cls(p2p=await dht.replicate_p2p(), **kwargs)
+            protocol._event_loop = asyncio.get_event_loop()
+            protocol._stop = asyncio.Event()
+            ready.set()
+
             initial_peers = list(map(str, await protocol.p2p.get_visible_maddrs(latest=True)))
             for info in await protocol.p2p.list_peers():
                 initial_peers.extend(f"{addr}/p2p/{info.peer_id}" for addr in info.addrs)
             protocol.probe = await P2P.create(initial_peers, **PROBE_P2P_ARGS)
+
             try:
                 async with protocol.serve():
-                    while dht.is_alive():
-                        await asyncio.sleep(protocol.wait_timeout)  # not awaiting join because it freezes dht.shutdown
+                    await protocol._stop.wait()
             finally:
                 await protocol.probe.shutdown()
+                logger.debug("ReachabilityProtocol shut down")
 
         threading.Thread(target=partial(asyncio.run, _serve_with_probe()), daemon=True).start()
+        ready.wait()
+        return protocol
+
+    def shutdown(self):
+        if self._event_loop is not None and self._stop is not None:
+            self._event_loop.call_soon_threadsafe(self._stop.set)
