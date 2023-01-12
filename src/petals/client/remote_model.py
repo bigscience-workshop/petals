@@ -167,8 +167,6 @@ class DistributedBloomModel(_LowCPUMemoryMixin, BloomModel):
         attention_mask: Optional[torch.Tensor] = None,
         **kwargs,
     ):
-        assert attention_mask is None, "DistributedBloomModel does not support attention masks right now"
-
         for k, v in kwargs.items():
             if not (v is None or v is False):
                 logger.debug(f"Extra keyword arguments are not yet supported (got {k} = {v})")
@@ -191,13 +189,16 @@ class DistributedBloomModel(_LowCPUMemoryMixin, BloomModel):
             prompts, intermediate_prompts = self.get_prompt(batch_size)
             inputs_embeds = torch.cat([prompts, inputs_embeds], dim=1)
 
+        if attention_mask is None:
+            attention_mask = torch.ones((batch_size, input_shape[-1]), device=hidden_states.device)
+
         hidden_states = self.word_embeddings_layernorm(inputs_embeds)
         output_shape = input_shape + (hidden_states.size(-1),)
 
         if self.config.tuning_mode and "ptune" in self.config.tuning_mode:
-            hidden_states = self.h(hidden_states, prompts=intermediate_prompts)
+            hidden_states = self.h(hidden_states, attention_mask, prompts=intermediate_prompts)
         else:
-            hidden_states = self.h(hidden_states)
+            hidden_states = self.h(hidden_states, attention_mask)
 
         # Remove prefix
         if self.config.tuning_mode and "ptune" in self.config.tuning_mode:
