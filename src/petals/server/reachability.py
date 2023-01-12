@@ -4,6 +4,7 @@ import threading
 import time
 from contextlib import asynccontextmanager
 from functools import partial
+from secrets import token_hex
 from typing import Optional
 
 import requests
@@ -56,6 +57,9 @@ def check_direct_reachability(max_peers: int = 5, threshold: float = 0.5, **kwar
 
     async def _check_direct_reachability():
         target_dht = await DHTNode.create(client_mode=True, **kwargs)
+        await target_dht.get(f"fake_{token_hex(16)}", latest=True)  # Query random key to collect more DHT neighbors
+        logger.debug(f"DHT neighbor count: {len(target_dht.protocol.routing_table.peer_id_to_uid)}")
+
         try:
             protocol = ReachabilityProtocol(target_dht.protocol.p2p)
             async with protocol.serve():
