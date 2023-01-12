@@ -2,6 +2,8 @@
 A copy of run_dht.py from hivemind with the ReachabilityProtocol added:
 https://github.com/learning-at-home/hivemind/blob/master/hivemind/hivemind_cli/run_dht.py
 
+This script may be used for launching lightweight CPU machines serving as bootstrap nodes to a Petals swarm.
+
 This may be eventually merged to the hivemind upstream.
 """
 
@@ -13,7 +15,6 @@ from hivemind.dht import DHT, DHTNode
 from hivemind.utils.logging import get_logger, use_hivemind_log_handler
 from hivemind.utils.networking import log_visible_maddrs
 
-from petals.constants import PUBLIC_INITIAL_PEERS
 from petals.server.reachability import ReachabilityProtocol
 
 use_hivemind_log_handler("in_root_logger")
@@ -40,7 +41,6 @@ def main():
         nargs="*",
         help="Multiaddrs of the peers that will welcome you into the existing DHT. "
         "Example: /ip4/203.0.113.1/tcp/31337/p2p/XXXX /ip4/203.0.113.2/tcp/7777/p2p/YYYY",
-        default=PUBLIC_INITIAL_PEERS,
     )
     parser.add_argument(
         "--host_maddrs",
