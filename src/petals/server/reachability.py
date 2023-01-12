@@ -79,8 +79,8 @@ def check_direct_reachability(max_peers: int = 5, threshold: float = 0.5, **kwar
     return RemoteExpertWorker.run_coroutine(_check_direct_reachability())
 
 
-PROBE_P2P_ARGS = dict(
-    dht_mode="client", use_relay=False, auto_nat=False, nat_port_map=False, no_listen=True, startup_timeout=30
+STRIPPED_PROBE_ARGS = dict(
+    dht_mode="client", use_relay=False, auto_nat=False, nat_port_map=False, no_listen=True, startup_timeout=60
 )
 
 
@@ -135,7 +135,7 @@ class ReachabilityProtocol(ServicerBase):
                 initial_peers = [str(addr) for addr in await common_p2p.get_visible_maddrs(latest=True)]
                 for info in await common_p2p.list_peers():
                     initial_peers.extend(f"{addr}/p2p/{info.peer_id}" for addr in info.addrs)
-                protocol.probe = await P2P.create(initial_peers, **PROBE_P2P_ARGS)
+                protocol.probe = await P2P.create(initial_peers, **STRIPPED_PROBE_ARGS)
 
                 ready.set_result(True)
                 logger.debug("Reachability service started")
