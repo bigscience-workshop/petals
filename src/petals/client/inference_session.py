@@ -17,7 +17,7 @@ from hivemind import (
     serialize_torch_tensor,
 )
 from hivemind.moe.client.remote_expert_worker import RemoteExpertWorker
-from hivemind.p2p import P2PHandlerError, StubBase
+from hivemind.p2p import StubBase
 from hivemind.proto import runtime_pb2
 
 from petals.client.routing.sequence_manager import RemoteSequenceManager, maybe_log_traceback
@@ -255,7 +255,7 @@ class InferenceSession:
                             )
                         recovery_until = max(recovery_until, update_end)
 
-                        updated_spans = self._sequence_manager.make_sequence(block_idx, update_end)
+                        updated_spans = self._sequence_manager.make_sequence(block_idx, update_end, mode="fastest")
                         # make_sequence() could return a longer sequence
                         updated_spans[-1].end = min(updated_spans[-1].end, update_end)
                         updated_sessions = self._enter_server_sessions(updated_spans)
@@ -305,7 +305,7 @@ class InferenceSession:
                     self._sequence_manager.on_request_success(span.peer_id)
                     break
                 except Exception as e:
-                    if span is not None and not isinstance(e, P2PHandlerError):
+                    if span is not None:
                         self._sequence_manager.on_request_failure(span.peer_id)
                     delay = self._sequence_manager.get_retry_delay(attempt_no)
                     logger.warning(

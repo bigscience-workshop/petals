@@ -10,7 +10,6 @@ from typing import List, Optional, Sequence, Tuple
 import torch
 from hivemind import MSGPackSerializer
 from hivemind.moe.client.remote_expert_worker import RemoteExpertWorker
-from hivemind.p2p import P2PHandlerError
 from hivemind.utils.logging import get_logger
 
 from petals.client.remote_forward_backward import run_remote_backward, run_remote_forward
@@ -61,7 +60,7 @@ async def sequential_forward(
             span = None
             try:
                 if not sequences or attempt_no >= 1:
-                    sequences = deque(sequence_manager.make_sequence(block_idx, end_index))
+                    sequences = deque(sequence_manager.make_sequence(block_idx, end_index, mode="random"))
                     # make_sequence() could return a longer sequence
                     sequences[-1].end = min(sequences[-1].end, end_index)
                     logger.debug(f"Found path from block {block_idx} to {end_index} via {len(sequences)} servers")
@@ -94,7 +93,7 @@ async def sequential_forward(
                 sequence_manager.on_request_success(span.peer_id)
                 break
             except Exception as e:
-                if span is not None and not isinstance(e, P2PHandlerError):
+                if span is not None:
                     sequence_manager.on_request_failure(span.peer_id)
                 delay = sequence_manager.get_retry_delay(attempt_no)
                 logger.warning(
@@ -171,7 +170,7 @@ async def sequential_backward(
                 sequence_manager.on_request_success(span.peer_id)
                 break
             except Exception as e:
-                if span is not None and not isinstance(e, P2PHandlerError):
+                if span is not None:
                     sequence_manager.on_request_failure(span.peer_id)
                 delay = sequence_manager.get_retry_delay(attempt_no)
                 logger.warning(
