@@ -18,7 +18,6 @@ from hivemind.utils import get_logger
 from petals.constants import REACHABILITY_API_URL
 
 logger = get_logger(__name__)
-logger.setLevel("DEBUG")
 
 
 def validate_reachability(peer_id, wait_time: float = 7 * 60, retry_delay: float = 15) -> None:
@@ -59,9 +58,6 @@ def check_direct_reachability(max_peers: int = 5, threshold: float = 0.5, **kwar
 
     async def _check_direct_reachability():
         target_dht = await DHTNode.create(client_mode=True, **kwargs)
-        await target_dht.get(f"fake_{token_hex(16)}", latest=True)  # Query random key to collect more DHT neighbors
-        logger.debug(f"DHT neighbor count: {len(target_dht.protocol.routing_table.peer_id_to_uid)}")
-
         try:
             protocol = ReachabilityProtocol(probe=target_dht.protocol.p2p)
             async with protocol.serve(target_dht.protocol.p2p):
