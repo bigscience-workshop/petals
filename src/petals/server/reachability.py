@@ -110,7 +110,10 @@ class ReachabilityProtocol(ServicerBase):
         check_peer = PeerID(request.peer.node_id)
         if check_peer != context.local_id:  # remote peer wants us to check someone other than ourselves
             response.available = await self.call_check(check_peer, check_peer=check_peer) is True
-        logger.debug(f"rpc_check(check_peer={check_peer}) -> {response.available}")
+        logger.info(
+            f"reachability.rpc_check(remote_peer=...{str(context.remote_id)[-6:]}, check_peer=...{str(check_peer)[-6:]}) "
+            f"-> {response.available}"
+        )
         return response
 
     @asynccontextmanager
@@ -138,7 +141,7 @@ class ReachabilityProtocol(ServicerBase):
                 protocol.probe = await P2P.create(initial_peers, **STRIPPED_PROBE_ARGS)
 
                 ready.set_result(True)
-                logger.debug("Reachability service started")
+                logger.info("Reachability service started")
 
                 async with protocol.serve(common_p2p):
                     await protocol._stop.wait()
