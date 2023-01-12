@@ -2,6 +2,7 @@ import asyncio
 import math
 import threading
 import time
+from concurrent.futures import Future
 from contextlib import asynccontextmanager
 from functools import partial
 from secrets import token_hex
@@ -17,6 +18,7 @@ from hivemind.utils import get_logger
 from petals.constants import REACHABILITY_API_URL
 
 logger = get_logger(__name__)
+logger.setLevel("DEBUG")
 
 
 def validate_reachability(peer_id, wait_time: float = 7 * 60, retry_delay: float = 15) -> None:
@@ -81,7 +83,9 @@ def check_direct_reachability(max_peers: int = 5, threshold: float = 0.5, **kwar
     return RemoteExpertWorker.run_coroutine(_check_direct_reachability())
 
 
-PROBE_P2P_ARGS = dict(dht_mode="client", use_relay=False, auto_nat=False, nat_port_map=False, no_listen=True)
+PROBE_P2P_ARGS = dict(
+    dht_mode="client", use_relay=False, auto_nat=False, nat_port_map=False, no_listen=True, startup_timeout=30
+)
 
 
 class ReachabilityProtocol(ServicerBase):
@@ -122,32 +126,37 @@ class ReachabilityProtocol(ServicerBase):
             await self.remove_p2p_handlers(self.p2p)
 
     @classmethod
-    def attach_to_dht(cls, dht: DHT, **kwargs) -> "ReachabilityProtocol":
-        protocol = None
-        ready = threading.Event()
+    def attach_to_dht(cls, dht: DHT, **kwargs) -> Optional["ReachabilityProtocol"]:
+        protocol_fut = Future()
 
         async def _serve_with_probe():
-            nonlocal protocol
-            protocol = cls(p2p=await dht.replicate_p2p(), **kwargs)
-            protocol._event_loop = asyncio.get_event_loop()
-            protocol._stop = asyncio.Event()
-            ready.set()
-
-            initial_peers = list(map(str, await protocol.p2p.get_visible_maddrs(latest=True)))
-            for info in await protocol.p2p.list_peers():
-                initial_peers.extend(f"{addr}/p2p/{info.peer_id}" for addr in info.addrs)
-            protocol.probe = await P2P.create(initial_peers, **PROBE_P2P_ARGS)
-
             try:
+                protocol = cls(p2p=await dht.replicate_p2p(), **kwargs)
+                protocol._event_loop = asyncio.get_event_loop()
+                protocol._stop = asyncio.Event()
+                protocol_fut.set_result(protocol)
+
+                initial_peers = [str(addr) for addr in await protocol.p2p.get_visible_maddrs(latest=True)]
+                for info in await protocol.p2p.list_peers():
+                    initial_peers.extend(f"{addr}/p2p/{info.peer_id}" for addr in info.addrs)
+                protocol.probe = await P2P.create(initial_peers, **PROBE_P2P_ARGS)
+                logger.debug("Optional reachability service started")
+
                 async with protocol.serve():
                     await protocol._stop.wait()
+            except Exception as e:
+                logger.warning(f"Optional reachability service failed: {repr(e)}")
+                logger.debug("See detailed traceback below:", exc_info=True)
+
+                if not protocol_fut.done():
+                    protocol_fut.set_result(None)
             finally:
-                await protocol.probe.shutdown()
+                if protocol.probe is not None:
+                    await protocol.probe.shutdown()
                 logger.debug("ReachabilityProtocol shut down")
 
         threading.Thread(target=partial(asyncio.run, _serve_with_probe()), daemon=True).start()
-        ready.wait()
-        return protocol
+        return protocol_fut.result()
 
     def shutdown(self):
         if self._event_loop is not None and self._stop is not None:
