@@ -1,6 +1,7 @@
 """Code for serving bloom blocks via hivemind-server"""
 from __future__ import annotations
 
+from collections import Counter
 from itertools import chain
 from typing import Any, Dict, Sequence, Tuple
 
@@ -63,6 +64,10 @@ class TransformerBackend(ModuleBackend):
             ),
             self.kwargs_schema,
         )
+
+        self.cache_bytes_per_token: Dict[torch.device, int] = Counter()
+        for descr in self.get_inference_cache_descriptors(batch_size=1, max_length=1):
+            self.cache_bytes_per_token[descr.device] += descr.numel() * torch.finfo(descr.dtype).bits // 8
 
     def get_inference_cache_descriptors(self, batch_size: int, max_length: int) -> Sequence[TensorDescriptor]:
         """Create tensor descriptors for attention cache tensors used during inference_step"""

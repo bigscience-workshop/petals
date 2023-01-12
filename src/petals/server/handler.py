@@ -391,11 +391,9 @@ class TransformerConnectionHandler(ConnectionHandler):
             # not saving keys to rpc_info since user did not request any uid
 
         cache_bytes_left = max(0, backend.memory_cache.max_size_bytes - backend.memory_cache.current_size_bytes)
-        bits_per_token = 2 * backend.args_schema[0].shape[-1] * torch.finfo(backend.args_schema[0].dtype).bits // 8
-        # TODO does not account for tensor parallelism! switch to backend.get_descriptors once TP is merged, save as property to avoid recomputation
         if CACHE_TOKENS_AVAILABLE in rpc_info:
             raise RuntimeError(f"Block rpc_info dict has a reserved field {CACHE_TOKENS_AVAILABLE} : {rpc_info}")
-        rpc_info[CACHE_TOKENS_AVAILABLE] = cache_bytes_left // bits_per_token
+        rpc_info[CACHE_TOKENS_AVAILABLE] = cache_bytes_left // max(backend.cache_bytes_per_token.values())
         return runtime_pb2.ExpertInfo(serialized_info=MSGPackSerializer.dumps(rpc_info))
 
 
