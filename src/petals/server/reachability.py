@@ -13,17 +13,16 @@ from hivemind.p2p import P2P, P2PContext, PeerID, ServicerBase
 from hivemind.proto import dht_pb2
 from hivemind.utils import get_logger
 
-from petals.constants import VALIDATOR_URL
+from petals.constants import REACHABILITY_API_URL
 
 logger = get_logger(__name__)
-PROBE_P2P_ARGS = dict(dht_mode="client", use_relay=False, auto_nat=False, nat_port_map=False, no_listen=True)
 
 
 def validate_reachability(peer_id, wait_time: float = 7 * 60, retry_delay: float = 15) -> None:
     """verify that your peer is reachable from a (centralized) validator, whether directly or through a relay"""
     for attempt_no in range(math.floor(wait_time / retry_delay) + 1):
         try:
-            r = requests.get(f"{VALIDATOR_URL}/api/v1/is_reachable/{peer_id}", timeout=10)
+            r = requests.get(f"{REACHABILITY_API_URL}/api/v1/is_reachable/{peer_id}", timeout=10)
             r.raise_for_status()
             response = r.json()
 
@@ -56,23 +55,29 @@ def check_direct_reachability(max_peers: int = 5, threshold: float = 0.5, **kwar
     """test if your peer is accessible by others in the swarm with the specified network options in **kwargs"""
 
     async def _check_direct_reachability():
-        dht_tester = await DHTNode.create(client_mode=True, **kwargs)
-        protocol = ReachabilityProtocol(dht_tester.protocol.p2p)
-        async with protocol.serve():
-            successes = requests = 0
-            for remote_peer in list(dht_tester.protocol.routing_table.peer_id_to_uid.keys()):
-                probe_available = await protocol.call_check(remote_peer=remote_peer, check_peer=dht_tester.peer_id)
-                if probe_available is None:
-                    continue  # remote peer failed to check probe
-                successes += probe_available
-                requests += 1
-                if requests >= max_peers:
-                    break
-        await dht_tester.shutdown()
-        logger.debug(f"Reachability: observed {successes} successes out of {requests} requests")
-        return (successes / requests) >= threshold if requests > 0 else None
+        try:
+            dht_tester = await DHTNode.create(client_mode=True, **kwargs)
+            protocol = ReachabilityProtocol(dht_tester.protocol.p2p)
+            async with protocol.serve():
+                successes = requests = 0
+                for remote_peer in list(dht_tester.protocol.routing_table.peer_id_to_uid.keys()):
+                    probe_available = await protocol.call_check(remote_peer=remote_peer, check_peer=dht_tester.peer_id)
+                    if probe_available is None:
+                        continue  # remote peer failed to check probe
+                    successes += probe_available
+                    requests += 1
+                    if requests >= max_peers:
+                        break
+
+            logger.debug(f"Direct reachability: observed {successes} successes out of {requests} requests")
+            return (successes / requests) >= threshold if requests > 0 else None
+        finally:
+            await dht_tester.shutdown()
 
     return RemoteExpertWorker.run_coroutine(_check_direct_reachability())
+
+
+PROBE_P2P_ARGS = dict(dht_mode="client", use_relay=False, auto_nat=False, nat_port_map=False, no_listen=True)
 
 
 class ReachabilityProtocol(ServicerBase):
@@ -90,7 +95,8 @@ class ReachabilityProtocol(ServicerBase):
             response = await self.get_stub(self.probe, remote_peer).rpc_check(request, timeout=timeout)
             return response.available
         except Exception as e:
-            logger.debug(f"requested {remote_peer} to check {check_peer}, but got {repr(e)}", exc_info=True)
+            logger.debug(f"Requested {remote_peer} to check {check_peer}, but got:", exc_info=True)
+            return None
 
     async def rpc_check(self, request: dht_pb2.PingRequest, context: P2PContext) -> dht_pb2.PingResponse:
         """Another peer wants us to help it check reachability"""
