@@ -16,7 +16,7 @@ jobs:
         uses: actions/checkout@v2
       - name: Check if the model is cached
         id: cache-model
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ~/.dummy
           key: model-v1-${{ hashFiles('setup.cfg', 'src/petals/cli/convert_model.py') }}
@@ -27,7 +27,7 @@ jobs:
           python-version: 3.9
       - name: Cache dependencies
         if: steps.cache-model.outputs.cache-hit != 'true'
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ~/.cache/pip
           key: Key-v1-3.9-${{ hashFiles('setup.cfg') }}
@@ -70,7 +70,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Cache dependencies
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ~/.cache/pip
           key: Key-v1-${{ matrix.python-version }}-${{ hashFiles('setup.cfg') }}
