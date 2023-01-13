@@ -63,7 +63,8 @@ jobs:
       fail-fast: false
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout
+        uses: actions/checkout@v2
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
