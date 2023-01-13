@@ -114,6 +114,8 @@ class RemoteSequenceManager:
         current_index = start_index
         while current_index < end_index:
             candidate_spans = self.sequence_info.spans_containing_block[current_index]
+            if not candidate_spans:
+                raise MissingBlocksError(current_index)
             if mode == "random":
                 chosen_span = random.choice(candidate_spans)  # TODO this should be replaced with proper load balancing
             elif mode == "fastest":
@@ -186,7 +188,7 @@ class RemoteSequenceManager:
                     self.sequence_info.update_(new_block_infos)
                 missing_blocks = [i for i in range(len(self)) if not self.sequence_info.spans_containing_block[i]]
                 if missing_blocks:
-                    raise MissingBlocksError(f"no servers holding blocks {missing_blocks}")
+                    raise MissingBlocksError(missing_blocks)
                 self.ready.set()  # if there is an active server for every block, we may begin running
                 break
 
@@ -245,7 +247,7 @@ class RemoteSequenceManager:
                         if server.state == ServerState.ONLINE
                     ]
                     if not active_servers:
-                        raise MissingBlocksError("no servers holding the first block are online")
+                        raise MissingBlocksError(0)
                     peer_id = random.choice(active_servers)
 
                     stub = TransformerConnectionHandler.get_stub(self.p2p, peer_id)
@@ -334,6 +336,11 @@ def maybe_log_traceback(exc: Exception):
     logger.log(traceback_level, "See detailed traceback below:", exc_info=True)
 
 
-class MissingBlocksError(Exception):
-    def __repr__(self):
-        return self.args[0]
+class MissingBlocksError(RuntimeError):
+    def __init__(self, block_indices: Union[int, Sequence[int]]):
+        super.__init__(
+            "No servers holding blocks {block_indices} are online.\n"
+            "You can check the public swarm's state at http://health.petals.ml\n\n"
+            "If there are not enough servers, please consider connecting your own GPU:\n"
+            "https://github.com/bigscience-workshop/petals#connect-your-gpu-and-increase-petals-capacity"
+        )
