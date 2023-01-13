@@ -8,6 +8,7 @@ from humanfriendly import parse_size
 
 from petals.constants import PUBLIC_INITIAL_PEERS
 from petals.server.server import Server
+from petals.utils.version import validate_version
 
 logger = get_logger(__file__)
 
@@ -192,6 +193,8 @@ def main():
     load_in_8bit = args.pop("load_in_8bit")
     if load_in_8bit is not None:
         args["load_in_8bit"] = load_in_8bit.lower() in ["true", "1"]
+
+    validate_version()
 
     server = Server(
         **args,

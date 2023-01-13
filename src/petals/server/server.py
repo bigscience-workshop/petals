@@ -102,7 +102,7 @@ class Server:
                 f"Cannot use model name as prefix (contains '{UID_DELIMITER}' or '{CHAIN_DELIMITER}'); "
                 f"Please specify --prefix manually when starting a server"
             )
-            logger.info(f"Automatic dht prefix: {prefix}")
+            logger.debug(f"Automatic dht prefix: {prefix}")
         self.prefix = prefix
 
         if expiration is None:
