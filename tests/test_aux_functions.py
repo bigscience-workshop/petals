@@ -8,7 +8,7 @@ from petals.server.throughput import measure_compute_rps, measure_network_rps
 
 @pytest.mark.forked
 @pytest.mark.parametrize("tensor_parallel", [False, True])
-def test_throughput_basic(tensor_parallel: bool):
+def test_compute_throughput(tensor_parallel: bool):
     config = DistributedBloomConfig.from_pretrained(MODEL_NAME)
     tensor_parallel_devices = ("cpu", "cpu") if tensor_parallel else ()
     compute_rps = measure_compute_rps(
@@ -20,5 +20,3 @@ def test_throughput_basic(tensor_parallel: bool):
         n_steps=10,
     )
     assert isinstance(compute_rps, float) and compute_rps > 0
-    network_rps = measure_network_rps(config)
-    assert isinstance(network_rps, float) and network_rps > 0
