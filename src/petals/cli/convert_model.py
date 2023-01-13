@@ -18,7 +18,7 @@ logger = get_logger(__file__)
 DTYPE_MAP = dict(bfloat16=torch.bfloat16, float16=torch.float16, float32=torch.float32, auto="auto")
 
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(description="Load bloom layers and convert to 8-bit using torch quantization.")
 
     parser.add_argument("--model", type=str, default="bigscience/bloom-6b3", help="Model name for from_pretrained")
@@ -90,3 +90,7 @@ if __name__ == "__main__":
         config.save_pretrained(".")
 
     logger.info(f"Converted {args.model} and pushed to {args.output_repo}")
+
+
+if __name__ == "__main__":
+    main()
