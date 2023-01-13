@@ -394,10 +394,9 @@ class TransformerConnectionHandler(ConnectionHandler):
 
         if request.uid:
             block_info = self.module_backends[request.uid].get_info()
-            if set(result.keys()) & set(block_info.keys()):
-                raise RuntimeError(
-                    f"The block's rpc_info has keys reserved for the server's rpc_info: {sorted(block_info.keys())}"
-                )
+            common_keys = set(result.keys()) & set(block_info.keys())
+            if common_keys:
+                raise RuntimeError(f"The block's rpc_info has keys reserved for the server's rpc_info: {common_keys}")
             result.update(block_info)
 
         return runtime_pb2.ExpertInfo(serialized_info=MSGPackSerializer.dumps(result))
