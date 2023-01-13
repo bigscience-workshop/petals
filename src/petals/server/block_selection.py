@@ -79,6 +79,9 @@ def should_choose_other_blocks(
     # Also, subtracting local_span.throughput * (1 + eps) makes _choose_best_start() prefer
     # the previous server position in case of other things being almost equal.
 
+    if initial_throughput > eps and throughputs.min() <= 0:
+        return False  # Switching blocks would make the swarm disjoint
+
     new_start = _choose_best_start(throughputs, local_span.length)
     if local_span.start == new_start:
         return False  # This server is on its best place already
