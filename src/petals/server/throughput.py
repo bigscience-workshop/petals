@@ -123,6 +123,8 @@ def measure_network_rps(config: BloomConfig) -> Optional[float]:
 
     bits_per_request = config.hidden_size * 16  # Clients usually send 16-bit tensors for forward/backward
     network_rps = min(network_info["download"], network_info["upload"]) / bits_per_request
+    if network_rps == 0:
+        raise ValueError("speedtest has returned network_rps == 0")
 
     logger.info(
         f"Network throughput: "
