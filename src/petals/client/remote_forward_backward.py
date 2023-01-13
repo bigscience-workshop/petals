@@ -88,8 +88,8 @@ async def run_remote_forward(
     # Modify forward_schema to support prompts
     args_schema, kwargs_schema = rpc_info["forward_schema"]
     # TODO: rm this assert when support arbitrary number of input tensors
-    assert len(args_schema) == 1 and len(inputs) == 2
-    forward_schema_with_prompts = (tuple(args_schema * len(inputs)), kwargs_schema)
+    assert len(args_schema) == 2 and len(inputs) == 3
+    forward_schema_with_prompts = ((args_schema[0], args_schema[1], args_schema[0]), kwargs_schema)
 
     if not nested_compare(forward_inputs, forward_schema_with_prompts):
         raise TypeError(f"Inputs do not match expert input schema. Did you pass the right number of parameters?")
@@ -135,7 +135,7 @@ async def run_remote_backward(
 
     # Modify forward_schema to support prompts
     args_schema, kwargs_schema = rpc_info["forward_schema"]
-    assert len(args_schema) == 1 and isinstance(inputs, torch.Tensor)
+    assert len(args_schema) == 2 and isinstance(inputs, torch.Tensor)
     # TODO generalize this
     prompts_schema = next(iter(args_schema))
     backward_schema = tuple(nested_flatten((rpc_info["forward_schema"], rpc_info["outputs_schema"], prompts_schema)))

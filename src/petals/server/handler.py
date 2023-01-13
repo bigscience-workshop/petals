@@ -405,15 +405,16 @@ async def _rpc_forward(
     """
     Run forward pass on deserialized inputs and prompts, used by rpc_forward and rpc_forward_stream
 
-    :param flat_tensors: a list of tensors that includes first layer inputs, optional prompts and extra tensors
+    :param flat_tensors: a list of tensors that includes first layer inputs, attention_mask, optional prompts and extra tensors
     :note: some input tensors can be missing, in which case they will be replaced with dummy tensors (see is_dummy)
     :param requested_backends: a sequence of transformer blocks in the same order as they appear in forward pass
     :returns: hidden states after the last layer [batch_size, seq_length, hid_size]
     """
-    hidden_states, prompts = flat_tensors
+    hidden_states, attention_masks, prompts = flat_tensors
     dtype = requested_backends[0].dtype
     # check parse input tensors and cast dtypes
     hidden_states = hidden_states.to(dtype)
+    attention_masks = attention_masks.to(dtype)
     assert hidden_states.ndim == 3
     if prompts is None or is_dummy(prompts):
         prompts = [DUMMY] * len(requested_backends)
@@ -431,6 +432,7 @@ async def _rpc_forward(
         )
         (hidden_states,) = await backend.forward_pool.submit_task(
             hidden_states,
+            attention_masks,
             priority=priority,
         )
         assert isinstance(hidden_states, torch.Tensor)
@@ -447,9 +449,10 @@ async def _rpc_backward(
     prioritizer: TaskPrioritizerBase,
     points: int = 0,
 ) -> Union[torch.Tensor, Sequence[torch.Tensor]]:
-    inputs, grad_outputs, prompts = flat_tensors
+    inputs, attention_masks, grad_outputs, prompts = flat_tensors
     # Cast inputs & grad outputs to backend dtype
     inputs = inputs.to(requested_backends[0].dtype)
+    attention_masks = attention_masks.to(requested_backends[0].dtype)
     grad_outputs = grad_outputs.to(requested_backends[-1].dtype)
 
     if prompts is None or is_dummy(prompts):
@@ -469,7 +472,7 @@ async def _rpc_backward(
         priority = prioritizer.prioritize(
             inputs, points=points / len(requested_backends), backend=backend, type="forward_in_backward"
         )
-        (inputs,) = await backend.forward_pool.submit_task(inputs, priority=priority)
+        (inputs,) = await backend.forward_pool.submit_task(inputs, attention_masks, priority=priority)
 
         assert isinstance(inputs, torch.Tensor)
 
@@ -485,7 +488,7 @@ async def _rpc_backward(
         priority = prioritizer.prioritize(
             inp, grad_outputs, points=points / len(requested_backends), backend=backend, type="backward"
         )
-        (grad_outputs,) = await backend.backward_pool.submit_task(inp, grad_outputs, priority=priority)
+        (grad_outputs,) = await backend.backward_pool.submit_task(inp, attention_masks, grad_outputs, priority=priority)
 
         assert isinstance(grad_outputs, torch.Tensor)
         if not is_dummy(prompt):

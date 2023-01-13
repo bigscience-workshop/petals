@@ -51,10 +51,10 @@ class RemoteSequential(nn.Module):
             assert isinstance(sequence_manager.sequence_info.block_uids, tuple)
             self.is_subsequence = self.sequence_manager.sequence_info.block_uids != block_uids
 
-    def forward(self, inputs: torch.Tensor, prompts: torch.Tensor = DUMMY):
+    def forward(self, inputs: torch.Tensor, attention_mask: torch.Tensor, prompts: torch.Tensor = DUMMY):
         assert inputs.ndim == 3, "inputs must be a tensor of shape [batch_size, seq_length, hidden_size]"
         assert inputs.shape[1] <= 2048, "The sequence length is capped at 2048 tokens in this version"
-        outputs = _RemoteSequentialAutogradFunction.apply(inputs, prompts, self.sequence_manager)
+        outputs = _RemoteSequentialAutogradFunction.apply(inputs, attention_mask, prompts, self.sequence_manager)
         return outputs
 
     def __getitem__(self, ix: Union[int, slice]) -> RemoteSequential:

@@ -84,6 +84,7 @@ class TransformerBackend(ModuleBackend):
     def inference_step(
         self,
         hidden_states: torch.Tensor,
+        attention_masks: torch.Tensor,
         hypo_ids: torch.LongTensor,
         inference_info: InferenceMetadata,
     ) -> Tuple[torch.Tensor, ...]:
