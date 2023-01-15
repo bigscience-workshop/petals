@@ -54,16 +54,17 @@ sudo docker run --net host --ipc host --gpus all --volume petals-cache:/cache --
 
 💬 If you have any issues or feedback, let us know on [our Discord server](https://discord.gg/D9MwApKgWa)!
 
-### Check out examples, tutorials, and more
+### Check out tutorials, examples, and more
+
+Tutorials:
+
+- Getting started: [tutorial](https://colab.research.google.com/drive/1Ervk6HPNS6AYVr3xVdQnY5a-TjjmLCdQ?usp=sharing)
+- Fine-tuning BLOOM to be a personified chatbot: [tutorial](https://colab.research.google.com/github/bigscience-workshop/petals/blob/main/examples/prompt-tuning-personachat.ipynb)
+- Fine-tuning BLOOM for text semantic classification: [tutorial](https://colab.research.google.com/github/bigscience-workshop/petals/blob/main/examples/prompt-tuning-sst2.ipynb)
 
 Example apps built with Petals:
 
 - [Chatbot web app](http://chat.petals.ml) (connects to Petals via an HTTP endpoint): [source code](https://github.com/borzunov/chat.petals.ml)
-
-Fine-tuning the model for your own tasks:
-
-- Training a personified chatbot: [tutorial](https://github.com/bigscience-workshop/petals/blob/main/examples/prompt-tuning-personachat.ipynb)
-- Fine-tuning BLOOM for text semantic classification: [tutorial](https://github.com/bigscience-workshop/petals/blob/main/examples/prompt-tuning-sst2.ipynb)
 
 Useful tools and advanced tutorials:
 
