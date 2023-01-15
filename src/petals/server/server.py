@@ -216,9 +216,6 @@ class Server:
         self.stop = threading.Event()
 
     def _choose_num_blocks(self) -> int:
-        assert (
-            self.converted_model_name_or_path == "bigscience/bloom-petals"
-        ), "If you use a model other than bigscience/bloom-petals, please specify --num_blocks manually"
         assert self.device.type == "cuda", (
             "GPU is not available. If you want to run a CPU-only server, please specify --num_blocks. "
             "CPU-only servers in the public swarm are discouraged since they are much slower"
@@ -240,10 +237,12 @@ class Server:
             total_memory = torch.cuda.get_device_properties(self.device).total_memory
 
         block_size = get_block_size(self.block_config, "memory", dtype=self.torch_dtype, load_in_8bit=self.load_in_8bit)
+
+        # The estimates below are for bigscience/bloom-petals, serving as an upper bound for other models
         gib = 1024**3
         attn_cache_per_block = 0.5 * gib * num_devices  # TODO: This does not account for manually set --attn_cache_size
+        autograd_memory = 2 * gib * num_devices  # GPU memory used for intermediate tensors in rpc_backward
 
-        autograd_memory = 2 * gib * num_devices  # gpu memory used for intermediate tensors in rpc_backward
         num_blocks = math.floor((total_memory - autograd_memory) / (block_size + attn_cache_per_block))
         assert num_blocks >= 1, "Your GPU does not have enough memory to serve at least one block"
 
