@@ -160,6 +160,20 @@ The automated tests use a more complex server configuration that can be found [h
 We use [black](https://black.readthedocs.io/en/stable/the_black_code_style/current_style.html) and [isort](https://pycqa.github.io/isort/) for all pull requests.
 Before committing your code, simply run `black . && isort .` and you will be fine.
 
+### Citation
+
+```
+  @misc{https://doi.org/10.48550/arxiv.2209.01188,
+  doi = {10.48550/ARXIV.2209.01188},
+  url = {https://arxiv.org/abs/2209.01188},
+  author = {Borzunov, Alexander and Baranchuk, Dmitry and Dettmers, Tim and Ryabinin, Max and Belkada, Younes and Chumachenko, Artem and Samygin, Pavel and Raffel, Colin},
+  keywords = {Machine Learning (cs.LG), Distributed, Parallel, and Cluster Computing (cs.DC), FOS: Computer and information sciences, FOS: Computer and information sciences},
+  title = {Petals: Collaborative Inference and Fine-tuning of Large Models},
+  publisher = {arXiv},
+  year = {2022},
+  copyright = {arXiv.org perpetual, non-exclusive license}}
+```
+
 --------------------------------------------------------------------------------
 
 <p align="center">
