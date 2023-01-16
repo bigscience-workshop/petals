@@ -22,7 +22,8 @@ def test_remote_block_exact_match(atol_forward=1e-4, atol_inference=1e-3):
         assert isinstance(remote_block, RemoteTransformerBlock)
 
         inputs = torch.randn(1, 8, config.hidden_size)
-        outputs_forward = remote_block(inputs)
+        attention_mask = torch.ones(1, 8)
+        outputs_forward = remote_block(inputs, attention_mask)
 
         outputs_inference = []
         with remote_block.inference_session(max_length=inputs.shape[1]) as sess:
@@ -37,7 +38,7 @@ def test_remote_block_exact_match(atol_forward=1e-4, atol_inference=1e-3):
         outputs_inference = torch.cat(outputs_inference, dim=1)
 
         ref_block = load_pretrained_block(MODEL_NAME, block_index, torch_dtype=torch.float32)
-        (outputs_local,) = ref_block(inputs)
+        (outputs_local,) = ref_block(inputs, attention_mask)
 
         assert torch.allclose(outputs_local, outputs_forward, rtol=0, atol=atol_forward)
         assert torch.allclose(outputs_local, outputs_inference, rtol=0, atol=atol_inference)

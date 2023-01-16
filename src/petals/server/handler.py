@@ -134,7 +134,7 @@ class TransformerConnectionHandler(ConnectionHandler):
                 async with self._allocate_cache(requested_backends, batch_size, max_length) as cache_handles:
                     assert len(cache_handles) == len(requested_backends)
                     while request.tensors:  # iterate while user is willing to supply tensors
-                        hidden_states, prompts, hypo_ids = map(deserialize_torch_tensor, request.tensors)
+                        hidden_states, attention_mask, prompts, hypo_ids = map(deserialize_torch_tensor, request.tensors)
 
                         # Cast inputs to backend dtype
                         hidden_states = hidden_states.to(requested_backends[0].dtype)
@@ -156,6 +156,9 @@ class TransformerConnectionHandler(ConnectionHandler):
                                 f"Maximum length exceeded: prefix {prefix_length} + current {length_increment}"
                                 f" exceeds pre-allocated maximum {max_length}"
                             )
+                            
+                        if is_dummy(attention_mask):
+                            attention_mask = torch.ones((hidden_states.shape[0], prefix_length + length_increment), dtype=hypo_ids.dtype)
 
                         priority = self._prioritizer.prioritize(
                             hidden_states,
@@ -317,9 +320,9 @@ class TransformerConnectionHandler(ConnectionHandler):
     ) -> Sequence[runtime_pb2.Tensor]:
         """Serialize backward gradients w.r.t. inputs using either default schema or custom user-specified schema"""
         # Modify grad_inputs_schema to support grad_prompts
-        assert len(requested_backends[0].args_schema) == 1 and len(grads) in (1, 2)  # TODO generalize
+        assert len(requested_backends[0].args_schema) == 2 and len(grads) in (1, 2)  # TODO generalize
         flat_grads_schema = tuple(
-            nested_flatten((requested_backends[0].args_schema * len(grads), requested_backends[0].kwargs_schema))
+            nested_flatten((requested_backends[0].args_schema[:1] * len(grads), requested_backends[0].kwargs_schema))
         )  # TODO generalize
 
         if metadata.get("output_compression") is not None:
@@ -435,7 +438,7 @@ async def _rpc_forward(
             attention_masks,
             priority=priority,
         )
-        assert isinstance(hidden_states, torch.Tensor)
+        assert isinstance(hidden_states, torch.Tensor), f"hidden_states is {hidden_states}"
         assert (
             hidden_states.ndim == 3
         ), f"inputs to {type(backend)} must be a list with a single 3d tensor of hidden states"
@@ -474,7 +477,7 @@ async def _rpc_backward(
         )
         (inputs,) = await backend.forward_pool.submit_task(inputs, attention_masks, priority=priority)
 
-        assert isinstance(inputs, torch.Tensor)
+        assert isinstance(inputs, torch.Tensor), f"inputs is {inputs}"
 
     if not is_dummy(prompts[-1]):
         inputs[:, : prompts[-1].shape[1]] += prompts[-1]
@@ -488,9 +491,10 @@ async def _rpc_backward(
         priority = prioritizer.prioritize(
             inp, grad_outputs, points=points / len(requested_backends), backend=backend, type="backward"
         )
-        (grad_outputs,) = await backend.backward_pool.submit_task(inp, attention_masks, grad_outputs, priority=priority)
+        grad_outputs = await backend.backward_pool.submit_task(inp, attention_masks, grad_outputs, priority=priority)
+        grad_outputs = grad_outputs[0]
 
-        assert isinstance(grad_outputs, torch.Tensor)
+        assert isinstance(grad_outputs, torch.Tensor), f"grad_outputs is {grad_outputs}"
         if not is_dummy(prompt):
             grad_prompts_reversed.append(grad_outputs[:, : prompt.shape[1]].unsqueeze(0))
 

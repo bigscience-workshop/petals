@@ -18,11 +18,12 @@ def test_remote_sequential():
     config = DistributedBloomConfig.from_pretrained(MODEL_NAME, initial_peers=INITIAL_PEERS)
     dht = DHT(initial_peers=config.initial_peers, client_mode=True, start=True)
     test_inputs = torch.randn(1, 5, config.hidden_size, requires_grad=True)
+    test_attention_mask = torch.ones((1, 5))
     grad_proj = torch.randn(1, 5, config.hidden_size)
 
     sequential = RemoteSequential(config, dht)
 
-    full_outputs = sequential(test_inputs)
+    full_outputs = sequential(test_inputs, test_attention_mask)
     (full_outputs * grad_proj).sum().backward()
     assert test_inputs.grad is not None
     full_grad = test_inputs.grad.clone()
@@ -35,11 +36,11 @@ def test_remote_sequential():
     for m in sequential, first_half, second_half:
         assert isinstance(repr(m), str)
 
-    hidden = first_half(test_inputs)
+    hidden = first_half(test_inputs, test_attention_mask)
     assert isinstance(hidden, torch.Tensor)
     assert hidden.shape == test_inputs.shape
     assert hidden.requires_grad
-    second_half_outputs = second_half(hidden)
+    second_half_outputs = second_half(hidden, test_attention_mask)
     assert torch.allclose(second_half_outputs, full_outputs, atol=1e-4)
 
     (second_half_outputs * grad_proj).sum().backward()
@@ -52,7 +53,7 @@ def test_remote_sequential():
     )
 
     test_inputs.grad = None
-    approx_outputs = lossy_sequential(test_inputs)
+    approx_outputs = lossy_sequential(test_inputs, test_attention_mask)
     (approx_outputs * grad_proj).sum().backward()
 
     assert not torch.allclose(approx_outputs, full_outputs, rtol=0, atol=1e-4), "compression was not used"
@@ -89,6 +90,7 @@ def test_remote_sequential_prompts(batch_size=2, seq_len=5, pre_seq_len=3):
     remote_sequential = RemoteSequential(config, dht)
 
     inputs = F.normalize(torch.randn(batch_size, seq_len, config.hidden_size), dim=-1)
+    attention_mask = torch.ones((batch_size, seq_len + pre_seq_len))
     output_proj = F.normalize(torch.randn(batch_size, seq_len + pre_seq_len, config.hidden_size), dim=-1)
     input_prompts = F.normalize(torch.randn(batch_size, pre_seq_len, config.hidden_size, requires_grad=True), dim=-1)
     intermediate_prompts = torch.randn(config.n_layer, batch_size, pre_seq_len, config.hidden_size, requires_grad=True)
@@ -99,7 +101,7 @@ def test_remote_sequential_prompts(batch_size=2, seq_len=5, pre_seq_len=3):
     inputs_with_prompts = torch.cat([inputs, input_prompts], dim=1)
     assert inputs_with_prompts.shape == (batch_size, seq_len + pre_seq_len, config.hidden_size)
 
-    outputs = remote_sequential(inputs_with_prompts, prompts=intermediate_prompts)
+    outputs = remote_sequential(inputs_with_prompts, attention_mask, prompts=intermediate_prompts)
 
     (outputs * output_proj).sum().backward()
     assert intermediate_prompts.grad is not None
@@ -116,7 +118,7 @@ def test_remote_sequential_prompts(batch_size=2, seq_len=5, pre_seq_len=3):
         outputs_ref[:, : block_prompt.shape[1]] += block_prompt
 
         block = load_pretrained_block(MODEL_NAME, block_index=block_index, torch_dtype=torch.float32)
-        (outputs_ref,) = block(outputs_ref)
+        (outputs_ref,) = block(outputs_ref, attention_mask)
 
     assert torch.allclose(outputs_ref, outputs, atol=1e-3)
 

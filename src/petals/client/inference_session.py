@@ -78,7 +78,7 @@ class _ServerInferenceSession:
     def step(
         self,
         new_hidden_states: torch.Tensor,
-        attention_mask: torch.Tensor,
+        attention_mask: Optional[torch.Tensor] = None,
         prompts: Optional[torch.Tensor] = None,
         hypo_ids: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
@@ -103,6 +103,9 @@ class _ServerInferenceSession:
         else:
             assert len(hypo_ids) == len(new_hidden_states)
             assert hypo_ids.dtype == torch.int64
+            
+        if attention_mask is None:
+            attention_mask = DUMMY
 
         # serialize inputs and put them into the queue
         inputs = (new_hidden_states, attention_mask, prompts, hypo_ids)
@@ -214,7 +217,7 @@ class InferenceSession:
         return self
 
     def step(
-        self, inputs: torch.Tensor, attention_mask: torch.Tensor, prompts: Optional[torch.Tensor] = None, **kwargs
+        self, inputs: torch.Tensor, attention_mask: Optional[torch.Tensor] = None, prompts: Optional[torch.Tensor] = None, **kwargs
     ) -> torch.Tensor:
         assert not self._closed
         if torch.is_grad_enabled():
@@ -225,6 +228,9 @@ class InferenceSession:
             prompts = DUMMY
         else:
             assert prompts.ndim == 4 and prompts.shape[0] == n_blocks
+            
+        if attention_mask is None:
+            attention_mask = DUMMY
 
         inputs_device = inputs.device
         inputs_dtype = inputs.dtype

@@ -155,9 +155,10 @@ def measure_compute_rps(
         elapsed = 0
         for step in range(n_steps + 1):
             dummy_input = torch.randn(n_tokens, 1, config.hidden_size, device=device, dtype=dtype)
+            dummy_mask = torch.ones((n_tokens, 1), device=device, dtype=dtype)
 
             start_time = time.perf_counter()
-            _, cache = block.forward(dummy_input, use_cache=True, layer_past=cache)
+            _, cache = block.forward(dummy_input, dummy_mask, use_cache=True, layer_past=cache)
             if step >= 1:  # Skip the 1st step to exclude the initialization time
                 elapsed += time.perf_counter() - start_time
         device_rps = n_steps * n_tokens / elapsed

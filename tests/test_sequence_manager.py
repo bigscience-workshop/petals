@@ -35,7 +35,7 @@ def test_sequence_manager_basics(mode: str):
     assert sequential.sequence_manager.is_alive()
     assert sequential.sequence_manager._thread.ready.is_set()
     assert not shutdown_evt.is_set()
-    sequential(torch.randn(1, 2, config.hidden_size))
+    sequential(torch.randn(1, 2, config.hidden_size), torch.ones((1, 2)))
 
     sequential.sequence_manager.shutdown()
     del sequential

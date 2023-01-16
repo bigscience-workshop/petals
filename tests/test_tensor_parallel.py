@@ -31,13 +31,17 @@ def test_tp_block(devices, custom_config):
     test_prefix2 = test_prefix1.detach().clone().requires_grad_(True)
     grad_proj = torch.rand_like(test_inputs1)
 
-    y_prefix_ref, layer_past = block(test_prefix1, use_cache=True)
-    y_ref, cache_ref = block(test_inputs1, use_cache=True, layer_past=layer_past)
+    test_attention_mask1 = torch.ones((batch_size, prefix_length), device=devices[0])
+    y_prefix_ref, layer_past = block(test_prefix1, test_attention_mask1, use_cache=True)
+    test_attention_mask1 = torch.ones((batch_size, prefix_length + 3), device=devices[0])
+    y_ref, cache_ref = block(test_inputs1, test_attention_mask1, use_cache=True, layer_past=layer_past)
     y_ref.backward(grad_proj)
 
     block_tp = TensorParallel(block, devices, config=tp_config)
-    y_prefix, layer_past = block_tp(test_prefix2, use_cache=True)
-    y_ours, cache_ours = block_tp(test_inputs2, use_cache=True, layer_past=layer_past)
+    test_attention_mask2 = torch.ones((batch_size, prefix_length), device=devices[0])
+    y_prefix, layer_past = block_tp(test_prefix2, test_attention_mask2, use_cache=True)
+    test_attention_mask2 = torch.ones((batch_size, prefix_length + 3), device=devices[0])
+    y_ours, cache_ours = block_tp(test_inputs2, test_attention_mask2, use_cache=True, layer_past=layer_past)
     y_ours.backward(grad_proj)
 
     assert torch.allclose(y_prefix, y_prefix_ref, atol=1e-5)

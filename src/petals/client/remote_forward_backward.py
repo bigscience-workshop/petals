@@ -118,6 +118,7 @@ async def run_remote_backward(
     stub: StubBase,
     rpc_info: RPCInfo,
     inputs: torch.Tensor,
+    attention_masks: torch.Tensor,
     grad_outputs: List[torch.Tensor],
     *extra_tensors: torch.Tensor,
     timeout: float,
@@ -131,7 +132,7 @@ async def run_remote_backward(
     """
 
     grad_outputs_cpu = tuple(tensor.cpu() for tensor in grad_outputs)
-    inputs_and_grad_outputs = tuple(nested_flatten((inputs, grad_outputs_cpu, *extra_tensors)))
+    inputs_and_grad_outputs = tuple(nested_flatten((inputs, attention_masks, grad_outputs_cpu, *extra_tensors)))
 
     # Modify forward_schema to support prompts
     args_schema, kwargs_schema = rpc_info["forward_schema"]
