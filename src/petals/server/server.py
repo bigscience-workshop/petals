@@ -420,9 +420,7 @@ class ModuleContainer(threading.Thread):
                         BatchTensorDescriptor(
                             1, 2048, block_config.hidden_size, dtype=backend_dtype, compression=compression
                         ),
-                        BatchTensorDescriptor(
-                            1, 2048, dtype=backend_dtype, compression=compression
-                        ),
+                        BatchTensorDescriptor(1, 2048, dtype=backend_dtype, compression=compression),
                     ),
                     kwargs_schema={},
                     outputs_schema=(

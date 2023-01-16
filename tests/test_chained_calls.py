@@ -72,7 +72,9 @@ def test_chained_inference_exact_match(atol_inference=1e-4):
         hidden_states = inputs[:, i : i + 1, :]
         for ref_block, cache in zip(ref_blocks, caches):
             with torch.no_grad():
-                hidden_states, new_cache = ref_block.forward(hidden_states, attention_masks[:, :i+1], use_cache=True, layer_past=cache)
+                hidden_states, new_cache = ref_block.forward(
+                    hidden_states, attention_masks[:, : i + 1], use_cache=True, layer_past=cache
+                )
                 new_caches.append(new_cache)
 
         outputs_ref.append(hidden_states)

@@ -103,7 +103,7 @@ class _ServerInferenceSession:
         else:
             assert len(hypo_ids) == len(new_hidden_states)
             assert hypo_ids.dtype == torch.int64
-            
+
         if attention_mask is None:
             attention_mask = DUMMY
 
@@ -217,7 +217,11 @@ class InferenceSession:
         return self
 
     def step(
-        self, inputs: torch.Tensor, attention_mask: Optional[torch.Tensor] = None, prompts: Optional[torch.Tensor] = None, **kwargs
+        self,
+        inputs: torch.Tensor,
+        attention_mask: Optional[torch.Tensor] = None,
+        prompts: Optional[torch.Tensor] = None,
+        **kwargs,
     ) -> torch.Tensor:
         assert not self._closed
         if torch.is_grad_enabled():
@@ -228,7 +232,7 @@ class InferenceSession:
             prompts = DUMMY
         else:
             assert prompts.ndim == 4 and prompts.shape[0] == n_blocks
-            
+
         if attention_mask is None:
             attention_mask = DUMMY
 

@@ -191,7 +191,7 @@ class DistributedBloomModel(_LowCPUMemoryMixin, BloomModel):
 
         hidden_states = self.word_embeddings_layernorm(inputs_embeds)
         output_shape = input_shape + (hidden_states.size(-1),)
-        
+
         if attention_mask is None:
             attention_mask = torch.ones((batch_size, hidden_states.size(1)), device=hidden_states.device)
 
