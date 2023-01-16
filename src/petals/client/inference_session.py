@@ -103,7 +103,7 @@ class _ServerInferenceSession:
         else:
             assert len(hypo_ids) == len(new_hidden_states)
             assert hypo_ids.dtype == torch.int64
-            
+
         if attention_mask is None:
             attention_mask = DUMMY
 
@@ -235,7 +235,7 @@ class InferenceSession:
             prompts = DUMMY
         else:
             assert prompts.ndim == 4 and prompts.shape[0] == n_blocks
-            
+
         if attention_mask is None:
             attention_mask = DUMMY
 
