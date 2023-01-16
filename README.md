@@ -54,22 +54,23 @@ sudo docker run --net host --ipc host --gpus all --volume petals-cache:/cache --
 
 💬 If you have any issues or feedback, let us know on [our Discord server](https://discord.gg/D9MwApKgWa)!
 
-### Check out examples, tutorials, and more
+### Check out tutorials, examples, and more
+
+Basic tutorials:
+
+- Getting started: [tutorial](https://colab.research.google.com/drive/1Ervk6HPNS6AYVr3xVdQnY5a-TjjmLCdQ?usp=sharing)
+- Fine-tune BLOOM to be a personified chatbot: [tutorial](https://colab.research.google.com/github/bigscience-workshop/petals/blob/main/examples/prompt-tuning-personachat.ipynb)
+- Fine-tune BLOOM for text semantic classification: [tutorial](https://colab.research.google.com/github/bigscience-workshop/petals/blob/main/examples/prompt-tuning-sst2.ipynb)
 
 Example apps built with Petals:
 
 - [Chatbot web app](http://chat.petals.ml) (connects to Petals via an HTTP endpoint): [source code](https://github.com/borzunov/chat.petals.ml)
 
-Fine-tuning the model for your own tasks:
-
-- Training a personified chatbot: [tutorial](https://github.com/bigscience-workshop/petals/blob/main/examples/prompt-tuning-personachat.ipynb)
-- Fine-tuning BLOOM for text semantic classification: [tutorial](https://github.com/bigscience-workshop/petals/blob/main/examples/prompt-tuning-sst2.ipynb)
-
-Useful tools and advanced tutorials:
+Useful tools and advanced guides:
 
 - [Monitor](http://health.petals.ml) for the public swarm: [source code](https://github.com/borzunov/health.petals.ml)
-- Launching your own swarm: [tutorial](https://github.com/bigscience-workshop/petals/wiki/Launch-your-own-swarm)
-- Running a custom foundation model: [tutorial](https://github.com/bigscience-workshop/petals/wiki/Run-a-custom-model-with-Petals)
+- Launch your own swarm: [guide](https://github.com/bigscience-workshop/petals/wiki/Launch-your-own-swarm)
+- Run a custom foundation model: [guide](https://github.com/bigscience-workshop/petals/wiki/Run-a-custom-model-with-Petals)
 
 📋 If you build an app running BLOOM with Petals, make sure it follows the BLOOM's [terms of use](https://huggingface.co/bigscience/bloom).
 
