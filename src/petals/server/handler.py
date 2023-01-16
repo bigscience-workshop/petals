@@ -158,6 +158,9 @@ class TransformerConnectionHandler(ConnectionHandler):
                                 f"Maximum length exceeded: prefix {prefix_length} + current {length_increment}"
                                 f" exceeds pre-allocated maximum {max_length}"
                             )
+                            
+                        if is_dummy(attention_mask):
+                            attention_mask = torch.ones((hidden_states.shape[0], prefix_length + length_increment), dtype=hypo_ids.dtype)
 
                         if is_dummy(attention_mask):
                             attention_mask = torch.ones(
