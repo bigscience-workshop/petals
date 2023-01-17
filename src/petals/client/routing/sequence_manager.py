@@ -333,7 +333,7 @@ class _SequenceManagerUpdateThread(threading.Thread):
 
 def maybe_log_traceback(exc: Exception):
     traceback_level = logging.DEBUG if str(exc) or isinstance(exc, asyncio.TimeoutError) else logging.WARNING
-    logger.log(logging.INFO, "See detailed traceback below:", exc_info=True)
+    logger.log(traceback_level, "See detailed traceback below:", exc_info=True)
 
 
 class MissingBlocksError(RuntimeError):

@@ -195,9 +195,6 @@ class DistributedBloomModel(_LowCPUMemoryMixin, BloomModel):
         if attention_mask is None:
             attention_mask = torch.ones((batch_size, hidden_states.size(1)), device=hidden_states.device)
 
-        if attention_mask is None:
-            attention_mask = torch.ones((batch_size, hidden_states.size(1)), device=hidden_states.device)
-
         if self.config.tuning_mode and "ptune" in self.config.tuning_mode:
             hidden_states = self.h(hidden_states, attention_mask, prompts=intermediate_prompts)
         else:

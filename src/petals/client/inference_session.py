@@ -107,9 +107,6 @@ class _ServerInferenceSession:
         if attention_mask is None:
             attention_mask = DUMMY
 
-        if attention_mask is None:
-            attention_mask = DUMMY
-
         # serialize inputs and put them into the queue
         inputs = (new_hidden_states, attention_mask, prompts, hypo_ids)
         outputs_serialized = RemoteExpertWorker.run_coroutine(
@@ -235,9 +232,6 @@ class InferenceSession:
             prompts = DUMMY
         else:
             assert prompts.ndim == 4 and prompts.shape[0] == n_blocks
-
-        if attention_mask is None:
-            attention_mask = DUMMY
 
         if attention_mask is None:
             attention_mask = DUMMY
