@@ -50,7 +50,7 @@ sudo docker run --net host --ipc host --gpus all --volume petals-cache:/cache --
     learningathome/petals:main python -m petals.cli.run_server bigscience/bloom-petals
 ```
 
-You can also serve [BLOOMZ](https://huggingface.co/bigscience/bloomz), a version of BLOOM fine-tuned to follow human instructions in the zero-shot regime — just replace `bloom-petals` with `bloomz-petals`.
+You can also host [BLOOMZ](https://huggingface.co/bigscience/bloomz), a version of BLOOM fine-tuned to follow human instructions in the zero-shot regime — just replace `bloom-petals` with `bloomz-petals`.
 
 🔒 This does not allow others to run custom code on your computer. Learn more about security [here](https://github.com/bigscience-workshop/petals/wiki/Security,-privacy,-and-AI-safety).
 
