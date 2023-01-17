@@ -5,7 +5,7 @@
     <a href="https://pypi.org/project/petals/"><img src="https://img.shields.io/pypi/v/petals.svg?color=green"></a><br>
 </p>
 
-Generate text using distributed [BLOOM-176B](https://huggingface.co/bigscience/bloom) and fine-tune it for your own tasks:
+Generate text using distributed 176B-parameter [BLOOM](https://huggingface.co/bigscience/bloom) or [BLOOMZ](https://huggingface.co/bigscience/bloomz) and fine-tune them for your own tasks:
 
 ```python
 from petals import DistributedBloomForCausalLM
@@ -49,6 +49,8 @@ Or use our [Docker](https://www.docker.com) image:
 sudo docker run --net host --ipc host --gpus all --volume petals-cache:/cache --rm \
     learningathome/petals:main python -m petals.cli.run_server bigscience/bloom-petals
 ```
+
+You can also serve [BLOOMZ](https://huggingface.co/bigscience/bloomz), a version of BLOOM fine-tuned to follow human instructions, by replacing `bloom-petals` with `bloomz-petals`.
 
 🔒 This does not allow others to run custom code on your computer. Learn more about security [here](https://github.com/bigscience-workshop/petals/wiki/Security,-privacy,-and-AI-safety).
 
