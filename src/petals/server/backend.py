@@ -18,6 +18,7 @@ from petals.data_structures import InferenceMetadata
 from petals.server.memory_cache import MemoryCache
 from petals.server.task_pool import PrioritizedTaskPool
 from petals.utils.misc import is_dummy
+import time
 
 logger = get_logger(__file__)
 
@@ -84,17 +85,30 @@ class TransformerBackend(ModuleBackend):
         hidden_states: torch.Tensor,
         hypo_ids: torch.LongTensor,
         inference_info: InferenceMetadata,
-    ) -> Tuple[torch.Tensor, ...]:
+    ) -> Tuple[torch.Tensor, Any]:
         with torch.inference_mode():
             assert (
                 hidden_states.ndim == 3
             ), "expected hidden states to be 3-dimensional: [batch_size, seq_len, hid_size]"
+            t0 = time.perf_counter()
             with self.memory_cache.use_cache(*inference_info.cache_handles) as cache_tensors:
+                t_in_ctx = time.perf_counter()
                 self._reorder_cache_inplace(cache_tensors, hypo_ids)
                 layer_past = self._select_layer_past(cache_tensors, inference_info.prefix_length)
+                t_pre_fwd = time.perf_counter()
                 hidden_states, new_kvs = self.module.forward(hidden_states, layer_past=layer_past, use_cache=True)
+                t_post_fwd = time.perf_counter()
                 self._update_cache_inplace(cache_tensors, new_kvs, inference_info.prefix_length)
-                return (hidden_states,)
+                t_done = time.perf_counter()
+                time_stats = dict(
+                    total=t_done - t0,
+                    forward=t_post_fwd - t_pre_fwd,
+                    get_cache=t_in_ctx - t0,
+                    preprocess_cache=t_pre_fwd-t_in_ctx,
+                    non_forward=(t_done - t0) - (t_post_fwd - t_pre_fwd),
+                    postprocess_cache=t_done-t_post_fwd,
+                )
+                return (hidden_states, time_stats, t0, t_done)
 
     def _reorder_cache_inplace(self, cache_tensors: torch.Tensor, hypo_ids: torch.Tensor):
         """If hypo_ids is specified, reorder elements of each cache tensor in-place by taking indices from hypo_ids"""

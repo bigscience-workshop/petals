@@ -1,7 +1,9 @@
 from __future__ import annotations
+import time
 
 import asyncio
 import contextlib
+from collections import Counter
 from itertools import chain
 from typing import Any, AsyncIterator, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 
@@ -98,6 +100,8 @@ class TransformerConnectionHandler(ConnectionHandler):
         context: P2PContext,
     ) -> AsyncIterator[runtime_pb2.ExpertRequest]:
         """Compute a single step of inference using attention cache; update attention cache accordingly."""
+        stats = Counter()
+        t_start = time.perf_counter()
 
         async with timeout(self.session_timeout):
             try:
@@ -134,6 +138,7 @@ class TransformerConnectionHandler(ConnectionHandler):
                 async with self._allocate_cache(requested_backends, batch_size, max_length) as cache_handles:
                     assert len(cache_handles) == len(requested_backends)
                     while request.tensors:  # iterate while user is willing to supply tensors
+                        t0_step = time.perf_counter()
                         hidden_states, prompts, hypo_ids = map(deserialize_torch_tensor, request.tensors)
 
                         # Cast inputs to backend dtype
@@ -181,9 +186,15 @@ class TransformerConnectionHandler(ConnectionHandler):
                                 backend=backend,
                                 type="inference",
                             )
-                            (hidden_states,) = await backend.inference_pool.submit_task(
+                            t0 = time.perf_counter()
+                            (hidden_states, step_stats, backend_t0, backend_tdone) = await backend.inference_pool.submit_task(
                                 hidden_states, hypo_ids, metadata, priority=priority
                             )
+                            stats["t_wait_for_taskpool"] += time.perf_counter() - t0
+                            stats[f'task_pool.from_submit_before_processing'] += backend_t0 - t0
+                            stats[f'task_pool.from_computed_to_received'] += time.perf_counter() - backend_tdone
+                            for key, value in step_stats.items():
+                                stats[f'backend.{key}'] += value
 
                         # serialize and send last layer outputs
                         yield runtime_pb2.ExpertResponse(
@@ -197,12 +208,16 @@ class TransformerConnectionHandler(ConnectionHandler):
 
                         # prepare for next step
                         prefix_length += hidden_states.shape[1]
+                        stats['t_inside_step'] += time.perf_counter() - t0_step
                         try:
                             request = await asyncio.wait_for(anext(requests), self.step_timeout)
                         except asyncio.TimeoutError:
                             self._log_request("rpc_inference.step", requested_uids, context, warning="timed out")
                             return
             finally:
+                stats['total_time'] = time.perf_counter() - t_start
+                stats_repr = '\n'.join(f'{key}:{value:.3f}' for key, value in stats.most_common())
+                print(f"INFERENCE: \n{stats_repr}\n", flush=True)
                 self._log_request("rpc_inference.close", requested_uids, context)
 
     async def rpc_forward(self, request: runtime_pb2.ExpertRequest, context: P2PContext) -> runtime_pb2.ExpertResponse:
