@@ -70,21 +70,6 @@ class TransformerBackend(ModuleBackend):
         for descr in self.get_inference_cache_descriptors(batch_size=1, max_length=1):
             self.cache_bytes_per_token[descr.device] += descr.numel() * torch.finfo(descr.dtype).bits // 8
 
-    @staticmethod
-    def merge_inference_pools_inplace(backends: Dict[ExpertUID, TransformerBackend]):
-        """Replace each backend's rpc_inference pools with a combined pool runs multiple blocks in one call"""
-        assert len(backends) != 0 and all(isinstance(b, TransformerBackend) for b in backends.values())
-        first_pool = next(iter(backends.values())).inference_pool
-        merged_pool = PrioritizedTaskPool(
-            _MergedInferenceStep(backends),
-            max_batch_size=first_pool.max_batch_size,
-            device=first_pool.device,
-            name=f"merged_inference",
-        )
-        for backend in backends.values():
-            assert not backend.inference_pool.is_alive()
-            backend.inference_pool = merged_pool
-
     def get_inference_cache_descriptors(self, batch_size: int, max_length: int) -> Sequence[TensorDescriptor]:
         """Create tensor descriptors for attention cache tensors used during inference_step"""
         head_dim = self.config.hidden_size // self.config.n_head
@@ -153,6 +138,21 @@ class TransformerBackend(ModuleBackend):
         dummy = torch.tensor([])
         for p in self.module.parameters():
             p.data = dummy
+
+
+def merge_inference_pools_inplace(backends: Dict[ExpertUID, TransformerBackend]):
+    """Replace each backend's rpc_inference pools with a combined pool runs multiple blocks in one call"""
+    assert len(backends) != 0 and all(isinstance(b, TransformerBackend) for b in backends.values())
+    first_pool = next(iter(backends.values())).inference_pool
+    merged_pool = PrioritizedTaskPool(
+        _MergedInferenceStep(backends),
+        max_batch_size=first_pool.max_batch_size,
+        device=first_pool.device,
+        name=f"merged_inference",
+    )
+    for backend in backends.values():
+        assert not backend.inference_pool.is_alive()
+        backend.inference_pool = merged_pool
 
 
 class _MergedInferenceStep:

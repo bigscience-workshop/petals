@@ -22,7 +22,7 @@ from petals.constants import PUBLIC_INITIAL_PEERS
 from petals.data_structures import CHAIN_DELIMITER, UID_DELIMITER, ServerState
 from petals.dht_utils import declare_active_modules, get_remote_module_infos
 from petals.server import block_selection
-from petals.server.backend import TransformerBackend
+from petals.server.backend import TransformerBackend, merge_inference_pools_inplace
 from petals.server.block_utils import get_block_size
 from petals.server.handler import TransformerConnectionHandler
 from petals.server.memory_cache import MemoryCache
@@ -453,7 +453,7 @@ class ModuleContainer(threading.Thread):
             joining_announcer.stop.set()
             joining_announcer.join()
 
-        TransformerBackend.merge_inference_pools_inplace(blocks)
+        merge_inference_pools_inplace(blocks)
 
         return cls(
             dht,
