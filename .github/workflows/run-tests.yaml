@@ -13,7 +13,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Check if the model is cached
         id: cache-model
         uses: actions/cache@v3
@@ -64,7 +64,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
