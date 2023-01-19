@@ -157,11 +157,6 @@ class TransformerConnectionHandler(ConnectionHandler):
                                 f" exceeds pre-allocated maximum {max_length}"
                             )
 
-                        if hidden_states.numel() == 0:
-                            continue  # user passed a tensor with 0 tokens. This is a special case that occurs, e.g.
-                            # when user wants to pre-allocate cache or check that server *can* allocate that cache
-                        assert hidden_states.ndim == 3, f"hidden states must be a single 3d tensor"
-
                         priority = self._prioritizer.prioritize(
                             hidden_states,
                             hypo_ids,
@@ -175,9 +170,14 @@ class TransformerConnectionHandler(ConnectionHandler):
                             for uid, handles in zip(requested_uids, cache_handles)
                         )
 
-                        (hidden_states,) = await self.module_backends[requested_uids[0]].inference_pool.submit_task(
-                            hidden_states, hypo_ids, inference_infos, *prompts, priority=priority
-                        )
+                        if hidden_states.numel() == 0:
+                            pass  # user passed a tensor with 0 tokens. This is a special case that occurs, e.g.
+                            # when user wants to pre-allocate cache or check that server *can* allocate that cache
+                        else:
+                            assert hidden_states.ndim == 3, f"hidden states must be a single 3d tensor"
+                            (hidden_states,) = await self.module_backends[requested_uids[0]].inference_pool.submit_task(
+                                hidden_states, hypo_ids, inference_infos, *prompts, priority=priority
+                            )
 
                         # serialize and send last layer outputs
                         yield runtime_pb2.ExpertResponse(
