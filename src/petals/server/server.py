@@ -453,11 +453,12 @@ class ModuleContainer(threading.Thread):
             joining_announcer.stop.set()
             joining_announcer.join()
 
+        TransformerBackend.merge_inference_pools_inplace(blocks)
+
         return cls(
             dht,
             blocks,
             throughput=throughput,
-            device=device,
             update_period=update_period,
             expiration=expiration,
             **kwargs,
@@ -476,7 +477,6 @@ class ModuleContainer(threading.Thread):
         request_timeout: float,
         session_timeout: float,
         step_timeout: float,
-        device: Union[str, torch.device],
         start: bool,
         **kwargs,
     ):
@@ -495,7 +495,7 @@ class ModuleContainer(threading.Thread):
             )
             for _ in range(num_handlers)
         ]
-        self.runtime = Runtime(self.module_backends, device=None, **kwargs)
+        self.runtime = RuntimeWithDeduplicatedPools(self.module_backends, device=None, **kwargs)
         # note: We set device=None in runtime to avoid moving all modules to device 0 in runtime.run(). tensor_parallel has already moved it as needed.
         self.online_announcer = ModuleAnnouncerThread(
             list(self.module_backends.keys()),
@@ -633,3 +633,11 @@ class ModuleAnnouncerThread(threading.Thread):
             )
             if self.stop.wait(self.update_period):
                 break
+
+
+class RuntimeWithDeduplicatedPools(Runtime):
+    """A version of hivemind.moe.server.runtime.Runtime that allows multiple backends to reuse a task pool"""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.pools = tuple(set(self.pools))
