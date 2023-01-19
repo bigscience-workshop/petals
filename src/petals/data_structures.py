@@ -6,6 +6,7 @@ from enum import Enum
 from typing import Any, Dict, Tuple
 
 from hivemind import PeerID
+from hivemind.moe.expert_uid import ExpertUID
 
 from petals.server.memory_cache import Handle
 
@@ -48,5 +49,6 @@ RPCInfo = Dict[str, Any]
 
 @dataclasses.dataclass(frozen=True)
 class InferenceMetadata:
+    uid: ExpertUID
     prefix_length: int
     cache_handles: Tuple[Handle, ...]
