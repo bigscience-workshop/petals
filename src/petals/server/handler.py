@@ -141,10 +141,11 @@ class TransformerConnectionHandler(ConnectionHandler):
                         assert hypo_ids.dtype == torch.int64, f"hypo ids must be int64, got {hypo_ids.dtype}"
 
                         # parse deep prompts (optional argument)
-                        if prompts is None or is_dummy(prompts) or is_dummy(prompts):
-                            prompts = [DUMMY] * len(requested_backends)
+                        if prompts is None or is_dummy(prompts):
+                            prompts = [None] * len(requested_backends)
                         else:
                             prompts = [p.squeeze(0) for p in prompts.to(requested_backends[0].dtype).split(1, dim=0)]
+                            prompts = [prompt if not is_dummy(prompt) else None for prompt in prompts]
 
                         if not (len(requested_backends) == len(prompts)):
                             raise ValueError(f"Received {len(prompts)} prompts for {len(requested_backends)} backends")
@@ -156,33 +157,26 @@ class TransformerConnectionHandler(ConnectionHandler):
                                 f" exceeds pre-allocated maximum {max_length}"
                             )
 
-                        # run request tensors through all requested modules, update caches
-                        for backend, backend_cache_handles, prompt in zip(requested_backends, cache_handles, prompts):
-                            if not is_dummy(prompt):
-                                hidden_states[:, : prompt.shape[1]] += prompt
-                            if hidden_states.numel() == 0:
-                                continue  # user passed a tensor with 0 tokens. This is a special case that occurs, e.g.
-                                # when user wants to pre-allocate cache or check that server *can* allocate that cache
+                        priority = self._prioritizer.prioritize(
+                            hidden_states,
+                            hypo_ids,
+                            points=point_per_piece,
+                            requested_uids=requested_uids,
+                            type="inference",
+                        )
 
-                            metadata = InferenceMetadata(prefix_length, tuple(backend_cache_handles))
-                            assert isinstance(
-                                hidden_states, torch.Tensor
-                            ), f"hidden states must be tensor, got {type(hidden_states)}"
-                            assert (
-                                hidden_states.ndim == 3
-                            ), f"inputs to {type(backend)} must be a list with a single 3d tensor of hidden states"
-                            assert isinstance(
-                                backend.inference_pool, PrioritizedTaskPool
-                            ), "petals support only prioritized pools"
-                            priority = self._prioritizer.prioritize(
-                                hidden_states,
-                                hypo_ids,
-                                points=point_per_piece / len(requested_backends),
-                                backend=backend,
-                                type="inference",
-                            )
-                            (hidden_states,) = await backend.inference_pool.submit_task(
-                                hidden_states, hypo_ids, metadata, priority=priority
+                        inference_infos = tuple(
+                            InferenceMetadata(uid, prefix_length, tuple(handles))
+                            for uid, handles in zip(requested_uids, cache_handles)
+                        )
+
+                        if hidden_states.numel() == 0:
+                            pass  # user passed a tensor with 0 tokens. This is a special case that occurs, e.g.
+                            # when user wants to pre-allocate cache or check that server *can* allocate that cache
+                        else:
+                            assert hidden_states.ndim == 3, f"hidden states must be a single 3d tensor"
+                            (hidden_states,) = await self.module_backends[requested_uids[0]].inference_pool.submit_task(
+                                hidden_states, hypo_ids, inference_infos, *prompts, priority=priority
                             )
 
                         # serialize and send last layer outputs
@@ -444,7 +438,6 @@ async def _rpc_forward(
             hidden_states.ndim == 3
         ), f"inputs to {type(backend)} must be a list with a single 3d tensor of hidden states"
 
-    # Serialize the overall output
     return hidden_states
 
 
