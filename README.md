@@ -170,11 +170,11 @@ _arXiv preprint arXiv:2209.01188,_ 2022.
 
 ```bibtex
 @article{borzunov2022petals,
-  title={Petals: Collaborative Inference and Fine-tuning of Large Models},
-  author={Borzunov, Alexander and Baranchuk, Dmitry and Dettmers, Tim and Ryabinin, Max and Belkada, Younes and Chumachenko, Artem and Samygin, Pavel and Raffel, Colin},
-  journal={arXiv preprint arXiv:2209.01188},
-  year={2022},
-  url={https://arxiv.org/abs/2209.01188}
+  title = {Petals: Collaborative Inference and Fine-tuning of Large Models},
+  author = {Borzunov, Alexander and Baranchuk, Dmitry and Dettmers, Tim and Ryabinin, Max and Belkada, Younes and Chumachenko, Artem and Samygin, Pavel and Raffel, Colin},
+  journal = {arXiv preprint arXiv:2209.01188},
+  year = {2022},
+  url = {https://arxiv.org/abs/2209.01188}
 }
 ```
 
