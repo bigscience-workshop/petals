@@ -61,7 +61,7 @@ You can also host [BLOOMZ](https://huggingface.co/bigscience/bloomz), a version 
 To update your Anaconda environment with the latest changes, run the following:
 
 ```bash
-pip install git+https://github.com/bigscience-workshop/petals
+pip install --upgrade git+https://github.com/bigscience-workshop/petals
 ```
 
 ### Check out tutorials, examples, and more
