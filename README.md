@@ -56,6 +56,14 @@ You can also host [BLOOMZ](https://huggingface.co/bigscience/bloomz), a version 
 
 💬 If you have any issues or feedback, let us know on [our Discord server](https://discord.gg/D9MwApKgWa)!
 
+#### Updating
+
+To update your Anaconda environment with the latest changes, run the following:
+
+```bash
+pip install git+https://github.com/bigscience-workshop/petals
+```
+
 ### Check out tutorials, examples, and more
 
 Basic tutorials:
