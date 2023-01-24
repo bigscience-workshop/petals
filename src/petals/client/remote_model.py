@@ -1,6 +1,6 @@
 import os
 from contextlib import contextmanager
-from typing import List, Optional, Union
+from typing import Collection, List, Optional, Union
 
 import hivemind
 import torch
@@ -35,6 +35,9 @@ class DistributedBloomConfig(BloomConfig):
     daemon_startup_timeout: int = 30
     dht: Optional[hivemind.DHT] = None  # a running DHT instance, e.g. when using the same DHT for multiple models
     request_timeout: int = 30  # a number of seconds for waiting result from each node
+    allowed_servers: Optional[
+        Collection[Union[str, hivemind.PeerID]]
+    ] = None  # if defined, send requests only to these servers
 
     pre_seq_len: int = 0  # a number of tokens for prompt tuning.
     tuning_mode: Optional[str] = None  # One of the finetune options: [None, 'shallow_ptune', 'deep_ptune', 'adapters']
@@ -112,7 +115,13 @@ class DistributedBloomModel(_LowCPUMemoryMixin, BloomModel):
             )
         )
         assert isinstance(dht, hivemind.DHT) and dht.is_alive(), "dht must be a running hivemind.DHT instance"
-        self.h = RemoteSequential(config, dht, config.dht_prefix, request_timeout=config.request_timeout)
+        self.h = RemoteSequential(
+            config,
+            dht,
+            config.dht_prefix,
+            request_timeout=config.request_timeout,
+            allowed_servers=config.allowed_servers,
+        )
 
         # Forbid accumulate grads for embeddings and layernorm
         self.set_requires_grad(False)
