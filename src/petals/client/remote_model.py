@@ -265,7 +265,7 @@ class DistributedBloomForSequenceClassification(_LowCPUMemoryMixin, BloomForSequ
         self.num_labels = config.num_labels
 
         self.transformer = DistributedBloomModel(config)
-        self.score = nn.Linear(config.hidden_size, config.num_labels, bias=False)
+        self.score = nn.Linear(config.hidden_size, config.num_labels, bias=False).to(config.torch_dtype)
 
         # Initialize weights and apply final processing
         self.post_init()
