@@ -45,26 +45,6 @@ def load_pretrained_block(
         cache_dir = DEFAULT_CACHE_DIR
 
     block = WrappedBloomBlock(config)
-    state_dict = _load_state_dict(
-        converted_model_name_or_path,
-        block_index,
-        config,
-        use_auth_token=use_auth_token,
-        cache_dir=cache_dir,
-        max_disk_space=max_disk_space,
-    )
-
-    if torch_dtype == "auto":
-        with torch.no_grad():
-            for name, param in block.named_parameters():
-                assert name in state_dict, f"{name} not in state dict"
-                param.data = param.data.to(state_dict[name].dtype)
-    else:
-        assert torch_dtype in DTYPE_MAP.values(), f"torch_dtype must be one of {list(DTYPE_MAP.values())}"
-        block = block.to(dtype=torch_dtype)
-
-    report = block.load_state_dict(state_dict, strict=True)
-    logger.info(f"Loaded {converted_model_name_or_path} block {block_index}, {report}")
     return block
 
 
