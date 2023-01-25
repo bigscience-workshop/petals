@@ -118,6 +118,15 @@ class Server:
                 use_auth_token=use_auth_token,
                 revision=revision,
             )
+        elif converted_model_name_or_path == "facebook/opt-175b":
+            bloom_config = BloomConfig.from_pretrained(
+                "bigscience/bloom-petals"
+            )
+            bloom_config.hidden_size = 12288
+            bloom_config.n_layer = 96
+            bloom_config.n_head = 96
+            bloom_config.vocab_size = 50272
+            self.block_config = bloom_config
         else:
             def _patch_bloom_config(bloom_config: BloomConfig, opt_config: OPTConfig):
                 bloom_config.hidden_size = opt_config.hidden_size
