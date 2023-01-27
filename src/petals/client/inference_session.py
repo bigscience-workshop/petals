@@ -311,8 +311,7 @@ class InferenceSession:
                         raise
                     delay = self._sequence_manager.get_retry_delay(attempt_no)
                     logger.warning(
-                        f"Caught exception when running inference from block {block_idx} "
-                        f"(retry in {delay:.0f} sec): {repr(e)}"
+                        f"Caught exception when running inference via {span} (retry in {delay:.0f} sec): {repr(e)}"
                     )
                     maybe_log_traceback(e)
                     time.sleep(delay)

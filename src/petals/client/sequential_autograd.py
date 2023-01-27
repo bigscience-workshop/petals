@@ -99,8 +99,7 @@ async def sequential_forward(
                     raise
                 delay = sequence_manager.get_retry_delay(attempt_no)
                 logger.warning(
-                    f"Caught exception when running forward from block {block_idx} "
-                    f"(retry in {delay:.0f} sec): {repr(e)}"
+                    f"Caught exception when running forward via {span} (retry in {delay:.0f} sec): {repr(e)}"
                 )
                 maybe_log_traceback(e)
                 await asyncio.sleep(delay)
@@ -178,8 +177,7 @@ async def sequential_backward(
                     raise
                 delay = sequence_manager.get_retry_delay(attempt_no)
                 logger.warning(
-                    f"Caught exception when running backward between blocks {span.start}-{span.end} "
-                    f"(retry in {delay:.0f} sec): {repr(e)}"
+                    f"Caught exception when running backward via {span} (retry in {delay:.0f} sec): {repr(e)}"
                 )
                 maybe_log_traceback(e)
                 await asyncio.sleep(delay)
