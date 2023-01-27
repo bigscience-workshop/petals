@@ -57,6 +57,7 @@ class RemoteSequenceManager:
         p2p: P2P,
         update_period: float = 30,
         request_timeout: float = 30,
+        max_retries: Optional[int] = None,
         min_backoff: float = 1,
         ban_timeout: float = 15,
         sequence_info: Optional[RemoteSequenceInfo] = None,
@@ -68,7 +69,8 @@ class RemoteSequenceManager:
     ):
         assert len(block_uids) > 0, "Sequences must contain at least one block"
         self.dht, self.p2p = dht, p2p
-        self.request_timeout, self.ban_timeout, self.min_backoff = request_timeout, ban_timeout, min_backoff
+        self.request_timeout, self.max_retries = request_timeout, max_retries
+        self.ban_timeout, self.min_backoff = ban_timeout, min_backoff
         self.lock_changes = threading.Lock()
         self._thread = _SequenceManagerUpdateThread(update_period, WeakMethod(self._update))
         self.policy = NoSpendingPolicy()
@@ -279,6 +281,8 @@ class RemoteSequenceManager:
                 except Exception as e:
                     if peer_id is not None and not isinstance(e, P2PHandlerError):
                         self.on_request_failure(peer_id)
+                    if attempt_no + 1 == self.max_retries:
+                        raise
                     delay = self.get_retry_delay(attempt_no)
                     logger.warning(
                         f"Caught exception when gathering information from peer {peer_id} "

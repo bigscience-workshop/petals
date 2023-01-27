@@ -307,6 +307,8 @@ class InferenceSession:
                 except Exception as e:
                     if span is not None:
                         self._sequence_manager.on_request_failure(span.peer_id)
+                    if attempt_no + 1 == self._sequence_manager.max_retries:
+                        raise
                     delay = self._sequence_manager.get_retry_delay(attempt_no)
                     logger.warning(
                         f"Caught exception when running inference from block {block_idx} "

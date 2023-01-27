@@ -35,6 +35,7 @@ class DistributedBloomConfig(BloomConfig):
     daemon_startup_timeout: int = 30
     dht: Optional[hivemind.DHT] = None  # a running DHT instance, e.g. when using the same DHT for multiple models
     request_timeout: int = 30  # a number of seconds for waiting result from each node
+    max_retries: Optional[int] = None  # max number retries before the client raises an exception (default: inf)
     allowed_servers: Optional[
         Collection[Union[str, hivemind.PeerID]]
     ] = None  # if defined, send requests only to these servers
@@ -119,8 +120,6 @@ class DistributedBloomModel(_LowCPUMemoryMixin, BloomModel):
             config,
             dht,
             config.dht_prefix,
-            request_timeout=config.request_timeout,
-            allowed_servers=config.allowed_servers,
         )
 
         # Forbid accumulate grads for embeddings and layernorm
