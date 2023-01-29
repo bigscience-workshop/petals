@@ -16,6 +16,7 @@ class Span:
     start: int
     end: int
     throughput: float
+    state: ServerState
 
     @property
     def length(self):
@@ -43,7 +44,7 @@ def compute_spans(module_infos: List[Optional[RemoteModuleInfo]]) -> Tuple[Dict[
                 spans[peer_id].start = min(spans[peer_id].start, block)
                 spans[peer_id].end = max(spans[peer_id].start, block + 1)
             else:
-                spans[peer_id] = Span(start=block, end=block + 1, throughput=server.throughput)
+                spans[peer_id] = Span(start=block, end=block + 1, throughput=server.throughput, state=server.state)
 
             throughputs[block] += server.throughput
 
