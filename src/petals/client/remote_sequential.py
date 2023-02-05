@@ -41,7 +41,16 @@ class RemoteSequential(nn.Module):
         block_uids = tuple(f"{config.dht_prefix}{UID_DELIMITER}{i}" for i in range(num_blocks))
         if sequence_manager is None:
             logger.debug(f"Creating new sequence manager for block uids: {block_uids}")
-            self.sequence_manager = RemoteSequenceManager(dht, block_uids, self.p2p, start=True, **kwargs)
+            self.sequence_manager = RemoteSequenceManager(
+                dht,
+                block_uids,
+                self.p2p,
+                request_timeout=config.request_timeout,
+                max_retries=config.max_retries,
+                allowed_servers=config.allowed_servers,
+                start=True,
+                **kwargs,
+            )
             self.is_subsequence = False
         else:
             logger.debug(f"Reusing sequence manager with {len(sequence_manager)} modules")

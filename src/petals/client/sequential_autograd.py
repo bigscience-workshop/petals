@@ -95,10 +95,11 @@ async def sequential_forward(
             except Exception as e:
                 if span is not None:
                     sequence_manager.on_request_failure(span.peer_id)
+                if attempt_no + 1 == sequence_manager.max_retries:
+                    raise
                 delay = sequence_manager.get_retry_delay(attempt_no)
                 logger.warning(
-                    f"Caught exception when running forward from block {block_idx} "
-                    f"(retry in {delay:.0f} sec): {repr(e)}"
+                    f"Caught exception when running forward via {span} (retry in {delay:.0f} sec): {repr(e)}"
                 )
                 maybe_log_traceback(e)
                 await asyncio.sleep(delay)
@@ -172,10 +173,11 @@ async def sequential_backward(
             except Exception as e:
                 if span is not None:
                     sequence_manager.on_request_failure(span.peer_id)
+                if attempt_no + 1 == sequence_manager.max_retries:
+                    raise
                 delay = sequence_manager.get_retry_delay(attempt_no)
                 logger.warning(
-                    f"Caught exception when running backward between blocks {span.start}-{span.end} "
-                    f"(retry in {delay:.0f} sec): {repr(e)}"
+                    f"Caught exception when running backward via {span} (retry in {delay:.0f} sec): {repr(e)}"
                 )
                 maybe_log_traceback(e)
                 await asyncio.sleep(delay)
