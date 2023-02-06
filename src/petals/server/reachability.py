@@ -71,7 +71,7 @@ def check_direct_reachability(max_peers: int = 5, threshold: float = 0.5, **kwar
                     if requests >= max_peers:
                         break
 
-            logger.info(f"Direct reachability: {successes}/{requests}")
+            logger.debug(f"Direct reachability: {successes}/{requests}")
             return (successes / requests) >= threshold if requests > 0 else None
         finally:
             await target_dht.shutdown()
