@@ -122,7 +122,7 @@ class Server:
         if dht_client_mode is None:
             is_reachable = check_direct_reachability(initial_peers=initial_peers, use_relay=False, **kwargs)
             dht_client_mode = is_reachable is False  # if could not check reachability (returns None), run a full peer
-            logger.info(f"This server will run DHT in {'client' if dht_client_mode else 'full peer'} mode")
+            logger.info(f"This server is accessible {'via relays' if dht_client_mode else 'directly'}")
         self.dht = DHT(
             initial_peers=initial_peers,
             start=True,
