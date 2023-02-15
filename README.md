@@ -8,8 +8,10 @@
 Generate text using distributed 176B-parameter [BLOOM](https://huggingface.co/bigscience/bloom) or [BLOOMZ](https://huggingface.co/bigscience/bloomz) and fine-tune them for your own tasks:
 
 ```python
+from transformers import BloomTokenizerFast 
 from petals import DistributedBloomForCausalLM
 
+tokenizer = BloomTokenizerFast.from_pretrained("bigscience/bloom-petals")
 model = DistributedBloomForCausalLM.from_pretrained("bigscience/bloom-petals", tuning_mode="ptune", pre_seq_len=16)
 # Embeddings & prompts are on your device, BLOOM blocks are distributed across the Internet
 
