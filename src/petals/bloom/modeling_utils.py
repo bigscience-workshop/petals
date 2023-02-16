@@ -8,7 +8,6 @@ import psutil
 import torch
 import torch.nn.functional as F
 import torch.utils.checkpoint
-from cpufeature import CPUFeature
 from hivemind import get_logger
 from torch import nn
 from transformers import BloomConfig
@@ -28,10 +27,6 @@ class LMHead(nn.Module):
         self.word_embeddings = word_embeddings
 
         self.use_chunked_forward = config.use_chunked_forward
-        if self.use_chunked_forward == "auto":
-            # If the CPU supports AVX512, plain bfloat16 is ~10x faster than chunked_forward().
-            # Otherwise, it's ~8x slower.
-            self.use_chunked_forward = not (CPUFeature["AVX512f"] and CPUFeature["OS_AVX512"])
         self.chunked_forward_step = config.chunked_forward_step
         self._bf16_warning_shown = False
 

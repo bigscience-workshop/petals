@@ -43,9 +43,8 @@ class DistributedBloomConfig(BloomConfig):
     pre_seq_len: int = 0  # a number of tokens for prompt tuning.
     tuning_mode: Optional[str] = None  # One of the finetune options: [None, 'shallow_ptune', 'deep_ptune', 'adapters']
 
-    # This settings matter for running the client with dtype bfloat16 on CPU.
-    # If the CPU doesn't support AVX512, chunked_forward() significantly speeds up computations.
-    use_chunked_forward: Union[str, bool] = "auto"
+    # This settings matter for running the client with dtype bfloat16 on CPU
+    use_chunked_forward: bool = True
     chunked_forward_step: int = 16384
 
 
