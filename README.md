@@ -35,7 +35,7 @@ for input_ids, labels in data_loader:
 
 ### Connect your GPU and increase Petals capacity
 
-Run this in an [Anaconda](https://www.anaconda.com) env:
+Run this in an [Anaconda](https://www.anaconda.com) env (requires Linux or Python 3.7+):
 
 ```bash
 conda install pytorch pytorch-cuda=11.7 -c pytorch -c nvidia
@@ -43,7 +43,7 @@ pip install -U petals
 python -m petals.cli.run_server bigscience/bloom-petals
 ```
 
-Or use our [Docker](https://www.docker.com) image:
+Or use our [Docker](https://www.docker.com) image (works on Linux, macOS, and Windows):
 
 ```bash
 sudo docker run --net host --ipc host --gpus all --volume petals-cache:/cache --rm \
@@ -52,7 +52,9 @@ sudo docker run --net host --ipc host --gpus all --volume petals-cache:/cache --
 
 You can also host [BLOOMZ](https://huggingface.co/bigscience/bloomz), a version of BLOOM fine-tuned to follow human instructions in the zero-shot regime — just replace `bloom-petals` with `bloomz-petals`.
 
-🔒 This does not allow others to run custom code on your computer. Learn more about security [here](https://github.com/bigscience-workshop/petals/wiki/Security,-privacy,-and-AI-safety).
+📚 Check out our FAQ to learn how to configure the server to use multiple GPUs, address common issues, etc.
+
+🔒 Hosting the server does not allow others to run custom code on your computer. Learn more about security [here](https://github.com/bigscience-workshop/petals/wiki/Security,-privacy,-and-AI-safety).
 
 💬 If you have any issues or feedback, let us know on [our Discord server](https://discord.gg/D9MwApKgWa)!
 
@@ -89,20 +91,6 @@ Useful tools and advanced guides:
 <p align="center">
     📜 &nbsp;<b><a href="https://arxiv.org/pdf/2209.01188.pdf">Read paper</a></b>
 </p>
-
-## FAQ
-
-1. **What's the motivation for people to host model layers in the public swarm?**
-
-    People who run inference and fine-tuning themselves get a certain speedup if they host a part of the model locally. Some may be also motivated to "give back" to the community helping them to run the model (similarly to how [BitTorrent](https://en.wikipedia.org/wiki/BitTorrent) users help others by sharing data they have already downloaded).
-
-    Since it may be not enough for everyone, we are also working on introducing explicit __incentives__ ("bloom points") for people donating their GPU time to the public swarm. Once this system is ready, people who earned these points will be able to spend them on inference/fine-tuning with higher priority or increased security guarantees, or (maybe) exchange them for other rewards.
-
-2. **Why is the platform named "Petals"?**
-
-    "Petals" is a metaphor for people serving different parts of the model. Together, they host the entire language model &mdash; [BLOOM](https://huggingface.co/bigscience/bloom).
-
-    While our platform focuses on BLOOM now, we aim to support more [foundation models](https://arxiv.org/abs/2108.07258) in future.
 
 ## Installation
 
