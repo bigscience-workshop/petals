@@ -35,7 +35,7 @@ for input_ids, labels in data_loader:
 
 ### Connect your GPU and increase Petals capacity
 
-Run this in an [Anaconda](https://www.anaconda.com) env (requires Linux or Python 3.7+):
+Run this in an [Anaconda](https://www.anaconda.com) env (requires Linux and Python 3.7+):
 
 ```bash
 conda install pytorch pytorch-cuda=11.7 -c pytorch -c nvidia
@@ -52,7 +52,7 @@ sudo docker run --net host --ipc host --gpus all --volume petals-cache:/cache --
 
 You can also host [BLOOMZ](https://huggingface.co/bigscience/bloomz), a version of BLOOM fine-tuned to follow human instructions in the zero-shot regime — just replace `bloom-petals` with `bloomz-petals`.
 
-📚 Check out our FAQ to learn how to configure the server to use multiple GPUs, address common issues, etc.
+📚 Check out [our FAQ](https://github.com/bigscience-workshop/petals/wiki/FAQ:-Frequently-asked-questions#running-a-server) to learn how to configure the server to use multiple GPUs, address common issues, etc.
 
 🔒 Hosting the server does not allow others to run custom code on your computer. Learn more about security [here](https://github.com/bigscience-workshop/petals/wiki/Security,-privacy,-and-AI-safety).
 
@@ -66,15 +66,17 @@ Basic tutorials:
 - Prompt-tune BLOOM to create a personified chatbot: [tutorial](https://colab.research.google.com/github/bigscience-workshop/petals/blob/main/examples/prompt-tuning-personachat.ipynb)
 - Prompt-tune BLOOM for text semantic classification: [tutorial](https://colab.research.google.com/github/bigscience-workshop/petals/blob/main/examples/prompt-tuning-sst2.ipynb)
 
-Example apps built with Petals:
-
-- [Chatbot web app](http://chat.petals.ml) (connects to Petals via an HTTP endpoint): [source code](https://github.com/borzunov/chat.petals.ml)
-
 Useful tools and advanced guides:
 
+- [Chatbot web app](http://chat.petals.ml) (connects to Petals via an HTTP endpoint): [source code](https://github.com/borzunov/chat.petals.ml)
 - [Monitor](http://health.petals.ml) for the public swarm: [source code](https://github.com/borzunov/health.petals.ml)
 - Launch your own swarm: [guide](https://github.com/bigscience-workshop/petals/wiki/Launch-your-own-swarm)
 - Run a custom foundation model: [guide](https://github.com/bigscience-workshop/petals/wiki/Run-a-custom-model-with-Petals)
+
+Learning more:
+
+- Frequently asked questions: [FAQ](https://github.com/bigscience-workshop/petals/wiki/FAQ:-Frequently-asked-questions)
+- In-depth system description: [paper](https://arxiv.org/abs/2209.01188)
 
 📋 If you build an app running BLOOM with Petals, make sure it follows the BLOOM's [terms of use](https://huggingface.co/bigscience/bloom).
 
@@ -89,6 +91,8 @@ Useful tools and advanced guides:
 </p>
 
 <p align="center">
+    📚 &nbsp;<b><a href="https://github.com/bigscience-workshop/petals/wiki/FAQ:-Frequently-asked-questions">See FAQ</a></b>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
     📜 &nbsp;<b><a href="https://arxiv.org/pdf/2209.01188.pdf">Read paper</a></b>
 </p>
 
