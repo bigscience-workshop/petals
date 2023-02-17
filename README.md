@@ -43,7 +43,7 @@ pip install -U petals
 python -m petals.cli.run_server bigscience/bloom-petals
 ```
 
-Or use our [Docker](https://www.docker.com) image (works on Linux, macOS, and Windows):
+Or use our [Docker](https://www.docker.com) image (works on Linux, macOS, and Windows with [WSL2](https://learn.microsoft.com/en-us/windows/ai/directml/gpu-cuda-in-wsl)):
 
 ```bash
 sudo docker run --net host --ipc host --gpus all --volume petals-cache:/cache --rm \
