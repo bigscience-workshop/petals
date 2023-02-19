@@ -18,7 +18,7 @@ from hivemind.utils import TensorDescriptor, get_logger
 
 from petals.utils.asyncio import shield_and_wait
 
-logger = get_logger(__file__)
+logger = get_logger(__name__)
 
 Handle = int
 

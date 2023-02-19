@@ -32,7 +32,7 @@ from petals.server.task_pool import PrioritizedTaskPool
 from petals.server.task_prioritizer import DummyTaskPrioritizer, TaskPrioritizerBase
 from petals.utils.misc import DUMMY, is_dummy
 
-logger = get_logger(__file__)
+logger = get_logger(__name__)
 
 CACHE_TOKENS_AVAILABLE = "cache_tokens_available"
 

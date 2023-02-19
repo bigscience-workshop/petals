@@ -13,7 +13,7 @@ from hivemind import get_logger
 from torch import nn
 from transformers import BloomConfig
 
-logger = get_logger(__file__)
+logger = get_logger(__name__)
 
 
 class LMHead(nn.Module):

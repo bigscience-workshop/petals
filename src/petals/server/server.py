@@ -31,7 +31,7 @@ from petals.server.throughput import get_dtype_name, get_host_throughput
 from petals.utils.convert_block import check_device_balance, convert_block
 from petals.utils.disk_cache import DEFAULT_CACHE_DIR
 
-logger = get_logger(__file__)
+logger = get_logger(__name__)
 
 
 class Server:

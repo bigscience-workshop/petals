@@ -8,7 +8,7 @@ from petals.data_structures import RemoteModuleInfo, ServerState
 
 __all__ = ["choose_best_blocks", "should_choose_other_blocks"]
 
-logger = get_logger(__file__)
+logger = get_logger(__name__)
 
 
 @dataclass

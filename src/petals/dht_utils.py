@@ -15,7 +15,7 @@ from hivemind.utils import DHTExpiration, MPFuture, get_dht_time, get_logger
 import petals.client
 from petals.data_structures import CHAIN_DELIMITER, UID_DELIMITER, ModuleUID, RemoteModuleInfo, ServerInfo, ServerState
 
-logger = get_logger(__file__)
+logger = get_logger(__name__)
 
 
 def declare_active_modules(

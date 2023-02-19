@@ -15,7 +15,7 @@ from petals.utils.generation_algorithms import (
 )
 from petals.utils.generation_constraints import ABCBloomConstraint, EosConstraint
 
-logger = get_logger(__file__)
+logger = get_logger(__name__)
 
 
 class RemoteGenerationMixin:

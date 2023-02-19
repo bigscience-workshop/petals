@@ -4,7 +4,7 @@ from packaging.version import parse
 
 import petals
 
-logger = get_logger(__file__)
+logger = get_logger(__name__)
 
 
 def validate_version():

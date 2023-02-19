@@ -6,7 +6,7 @@ from hivemind import get_logger
 
 from petals.data_structures import ModuleUID, RemoteModuleInfo, RemoteSpanInfo, ServerState
 
-logger = get_logger(__file__)
+logger = get_logger(__name__)
 
 
 T = TypeVar("T")

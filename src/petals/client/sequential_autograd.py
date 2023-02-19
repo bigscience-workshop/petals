@@ -18,7 +18,7 @@ from petals.data_structures import CHAIN_DELIMITER, RemoteSpanInfo
 from petals.server.handler import TransformerConnectionHandler
 from petals.utils.misc import DUMMY, is_dummy
 
-logger = get_logger(__file__)
+logger = get_logger(__name__)
 
 MAX_TOKENS_IN_BATCH = 1024
 

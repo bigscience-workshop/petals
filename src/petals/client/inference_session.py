@@ -25,7 +25,7 @@ from petals.data_structures import CHAIN_DELIMITER, ModuleUID, RemoteSpanInfo, R
 from petals.server.handler import TransformerConnectionHandler
 from petals.utils.misc import DUMMY, is_dummy
 
-logger = get_logger(__file__)
+logger = get_logger(__name__)
 
 
 class _ServerInferenceSession:

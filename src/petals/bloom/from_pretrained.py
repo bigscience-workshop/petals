@@ -22,7 +22,7 @@ from petals.bloom.block import WrappedBloomBlock
 from petals.server.block_utils import get_block_size
 from petals.utils.disk_cache import DEFAULT_CACHE_DIR, allow_cache_reads, allow_cache_writes, free_disk_space_for
 
-logger = get_logger(__file__)
+logger = get_logger(__name__)
 
 CLIENT_BRANCH = "main"
 BLOCK_BRANCH_PREFIX = "block_"
