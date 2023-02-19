@@ -12,7 +12,7 @@ from hivemind import get_logger
 from hivemind.moe.server.task_pool import TaskPoolBase
 from hivemind.utils.mpfuture import ALL_STATES, MPFuture
 
-logger = get_logger(__file__)
+logger = get_logger(__name__)
 
 
 @dataclass(order=True, frozen=True)

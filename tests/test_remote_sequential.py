@@ -10,7 +10,7 @@ from petals.client import RemoteSequenceManager, RemoteSequential
 from petals.client.remote_model import DistributedBloomConfig
 from petals.data_structures import UID_DELIMITER
 
-logger = get_logger(__file__)
+logger = get_logger(__name__)
 
 
 @pytest.mark.forked

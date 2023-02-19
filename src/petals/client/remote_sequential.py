@@ -14,7 +14,7 @@ from petals.client.sequential_autograd import _RemoteSequentialAutogradFunction
 from petals.data_structures import UID_DELIMITER
 from petals.utils.misc import DUMMY
 
-logger = get_logger(__file__)
+logger = get_logger(__name__)
 
 
 class RemoteSequential(nn.Module):

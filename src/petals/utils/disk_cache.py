@@ -8,7 +8,7 @@ from typing import Optional
 import huggingface_hub
 from hivemind.utils.logging import get_logger
 
-logger = get_logger(__file__)
+logger = get_logger(__name__)
 
 DEFAULT_CACHE_DIR = os.getenv("PETALS_CACHE", Path(Path.home(), ".cache", "petals"))
 

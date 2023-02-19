@@ -8,7 +8,7 @@ from transformers.models.bloom import BloomForCausalLM
 
 from petals.client.remote_model import DistributedBloomForCausalLM
 
-logger = get_logger(__file__)
+logger = get_logger(__name__)
 
 
 @pytest.mark.forked

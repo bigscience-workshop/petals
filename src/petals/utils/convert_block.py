@@ -15,7 +15,7 @@ from transformers.models.bloom.modeling_bloom import BloomAttention
 from petals.bloom.block import WrappedBloomBlock
 
 use_hivemind_log_handler("in_root_logger")
-logger = get_logger(__file__)
+logger = get_logger(__name__)
 
 
 def convert_block(

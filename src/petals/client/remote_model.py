@@ -21,7 +21,7 @@ from petals.client.remote_sequential import RemoteSequential
 from petals.constants import PUBLIC_INITIAL_PEERS
 from petals.utils.misc import DUMMY
 
-logger = get_logger(__file__)
+logger = get_logger(__name__)
 
 
 class DistributedBloomConfig(BloomConfig):

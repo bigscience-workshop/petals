@@ -10,7 +10,7 @@ from petals.constants import PUBLIC_INITIAL_PEERS
 from petals.server.server import Server
 from petals.utils.version import validate_version
 
-logger = get_logger(__file__)
+logger = get_logger(__name__)
 
 
 def main():

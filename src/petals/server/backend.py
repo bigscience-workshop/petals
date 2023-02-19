@@ -20,7 +20,7 @@ from petals.server.memory_cache import Handle, MemoryCache
 from petals.server.task_pool import PrioritizedTaskPool
 from petals.utils.misc import is_dummy
 
-logger = get_logger(__file__)
+logger = get_logger(__name__)
 
 
 class TransformerBackend(ModuleBackend):

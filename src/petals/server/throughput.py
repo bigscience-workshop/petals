@@ -16,7 +16,7 @@ from petals.server.block_utils import resolve_block_dtype
 from petals.utils.convert_block import convert_block
 from petals.utils.disk_cache import DEFAULT_CACHE_DIR
 
-logger = get_logger(__file__)
+logger = get_logger(__name__)
 
 try:
     import speedtest

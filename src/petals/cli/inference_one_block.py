@@ -8,7 +8,7 @@ from transformers.models.bloom.modeling_bloom import build_alibi_tensor
 
 from petals.bloom.block import BloomBlock
 
-logger = get_logger(__file__)
+logger = get_logger(__name__)
 
 logger.warning("inference_one_block will soon be deprecated in favour of tests!")
 

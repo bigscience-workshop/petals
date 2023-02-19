@@ -23,7 +23,7 @@ from petals.client.routing.spending_policy import NoSpendingPolicy
 from petals.data_structures import ModuleUID, RemoteSpanInfo, ServerState
 from petals.server.handler import TransformerConnectionHandler
 
-logger = get_logger(__file__)
+logger = get_logger(__name__)
 
 
 class RemoteSequenceManager:
