@@ -136,9 +136,10 @@ class Server:
 
         visible_maddrs_str = [str(a) for a in self.dht.get_visible_maddrs()]
         if initial_peers == PUBLIC_INITIAL_PEERS:
-            logger.info(f"Connecting to the public swarm, peer_id = {self.dht.peer_id}")
+            logger.info("Connecting to the public swarm")
         else:
-            logger.info(f"Running DHT node on {visible_maddrs_str}, initial peers = {initial_peers}")
+            logger.info(f"Connecting to a private swarm, initial peers: {initial_peers}")
+        logger.info(f"Running a server on {visible_maddrs_str}")
         self.should_validate_reachability = not skip_reachability_check and initial_peers == PUBLIC_INITIAL_PEERS
 
         if device is None:
