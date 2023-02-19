@@ -365,8 +365,8 @@ def maybe_log_traceback(exc: Exception):
 class MissingBlocksError(RuntimeError):
     def __init__(self, block_indices: Union[int, Sequence[int]]):
         super().__init__(
-            f"No servers holding blocks {block_indices} are online.\n"
-            f"You can check the public swarm's state at http://health.petals.ml\n\n"
-            f"If there are not enough servers, please consider connecting your own GPU:\n"
-            f"https://github.com/bigscience-workshop/petals#connect-your-gpu-and-increase-petals-capacity"
+            f"No servers holding blocks {block_indices} are online. "
+            f"You can check the public swarm's state at http://health.petals.ml "
+            f"If there are not enough servers, please connect your GPU: "
+            f"https://github.com/bigscience-workshop/petals#connect-your-gpu-and-increase-petals-capacity "
         )
