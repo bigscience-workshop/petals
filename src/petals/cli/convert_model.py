@@ -17,15 +17,16 @@ logger = get_logger(__name__)
 
 DTYPE_MAP = dict(bfloat16=torch.bfloat16, float16=torch.float16, float32=torch.float32, int8=torch.int8, auto="auto")
 
+
 def main():
     parser = argparse.ArgumentParser(description="Load bloom layers and convert to 8-bit using torch quantization.")
 
     parser.add_argument("--model", type=str, default="bigscience/bloom-6b3", help="Model name for from_pretrained")
     parser.add_argument("--revision", type=str, default=None, help="Optional commit id from HF hub")
-    parser.add_argument("--torch_dtype", type=str, choices=DTYPE_MAP.keys(), default="auto",
-                        help="Load initial model in this dtype")
-    parser.add_argument("--output_path", type=str, default="./converted_model",
-                        help="Track output repo to this folder")
+    parser.add_argument(
+        "--torch_dtype", type=str, choices=DTYPE_MAP.keys(), default="auto", help="Load initial model in this dtype"
+    )
+    parser.add_argument("--output_path", type=str, default="./converted_model", help="Track output repo to this folder")
     parser.add_argument("--output_repo", type=str, default="bigscience/test-bloomd", help="Push to this HF hub repo")
     parser.add_argument("--client_branch", type=str, default=CLIENT_BRANCH, help="Save client version to this branch")
     parser.add_argument(
@@ -54,10 +55,12 @@ def main():
     config.dht_prefix = args.output_repo
 
     model = BloomModel.from_pretrained(
-        args.model, use_auth_token=args.use_auth_token, revision=args.revision,
+        args.model,
+        use_auth_token=args.use_auth_token,
+        revision=args.revision,
         torch_dtype=DTYPE_MAP[args.torch_dtype] if args.torch_dtype != "int8" else "float16",
         load_in_8bit=args.torch_dtype == "int8",
-        device_map={"word_embeddings": "cuda", "word_embeddings_layernorm": "cuda", "h": "cuda", "ln_f": "cuda"}
+        device_map={"word_embeddings": "cuda", "word_embeddings_layernorm": "cuda", "h": "cuda", "ln_f": "cuda"},
     )
     if args.torch_dtype == "int8":
         # trigger weight quantization

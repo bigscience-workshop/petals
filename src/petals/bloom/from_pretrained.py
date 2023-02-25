@@ -22,8 +22,8 @@ from transformers.utils import get_file_from_repo
 
 from petals.bloom.block import WrappedBloomBlock
 from petals.server.block_utils import get_block_size
-from petals.utils.disk_cache import DEFAULT_CACHE_DIR, allow_cache_reads, allow_cache_writes, free_disk_space_for
 from petals.utils.convert_block import replace_8bit_linear
+from petals.utils.disk_cache import DEFAULT_CACHE_DIR, allow_cache_reads, allow_cache_writes, free_disk_space_for
 
 logger = get_logger(__name__)
 
