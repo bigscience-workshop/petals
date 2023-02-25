@@ -23,11 +23,12 @@ from transformers.utils import get_file_from_repo
 from petals.bloom.block import WrappedBloomBlock
 from petals.server.block_utils import get_block_size
 from petals.utils.disk_cache import DEFAULT_CACHE_DIR, allow_cache_reads, allow_cache_writes, free_disk_space_for
+from petals.utils.convert_block import replace_8bit_linear
 
 logger = get_logger(__name__)
 
 CLIENT_BRANCH = "main"
-BLOCK_BRANCH_PREFIX = "block_"
+BLOCK_BRANCH_PREFIX = "int8_block"
 
 
 def load_pretrained_block(
@@ -38,6 +39,8 @@ def load_pretrained_block(
     use_auth_token: Optional[str] = None,
     cache_dir: Optional[str] = None,
     max_disk_space: Optional[int] = None,
+    load_in_8bit=False,
+    device: Optional[Union[str, torch.device]] = None,
 ) -> WrappedBloomBlock:
     """Load one BLOOM block from a converted model. See convert_model.py (or README.md) on how to convert it."""
     assert torch_dtype in DTYPE_MAP.values(), f"torch_dtype must be one of {list(DTYPE_MAP.values())}"
@@ -49,6 +52,9 @@ def load_pretrained_block(
 
     with init_empty_weights():
         block = WrappedBloomBlock(config)
+    if load_in_8bit:
+        block = replace_8bit_linear(block)
+        block = block.to(device)
 
     state_dict = _load_state_dict(
         converted_model_name_or_path,

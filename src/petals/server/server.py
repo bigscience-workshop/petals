@@ -401,8 +401,10 @@ class ModuleContainer(threading.Thread):
                     use_auth_token=use_auth_token,
                     cache_dir=cache_dir,
                     max_disk_space=max_disk_space,
+                    load_in_8bit=load_in_8bit,
+                    device=device,
                 )
-                block = convert_block(block, block_config, tensor_parallel_devices, device, load_in_8bit, freeze=True)
+                block = convert_block(block, block_config, tensor_parallel_devices, device, freeze=True)
 
                 backend_dtype = next(block.parameters()).dtype if torch_dtype == "auto" else torch_dtype
                 blocks[module_uid] = TransformerBackend(
