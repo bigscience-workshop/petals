@@ -159,6 +159,7 @@ class _MergedInferenceStep:
     def __init__(self, backends: Dict[ExpertUID, TransformerBackend]):
         self.backends = backends
 
+    @torch.inference_mode()
     def __call__(
         self,
         hidden_states: torch.Tensor,
