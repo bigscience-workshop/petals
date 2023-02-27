@@ -34,7 +34,7 @@ class DistributedBloomConfig(BloomConfig):
     dht_prefix: str  # a prefix for all dht keys that correspond to this model (usually equal to model name)
     daemon_startup_timeout: int = 30
     dht: Optional[hivemind.DHT] = None  # a running DHT instance, e.g. when using the same DHT for multiple models
-    request_timeout: int = 30  # a number of seconds for waiting result from each node
+    request_timeout: int = 60  # a number of seconds for waiting result from each node
     max_retries: Optional[int] = None  # max number retries before the client raises an exception (default: inf)
     allowed_servers: Optional[
         Collection[Union[str, hivemind.PeerID]]
