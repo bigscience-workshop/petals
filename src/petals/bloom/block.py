@@ -11,7 +11,7 @@ import transformers
 from transformers.models.bloom.modeling_bloom import BloomBlock, _expand_mask, _make_causal_mask, build_alibi_tensor
 
 if not os.getenv("PETALS_IGNORE_DEPENDENCY_VERSION"):
-    assert transformers.__version__.startswith("4.25."), "Please install transformers 4.25.1"
+    assert transformers.__version__.startswith("4.26."), "Please install transformers 4.26.1"
 
 
 class WrappedBloomBlock(BloomBlock):
