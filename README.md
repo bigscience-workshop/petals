@@ -103,8 +103,8 @@ The benchmarks below are an excerpt from our [research paper](https://arxiv.org/
 <table align="center">
   <tr>
     <th colspan="2">Network</th>
-    <th colspan="2">Single-batch inference (steps/s)</th>
-    <th colspan="2">Parallel forward (tokens/s)</th>
+    <th colspan="2">Single-batch inference<br>(steps/s)</th>
+    <th colspan="2">Parallel forward<br>(tokens/s)</th>
   </tr>
   <tr>
     <th rowspan="2">Bandwidth</th>
