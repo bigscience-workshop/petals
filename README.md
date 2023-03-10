@@ -98,7 +98,7 @@ Learning more:
 
 ## Benchmarks
 
-Check out [our paper](https://arxiv.org/pdf/2209.01188.pdf) for more evaluations, detailed setup descriptions, and a discussion of the results.
+The benchmarks below are an excerpt from our [research paper](https://arxiv.org/pdf/2209.01188.pdf). See the paper for more evaluations and discussion of the results.
 
 <table align="center">
   <tr>
