@@ -1,7 +1,7 @@
 <p align="center">
     <img src="https://i.imgur.com/7eR7Pan.png" width="400"><br>
     Run 100B+ language models at home, BitTorrent-style.<br>
-    Fine-tuning and inference up to 10x faster than offloading<br><br>
+    Fine-tuning and inference <a href="https://github.com/bigscience-workshop/petals#benchmarks">up to 10x faster</a> than offloading<br><br>
     <a href="https://pypi.org/project/petals/"><img src="https://img.shields.io/pypi/v/petals.svg?color=green"></a><br>
 </p>
 
@@ -83,7 +83,7 @@ Learning more:
 ## How does it work?
 
 - Petals runs large language models like [BLOOM-176B](https://huggingface.co/bigscience/bloom) **collaboratively** — you load a small part of the model, then team up with people serving the other parts to run inference or fine-tuning.
-- Inference runs at ≈ 1 sec per step (token) — 10x faster than possible with offloading, enough for chatbots and other interactive apps. Parallel inference reaches hundreds of tokens/sec.
+- Inference runs at ≈ 1 sec per step (token) — [up to 10x faster](https://github.com/bigscience-workshop/petals#benchmarks) than possible with offloading, enough for chatbots and other interactive apps. Parallel inference reaches hundreds of tokens/sec.
 - Beyond classic language model APIs — you can employ any fine-tuning and sampling methods by executing custom paths through the model or accessing its hidden states. You get the comforts of an API with the flexibility of PyTorch.
 
 <p align="center">
@@ -95,6 +95,92 @@ Learning more:
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
     📜 &nbsp;<b><a href="https://arxiv.org/pdf/2209.01188.pdf">Read paper</a></b>
 </p>
+
+## Benchmarks
+
+Check out [our paper](https://arxiv.org/pdf/2209.01188.pdf) for more evaluations, detailed setup descriptions, and a discussion of the results.
+
+<table align="center">
+  <tr>
+    <th colspan="2">Network</th>
+    <th colspan="2">Single-batch inference (steps/s)</th>
+    <th colspan="2">Parallel forward (tokens/s)</th>
+  </tr>
+  <tr>
+    <th rowspan="2">Bandwidth</th>
+    <th rowspan="2">Round-trip<br>latency</th>
+    <th colspan="2">Sequence length</th>
+    <th colspan="2">Batch size</th>
+  </tr>
+  <tr align="center">
+    <td>128</td>
+    <td>2048</td>
+    <td>1</td>
+    <td>64</td>
+  </tr>
+  <tr>
+    <th colspan="6">Petals on 3 servers, with one A100 each <sup>1</sup></th>
+  </tr>
+  <tr align="center">
+    <td>1 Gbit/s</td>
+    <td>&lt; 5 ms</td>
+    <td>1.71</td>
+    <td>1.54</td>
+    <td>70.0</td>
+    <td>253.6</td>
+  </tr>
+  <tr align="center">
+    <td>100 Mbit/s</td>
+    <td>&lt; 5 ms</td>
+    <td>1.66</td>
+    <td>1.49</td>
+    <td>56.4</td>
+    <td>182.0</td>
+  </tr>
+  <tr align="center">
+    <td>100 Mbit/s</td>
+    <td>100 ms</td>
+    <td>1.23</td>
+    <td>1.11</td>
+    <td>19.7</td>
+    <td>112.2</td>
+  </tr>
+  <tr>
+    <th colspan="6">Petals on 14 heterogeneous servers across Europe and North America <sup>2</sup></th>
+  </tr>
+  <tr align="center">
+    <td colspan="2">Real world</td>
+    <td>0.83</td>
+    <td>0.79</td>
+    <td>32.6</td>
+    <td>179.4</td>
+  </tr>
+  <tr>
+    <th colspan="6">Offloading, max. possible speed on 1x A100 <sup>3</sup></th>
+  </tr>
+  <tr align="center">
+    <td>256 Gbit/s</td>
+    <td></td>
+    <td>0.18</td>
+    <td>0.18</td>
+    <td>2.7</td>
+    <td>170.3</td>
+  </tr>
+  <tr align="center">
+    <td>128 Gbit/s</td>
+    <td></td>
+    <td>0.09</td>
+    <td>0.09</td>
+    <td>2.4</td>
+    <td>152.8</td>
+  </tr>
+</table>
+
+<sup>1</sup> An optimistic setup that requires the least amount of communication. The client nodes have 8 CPU cores and no GPU.
+
+<sup>2</sup> A real-world distributed setting with 14 servers holding 2× RTX 3060, 4× 2080Ti, 2× 3090, 2× A4000, and 4× A5000 GPUs. These are personal servers and servers from university labs, spread across Europe and North America and connected to the Internet at speeds of 100–1000 Mbit/s. Four of the servers operate from under firewalls.
+
+<sup>3</sup> An upper bound for offloading performance. We base our offloading numbers on the best possible hardware setup for offloading: CPU RAM offloading via PCIe 4.0 with 16 PCIe lanes per GPU and PCIe switches for pairs of GPUs. We calculate the maximum throughput for offloading as follows. In 8-bit, the model uses 1 GB of memory per billion parameters while PCIe 4.0 with 16 lanes has a throughput of 256 Gbit/s (or 128 Gbit/s if two GPUs are behind a PCIe switch). As such, offloading 176B parameters takes 5.5 seconds. We assume an offloading latency of zero for the upper bound estimation.
 
 ## Installation
 
