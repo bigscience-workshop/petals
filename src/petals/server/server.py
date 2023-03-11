@@ -22,7 +22,7 @@ from petals.data_structures import CHAIN_DELIMITER, UID_DELIMITER, ServerState
 from petals.dht_utils import declare_active_modules, get_remote_module_infos
 from petals.server import block_selection
 from petals.server.backend import TransformerBackend, merge_inference_pools_inplace
-from petals.server.block_utils import get_block_size
+from petals.server.block_utils import get_block_size, resolve_block_dtype
 from petals.server.handler import TransformerConnectionHandler
 from petals.server.memory_cache import MemoryCache
 from petals.server.reachability import ReachabilityProtocol, check_direct_reachability, validate_reachability
@@ -31,6 +31,8 @@ from petals.utils.convert_block import check_device_balance, convert_block
 from petals.utils.disk_cache import DEFAULT_CACHE_DIR
 
 logger = get_logger(__name__)
+
+GIB = 1024**3  # bytes
 
 
 class Server:
@@ -152,6 +154,7 @@ class Server:
             torch_dtype = DTYPE_MAP[torch_dtype]
         assert torch_dtype in DTYPE_MAP.values(), f"torch_dtype must be one of {list(DTYPE_MAP.values())}"
         self.torch_dtype = torch_dtype
+        self.backend_dtype = resolve_block_dtype(self.block_config, torch_dtype)
 
         if tensor_parallel_devices is None:
             tensor_parallel_devices = (device,)
@@ -174,16 +177,16 @@ class Server:
                 first_block_index, last_block_index = map(int, map(str.strip, (first_block_index, last_block_index)))
             except Exception as e:
                 raise ValueError(f"Failed to parse `--block_indices {block_indices}`, must be start:end (e.g. 0:18)")
-            block_indices = range(first_block_index, last_block_index)
+            block_indices = list(range(first_block_index, last_block_index))
             num_blocks = len(block_indices)
         self.strict_block_indices, self.num_blocks = block_indices, num_blocks
 
-        gib = 1024**3
         if attn_cache_size is None:
             # Hidden size is 14336 for the bigscience/bloom-petals model. For other models, scale accordingly
-            attn_cache_size = 0.5 * gib * num_blocks * self.block_config.hidden_size / 14336
+            attn_cache_size = 0.5 * GIB * num_blocks * self.block_config.hidden_size / 14336
+
         self.attn_cache_size, self.alloc_timeout = attn_cache_size, alloc_timeout
-        logger.info(f"Attention cache for all blocks will consume up to {attn_cache_size / gib:.2f} GiB")
+        logger.info(f"Attention cache for all blocks will consume up to {attn_cache_size / GIB:.2f} GiB")
 
         if cache_dir is None:
             cache_dir = DEFAULT_CACHE_DIR
@@ -234,9 +237,8 @@ class Server:
         block_size = get_block_size(self.block_config, "memory", dtype=self.torch_dtype, load_in_8bit=self.load_in_8bit)
 
         # The estimates below are for bigscience/bloom-petals, serving as an upper bound for other models
-        gib = 1024**3
-        attn_cache_per_block = 0.5 * gib * num_devices  # TODO: This does not account for manually set --attn_cache_size
-        autograd_memory = 2 * gib * num_devices  # GPU memory used for intermediate tensors in rpc_backward
+        attn_cache_per_block = 0.5 * GIB * num_devices  # TODO: This does not account for manually set --attn_cache_size
+        autograd_memory = 2 * GIB * num_devices  # GPU memory used for intermediate tensors in rpc_backward
 
         num_blocks = math.floor((total_memory - autograd_memory) / (block_size + attn_cache_per_block))
         assert num_blocks >= 1, "Your GPU does not have enough memory to serve at least one block"
@@ -264,6 +266,7 @@ class Server:
                 max_batch_size=self.max_batch_size,
                 inference_max_length=self.inference_max_length,
                 torch_dtype=self.torch_dtype,
+                backend_dtype=self.backend_dtype,
                 cache_dir=self.cache_dir,
                 max_disk_space=self.max_disk_space,
                 device=self.device,
@@ -311,10 +314,9 @@ class Server:
 
             allocated_vram = torch.cuda.memory_allocated(self.device)
             reserved_vram = torch.cuda.memory_reserved(self.device)
-            gib = 1024**3
             logger.info(
-                f"Cleaning up, left {allocated_vram / gib:.1f} GiB allocated memory, "
-                f"{reserved_vram / gib:.1f} GiB reserved memory"
+                f"Cleaning up, left {allocated_vram / GIB:.1f} GiB allocated memory, "
+                f"{reserved_vram / GIB:.1f} GiB reserved memory"
             )
 
     def _choose_blocks(self) -> List[int]:
@@ -362,6 +364,7 @@ class ModuleContainer(threading.Thread):
         min_batch_size: int,
         max_batch_size: int,
         torch_dtype: torch.dtype,
+        backend_dtype: torch.dtype,
         cache_dir: str,
         max_disk_space: int,
         device: Union[str, torch.device],
@@ -404,7 +407,6 @@ class ModuleContainer(threading.Thread):
                 )
                 block = convert_block(block, block_config, tensor_parallel_devices, device, load_in_8bit, freeze=True)
 
-                backend_dtype = next(block.parameters()).dtype if torch_dtype == "auto" else torch_dtype
                 blocks[module_uid] = TransformerBackend(
                     module_uid,
                     block,
