@@ -3,12 +3,12 @@ import time
 import hivemind
 import pytest
 import torch
-from test_utils import *
 
 from petals.client import DistributedBloomConfig
 from petals.data_structures import UID_DELIMITER
 from petals.dht_utils import get_remote_sequence
 from petals.server.handler import CACHE_TOKENS_AVAILABLE
+from test_utils import *
 
 
 @pytest.mark.forked
