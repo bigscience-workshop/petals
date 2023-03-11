@@ -86,7 +86,7 @@ jobs:
 
           python -m petals.cli.run_server --converted_model_name_or_path $MODEL_NAME --block_indices 0:12 \
             --new_swarm --identity tests/test.id --host_maddrs /ip4/127.0.0.1/tcp/31337 --throughput 1 \
-            --torch_dtype float32 --compression NONE --attn_cache_size 0.2GiB &> server1.log &
+            --torch_dtype float32 --compression NONE --attn_cache_size 2048 &> server1.log &
           SERVER1_PID=$!
 
           sleep 5  # wait for the first server to initialize DHT

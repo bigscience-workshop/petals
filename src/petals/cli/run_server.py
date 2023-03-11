@@ -4,7 +4,6 @@ import configargparse
 from hivemind.proto.runtime_pb2 import CompressionType
 from hivemind.utils.limits import increase_file_limit
 from hivemind.utils.logging import get_logger
-from humanfriendly import parse_size
 
 from petals.constants import PUBLIC_INITIAL_PEERS
 from petals.server.server import Server
@@ -81,11 +80,9 @@ def main():
     parser.add_argument("--torch_dtype", type=str, default="auto",
                         help="Use this dtype to store block weights and do computations. "
                              "By default, respect the dtypes in the pre-trained state dict.")
-    parser.add_argument('--attn_cache_size', type=str, default=None,
-                        help='The size of GPU memory allocated for storing past attention keys/values between inference steps. '
-                             'Examples: 500MB, 1.2GB, 1073741824 (bytes). Note that 1KB != 1KiB here. '
-                             'Default: 0.5GiB * num_blocks * hidden_size / 14336. '
-                             'The latter is the hidden size of the bigscience/bloom-petals model.')
+    parser.add_argument('--attn_cache_size', type=int, default=8192,
+                        help='The number of past attention key/value pairs that will be stored between inference steps. '
+                             'Default: 8192 (4 simultaneous sessions of up to 2048 tokens).')
     parser.add_argument('--alloc_timeout', type=float, default=60,
                         help='If the cache is full, the server will wait for this number of seconds hoping that some memory will be freed '
                              'before rejecting the request')
@@ -178,13 +175,6 @@ def main():
     compression_type = args.pop("compression").upper()
     compression = getattr(CompressionType, compression_type)
 
-    attn_cache_size = args.pop("attn_cache_size")
-    if attn_cache_size is not None:
-        attn_cache_size = parse_size(attn_cache_size)
-    assert isinstance(
-        attn_cache_size, (int, type(None))
-    ), "Unrecognized value for --attn_cache_size. Correct examples: 1.5GB or 1500MB or 1572864000 (bytes)"
-
     max_disk_space = args.pop("max_disk_space")
     if max_disk_space is not None:
         max_disk_space = parse_size(max_disk_space)
@@ -207,7 +197,6 @@ def main():
         announce_maddrs=announce_maddrs,
         compression=compression,
         max_disk_space=max_disk_space,
-        attn_cache_size=attn_cache_size,
     )
     try:
         server.run()
