@@ -75,6 +75,7 @@ def _old_load_pretrained_block(
     return block
 
 
+@pytest.mark.forked
 def test_init_pretrained_block(torch_dtype=torch.float32, atol_forward=1e-8):
     config = DistributedBloomConfig.from_pretrained(MODEL_NAME)
     inputs = torch.randn(1, 16, config.hidden_size, dtype=torch_dtype)
