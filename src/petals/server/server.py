@@ -166,7 +166,7 @@ class Server:
         logger.info(f"Model weights will be loaded in {get_dtype_name(torch_dtype, load_in_8bit)} format")
 
         max_values_in_cache = 2 * self.block_config.hidden_size * attn_cache_size
-        self._cache_bytes_per_block = num_blocks * max_values_in_cache * torch.finfo(self.backend_dtype).bits // 8
+        self._cache_bytes_per_block = max_values_in_cache * torch.finfo(self.backend_dtype).bits // 8
 
         assert num_blocks is None or block_indices is None, "Please specify num_blocks or block_indices, not both"
         if num_blocks is None and block_indices is None:
