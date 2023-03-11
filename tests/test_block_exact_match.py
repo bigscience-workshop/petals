@@ -77,7 +77,7 @@ def _old_load_pretrained_block(
 
 def test_init_pretrained_block(torch_dtype=torch.float32, atol_forward=1e-8):
     config = DistributedBloomConfig.from_pretrained(MODEL_NAME)
-    inputs = torch.randn(1, 16, config.hidden_size, requires_grad=True, dtype=torch_dtype)
+    inputs = torch.randn(1, 16, config.hidden_size, dtype=torch_dtype)
 
     block = load_pretrained_block(MODEL_NAME, 3, torch_dtype=torch_dtype)
     ref_block = load_pretrained_block(MODEL_NAME, 3, torch_dtype=torch_dtype)
