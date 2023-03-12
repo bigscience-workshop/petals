@@ -61,7 +61,7 @@ def load_pretrained_block(
 
     # dummy load, check that keys match
     report = block.load_state_dict(state_dict, strict=True)
-    assert not report.missing_keys
+    assert not report.missing_keys, f"Some block weights are missing: {report.missing_keys}"
 
     for param_name, _ in block.named_parameters():
         assert param_name in state_dict, f"{param_name} not in state dict"
