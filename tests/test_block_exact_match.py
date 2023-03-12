@@ -72,16 +72,19 @@ def _old_load_pretrained_block(
         assert torch_dtype in DTYPE_MAP.values(), f"torch_dtype must be one of {list(DTYPE_MAP.values())}"
         block = block.to(dtype=torch_dtype)
 
+    block.load_state_dict(state_dict, strict=True)
+
     return block
 
 
 @pytest.mark.forked
 def test_init_pretrained_block(torch_dtype=torch.float32, atol_forward=1e-8):
     config = DistributedBloomConfig.from_pretrained(MODEL_NAME)
+    torch.random.manual_seed(0)
     inputs = torch.randn(1, 16, config.hidden_size, dtype=torch_dtype)
 
     block = load_pretrained_block(MODEL_NAME, 3, torch_dtype=torch_dtype)
-    ref_block = load_pretrained_block(MODEL_NAME, 3, torch_dtype=torch_dtype)
+    ref_block = _old_load_pretrained_block(MODEL_NAME, 3, torch_dtype=torch_dtype)
 
     outputs = block.forward(inputs)[0]
     outputs_ref = ref_block.forward(inputs)[0]
