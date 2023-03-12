@@ -51,8 +51,8 @@ def _old_load_pretrained_block(
     block_index: int,
     torch_dtype: Union[torch.dtype, str] = "auto",
 ) -> WrappedBloomBlock:
-    """Load the BLOOM block by directly initializing the weights."""
-
+    """Load the BLOOM block by directly initializing the weights.
+    This test is used to check consistency with the previous implementation and can be removed in the future."""
     config = BloomConfig.from_pretrained(converted_model_name_or_path)
 
     block = WrappedBloomBlock(config)
@@ -73,7 +73,6 @@ def _old_load_pretrained_block(
         block = block.to(dtype=torch_dtype)
 
     block.load_state_dict(state_dict, strict=True)
-
     return block
 
 
