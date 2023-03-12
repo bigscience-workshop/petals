@@ -4,11 +4,11 @@ import time
 import pytest
 import torch
 from hivemind import DHT, get_logger
-from test_utils import *
 
 from petals.client import RemoteSequenceManager, RemoteSequential
 from petals.client.remote_model import DistributedBloomConfig
 from petals.data_structures import UID_DELIMITER
+from test_utils import *
 
 logger = get_logger(__name__)
 

@@ -15,3 +15,4 @@ line_length = 120
 combine_as_imports = true
 combine_star = true
 known_local_folder = ["tests", "cli"]
+known_first_party = ["test_utils"]
