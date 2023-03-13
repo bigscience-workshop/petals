@@ -119,7 +119,36 @@ The benchmarks below are an excerpt from our [research paper](https://arxiv.org/
     <td>64</td>
   </tr>
   <tr>
-    <th colspan="6">Petals on 3 servers, with one A100 each <sup>1</sup></th>
+    <th colspan="6">Offloading, max. possible speed on 1x A100 <sup>1</sup></th>
+  </tr>
+  <tr align="center">
+    <td>256 Gbit/s</td>
+    <td></td>
+    <td>0.18</td>
+    <td>0.18</td>
+    <td>2.7</td>
+    <td>170.3</td>
+  </tr>
+  <tr align="center">
+    <td>128 Gbit/s</td>
+    <td></td>
+    <td>0.09</td>
+    <td>0.09</td>
+    <td>2.4</td>
+    <td>152.8</td>
+  </tr>
+  <tr>
+    <th colspan="6">Petals on 14 heterogeneous servers across Europe and North America <sup>2</sup></th>
+  </tr>
+  <tr align="center">
+    <td colspan="2">Real world</td>
+    <td>0.83</td>
+    <td>0.79</td>
+    <td>32.6</td>
+    <td>179.4</td>
+  </tr>
+  <tr>
+    <th colspan="6">Petals on 3 servers, with one A100 each <sup>3</sup></th>
   </tr>
   <tr align="center">
     <td>1 Gbit/s</td>
@@ -145,42 +174,13 @@ The benchmarks below are an excerpt from our [research paper](https://arxiv.org/
     <td>19.7</td>
     <td>112.2</td>
   </tr>
-  <tr>
-    <th colspan="6">Petals on 14 heterogeneous servers across Europe and North America <sup>2</sup></th>
-  </tr>
-  <tr align="center">
-    <td colspan="2">Real world</td>
-    <td>0.83</td>
-    <td>0.79</td>
-    <td>32.6</td>
-    <td>179.4</td>
-  </tr>
-  <tr>
-    <th colspan="6">Offloading, max. possible speed on 1x A100 <sup>3</sup></th>
-  </tr>
-  <tr align="center">
-    <td>256 Gbit/s</td>
-    <td></td>
-    <td>0.18</td>
-    <td>0.18</td>
-    <td>2.7</td>
-    <td>170.3</td>
-  </tr>
-  <tr align="center">
-    <td>128 Gbit/s</td>
-    <td></td>
-    <td>0.09</td>
-    <td>0.09</td>
-    <td>2.4</td>
-    <td>152.8</td>
-  </tr>
 </table>
 
-<sup>1</sup> An optimistic setup that requires least communication. The client nodes have 8 CPU cores and no GPU.
+<sup>1</sup> An upper bound for offloading performance. We base our offloading numbers on the best possible hardware setup for offloading: CPU RAM offloading via PCIe 4.0 with 16 PCIe lanes per GPU and PCIe switches for pairs of GPUs. We assume zero latency for the upper bound estimation. In 8-bit, the model uses 1 GB of memory per billion parameters. PCIe 4.0 with 16 lanes has a throughput of 256 Gbit/s, so offloading 176B parameters takes 5.5 seconds. The throughput is twice as slow (128 Gbit/s) if we have two GPUs behind the same PCIe switch.
 
 <sup>2</sup> A real-world distributed setting with 14 servers holding 2× RTX 3060, 4× 2080Ti, 2× 3090, 2× A4000, and 4× A5000 GPUs. These are personal servers and servers from university labs, spread across Europe and North America and connected to the Internet at speeds of 100–1000 Mbit/s. 4 servers operate from under firewalls.
 
-<sup>3</sup> An upper bound for offloading performance. We base our offloading numbers on the best possible hardware setup for offloading: CPU RAM offloading via PCIe 4.0 with 16 PCIe lanes per GPU and PCIe switches for pairs of GPUs. We calculate the maximum throughput for offloading as follows. In 8-bit, the model uses 1 GB of memory per billion parameters while PCIe 4.0 with 16 lanes has a throughput of 256 Gbit/s (or 128 Gbit/s if two GPUs are behind a PCIe switch). As such, offloading 176B parameters takes 5.5 seconds. We assume an offloading latency of zero for the upper bound estimation.
+<sup>3</sup> An optimistic setup that requires least communication. The client nodes have 8 CPU cores and no GPU.
 
 ## Installation
 
