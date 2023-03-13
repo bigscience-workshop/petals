@@ -109,7 +109,7 @@ If you don't use Anaconda, you can install PyTorch in [any other way](https://py
 
 See the instructions for macOS and Windows, the full requirements, and troubleshooting advice in our [FAQ](https://github.com/bigscience-workshop/petals/wiki/FAQ:-Frequently-asked-questions#running-a-client).
 
-## ⏱️ Benchmarks
+## Benchmarks
 
 <table align="center">
   <tr>
