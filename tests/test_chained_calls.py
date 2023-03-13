@@ -7,12 +7,12 @@
 import hivemind
 import pytest
 import torch
-from test_utils import *
 
 from petals.bloom.from_pretrained import load_pretrained_block
 from petals.client import DistributedBloomConfig
 from petals.client.remote_sequential import RemoteSequential
 from petals.dht_utils import get_remote_sequence
+from test_utils import *
 
 
 @pytest.mark.forked

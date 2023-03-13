@@ -1,7 +1,7 @@
 <p align="center">
     <img src="https://i.imgur.com/7eR7Pan.png" width="400"><br>
     Run 100B+ language models at home, BitTorrent-style.<br>
-    Fine-tuning and inference up to 10x faster than offloading<br><br>
+    Fine-tuning and inference <a href="https://github.com/bigscience-workshop/petals#benchmarks">up to 10x faster</a> than offloading<br><br>
     <a href="https://pypi.org/project/petals/"><img src="https://img.shields.io/pypi/v/petals.svg?color=green"></a><br>
 </p>
 
@@ -83,8 +83,8 @@ Learning more:
 ## How does it work?
 
 - Petals runs large language models like [BLOOM-176B](https://huggingface.co/bigscience/bloom) **collaboratively** — you load a small part of the model, then team up with people serving the other parts to run inference or fine-tuning.
-- Inference runs at ≈ 1 sec per step (token) — 10x faster than possible with offloading, enough for chatbots and other interactive apps. Parallel inference reaches hundreds of tokens/sec.
-- Beyond classic language model APIs — you can employ any fine-tuning and sampling methods by executing custom paths through the model or accessing its hidden states. You get the comforts of an API with the flexibility of PyTorch.
+- Single-batch inference runs at ≈ 1 sec per step (token) — [up to 10x faster](https://github.com/bigscience-workshop/petals#benchmarks) than offloading, enough for [chatbots](http://chat.petals.ml) and other interactive apps. Parallel inference reaches hundreds of tokens/sec.
+- Beyond classic language model APIs — you can employ any fine-tuning and sampling methods, execute custom paths through the model, or see its hidden states. You get the comforts of an API with the flexibility of PyTorch.
 
 <p align="center">
     <img src="https://i.imgur.com/RTYF3yW.png" width="800">
@@ -98,61 +98,106 @@ Learning more:
 
 ## Installation
 
-Here's how to install Petals with conda:
+Here's how to install Petals with [Anaconda](https://www.anaconda.com/products/distribution) on Linux:
 
 ```bash
 conda install pytorch pytorch-cuda=11.7 -c pytorch -c nvidia
 pip install -U petals
 ```
 
-This script uses Anaconda to install CUDA-enabled PyTorch.
-If you don't have anaconda, you can get it from [here](https://www.anaconda.com/products/distribution).
-If you don't want anaconda, you can install PyTorch [any other way](https://pytorch.org/get-started/locally/).
-If you want to run models with 8-bit weights, please install **PyTorch with CUDA 11** or newer for compatility with [bitsandbytes](https://github.com/timDettmers/bitsandbytes).
+If you don't use Anaconda, you can install PyTorch in [any other way](https://pytorch.org/get-started/locally/). If you want to run models with 8-bit weights, please install PyTorch with CUDA 11.x or newer for compatility with [bitsandbytes](https://github.com/timDettmers/bitsandbytes).
 
-__System requirements:__ Petals only supports Linux for now. If you don't have a Linux machine, consider running Petals in Docker (see our [image](https://hub.docker.com/r/learningathome/petals)) or, in case of Windows, in WSL2 ([read more](https://learn.microsoft.com/en-us/windows/ai/directml/gpu-cuda-in-wsl)). CPU is enough to run a client, but you probably need a GPU to run a server efficiently.
+See the instructions for macOS and Windows, the full requirements, and troubleshooting advice in our [FAQ](https://github.com/bigscience-workshop/petals/wiki/FAQ:-Frequently-asked-questions#running-a-client).
 
-## 🛠️ Development
+## ⏱️ Benchmarks
 
-Petals uses pytest with a few plugins. To install them, run:
+<table align="center">
+  <tr>
+    <th colspan="2">Network</th>
+    <th colspan="2">Single-batch inference<br>(steps/s)</th>
+    <th colspan="2">Parallel forward<br>(tokens/s)</th>
+  </tr>
+  <tr>
+    <th rowspan="2">Bandwidth</th>
+    <th rowspan="2">Round-trip<br>latency</th>
+    <th colspan="2">Sequence length</th>
+    <th colspan="2">Batch size</th>
+  </tr>
+  <tr align="center">
+    <td>128</td>
+    <td>2048</td>
+    <td>1</td>
+    <td>64</td>
+  </tr>
+  <tr>
+    <th colspan="6">Offloading, max. possible speed on 1x A100 <sup>1</sup></th>
+  </tr>
+  <tr align="center">
+    <td>256 Gbit/s</td>
+    <td></td>
+    <td>0.18</td>
+    <td>0.18</td>
+    <td>2.7</td>
+    <td>170.3</td>
+  </tr>
+  <tr align="center">
+    <td>128 Gbit/s</td>
+    <td></td>
+    <td>0.09</td>
+    <td>0.09</td>
+    <td>2.4</td>
+    <td>152.8</td>
+  </tr>
+  <tr>
+    <th colspan="6">Petals on 14 heterogeneous servers across Europe and North America <sup>2</sup></th>
+  </tr>
+  <tr align="center">
+    <td colspan="2">Real world</td>
+    <td>0.83</td>
+    <td>0.79</td>
+    <td>32.6</td>
+    <td>179.4</td>
+  </tr>
+  <tr>
+    <th colspan="6">Petals on 3 servers, with one A100 each <sup>3</sup></th>
+  </tr>
+  <tr align="center">
+    <td>1 Gbit/s</td>
+    <td>&lt; 5 ms</td>
+    <td>1.71</td>
+    <td>1.54</td>
+    <td>70.0</td>
+    <td>253.6</td>
+  </tr>
+  <tr align="center">
+    <td>100 Mbit/s</td>
+    <td>&lt; 5 ms</td>
+    <td>1.66</td>
+    <td>1.49</td>
+    <td>56.4</td>
+    <td>182.0</td>
+  </tr>
+  <tr align="center">
+    <td>100 Mbit/s</td>
+    <td>100 ms</td>
+    <td>1.23</td>
+    <td>1.11</td>
+    <td>19.7</td>
+    <td>112.2</td>
+  </tr>
+</table>
 
-```bash
-conda install pytorch pytorch-cuda=11.7 -c pytorch -c nvidia
-git clone https://github.com/bigscience-workshop/petals.git && cd petals
-pip install -e .[dev]
-```
+<sup>1</sup> **An upper bound for offloading performance.** We base our offloading numbers on the best possible hardware setup for offloading: CPU RAM offloading via PCIe 4.0 with 16 PCIe lanes per GPU and PCIe switches for pairs of GPUs. We assume zero latency for the upper bound estimation. In 8-bit, the model uses 1 GB of memory per billion parameters. PCIe 4.0 with 16 lanes has a throughput of 256 Gbit/s, so offloading 176B parameters takes 5.5 seconds. The throughput is twice as slow (128 Gbit/s) if we have two GPUs behind the same PCIe switch.
 
-To run minimalistic tests, you need to make a local swarm with a small model and some servers. You may find more information about how local swarms work and how to run them in [this tutorial](https://github.com/bigscience-workshop/petals/wiki/Launch-your-own-swarm).
+<sup>2</sup> **A real-world distributed setting** with 14 servers holding 2× RTX 3060, 4× 2080Ti, 2× 3090, 2× A4000, and 4× A5000 GPUs. These are personal servers and servers from university labs, spread across Europe and North America and connected to the Internet at speeds of 100–1000 Mbit/s. 4 servers operate from under firewalls.
 
-```bash
-export MODEL_NAME=bloom-testing/test-bloomd-560m-main
+<sup>3</sup> **An optimistic setup** that requires least communication. The client nodes have 8 CPU cores and no GPU.
 
-python -m petals.cli.run_server $MODEL_NAME --block_indices 0:12 \
-  --identity tests/test.id --host_maddrs /ip4/127.0.0.1/tcp/31337 --new_swarm  &> server1.log &
-sleep 5  # wait for the first server to initialize DHT
+We provide more evaluations and discuss these results in more detail in **Section 3.3** of our [paper](https://arxiv.org/pdf/2209.01188.pdf).
 
-python -m petals.cli.run_server $MODEL_NAME --block_indices 12:24 \
-  --initial_peers SEE_THE_OUTPUT_OF_THE_1ST_PEER &> server2.log &
+## 🛠️ Contributing
 
-tail -f server1.log server2.log  # view logs for both servers
-```
-
-Then launch pytest:
-
-```bash
-export MODEL_NAME=bloom-testing/test-bloomd-560m-main REF_NAME=bigscience/bloom-560m
-export INITIAL_PEERS=/ip4/127.0.0.1/tcp/31337/p2p/QmS9KwZptnVdB9FFV7uGgaTq4sEKBwcYeKZDfSpyKDUd1g
-PYTHONPATH=. pytest tests --durations=0 --durations-min=1.0 -v
-```
-
-After you're done, you can terminate the servers and ensure that no zombie processes are left with `pkill -f petals.cli.run_server && pkill -f p2p`.
-
-The automated tests use a more complex server configuration that can be found [here](https://github.com/bigscience-workshop/petals/blob/main/.github/workflows/run-tests.yaml).
-
-### Code style
-
-We use [black](https://black.readthedocs.io/en/stable/the_black_code_style/current_style.html) and [isort](https://pycqa.github.io/isort/) for all pull requests.
-Before committing your code, simply run `black . && isort .` and you will be fine.
+Please see our [FAQ](https://github.com/bigscience-workshop/petals/wiki/FAQ:-Frequently-asked-questions#contributing) on contributing.
 
 ## 📜 Citation
 
