@@ -83,7 +83,7 @@ Learning more:
 ## How does it work?
 
 - Petals runs large language models like [BLOOM-176B](https://huggingface.co/bigscience/bloom) **collaboratively** — you load a small part of the model, then team up with people serving the other parts to run inference or fine-tuning.
-- Inference runs at ≈ 1 sec per step (token) — [up to 10x faster](https://github.com/bigscience-workshop/petals#benchmarks) than possible with offloading, enough for chatbots and other interactive apps. Parallel inference reaches hundreds of tokens/sec.
+- Inference runs at ≈ 1 sec per step (token) — [up to 10x faster](https://github.com/bigscience-workshop/petals#benchmarks) than offloading, enough for chatbots and other interactive apps. Parallel inference reaches hundreds of tokens/sec.
 - Beyond classic language model APIs — you can employ any fine-tuning and sampling methods by executing custom paths through the model or accessing its hidden states. You get the comforts of an API with the flexibility of PyTorch.
 
 <p align="center">
@@ -96,7 +96,20 @@ Learning more:
     📜 &nbsp;<b><a href="https://arxiv.org/pdf/2209.01188.pdf">Read paper</a></b>
 </p>
 
-## Benchmarks
+## Installation
+
+Here's how to install Petals with [Anaconda](https://www.anaconda.com/products/distribution) on Linux:
+
+```bash
+conda install pytorch pytorch-cuda=11.7 -c pytorch -c nvidia
+pip install -U petals
+```
+
+If you don't use Anaconda, you can install PyTorch [any other way](https://pytorch.org/get-started/locally/). If you want to run models with 8-bit weights, please install PyTorch with CUDA 11.x or newer for compatility with [bitsandbytes](https://github.com/timDettmers/bitsandbytes).
+
+See the instructions for macOS and Windows, the full requirements, and troubleshooting advice in our [FAQ](https://github.com/bigscience-workshop/petals/wiki/FAQ:-Frequently-asked-questions#running-a-client).
+
+## ⏱️ Benchmarks
 
 <table align="center">
   <tr>
@@ -182,63 +195,9 @@ Learning more:
 
 We provide more evaluations and discuss these results in more detail in **Section 3.3** of our [paper](https://arxiv.org/pdf/2209.01188.pdf).
 
-## Installation
+## 🛠️ Contributing
 
-Here's how to install Petals with conda:
-
-```bash
-conda install pytorch pytorch-cuda=11.7 -c pytorch -c nvidia
-pip install -U petals
-```
-
-This script uses Anaconda to install CUDA-enabled PyTorch.
-If you don't have anaconda, you can get it from [here](https://www.anaconda.com/products/distribution).
-If you don't want anaconda, you can install PyTorch [any other way](https://pytorch.org/get-started/locally/).
-If you want to run models with 8-bit weights, please install **PyTorch with CUDA 11** or newer for compatility with [bitsandbytes](https://github.com/timDettmers/bitsandbytes).
-
-__System requirements:__ Petals only supports Linux for now. If you don't have a Linux machine, consider running Petals in Docker (see our [image](https://hub.docker.com/r/learningathome/petals)) or, in case of Windows, in WSL2 ([read more](https://learn.microsoft.com/en-us/windows/ai/directml/gpu-cuda-in-wsl)). CPU is enough to run a client, but you probably need a GPU to run a server efficiently.
-
-## 🛠️ Development
-
-Petals uses pytest with a few plugins. To install them, run:
-
-```bash
-conda install pytorch pytorch-cuda=11.7 -c pytorch -c nvidia
-git clone https://github.com/bigscience-workshop/petals.git && cd petals
-pip install -e .[dev]
-```
-
-To run minimalistic tests, you need to make a local swarm with a small model and some servers. You may find more information about how local swarms work and how to run them in [this tutorial](https://github.com/bigscience-workshop/petals/wiki/Launch-your-own-swarm).
-
-```bash
-export MODEL_NAME=bloom-testing/test-bloomd-560m-main
-
-python -m petals.cli.run_server $MODEL_NAME --block_indices 0:12 \
-  --identity tests/test.id --host_maddrs /ip4/127.0.0.1/tcp/31337 --new_swarm  &> server1.log &
-sleep 5  # wait for the first server to initialize DHT
-
-python -m petals.cli.run_server $MODEL_NAME --block_indices 12:24 \
-  --initial_peers SEE_THE_OUTPUT_OF_THE_1ST_PEER &> server2.log &
-
-tail -f server1.log server2.log  # view logs for both servers
-```
-
-Then launch pytest:
-
-```bash
-export MODEL_NAME=bloom-testing/test-bloomd-560m-main REF_NAME=bigscience/bloom-560m
-export INITIAL_PEERS=/ip4/127.0.0.1/tcp/31337/p2p/QmS9KwZptnVdB9FFV7uGgaTq4sEKBwcYeKZDfSpyKDUd1g
-PYTHONPATH=. pytest tests --durations=0 --durations-min=1.0 -v
-```
-
-After you're done, you can terminate the servers and ensure that no zombie processes are left with `pkill -f petals.cli.run_server && pkill -f p2p`.
-
-The automated tests use a more complex server configuration that can be found [here](https://github.com/bigscience-workshop/petals/blob/main/.github/workflows/run-tests.yaml).
-
-### Code style
-
-We use [black](https://black.readthedocs.io/en/stable/the_black_code_style/current_style.html) and [isort](https://pycqa.github.io/isort/) for all pull requests.
-Before committing your code, simply run `black . && isort .` and you will be fine.
+Please see our [FAQ](https://github.com/bigscience-workshop/petals/wiki/FAQ:-Frequently-asked-questions#contributing) on contributing.
 
 ## 📜 Citation
 
