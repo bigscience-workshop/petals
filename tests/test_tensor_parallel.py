@@ -5,9 +5,9 @@ import torch
 import transformers
 from tensor_parallel import TensorParallel
 from tensor_parallel.slicing_configs import get_bloom_config
-from test_utils import MODEL_NAME
 
 from petals.bloom.from_pretrained import load_pretrained_block
+from test_utils import MODEL_NAME
 
 
 @pytest.mark.forked

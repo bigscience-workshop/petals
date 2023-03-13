@@ -30,7 +30,7 @@ def get_block_size(
             dtype is not None and load_in_8bit is not None
         ), 'get_block_size(..., location="memory") requires to specify dtype and load_in_8bit for calculations'
 
-    with init_empty_weights():
+    with init_empty_weights(include_buffers=True):
         block = WrappedBloomBlock(config)
         n_params = sum(param.numel() for param in block.parameters())
 

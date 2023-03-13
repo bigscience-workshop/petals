@@ -2,11 +2,11 @@ import pytest
 import torch
 import transformers
 from hivemind import get_logger
-from test_utils import *
 from transformers.generation import BeamSearchScorer
 from transformers.models.bloom import BloomForCausalLM
 
 from petals.client.remote_model import DistributedBloomForCausalLM
+from test_utils import *
 
 logger = get_logger(__name__)
 

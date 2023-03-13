@@ -1,9 +1,9 @@
 import pytest
 import torch
-from test_utils import MODEL_NAME
 
 from petals.client import DistributedBloomConfig
-from petals.server.throughput import measure_compute_rps, measure_network_rps
+from petals.server.throughput import measure_compute_rps
+from test_utils import MODEL_NAME
 
 
 @pytest.mark.forked
