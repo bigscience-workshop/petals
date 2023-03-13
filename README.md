@@ -98,7 +98,7 @@ Learning more:
 
 ## Benchmarks
 
-The benchmarks below are an excerpt from our [research paper](https://arxiv.org/pdf/2209.01188.pdf). See the paper for more evaluations and discussion of the results.
+The benchmarks below are an excerpt from our [research paper](https://arxiv.org/pdf/2209.01188.pdf). We provide more evaluations and discuss the results in more detail in Section 3.3 of the paper.
 
 <table align="center">
   <tr>
