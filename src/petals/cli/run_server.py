@@ -47,6 +47,9 @@ def main():
     parser.add_argument('--announce_maddrs', nargs='+', required=False,
                         help='Visible multiaddrs the host announces for external connections from other peers')
 
+    parser.add_argument('--daemon_startup_timeout', type=float, default=120,
+                        help='Timeout for the libp2p daemon connecting to initial peers')
+
     parser.add_argument('--compression', type=str, default='NONE', required=False, help='Tensor compression communication')
 
     parser.add_argument('--num_handlers', type=int, default=8, required=False,
@@ -166,6 +169,8 @@ def main():
         assert announce_maddrs is None, "You can't use --public_ip and --announce_maddrs at the same time"
         assert port != 0, "Please specify a fixed non-zero --port when you use --public_ip (e.g., --port 31337)"
         announce_maddrs = [f"/ip4/{public_ip}/tcp/{port}"]
+
+    args["startup_timeout"] = args.pop("daemon_startup_timeout")
 
     if args.pop("increase_file_limit"):
         increase_file_limit()
