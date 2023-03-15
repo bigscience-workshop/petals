@@ -32,7 +32,7 @@ class DistributedBloomConfig(BloomConfig):
 
     initial_peers: List[str] = PUBLIC_INITIAL_PEERS  # a list of initial peers for hivemind DHT
     dht_prefix: str  # a prefix for all dht keys that correspond to this model (usually equal to model name)
-    daemon_startup_timeout: int = 30
+    daemon_startup_timeout: int = 120  # timeout for the libp2p daemon connecting to initial peers
     dht: Optional[hivemind.DHT] = None  # a running DHT instance, e.g. when using the same DHT for multiple models
     request_timeout: int = 3 * 60  # a number of seconds for waiting result from each node
     max_retries: Optional[int] = None  # max number retries before the client raises an exception (default: inf)
