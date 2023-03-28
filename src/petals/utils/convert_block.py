@@ -77,15 +77,13 @@ def replace_8bit_linear(model: nn.Module, threshold=6.0):
     # Import bitsandbytes only when necessary, so Petals runs on platforms not supported by bitsandbytes
     import bitsandbytes as bnb
 
-    from petals.utils.linear8bitlt_patch import CustomLinear8bitLt
-
     for n, module in model.named_children():
         if len(list(module.children())) > 0:
             replace_8bit_linear(module, threshold)
 
         if isinstance(module, torch.nn.Linear) and n not in ["lm_head", "score"]:
             assert module.weight.device.type == "cpu", f"expected linear layers on CPU, got {module.weight.device}"
-            model._modules[n] = CustomLinear8bitLt(
+            model._modules[n] = bnb.nn.Linear8bitLt(
                 module.in_features,
                 module.out_features,
                 module.bias is not None,
