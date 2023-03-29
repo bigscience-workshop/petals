@@ -163,12 +163,6 @@ class Server:
 
         if load_in_8bit is None:
             load_in_8bit = device.type == "cuda"
-            if load_in_8bit and len(self.tensor_parallel_devices) > 1:
-                load_in_8bit = False
-                logger.warning(
-                    "Tensor parallelism doesn't work properly with 8-bit weights yet, loading weights in 16-bit. "
-                    "You can explicitly set `--load_in_8bit True` to override this"
-                )
         self.load_in_8bit = load_in_8bit
         logger.info(f"Model weights will be loaded in {get_dtype_name(torch_dtype, load_in_8bit)} format")
 
