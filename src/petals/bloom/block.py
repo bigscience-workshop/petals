@@ -13,8 +13,8 @@ from transformers.models.bloom.modeling_bloom import BloomBlock, _expand_mask, _
 
 if not os.getenv("PETALS_IGNORE_DEPENDENCY_VERSION"):
     assert (
-        version.parse("4.26.0") < version.parse(transformers.__version__) < version.parse("5.0.0")
-    ), "Please install a proper transformers version: pip install transformers>=4.26.0,<5.0.0"
+        version.parse("4.25.1") <= version.parse(transformers.__version__) < version.parse("5.0.0")
+    ), "Please install a proper transformers version: pip install transformers>=4.25.1,<5.0.0"
 
 
 class WrappedBloomBlock(BloomBlock):
