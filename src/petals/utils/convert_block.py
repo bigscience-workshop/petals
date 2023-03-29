@@ -1,6 +1,7 @@
 """
 Tools for converting transformer blocks, applying quantization and/or tensor parallelism
 """
+import os
 import re
 from typing import Sequence
 
@@ -75,6 +76,7 @@ def replace_8bit_linear(model: nn.Module, threshold=6.0):
     """
 
     # Import bitsandbytes only when necessary, so Petals runs on platforms not supported by bitsandbytes
+    os.environ["BITSANDBYTES_NOWELCOME"] = "1"
     import bitsandbytes as bnb
 
     for n, module in model.named_children():
