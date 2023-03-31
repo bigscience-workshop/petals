@@ -102,19 +102,15 @@ class DistributedBloomModel(_LowCPUMemoryMixin, BloomModel):
         assert len(self.h) == 0
         config.n_layer = n_layer
 
-        dht = (
-            config.dht
-            if config.dht is not None
-            else hivemind.DHT(
+        dht = config.dht
+        if dht is None:
+            dht = hivemind.DHT(
                 initial_peers=config.initial_peers,
                 client_mode=True,
                 num_workers=n_layer,
                 startup_timeout=config.daemon_startup_timeout,
                 start=True,
-                use_relay=True,
-                use_auto_relay=True,
             )
-        )
         assert isinstance(dht, hivemind.DHT) and dht.is_alive(), "dht must be a running hivemind.DHT instance"
         self.h = RemoteSequential(
             config,
