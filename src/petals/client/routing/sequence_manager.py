@@ -244,6 +244,9 @@ class RemoteSequenceManager:
     def rpc_info(self):
         """Return the rpc_info queried from one of the servers that hold the first block"""
         if self._rpc_info is None:
+            if not self.is_alive():
+                self._thread.start()
+
             for attempt_no in itertools.count():
                 peer_id = None
                 try:
