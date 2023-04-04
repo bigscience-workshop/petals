@@ -66,8 +66,7 @@ class RemoteSequenceManager:
         rpc_info: Optional[dict] = None,
         allowed_servers: Optional[Collection[Union[str, hivemind.PeerID]]] = None,
         banned_peers: Optional[Blacklist] = None,
-        *,  # dear dev, if you add more parameters to this class, please make sure to handle them in __getitem__ (below)
-        start: bool,
+        # dear dev, if you add more parameters to this class, please make sure to handle them in __getitem__ (below)
     ):
         assert len(block_uids) > 0, "Sequences must contain at least one block"
         self.dht, self.p2p = dht, p2p
@@ -93,18 +92,6 @@ class RemoteSequenceManager:
             assert block_uids == sequence_info.block_uids
             self._thread.ready.set()  # no need to await the first dht fetch
 
-        if start:
-            self.run_in_background()
-
-    def run_in_background(self, await_ready: bool = True, timeout: Optional[float] = None) -> None:
-        """
-        Starts the updater thread in a background. if await_ready, this method will wait until sequence manager
-        is ready to process incoming requests or for :timeout: seconds max.
-        """
-        self._thread.start()
-        if await_ready:
-            self._thread.ready.wait(timeout)
-
     def make_sequence(
         self, start_index: int = 0, end_index: Optional[int] = None, mode: str = "random"
     ) -> List[RemoteSpanInfo]:
@@ -116,9 +103,8 @@ class RemoteSequenceManager:
         :param mode: either random or fastest
         """
         if not self.is_alive():
-            logger.error("Using a sequence manager that is not running: it has either crashed or never started")
+            self._thread.start()
         if not self.ready.is_set():
-            logger.warning("Remote SequenceManager is still searching for routes, waiting for it to become ready")
             self.update(wait=True)  # this will await an existing update or trigger a new one (if not updating)
 
         end_index = end_index if end_index is not None else len(self)
@@ -163,7 +149,6 @@ class RemoteSequenceManager:
             rpc_info=self._rpc_info,
             allowed_servers=self.allowed_servers,
             banned_peers=self.banned_peers,
-            start=True,
         )
 
     def update(self, *, wait: bool):
@@ -326,12 +311,6 @@ class _SequenceManagerUpdateThread(threading.Thread):
 
     def run(self) -> None:
         while not self.should_shutdown:
-            self.trigger.wait(max(0.0, min(self.update_period, time.perf_counter() - self.last_update_time)))
-
-            if self.should_shutdown:
-                logger.debug(f"{self.__class__.__name__} is shutting down")
-                break
-
             update_manager = self.ref_update_manager()
             if update_manager is None:
                 logger.debug(f"{self.__class__.__name__} exited because the sequence manager no longer exists")
@@ -345,16 +324,18 @@ class _SequenceManagerUpdateThread(threading.Thread):
             finally:
                 del update_manager
 
+            self.trigger.wait(max(0.0, min(self.update_period, time.perf_counter() - self.last_update_time)))
+
         logger.debug(f"{self.__class__.__name__} thread exited")
 
     def shutdown(self, timeout: Optional[float] = None):
         self.should_shutdown = True
         self.trigger.set()
-        self.join(timeout)
+        if self.is_alive():
+            self.join(timeout)
 
     def __del__(self):
-        if self.is_alive():
-            self.shutdown()
+        self.shutdown()
 
 
 def maybe_log_traceback(exc: Exception):
