@@ -29,16 +29,6 @@ class LMHead(nn.Module):
         self.word_embeddings = word_embeddings
 
         self.use_chunked_forward = config.use_chunked_forward
-        if self.use_chunked_forward == "auto":
-            if platform.machine() == "x86_64":
-                # Import of cpufeature may crash on non-x86_64 machines
-                from cpufeature import CPUFeature
-
-                # If the CPU supports AVX512, plain bfloat16 is ~10x faster than chunked_forward().
-                # Otherwise, it's ~8x slower.
-                self.use_chunked_forward = not (CPUFeature["AVX512f"] and CPUFeature["OS_AVX512"])
-            else:
-                self.use_chunked_forward = True
         self.chunked_forward_step = config.chunked_forward_step
         self._bf16_warning_shown = False
 
