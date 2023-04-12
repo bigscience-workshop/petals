@@ -35,19 +35,19 @@ for input_ids, labels in data_loader:
 
 ### Connect your GPU and increase Petals capacity
 
-Run this in an [Anaconda](https://www.anaconda.com) env (requires Linux and Python 3.7+):
+Run our [Docker](https://www.docker.com) image (works on Linux, macOS, and Windows with [WSL2](https://learn.microsoft.com/en-us/windows/ai/directml/gpu-cuda-in-wsl)):
+
+```bash
+sudo docker run -p 31330:31330 --ipc host --gpus all --volume petals-cache:/cache --rm \
+    learningathome/petals:main python -m petals.cli.run_server bigscience/bloom-petals --port 31330
+```
+
+Or run these commands in an [Anaconda](https://www.anaconda.com) env (requires Linux and Python 3.7+):
 
 ```bash
 conda install pytorch pytorch-cuda=11.7 -c pytorch -c nvidia
 pip install -U petals
 python -m petals.cli.run_server bigscience/bloom-petals
-```
-
-Or use our [Docker](https://www.docker.com) image (works on Linux, macOS, and Windows with [WSL2](https://learn.microsoft.com/en-us/windows/ai/directml/gpu-cuda-in-wsl)):
-
-```bash
-sudo docker run -p 31330:31330 --ipc host --gpus all --volume petals-cache:/cache --rm \
-    learningathome/petals:main python -m petals.cli.run_server bigscience/bloom-petals --port 31330
 ```
 
 📚 See [FAQ](https://github.com/bigscience-workshop/petals/wiki/FAQ:-Frequently-asked-questions#running-a-server) to learn how to configure the server to use multiple GPUs, address common issues, etc.
