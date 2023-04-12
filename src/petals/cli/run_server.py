@@ -47,7 +47,7 @@ def main():
     parser.add_argument('--announce_maddrs', nargs='+', required=False,
                         help='Visible multiaddrs the host announces for external connections from other peers')
 
-    parser.add_argument('--daemon_startup_timeout', type=float, default=120,
+    parser.add_argument('--daemon_startup_timeout', type=float, default=60,
                         help='Timeout for the libp2p daemon connecting to initial peers')
 
     parser.add_argument('--compression', type=str, default='NONE', required=False, help='Tensor compression communication')
