@@ -93,7 +93,7 @@ async def _get_remote_sequence(
 ) -> petals.client.RemoteSequential:
     uids = [f"{config.dht_prefix}{UID_DELIMITER}{i}" for i in range(start, stop)]
     p2p = await dht.replicate_p2p()
-    manager = petals.client.RemoteSequenceManager(dht, uids, p2p, start=True)
+    manager = petals.client.RemoteSequenceManager(dht, uids, p2p)
     return petals.client.RemoteSequential(config, dht, dht_prefix, p2p, manager)
 
 
@@ -124,7 +124,7 @@ async def _get_remote_module(
     single_uid = isinstance(uid_or_uids, ModuleUID)
     uids = [uid_or_uids] if single_uid else uid_or_uids
     p2p = await dht.replicate_p2p()
-    managers = (petals.client.RemoteSequenceManager(dht, [uid], p2p, start=True) for uid in uids)
+    managers = (petals.client.RemoteSequenceManager(dht, [uid], p2p) for uid in uids)
     modules = [
         petals.client.RemoteTransformerBlock(config, dht, dht_prefix=dht_prefix, p2p=p2p, sequence_manager=m)
         for m in managers
@@ -133,21 +133,26 @@ async def _get_remote_module(
 
 
 def get_remote_module_infos(
-    dht: DHT, uid_or_uids: Union[ModuleUID, Sequence[ModuleUID]], expiration_time: Optional[DHTExpiration] = None
-) -> List[Optional[RemoteModuleInfo]]:
-    single_uid = isinstance(uid_or_uids, ModuleUID)
-    uids = [uid_or_uids] if single_uid else uid_or_uids
-    infos = dht.run_coroutine(
-        partial(_get_remote_module_infos, uids=uids, expiration_time=expiration_time),
-        return_future=False,
+    dht: DHT,
+    uids: Sequence[ModuleUID],
+    expiration_time: Optional[DHTExpiration] = None,
+    *,
+    latest: bool = False,
+    return_future: bool = False,
+) -> Union[List[Optional[RemoteModuleInfo]], MPFuture]:
+    return dht.run_coroutine(
+        partial(_get_remote_module_infos, uids=uids, expiration_time=expiration_time, latest=latest),
+        return_future=return_future,
     )
-    return infos[0] if single_uid else infos
 
 
 async def _get_remote_module_infos(
-    dht: DHT, node: DHTNode, uids: List[ModuleUID], expiration_time: Optional[DHTExpiration]
+    dht: DHT, node: DHTNode, uids: List[ModuleUID], expiration_time: Optional[DHTExpiration], latest: bool
 ) -> List[Optional[RemoteModuleInfo]]:
-    if expiration_time is None:
+    if latest:
+        assert expiration_time is None, "You should define either `expiration_time` or `latest`, not both"
+        expiration_time = math.inf
+    elif expiration_time is None:
         expiration_time = get_dht_time()
     num_workers = len(uids) if dht.num_workers is None else min(len(uids), dht.num_workers)
     found: Dict[ModuleUID, DHTValue] = await node.get_many(uids, expiration_time, num_workers=num_workers)

@@ -48,7 +48,6 @@ class RemoteSequential(nn.Module):
                 request_timeout=config.request_timeout,
                 max_retries=config.max_retries,
                 allowed_servers=config.allowed_servers,
-                start=True,
                 **kwargs,
             )
             self.is_subsequence = False
