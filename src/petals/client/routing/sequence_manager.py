@@ -74,6 +74,7 @@ class RemoteSequenceManager:
         self.ban_timeout, self.min_backoff, self.max_backoff = ban_timeout, min_backoff, max_backoff
         self.lock_changes = threading.Lock()
         self._thread = _SequenceManagerUpdateThread(update_period, WeakMethod(self._update))
+        self._thread_start_lock = threading.Lock()
         self.policy = NoSpendingPolicy()
         self._rpc_info = rpc_info
 
@@ -102,8 +103,9 @@ class RemoteSequenceManager:
         :param end_index: optional index of the last module (non-inclusive), default = after last of block uids
         :param mode: either random or fastest
         """
-        if not self.is_alive():
-            self._thread.start()
+        with self._thread_start_lock:
+            if not self.is_alive():
+                self._thread.start()
         if not self.ready.is_set():
             self.update(wait=True)  # this will await an existing update or trigger a new one (if not updating)
 
@@ -244,8 +246,9 @@ class RemoteSequenceManager:
     def rpc_info(self):
         """Return the rpc_info queried from one of the servers that hold the first block"""
         if self._rpc_info is None:
-            if not self.is_alive():
-                self._thread.start()
+            with self._thread_start_lock:
+                if not self.is_alive():
+                    self._thread.start()
 
             for attempt_no in itertools.count():
                 peer_id = None
