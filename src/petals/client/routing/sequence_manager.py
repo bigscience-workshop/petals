@@ -10,7 +10,7 @@ from typing import Any, Collection, Dict, List, Optional, Sequence, Union
 from weakref import WeakMethod
 
 import numpy as np
-from hivemind import DHT, P2P, MSGPackSerializer, PeerID
+from hivemind import DHT, P2P, MSGPackSerializer, PeerID, get_dht_time
 from hivemind.dht.node import Blacklist
 from hivemind.moe.client.remote_expert_worker import RemoteExpertWorker
 from hivemind.p2p import P2PHandlerError
@@ -87,11 +87,16 @@ class RemoteSequenceManager:
 
         if sequence_info is None:
             self.sequence_info = RemoteSequenceInfo.make_empty(block_uids)
-            self.update(wait=False)
+
+            # Pre-fetch module infos in DHT in parallel with .from_pretrained(), then use cached records
+            # in the first _update() instead of the latest ones. This makes the first .update() faster.
+            petals.dht_utils.get_remote_module_infos(self.dht, self.block_uids, latest=True, return_future=True)
+            self._need_latest_infos = False
         else:
             self.sequence_info = sequence_info
             assert block_uids == sequence_info.block_uids
             self._thread.ready.set()  # no need to await the first dht fetch
+            self._need_latest_infos = True
 
     def make_sequence(
         self, start_index: int = 0, end_index: Optional[int] = None, mode: str = "random"
@@ -165,8 +170,10 @@ class RemoteSequenceManager:
         for attempt_no in itertools.count():
             try:
                 new_block_infos = petals.dht_utils.get_remote_module_infos(
-                    self.dht, self.block_uids, expiration_time=float("inf")
+                    self.dht, self.block_uids, latest=self._need_latest_infos
                 )
+                self._need_latest_infos = True  # All future _update() should use latest infos
+
                 for block_info in new_block_infos:
                     if not block_info:
                         continue
