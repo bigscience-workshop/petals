@@ -318,7 +318,6 @@ class _SequenceManagerUpdateThread(threading.Thread):
         self.ref_update_manager = ref_update_manager
         self.ready = threading.Event()
         self.trigger = threading.Event()
-        self.last_update_time = -float("inf")
         self.update_period = update_period
         self.should_shutdown = False
 
@@ -337,7 +336,7 @@ class _SequenceManagerUpdateThread(threading.Thread):
             finally:
                 del update_manager
 
-            self.trigger.wait(max(0.0, min(self.update_period, time.perf_counter() - self.last_update_time)))
+            self.trigger.wait(self.update_period)
 
         logger.debug(f"{self.__class__.__name__} thread exited")
 
