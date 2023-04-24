@@ -27,14 +27,14 @@ class RemoteSequenceInfo:
     block_infos: Tuple[RemoteModuleInfo, ...]  # note: the contents of RemoteModuleInfo can and will be updated
     spans_by_priority: List[RemoteSpanInfo]
     spans_containing_block: Tuple[List[RemoteSpanInfo], ...]
-    last_updated_time: float
+    last_updated_time: Optional[float]
 
     @classmethod
     def make_empty(cls: Type[T], block_uids: Iterable[ModuleUID]) -> T:
         block_uids = tuple(block_uids)
         empty_block_infos = tuple(RemoteModuleInfo(uid, {}) for uid in block_uids)
         empty_spans = tuple([] for _ in range(len(block_uids)))
-        return cls(block_uids, empty_block_infos, [], empty_spans, last_updated_time=-float("inf"))
+        return cls(block_uids, empty_block_infos, [], empty_spans, last_updated_time=None)
 
     def __getitem__(self, ix: slice):
         assert isinstance(ix, slice)

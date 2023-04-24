@@ -86,14 +86,15 @@ class RemoteSequenceManager:
         self.banned_peers = Blacklist(base_time=ban_timeout, backoff_rate=2.0) if banned_peers is None else banned_peers
 
         if sequence_info is None:
-            self.sequence_info = RemoteSequenceInfo.make_empty(block_uids)
+            sequence_info = RemoteSequenceInfo.make_empty(block_uids)
+        self.sequence_info = sequence_info
 
+        if sequence_info.last_updated_time is None:
             # Pre-fetch module infos in DHT in parallel with .from_pretrained(), then use cached records
             # in the first _update() instead of the latest ones. This makes the first .update() faster.
             petals.dht_utils.get_remote_module_infos(self.dht, self.block_uids, latest=True, return_future=True)
             self._need_latest_infos = False
         else:
-            self.sequence_info = sequence_info
             assert block_uids == sequence_info.block_uids
             self._thread.ready.set()  # no need to await the first dht fetch
             self._need_latest_infos = True
@@ -149,6 +150,7 @@ class RemoteSequenceManager:
             self.p2p,
             update_period=self._thread.update_period,
             request_timeout=self.request_timeout,
+            max_retries=self.max_retries,
             ban_timeout=self.ban_timeout,
             min_backoff=self.min_backoff,
             max_backoff=self.max_backoff,
