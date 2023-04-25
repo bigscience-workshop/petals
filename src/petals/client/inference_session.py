@@ -189,7 +189,7 @@ class InferenceSession:
                         stub,
                         span_uids,
                         rpc_info=self._sequence_manager.rpc_info,
-                        timeout=self._sequence_manager.request_timeout,
+                        timeout=self._sequence_manager.config.request_timeout,
                         max_length=self._max_length,
                         **metadata,
                     )
@@ -306,7 +306,7 @@ class InferenceSession:
                     break
                 except Exception as e:
                     self._sequence_manager.on_request_failure(span.peer_id if span is not None else None)
-                    if attempt_no + 1 == self._sequence_manager.max_retries:
+                    if attempt_no + 1 == self._sequence_manager.config.max_retries:
                         raise
                     delay = self._sequence_manager.get_retry_delay(attempt_no)
                     logger.warning(

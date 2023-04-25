@@ -29,7 +29,6 @@ class RemoteSequential(nn.Module):
         dht_prefix: Optional[str] = None,
         p2p: Optional[P2P] = None,
         sequence_manager: Optional[RemoteSequenceManager] = None,
-        **kwargs,
     ):
         super().__init__()
         self.config = config
@@ -41,17 +40,7 @@ class RemoteSequential(nn.Module):
         block_uids = tuple(f"{config.dht_prefix}{UID_DELIMITER}{i}" for i in range(num_blocks))
 
         if sequence_manager is None:
-            sequence_manager = RemoteSequenceManager(
-                dht,
-                block_uids,
-                self.p2p,
-                request_timeout=config.request_timeout,
-                max_retries=config.max_retries,
-                allowed_servers=config.allowed_servers,
-                **kwargs,
-            )
-        elif kwargs:
-            logger.warning(f"Parameters {kwargs} are ignored because sequence_manager is explicitly provided")
+            sequence_manager = RemoteSequenceManager(dht, block_uids, self.p2p, config)
         self.sequence_manager = sequence_manager
 
     def forward(self, inputs: torch.Tensor, prompts: torch.Tensor = DUMMY):

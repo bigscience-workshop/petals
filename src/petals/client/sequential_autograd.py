@@ -77,7 +77,7 @@ async def sequential_forward(
                     stub,
                     sequence_manager.rpc_info,
                     *inputs_and_prompts,
-                    timeout=sequence_manager.request_timeout,
+                    timeout=sequence_manager.config.request_timeout,
                     metadata=MSGPackSerializer.dumps(metadata),
                 )
 
@@ -94,7 +94,7 @@ async def sequential_forward(
                 break
             except Exception as e:
                 sequence_manager.on_request_failure(span.peer_id if span is not None else None)
-                if attempt_no + 1 == sequence_manager.max_retries:
+                if attempt_no + 1 == sequence_manager.config.max_retries:
                     raise
                 delay = sequence_manager.get_retry_delay(attempt_no)
                 logger.warning(
@@ -162,7 +162,7 @@ async def sequential_backward(
                     inputs,
                     grad_outputs,
                     prompts[span.start : span.end],
-                    timeout=sequence_manager.request_timeout,
+                    timeout=sequence_manager.config.request_timeout,
                     metadata=MSGPackSerializer.dumps(metadata),
                 )
                 grad_outputs = [grad_outputs]
@@ -171,7 +171,7 @@ async def sequential_backward(
                 break
             except Exception as e:
                 sequence_manager.on_request_failure(span.peer_id if span is not None else None)
-                if attempt_no + 1 == sequence_manager.max_retries:
+                if attempt_no + 1 == sequence_manager.config.max_retries:
                     raise
                 delay = sequence_manager.get_retry_delay(attempt_no)
                 logger.warning(

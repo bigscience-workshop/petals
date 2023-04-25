@@ -18,13 +18,14 @@ from transformers.models.bloom import (
 from petals.bloom.modeling_utils import LMHead
 from petals.client.remote_generation import RemoteGenerationMixin
 from petals.client.remote_sequential import RemoteSequential
+from petals.client.routing.sequence_manager import SequenceManagerConfig
 from petals.constants import PUBLIC_INITIAL_PEERS
 from petals.utils.misc import DUMMY
 
 logger = get_logger(__name__)
 
 
-class DistributedBloomConfig(BloomConfig):
+class DistributedBloomConfig(BloomConfig, SequenceManagerConfig):
     """
     A bloom config that contains information about DHT peers.
     To create a distributed model, one must provide dht_prefix and either initial_peers or dht.
@@ -32,16 +33,12 @@ class DistributedBloomConfig(BloomConfig):
 
     initial_peers: List[str] = PUBLIC_INITIAL_PEERS  # a list of initial peers for hivemind DHT
     dht_prefix: str  # a prefix for all dht keys that correspond to this model (usually equal to model name)
-    daemon_startup_timeout: int = 60  # timeout for the libp2p daemon connecting to initial peers
+
     dht: Optional[hivemind.DHT] = None  # a running DHT instance, e.g. when using the same DHT for multiple models
-    request_timeout: int = 3 * 60  # a number of seconds for waiting result from each node
-    max_retries: Optional[int] = None  # max number retries before the client raises an exception (default: inf)
-    allowed_servers: Optional[
-        Collection[Union[str, hivemind.PeerID]]
-    ] = None  # if defined, send requests only to these servers
+    daemon_startup_timeout: int = 60  # timeout for the libp2p daemon connecting to initial peers
 
     pre_seq_len: int = 0  # a number of tokens for prompt tuning.
-    tuning_mode: Optional[str] = None  # One of the finetune options: [None, 'shallow_ptune', 'deep_ptune', 'adapters']
+    tuning_mode: Optional[str] = None  # fine-tuning regime, one of [None, "ptune", "deep_ptune"]
 
     # This settings matter for running the client with dtype bfloat16 on CPU.
     # If the CPU doesn't support AVX512, chunked_forward() significantly speeds up computations.
