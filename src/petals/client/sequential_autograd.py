@@ -93,8 +93,7 @@ async def sequential_forward(
                 sequence_manager.on_request_success(span.peer_id)
                 break
             except Exception as e:
-                if span is not None:
-                    sequence_manager.on_request_failure(span.peer_id)
+                sequence_manager.on_request_failure(span.peer_id if span is not None else None)
                 if attempt_no + 1 == sequence_manager.max_retries:
                     raise
                 delay = sequence_manager.get_retry_delay(attempt_no)
@@ -171,8 +170,7 @@ async def sequential_backward(
                 sequence_manager.on_request_success(span.peer_id)
                 break
             except Exception as e:
-                if span is not None:
-                    sequence_manager.on_request_failure(span.peer_id)
+                sequence_manager.on_request_failure(span.peer_id if span is not None else None)
                 if attempt_no + 1 == sequence_manager.max_retries:
                     raise
                 delay = sequence_manager.get_retry_delay(attempt_no)

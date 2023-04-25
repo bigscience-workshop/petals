@@ -305,8 +305,7 @@ class InferenceSession:
                     self._sequence_manager.on_request_success(span.peer_id)
                     break
                 except Exception as e:
-                    if span is not None:
-                        self._sequence_manager.on_request_failure(span.peer_id)
+                    self._sequence_manager.on_request_failure(span.peer_id if span is not None else None)
                     if attempt_no + 1 == self._sequence_manager.max_retries:
                         raise
                     delay = self._sequence_manager.get_retry_delay(attempt_no)

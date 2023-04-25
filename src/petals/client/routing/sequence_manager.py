@@ -13,7 +13,6 @@ import numpy as np
 from hivemind import DHT, P2P, MSGPackSerializer, PeerID, get_dht_time
 from hivemind.dht.node import Blacklist
 from hivemind.moe.client.remote_expert_worker import RemoteExpertWorker
-from hivemind.p2p import P2PHandlerError
 from hivemind.proto import runtime_pb2
 from hivemind.utils.logging import get_logger
 
@@ -56,11 +55,10 @@ class RemoteSequenceManager:
         dht: DHT,
         block_uids: Sequence[ModuleUID],
         p2p: P2P,
-        update_period: float = 30,
-        request_timeout: float = 30,
+        update_period: float = 60,
+        request_timeout: float = 3 * 60,
         max_retries: Optional[int] = None,
         min_backoff: float = 1,
-        max_backoff: float = 15 * 60,
         ban_timeout: float = 15,
         sequence_info: Optional[RemoteSequenceInfo] = None,
         rpc_info: Optional[dict] = None,
@@ -70,8 +68,8 @@ class RemoteSequenceManager:
     ):
         assert len(block_uids) > 0, "Sequences must contain at least one block"
         self.dht, self.p2p = dht, p2p
-        self.request_timeout, self.max_retries = request_timeout, max_retries
-        self.ban_timeout, self.min_backoff, self.max_backoff = ban_timeout, min_backoff, max_backoff
+        self.update_period, self.request_timeout, self.max_retries = update_period, request_timeout, max_retries
+        self.ban_timeout, self.min_backoff = ban_timeout, min_backoff
         self.lock_changes = threading.Lock()
         self._thread = _SequenceManagerUpdateThread(update_period, WeakMethod(self._update))
         self._thread_start_lock = threading.Lock()
@@ -153,7 +151,6 @@ class RemoteSequenceManager:
             max_retries=self.max_retries,
             ban_timeout=self.ban_timeout,
             min_backoff=self.min_backoff,
-            max_backoff=self.max_backoff,
             sequence_info=self.sequence_info[ix],
             rpc_info=self._rpc_info,
             allowed_servers=self.allowed_servers,
@@ -162,66 +159,55 @@ class RemoteSequenceManager:
 
     def update(self, *, wait: bool):
         """Run an asynchronous update in background as soon as possible"""
-        self.ready.clear()  # TODO this should be a separate event
+        self.ready.clear()
         self._thread.trigger.set()
         if wait:
             self.ready.wait()
 
     def _update(self):
         """Perform an immediate and synchronous refresh, may take time"""
-        for attempt_no in itertools.count():
-            try:
-                new_block_infos = petals.dht_utils.get_remote_module_infos(
-                    self.dht, self.block_uids, latest=self._need_latest_infos
-                )
-                self._need_latest_infos = True  # All future _update() should use latest infos
+        new_block_infos = petals.dht_utils.get_remote_module_infos(
+            self.dht, self.block_uids, latest=self._need_latest_infos
+        )
+        self._need_latest_infos = True  # All future _update() should use latest infos
 
-                for block_info in new_block_infos:
-                    if not block_info:
-                        continue
+        for block_info in new_block_infos:
+            if not block_info:
+                continue
 
-                    # Apply whitelist, if defined
-                    if self.allowed_servers is not None:
-                        block_info.servers = {
-                            peer_id: server_info
-                            for peer_id, server_info in block_info.servers.items()
-                            if peer_id in self.allowed_servers
-                        }
+            # Apply whitelist, if defined
+            if self.allowed_servers is not None:
+                block_info.servers = {
+                    peer_id: server_info
+                    for peer_id, server_info in block_info.servers.items()
+                    if peer_id in self.allowed_servers
+                }
 
-                    # Remove temporarily banned peers, unless there are no peers left
-                    valid_servers = {
-                        peer_id: server_info
-                        for peer_id, server_info in block_info.servers.items()
-                        if peer_id not in self.banned_peers
-                    }
-                    if len(valid_servers) < len(block_info.servers):
-                        if valid_servers:
-                            logger.debug(
-                                f"Kept {len(valid_servers)} out of {len(block_info.servers)} servers holding {block_info.uid}"
-                            )
-                            block_info.servers = valid_servers
-                        else:
-                            # If we blacklisted all servers, the error may actually be client-caused
-                            logger.debug(f"All servers holding {block_info.uid} are blacklisted, ignoring blacklist")
+            # Remove temporarily banned peers, unless there are no peers left
+            valid_servers = {
+                peer_id: server_info
+                for peer_id, server_info in block_info.servers.items()
+                if peer_id not in self.banned_peers
+            }
+            if len(valid_servers) < len(block_info.servers):
+                if valid_servers:
+                    logger.debug(
+                        f"Kept {len(valid_servers)} out of {len(block_info.servers)} servers holding {block_info.uid}"
+                    )
+                    block_info.servers = valid_servers
+                else:
+                    # If we blacklisted all servers, the error may actually be client-caused
+                    logger.debug(f"All servers holding {block_info.uid} are blacklisted, ignoring blacklist")
 
-                with self.lock_changes:
-                    self.sequence_info.update_(new_block_infos)
-                missing_blocks = [i for i in range(len(self)) if not self.sequence_info.spans_containing_block[i]]
-                if missing_blocks:
-                    raise MissingBlocksError(missing_blocks)
-                self.ready.set()  # if there is an active server for every block, we may begin running
-                break
+        with self.lock_changes:
+            self.sequence_info.update_(new_block_infos)
+        self.ready.set()
 
-            except Exception as e:
-                delay = self.get_retry_delay(attempt_no)
-                logger.warning(f"Could not find route through the model: {repr(e)} (retry in {delay:.0f} sec)")
-                maybe_log_traceback(e)
-                time.sleep(delay)
-
-    def on_request_failure(self, peer_id: PeerID):
+    def on_request_failure(self, peer_id: Optional[PeerID]):
         """remove a given peer from the routing table. If the routing is no longer possible, trigger an update"""
-        logger.info(f"Peer {peer_id} did not respond, banning it temporarily")
-        self.banned_peers.register_failure(peer_id)
+        if peer_id is not None:
+            logger.debug(f"Peer {peer_id} did not respond, banning it temporarily")
+            self.banned_peers.register_failure(peer_id)
         with self.lock_changes:
             should_update = False
             for info in self.sequence_info.block_infos:
@@ -282,8 +268,7 @@ class RemoteSequenceManager:
                     self.on_request_success(peer_id)
                     break
                 except Exception as e:
-                    if peer_id is not None and not isinstance(e, P2PHandlerError):
-                        self.on_request_failure(peer_id)
+                    self.on_request_failure(peer_id)
                     if attempt_no + 1 == self.max_retries:
                         raise
                     delay = self.get_retry_delay(attempt_no)
@@ -299,7 +284,7 @@ class RemoteSequenceManager:
     def get_retry_delay(self, attempt_no: int) -> float:
         if attempt_no == 0:
             return 0
-        return min(self.min_backoff * 2 ** (attempt_no - 1), self.max_backoff)
+        return min(self.min_backoff * 2 ** (attempt_no - 1), self.update_period)
 
     def get_request_metadata(self, protocol: str, *args, **kwargs) -> Optional[Dict[str, Any]]:
         """
