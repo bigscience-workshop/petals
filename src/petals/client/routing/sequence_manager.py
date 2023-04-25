@@ -67,9 +67,9 @@ class RemoteSequenceManager:
 
     def __init__(
         self,
+        config: SequenceManagerConfig,
         dht: DHT,
         block_uids: Sequence[ModuleUID],
-        config: SequenceManagerConfig,
         *,
         state: Optional[SequenceManagerState] = None,
     ):
@@ -152,12 +152,7 @@ class RemoteSequenceManager:
         assert isinstance(ix, (int, slice))
         if not isinstance(ix, slice):
             ix = slice(int(ix), int(ix) + 1, 1)
-        return type(self)(
-            self.dht,
-            self.block_uids[ix],
-            self.config,
-            state=self.state[ix],
-        )
+        return type(self)(self.config, self.dht, self.block_uids[ix], state=self.state[ix])
 
     def update(self, *, wait: bool):
         """Run an asynchronous update in background as soon as possible"""

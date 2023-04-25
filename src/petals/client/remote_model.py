@@ -122,11 +122,7 @@ class DistributedBloomModel(_FromPretrainedDefaultsMixin, BloomModel):
                 start=True,
             )
         assert isinstance(dht, hivemind.DHT) and dht.is_alive(), "dht must be a running hivemind.DHT instance"
-        self.h = RemoteSequential(
-            config,
-            dht,
-            config.dht_prefix,
-        )
+        self.h = RemoteSequential(config, dht)
 
         # Forbid accumulate grads for embeddings and layernorm
         self.set_requires_grad(False)

@@ -10,7 +10,7 @@ from petals.bloom.block import WrappedBloomBlock
 from petals.bloom.from_pretrained import DTYPE_MAP, _load_state_dict, load_pretrained_block
 from petals.client import DistributedBloomConfig
 from petals.data_structures import UID_DELIMITER
-from petals.dht_utils import get_remote_module
+from petals.dht_utils import get_remote_sequence
 from test_utils import *
 
 

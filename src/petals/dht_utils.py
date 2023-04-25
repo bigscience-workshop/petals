@@ -76,25 +76,10 @@ def get_remote_sequence(
     start: int,
     stop: int,
     config: petals.client.DistributedBloomConfig,
-    dht_prefix: Optional[str] = None,
-    return_future: bool = False,
-) -> Union[petals.client.RemoteSequential, MPFuture]:
-    return RemoteExpertWorker.run_coroutine(
-        _get_remote_sequence(dht, start, stop, config, dht_prefix), return_future=return_future
-    )
-
-
-async def _get_remote_sequence(
-    dht: DHT,
-    start: int,
-    stop: int,
-    config: petals.client.DistributedBloomConfig,
-    dht_prefix: Optional[str] = None,
 ) -> petals.client.RemoteSequential:
-    uids = [f"{config.dht_prefix}{UID_DELIMITER}{i}" for i in range(start, stop)]
-    p2p = await dht.replicate_p2p()
-    manager = petals.client.RemoteSequenceManager(dht, uids, p2p, config)
-    return petals.client.RemoteSequential(config, dht, dht_prefix, p2p, manager)
+    block_uids = [f"{config.dht_prefix}{UID_DELIMITER}{i}" for i in range(start, stop)]
+    manager = petals.client.RemoteSequenceManager(config, dht, block_uids)
+    return petals.client.RemoteSequential(config, dht, manager)
 
 
 def get_remote_module_infos(
