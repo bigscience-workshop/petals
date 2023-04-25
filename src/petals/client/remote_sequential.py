@@ -48,21 +48,12 @@ class RemoteSequential(nn.Module):
         return outputs
 
     def __getitem__(self, ix: Union[int, slice]) -> RemoteSequential:
-        assert isinstance(ix, (int, slice))
-        if isinstance(ix, int):
-            return RemoteTransformerBlock(
-                self.config,
-                self.dht,
-                dht_prefix=self.dht_prefix,
-                sequence_manager=self.sequence_manager[ix],
-            )
-        else:
-            return RemoteSequential(
-                self.config,
-                self.dht,
-                dht_prefix=self.dht_prefix,
-                sequence_manager=self.sequence_manager[ix],
-            )
+        return RemoteSequential(
+            self.config,
+            self.dht,
+            dht_prefix=self.dht_prefix,
+            sequence_manager=self.sequence_manager[ix],
+        )
 
     def __iter__(self):
         for block_index in range(len(self)):
@@ -76,18 +67,3 @@ class RemoteSequential(nn.Module):
 
     def extra_repr(self) -> str:
         return f"modules={self.sequence_manager.block_uids[0]}..{self.sequence_manager.block_uids[-1]}"
-
-
-class RemoteTransformerBlock(RemoteSequential):
-    """Single transformer block hosted by swarm
-
-    This class is deprecated and kept for backward compatibility.
-    It will be removed soon in favor of using ``RemoteSequential`` directly.
-    """
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        assert len(self) == 1, "Remote Block is a sequence size 1"
-
-    def extra_repr(self):
-        return f"{self.sequence_manager.block_uids[0]}"

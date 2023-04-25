@@ -9,7 +9,6 @@ from transformers.models.bloom.configuration_bloom import BloomConfig
 from petals.bloom.block import WrappedBloomBlock
 from petals.bloom.from_pretrained import DTYPE_MAP, _load_state_dict, load_pretrained_block
 from petals.client import DistributedBloomConfig
-from petals.client.remote_sequential import RemoteTransformerBlock
 from petals.data_structures import UID_DELIMITER
 from petals.dht_utils import get_remote_module
 from test_utils import *
@@ -21,9 +20,7 @@ def test_remote_block_exact_match(atol_forward=1e-4, atol_inference=1e-3):
     config = DistributedBloomConfig.from_pretrained(MODEL_NAME)
 
     for block_index in random.sample(range(config.n_layer), 3):
-        remote_block = get_remote_module(dht, f"{MODEL_NAME}{UID_DELIMITER}{block_index}", config)
-        assert isinstance(remote_block, RemoteTransformerBlock)
-
+        remote_block = get_remote_sequence(dht, block_index, block_index + 1, config)
         inputs = torch.randn(1, 8, config.hidden_size)
         outputs_forward = remote_block(inputs)
 
