@@ -39,9 +39,9 @@ class RemoteSequential(nn.Module):
 
         num_blocks = self.config.n_layer if sequence_manager is None else len(sequence_manager)
         block_uids = tuple(f"{config.dht_prefix}{UID_DELIMITER}{i}" for i in range(num_blocks))
+
         if sequence_manager is None:
-            logger.debug(f"Creating new sequence manager for block uids: {block_uids}")
-            self.sequence_manager = RemoteSequenceManager(
+            sequence_manager = RemoteSequenceManager(
                 dht,
                 block_uids,
                 self.p2p,
@@ -50,14 +50,9 @@ class RemoteSequential(nn.Module):
                 allowed_servers=config.allowed_servers,
                 **kwargs,
             )
-            self.is_subsequence = False
-        else:
-            logger.debug(f"Reusing sequence manager with {len(sequence_manager)} modules")
-            if kwargs:
-                logger.warning(f"Parameters {kwargs} are ignored because sequence_manager is explicitly provided")
-            self.sequence_manager = sequence_manager
-            assert isinstance(sequence_manager.sequence_info.block_uids, tuple)
-            self.is_subsequence = self.sequence_manager.sequence_info.block_uids != block_uids
+        elif kwargs:
+            logger.warning(f"Parameters {kwargs} are ignored because sequence_manager is explicitly provided")
+        self.sequence_manager = sequence_manager
 
     def forward(self, inputs: torch.Tensor, prompts: torch.Tensor = DUMMY):
         assert inputs.ndim == 3, "inputs must be a tensor of shape [batch_size, seq_length, hidden_size]"
