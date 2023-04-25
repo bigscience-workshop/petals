@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Optional, Union
 
 import torch
-from hivemind import DHT, P2P, get_logger
+from hivemind import DHT, get_logger
 from hivemind.moe.client.remote_expert_worker import RemoteExpertWorker
 from torch import nn
 
@@ -27,20 +27,18 @@ class RemoteSequential(nn.Module):
         config: petals.client.DistributedBloomConfig,
         dht: DHT,
         dht_prefix: Optional[str] = None,
-        p2p: Optional[P2P] = None,
         sequence_manager: Optional[RemoteSequenceManager] = None,
     ):
         super().__init__()
         self.config = config
         self.dht = dht
         self.dht_prefix = dht_prefix or config.dht_prefix
-        self.p2p = RemoteExpertWorker.run_coroutine(dht.replicate_p2p()) if p2p is None else p2p
 
         num_blocks = self.config.n_layer if sequence_manager is None else len(sequence_manager)
         block_uids = tuple(f"{config.dht_prefix}{UID_DELIMITER}{i}" for i in range(num_blocks))
 
         if sequence_manager is None:
-            sequence_manager = RemoteSequenceManager(dht, block_uids, self.p2p, config)
+            sequence_manager = RemoteSequenceManager(dht, block_uids, config)
         self.sequence_manager = sequence_manager
 
     def forward(self, inputs: torch.Tensor, prompts: torch.Tensor = DUMMY):
@@ -56,7 +54,6 @@ class RemoteSequential(nn.Module):
                 self.config,
                 self.dht,
                 dht_prefix=self.dht_prefix,
-                p2p=self.p2p,
                 sequence_manager=self.sequence_manager[ix],
             )
         else:
@@ -64,7 +61,6 @@ class RemoteSequential(nn.Module):
                 self.config,
                 self.dht,
                 dht_prefix=self.dht_prefix,
-                p2p=self.p2p,
                 sequence_manager=self.sequence_manager[ix],
             )
 
@@ -76,7 +72,7 @@ class RemoteSequential(nn.Module):
         return len(self.sequence_manager)
 
     def inference_session(self, **kwargs) -> InferenceSession:
-        return InferenceSession(self.sequence_manager, self.p2p, **kwargs)
+        return InferenceSession(self.sequence_manager, **kwargs)
 
     def extra_repr(self) -> str:
         return f"modules={self.sequence_manager.block_uids[0]}..{self.sequence_manager.block_uids[-1]}"

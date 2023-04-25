@@ -41,6 +41,7 @@ class SequenceManagerConfig:
 
 @dataclasses.dataclass
 class SequenceManagerState:
+    p2p: P2P = None
     sequence_info: Optional[RemoteSequenceInfo] = None
     rpc_info: Optional[dict] = None
     banned_peers: Optional[Blacklist] = None
@@ -68,13 +69,12 @@ class RemoteSequenceManager:
         self,
         dht: DHT,
         block_uids: Sequence[ModuleUID],
-        p2p: P2P,
         config: SequenceManagerConfig,
         *,
         state: Optional[SequenceManagerState] = None,
     ):
+        self.dht = dht
         assert len(block_uids) > 0, "Sequences must contain at least one block"
-        self.dht, self.p2p = dht, p2p
 
         assert config.allowed_servers is None or all(isinstance(item, PeerID) for item in config.allowed_servers), \
             "config.allowed_servers should be None or a collection of hivemind.PeerIDs"
@@ -82,6 +82,9 @@ class RemoteSequenceManager:
         if state is None:
             state = SequenceManagerState()
         self.state = state
+
+        if state.p2p is None:
+            state.p2p = RemoteExpertWorker.run_coroutine(dht.replicate_p2p())
 
         self.lock_changes = threading.Lock()
         self._thread = _SequenceManagerUpdateThread(config.update_period, WeakMethod(self._update))
@@ -151,7 +154,6 @@ class RemoteSequenceManager:
         return type(self)(
             self.dht,
             self.block_uids[ix],
-            self.p2p,
             self.config,
             state=self.state[ix],
         )
@@ -261,7 +263,7 @@ class RemoteSequenceManager:
                     raise MissingBlocksError(0)
                 peer_id = random.choice(active_servers)
 
-                stub = TransformerConnectionHandler.get_stub(self.p2p, peer_id)
+                stub = TransformerConnectionHandler.get_stub(self.state.p2p, peer_id)
                 outputs = RemoteExpertWorker.run_coroutine(
                     stub.rpc_info(runtime_pb2.ExpertUID(uid=self.block_uids[0]))
                 )

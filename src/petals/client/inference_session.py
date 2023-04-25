@@ -8,7 +8,6 @@ from typing import AsyncIterator, List, Optional
 
 import torch
 from hivemind import (
-    P2P,
     MSGPackSerializer,
     anext,
     deserialize_torch_tensor,
@@ -162,9 +161,8 @@ class InferenceSession:
     An interface to a multi-step *inference* session for a sequence of remote transformer blocks
     """
 
-    def __init__(self, sequence_manager: RemoteSequenceManager, p2p: P2P, max_length: int):
+    def __init__(self, sequence_manager: RemoteSequenceManager, max_length: int):
         self._sequence_manager = sequence_manager
-        self._p2p = p2p
         self._closed = False
         self._chosen_spans = []
         self._server_sessions = []
@@ -181,7 +179,7 @@ class InferenceSession:
         server_sessions = []
         try:
             for span in chosen_spans:
-                stub = TransformerConnectionHandler.get_stub(self._p2p, span.peer_id)
+                stub = TransformerConnectionHandler.get_stub(self._sequence_manager.state.p2p, span.peer_id)
                 span_uids = CHAIN_DELIMITER.join(self._sequence_manager.block_uids[span.start : span.end])
                 metadata = self._sequence_manager.get_request_metadata("rpc_inference", span_uids, peer_id=span.peer_id)
                 session = RemoteExpertWorker.run_coroutine(
