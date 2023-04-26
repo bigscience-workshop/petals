@@ -26,14 +26,24 @@ class RemoteSequential(nn.Module):
         self,
         config: petals.client.DistributedBloomConfig,
         dht: DHT,
+        *,
         sequence_manager: Optional[RemoteSequenceManager] = None,
+        start_block: Optional[int] = None,
+        end_block: Optional[int] = None,
     ):
         super().__init__()
         self.config = config
         self.dht = dht
 
+        assert sequence_manager is None or (
+            start_block is None and end_block is None
+        ), "`start_block` and `end_block` have no effect when `sequence_manager` is provided"
         if sequence_manager is None:
-            block_uids = tuple(f"{config.dht_prefix}{UID_DELIMITER}{i}" for i in range(self.config.n_layer))
+            if start_block is None:
+                start_block = 0
+            if end_block is None:
+                end_block = self.config.n_layer
+            block_uids = tuple(f"{config.dht_prefix}{UID_DELIMITER}{i}" for i in range(start_block, end_block))
             sequence_manager = RemoteSequenceManager(config, dht, block_uids)
         self.sequence_manager = sequence_manager
 
