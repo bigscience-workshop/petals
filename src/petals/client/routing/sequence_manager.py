@@ -28,7 +28,7 @@ logger = get_logger(__name__)
 
 @dataclasses.dataclass
 class SequenceManagerConfig:
-    allowed_servers: Optional[Collection[PeerID]] = None  # if defined, send requests only to these servers
+    allowed_servers: Optional[Collection[Union[PeerID, str]]] = None  # if defined, send requests only to these servers
 
     request_timeout: float = 3 * 60  # timeout for forward/backward/inference requests
     update_period: float = 60  # refresh DHT information once in this many seconds
@@ -76,9 +76,6 @@ class RemoteSequenceManager:
         self.dht = dht
         assert len(block_uids) > 0, "Sequences must contain at least one block"
 
-        assert config.allowed_servers is None or all(
-            isinstance(item, PeerID) for item in config.allowed_servers
-        ), "config.allowed_servers should be None or a collection of hivemind.PeerIDs"
         self.config = config
         if state is None:
             state = SequenceManagerState()
@@ -177,7 +174,7 @@ class RemoteSequenceManager:
                 block_info.servers = {
                     peer_id: server_info
                     for peer_id, server_info in block_info.servers.items()
-                    if peer_id in self.config.allowed_servers
+                    if peer_id in self.config.allowed_servers or str(peer_id) in self.config.allowed_servers
                 }
 
             # Remove temporarily banned peers, unless there are no peers left
