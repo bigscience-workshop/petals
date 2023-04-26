@@ -68,18 +68,28 @@ class RemoteSequenceManager:
     def __init__(
         self,
         config: SequenceManagerConfig,
-        dht: DHT,
         block_uids: Sequence[ModuleUID],
         *,
+        dht: Optional[DHT] = None,
         state: Optional[SequenceManagerState] = None,
     ):
-        self.dht = dht
         assert len(block_uids) > 0, "Sequences must contain at least one block"
 
         self.config = config
         if state is None:
             state = SequenceManagerState()
         self.state = state
+
+        if dht is None:
+            dht = DHT(
+                initial_peers=config.initial_peers,
+                client_mode=True,
+                num_workers=config.n_layer,
+                startup_timeout=config.daemon_startup_timeout,
+                start=True,
+            )
+        assert isinstance(dht, DHT) and dht.is_alive(), "`dht` must be a running hivemind.DHT instance"
+        self.dht = dht
 
         if state.p2p is None:
             state.p2p = RemoteExpertWorker.run_coroutine(dht.replicate_p2p())
@@ -149,7 +159,7 @@ class RemoteSequenceManager:
         assert isinstance(ix, (int, slice))
         if not isinstance(ix, slice):
             ix = slice(int(ix), int(ix) + 1, 1)
-        return type(self)(self.config, self.dht, self.block_uids[ix], state=self.state[ix])
+        return type(self)(self.config, self.block_uids[ix], dht=self.dht, state=self.state[ix])
 
     def update(self, *, wait: bool):
         """Run an asynchronous update in background as soon as possible"""

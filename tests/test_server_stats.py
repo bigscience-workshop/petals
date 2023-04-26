@@ -14,8 +14,8 @@ from test_utils import *
 def test_server_info(block_from: int = 22, block_to: int = 24, max_length: int = 100, max_length2: int = 50):
     config = DistributedBloomConfig.from_pretrained(MODEL_NAME)
     dht = hivemind.DHT(initial_peers=INITIAL_PEERS, client_mode=True, start=True)
-    blocks1 = RemoteSequential(config, dht, start_block=block_from, end_block=block_to)
-    blocks2 = RemoteSequential(config, dht, start_block=block_to - 1, end_block=block_to)
+    blocks1 = RemoteSequential(config, dht=dht, start_block=block_from, end_block=block_to)
+    blocks2 = RemoteSequential(config, dht=dht, start_block=block_to - 1, end_block=block_to)
 
     info_before = blocks1.sequence_manager.rpc_info
 

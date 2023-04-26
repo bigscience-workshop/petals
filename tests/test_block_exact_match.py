@@ -1,7 +1,6 @@
 import random
 from typing import Union
 
-import hivemind
 import pytest
 import torch
 from transformers.models.bloom.configuration_bloom import BloomConfig
@@ -15,9 +14,8 @@ from test_utils import *
 
 @pytest.mark.forked
 def test_remote_block_exact_match(atol_forward=1e-4, atol_inference=1e-3):
-    config = DistributedBloomConfig.from_pretrained(MODEL_NAME)
-    dht = hivemind.DHT(initial_peers=INITIAL_PEERS, client_mode=True, start=True)
-    remote_sequential = RemoteSequential(config, dht)
+    config = DistributedBloomConfig.from_pretrained(MODEL_NAME, initial_peers=INITIAL_PEERS)
+    remote_sequential = RemoteSequential(config)
 
     for block_index in random.sample(range(config.n_layer), 3):
         remote_block = remote_sequential[block_index]

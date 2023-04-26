@@ -18,15 +18,14 @@ logger = get_logger(__name__)
 def test_sequence_manager_basics(mode: str):
     config = DistributedBloomConfig.from_pretrained(MODEL_NAME, initial_peers=INITIAL_PEERS)
     dht = DHT(initial_peers=config.initial_peers, client_mode=True, start=True)
-    sequential = RemoteSequential(config, dht)
+    sequential = RemoteSequential(config, dht=dht)
     shutdown_evt = threading.Event()
 
     # test RemoteSequential with lossy compression
     block_uids = [f"{config.dht_prefix}{UID_DELIMITER}{i}" for i in range(config.n_layer)]
     sequential = RemoteSequential(
         config,
-        dht,
-        sequence_manager=TestSequenceManager(config, dht, block_uids, _was_shut_down=shutdown_evt),
+        sequence_manager=TestSequenceManager(config, block_uids, dht=dht, _was_shut_down=shutdown_evt),
     )
 
     sequence = sequential.sequence_manager.make_sequence(mode=mode)

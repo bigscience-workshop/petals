@@ -25,26 +25,25 @@ class RemoteSequential(nn.Module):
     def __init__(
         self,
         config: petals.client.DistributedBloomConfig,
-        dht: DHT,
         *,
         sequence_manager: Optional[RemoteSequenceManager] = None,
+        dht: Optional[DHT] = None,
         start_block: Optional[int] = None,
         end_block: Optional[int] = None,
     ):
         super().__init__()
         self.config = config
-        self.dht = dht
 
         assert sequence_manager is None or (
-            start_block is None and end_block is None
-        ), "`start_block` and `end_block` have no effect when `sequence_manager` is provided"
+            dht is None and start_block is None and end_block is None
+        ), "`dht`, `start_block`, and `end_block` have no effect when you provide a custom `sequence_manager`"
         if sequence_manager is None:
             if start_block is None:
                 start_block = 0
             if end_block is None:
                 end_block = self.config.n_layer
             block_uids = tuple(f"{config.dht_prefix}{UID_DELIMITER}{i}" for i in range(start_block, end_block))
-            sequence_manager = RemoteSequenceManager(config, dht, block_uids)
+            sequence_manager = RemoteSequenceManager(config, block_uids, dht=dht)
         self.sequence_manager = sequence_manager
 
     def forward(self, inputs: torch.Tensor, prompts: torch.Tensor = DUMMY):
@@ -56,7 +55,6 @@ class RemoteSequential(nn.Module):
     def __getitem__(self, ix: Union[int, slice]) -> RemoteSequential:
         return RemoteSequential(
             self.config,
-            self.dht,
             sequence_manager=self.sequence_manager[ix],
         )
 
