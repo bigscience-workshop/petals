@@ -71,17 +71,6 @@ async def _declare_active_modules(
     )
 
 
-def get_remote_sequence(
-    dht: DHT,
-    start: int,
-    stop: int,
-    config: petals.client.DistributedBloomConfig,
-) -> petals.client.RemoteSequential:
-    block_uids = [f"{config.dht_prefix}{UID_DELIMITER}{i}" for i in range(start, stop)]
-    manager = petals.client.RemoteSequenceManager(config, dht, block_uids)
-    return petals.client.RemoteSequential(config, dht, manager)
-
-
 def get_remote_module_infos(
     dht: DHT,
     uids: Sequence[ModuleUID],

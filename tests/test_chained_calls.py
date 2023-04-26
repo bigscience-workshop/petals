@@ -11,15 +11,14 @@ import torch
 from petals.bloom.from_pretrained import load_pretrained_block
 from petals.client import DistributedBloomConfig
 from petals.client.remote_sequential import RemoteSequential
-from petals.dht_utils import get_remote_sequence
 from test_utils import *
 
 
 @pytest.mark.forked
 def test_forward_backward_exact_match(atol_forward=1e-4, atol_backward=1e-4, seq_length=1):
-    dht = hivemind.DHT(initial_peers=INITIAL_PEERS, client_mode=True, start=True)
     config = DistributedBloomConfig.from_pretrained(MODEL_NAME)
-    remote_blocks = get_remote_sequence(dht, 3, 6, config)
+    dht = hivemind.DHT(initial_peers=INITIAL_PEERS, client_mode=True, start=True)
+    remote_blocks = RemoteSequential(config, dht, start_block=3, end_block=6)
     assert isinstance(remote_blocks, RemoteSequential)
 
     ref_blocks = [
@@ -46,10 +45,9 @@ def test_forward_backward_exact_match(atol_forward=1e-4, atol_backward=1e-4, seq
 
 @pytest.mark.forked
 def test_chained_inference_exact_match(atol_inference=1e-4):
-    dht = hivemind.DHT(initial_peers=INITIAL_PEERS, client_mode=True, start=True)
     config = DistributedBloomConfig.from_pretrained(MODEL_NAME)
-    remote_blocks = get_remote_sequence(dht, 3, 5, config)
-    assert isinstance(remote_blocks, RemoteSequential)
+    dht = hivemind.DHT(initial_peers=INITIAL_PEERS, client_mode=True, start=True)
+    remote_blocks = RemoteSequential(config, dht, start_block=3, end_block=5)
 
     inputs = torch.randn(1, 8, config.hidden_size)
 

@@ -6,18 +6,17 @@ import torch
 
 from petals.client import DistributedBloomConfig
 from petals.data_structures import UID_DELIMITER
-from petals.dht_utils import get_remote_sequence
 from petals.server.handler import CACHE_TOKENS_AVAILABLE
 from test_utils import *
 
 
 @pytest.mark.forked
 def test_server_info(block_from: int = 22, block_to: int = 24, max_length: int = 100, max_length2: int = 50):
-    dht = hivemind.DHT(initial_peers=INITIAL_PEERS, client_mode=True, start=True)
     config = DistributedBloomConfig.from_pretrained(MODEL_NAME)
+    dht = hivemind.DHT(initial_peers=INITIAL_PEERS, client_mode=True, start=True)
+    blocks1 = RemoteSequential(config, dht, start_block=block_from, end_block=block_to)
+    blocks2 = RemoteSequential(config, dht, start_block=block_to - 1, end_block=block_to)
 
-    blocks1 = get_remote_sequence(dht, block_from, block_to, config)
-    blocks2 = get_remote_sequence(dht, block_to - 1, block_to, config)
     info_before = blocks1.sequence_manager.rpc_info
 
     with blocks1.inference_session(max_length=max_length) as sess:

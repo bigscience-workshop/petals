@@ -10,17 +10,18 @@ from petals.bloom.block import WrappedBloomBlock
 from petals.bloom.from_pretrained import DTYPE_MAP, _load_state_dict, load_pretrained_block
 from petals.client import DistributedBloomConfig
 from petals.data_structures import UID_DELIMITER
-from petals.dht_utils import get_remote_sequence
 from test_utils import *
 
 
 @pytest.mark.forked
 def test_remote_block_exact_match(atol_forward=1e-4, atol_inference=1e-3):
-    dht = hivemind.DHT(initial_peers=INITIAL_PEERS, client_mode=True, start=True)
     config = DistributedBloomConfig.from_pretrained(MODEL_NAME)
+    dht = hivemind.DHT(initial_peers=INITIAL_PEERS, client_mode=True, start=True)
+    remote_sequential = RemoteSequential(config, dht)
 
     for block_index in random.sample(range(config.n_layer), 3):
-        remote_block = get_remote_sequence(dht, block_index, block_index + 1, config)
+        remote_block = remote_sequential[block_index]
+
         inputs = torch.randn(1, 8, config.hidden_size)
         outputs_forward = remote_block(inputs)
 
@@ -33,7 +34,6 @@ def test_remote_block_exact_match(atol_forward=1e-4, atol_inference=1e-3):
             with pytest.raises(ValueError, match=r"Maximum length exceeded") as exc_info:
                 sess.step(inputs[:, -1:, :])
             assert "Maximum length exceeded" in repr(exc_info.value)
-
         outputs_inference = torch.cat(outputs_inference, dim=1)
 
         ref_block = load_pretrained_block(MODEL_NAME, block_index, torch_dtype=torch.float32)
