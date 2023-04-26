@@ -8,7 +8,7 @@ from transformers.models.bloom.configuration_bloom import BloomConfig
 
 from petals.bloom.block import WrappedBloomBlock
 from petals.bloom.from_pretrained import DTYPE_MAP, _load_state_dict, load_pretrained_block
-from petals.client import DistributedBloomConfig
+from petals.client import DistributedBloomConfig, RemoteSequential
 from petals.data_structures import UID_DELIMITER
 from test_utils import *
 

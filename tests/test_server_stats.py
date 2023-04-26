@@ -4,7 +4,7 @@ import hivemind
 import pytest
 import torch
 
-from petals.client import DistributedBloomConfig
+from petals.client import DistributedBloomConfig, RemoteSequential
 from petals.data_structures import UID_DELIMITER
 from petals.server.handler import CACHE_TOKENS_AVAILABLE
 from test_utils import *
