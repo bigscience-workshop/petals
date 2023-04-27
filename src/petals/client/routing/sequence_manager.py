@@ -267,7 +267,9 @@ class RemoteSequenceManager:
                 peer_id = random.choice(active_servers)
 
                 stub = TransformerConnectionHandler.get_stub(self.state.p2p, peer_id)
-                outputs = RemoteExpertWorker.run_coroutine(stub.rpc_info(runtime_pb2.ExpertUID(uid=self.block_uids[0])))
+                outputs = RemoteExpertWorker.run_coroutine(
+                    stub.rpc_info(runtime_pb2.ExpertUID(uid=self.block_uids[0]), timeout=self.config.request_timeout)
+                )
                 self.state.rpc_info = MSGPackSerializer.loads(outputs.serialized_info)
                 self.on_request_success(peer_id)
                 break
