@@ -71,67 +71,6 @@ async def _declare_active_modules(
     )
 
 
-def get_remote_sequence(
-    dht: DHT,
-    start: int,
-    stop: int,
-    config: petals.client.DistributedBloomConfig,
-    dht_prefix: Optional[str] = None,
-    return_future: bool = False,
-) -> Union[petals.client.RemoteSequential, MPFuture]:
-    return RemoteExpertWorker.run_coroutine(
-        _get_remote_sequence(dht, start, stop, config, dht_prefix), return_future=return_future
-    )
-
-
-async def _get_remote_sequence(
-    dht: DHT,
-    start: int,
-    stop: int,
-    config: petals.client.DistributedBloomConfig,
-    dht_prefix: Optional[str] = None,
-) -> petals.client.RemoteSequential:
-    uids = [f"{config.dht_prefix}{UID_DELIMITER}{i}" for i in range(start, stop)]
-    p2p = await dht.replicate_p2p()
-    manager = petals.client.RemoteSequenceManager(dht, uids, p2p)
-    return petals.client.RemoteSequential(config, dht, dht_prefix, p2p, manager)
-
-
-def get_remote_module(
-    dht: DHT,
-    uid_or_uids: Union[ModuleUID, List[ModuleUID]],
-    config: petals.client.DistributedBloomConfig,
-    dht_prefix: Optional[str] = None,
-    return_future: bool = False,
-) -> Union[Union[petals.client.RemoteTransformerBlock, List[petals.client.RemoteTransformerBlock]], MPFuture]:
-    """
-    :param uid_or_uids: find one or more modules with these ids from across the DHT
-    :param config: model config, usually taken by .from_pretrained(MODEL_NAME)
-    :param return_future: if False (default), return when finished. Otherwise return MPFuture and run in background.
-    :returns: a list of [RemoteTransformerBlock]
-    """
-    return RemoteExpertWorker.run_coroutine(
-        _get_remote_module(dht, uid_or_uids, config, dht_prefix), return_future=return_future
-    )
-
-
-async def _get_remote_module(
-    dht: DHT,
-    uid_or_uids: Union[ModuleUID, List[ModuleUID]],
-    config: petals.client.DistributedBloomConfig,
-    dht_prefix: Optional[str] = None,
-) -> Union[petals.client.RemoteTransformerBlock, List[petals.client.RemoteTransformerBlock]]:
-    single_uid = isinstance(uid_or_uids, ModuleUID)
-    uids = [uid_or_uids] if single_uid else uid_or_uids
-    p2p = await dht.replicate_p2p()
-    managers = (petals.client.RemoteSequenceManager(dht, [uid], p2p) for uid in uids)
-    modules = [
-        petals.client.RemoteTransformerBlock(config, dht, dht_prefix=dht_prefix, p2p=p2p, sequence_manager=m)
-        for m in managers
-    ]
-    return modules[0] if single_uid else modules
-
-
 def get_remote_module_infos(
     dht: DHT,
     uids: Sequence[ModuleUID],

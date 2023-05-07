@@ -111,6 +111,8 @@ See the instructions for macOS and Windows, the full requirements, and troublesh
 
 ## Benchmarks
 
+The benchmarks below are for BLOOM-176B:
+
 <table align="center">
   <tr>
     <th colspan="2">Network</th>

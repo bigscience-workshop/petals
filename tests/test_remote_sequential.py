@@ -20,7 +20,7 @@ def test_remote_sequential():
     test_inputs = torch.randn(1, 5, config.hidden_size, requires_grad=True)
     grad_proj = torch.randn(1, 5, config.hidden_size)
 
-    sequential = RemoteSequential(config, dht)
+    sequential = RemoteSequential(config, dht=dht)
 
     full_outputs = sequential(test_inputs)
     (full_outputs * grad_proj).sum().backward()
@@ -48,7 +48,7 @@ def test_remote_sequential():
     # test RemoteSequential with lossy compression
     block_uids = [f"{config.dht_prefix}{UID_DELIMITER}{i}" for i in range(config.n_layer)]
     lossy_sequential = RemoteSequential(
-        config, dht, sequence_manager=DummyCustomSequenceManager(dht, block_uids, sequential.p2p)
+        config, sequence_manager=DummyCustomSequenceManager(config, block_uids, dht=dht)
     )
 
     test_inputs.grad = None
@@ -85,8 +85,7 @@ class DummyCustomSequenceManager(RemoteSequenceManager):
 @pytest.mark.forked
 def test_remote_sequential_prompts(batch_size=2, seq_len=5, pre_seq_len=3):
     config = DistributedBloomConfig.from_pretrained(MODEL_NAME, initial_peers=INITIAL_PEERS)
-    dht = DHT(initial_peers=config.initial_peers, client_mode=True, start=True)
-    remote_sequential = RemoteSequential(config, dht)
+    remote_sequential = RemoteSequential(config)
 
     inputs = F.normalize(torch.randn(batch_size, seq_len, config.hidden_size), dim=-1)
     output_proj = F.normalize(torch.randn(batch_size, seq_len + pre_seq_len, config.hidden_size), dim=-1)

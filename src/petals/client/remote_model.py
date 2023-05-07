@@ -18,13 +18,14 @@ from transformers.models.bloom import (
 from petals.bloom.modeling_utils import LMHead
 from petals.client.remote_generation import RemoteGenerationMixin
 from petals.client.remote_sequential import RemoteSequential
+from petals.client.routing.sequence_manager import SequenceManagerConfig
 from petals.constants import PUBLIC_INITIAL_PEERS
 from petals.utils.misc import DUMMY
 
 logger = get_logger(__name__)
 
 
-class DistributedBloomConfig(BloomConfig):
+class DistributedBloomConfig(BloomConfig, SequenceManagerConfig):
     """
     A bloom config that contains information about DHT peers.
     To create a distributed model, one must provide dht_prefix and either initial_peers or dht.
@@ -33,15 +34,9 @@ class DistributedBloomConfig(BloomConfig):
     initial_peers: List[str] = PUBLIC_INITIAL_PEERS  # a list of initial peers for hivemind DHT
     dht_prefix: str  # a prefix for all dht keys that correspond to this model (usually equal to model name)
     daemon_startup_timeout: int = 60  # timeout for the libp2p daemon connecting to initial peers
-    dht: Optional[hivemind.DHT] = None  # a running DHT instance, e.g. when using the same DHT for multiple models
-    request_timeout: int = 3 * 60  # a number of seconds for waiting result from each node
-    max_retries: Optional[int] = None  # max number retries before the client raises an exception (default: inf)
-    allowed_servers: Optional[
-        Collection[Union[str, hivemind.PeerID]]
-    ] = None  # if defined, send requests only to these servers
 
     pre_seq_len: int = 0  # a number of tokens for prompt tuning.
-    tuning_mode: Optional[str] = None  # One of the finetune options: [None, 'shallow_ptune', 'deep_ptune', 'adapters']
+    tuning_mode: Optional[str] = None  # fine-tuning regime, one of [None, "ptune", "deep_ptune"]
 
     # This settings matter for running the client with dtype bfloat16 on CPU.
     # If the CPU doesn't support AVX512, chunked_forward() significantly speeds up computations.
@@ -106,30 +101,16 @@ class DistributedBloomModel(_FromPretrainedDefaultsMixin, BloomModel):
 
     config_class = DistributedBloomConfig
 
-    def __init__(self, config: DistributedBloomConfig):
+    def __init__(self, config: DistributedBloomConfig, *, dht: Optional[hivemind.DHT] = None):
         assert config.dht_prefix, "Could not find dht_prefix in config, please create model with dht_prefix=..."
-        assert config.initial_peers or config.dht, "Please specify initial_peers=list(...) or dht=hivemind.DHT(...)"
+        assert config.initial_peers or dht is not None, "Please specify `config.initial_peers` or `dht`"
 
         n_layer, config.n_layer = config.n_layer, 0  # temporarily set n_layer to 0 to prevent layer initialization
         super().__init__(config)
         assert len(self.h) == 0
         config.n_layer = n_layer
 
-        dht = config.dht
-        if dht is None:
-            dht = hivemind.DHT(
-                initial_peers=config.initial_peers,
-                client_mode=True,
-                num_workers=n_layer,
-                startup_timeout=config.daemon_startup_timeout,
-                start=True,
-            )
-        assert isinstance(dht, hivemind.DHT) and dht.is_alive(), "dht must be a running hivemind.DHT instance"
-        self.h = RemoteSequential(
-            config,
-            dht,
-            config.dht_prefix,
-        )
+        self.h = RemoteSequential(config, dht=dht)
 
         # Forbid accumulate grads for embeddings and layernorm
         self.set_requires_grad(False)

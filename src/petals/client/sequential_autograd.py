@@ -67,7 +67,7 @@ async def sequential_forward(
 
                 span = sequences.popleft()
 
-                stub = TransformerConnectionHandler.get_stub(sequence_manager.p2p, span.peer_id)
+                stub = TransformerConnectionHandler.get_stub(sequence_manager.state.p2p, span.peer_id)
                 inputs_and_prompts = [inputs, prompts[span.start : span.end]]
 
                 span_uids = CHAIN_DELIMITER.join(sequence_manager.block_uids[span.start : span.end])
@@ -77,7 +77,7 @@ async def sequential_forward(
                     stub,
                     sequence_manager.rpc_info,
                     *inputs_and_prompts,
-                    timeout=sequence_manager.request_timeout,
+                    timeout=sequence_manager.config.request_timeout,
                     metadata=MSGPackSerializer.dumps(metadata),
                 )
 
@@ -93,9 +93,8 @@ async def sequential_forward(
                 sequence_manager.on_request_success(span.peer_id)
                 break
             except Exception as e:
-                if span is not None:
-                    sequence_manager.on_request_failure(span.peer_id)
-                if attempt_no + 1 == sequence_manager.max_retries:
+                sequence_manager.on_request_failure(span.peer_id if span is not None else None)
+                if attempt_no + 1 == sequence_manager.config.max_retries:
                     raise
                 delay = sequence_manager.get_retry_delay(attempt_no)
                 logger.warning(
@@ -152,7 +151,7 @@ async def sequential_backward(
                     span = forward_sequences.pop()
 
                 span_uids = CHAIN_DELIMITER.join(sequence_manager.block_uids[span.start : span.end])
-                stub = TransformerConnectionHandler.get_stub(sequence_manager.p2p, span.peer_id)
+                stub = TransformerConnectionHandler.get_stub(sequence_manager.state.p2p, span.peer_id)
                 metadata = sequence_manager.get_request_metadata(
                     "rpc_backward", span_uids, *inputs, *grad_outputs, peer_id=span.peer_id
                 )
@@ -163,7 +162,7 @@ async def sequential_backward(
                     inputs,
                     grad_outputs,
                     prompts[span.start : span.end],
-                    timeout=sequence_manager.request_timeout,
+                    timeout=sequence_manager.config.request_timeout,
                     metadata=MSGPackSerializer.dumps(metadata),
                 )
                 grad_outputs = [grad_outputs]
@@ -171,9 +170,8 @@ async def sequential_backward(
                 sequence_manager.on_request_success(span.peer_id)
                 break
             except Exception as e:
-                if span is not None:
-                    sequence_manager.on_request_failure(span.peer_id)
-                if attempt_no + 1 == sequence_manager.max_retries:
+                sequence_manager.on_request_failure(span.peer_id if span is not None else None)
+                if attempt_no + 1 == sequence_manager.config.max_retries:
                     raise
                 delay = sequence_manager.get_retry_delay(attempt_no)
                 logger.warning(
