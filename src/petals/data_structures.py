@@ -39,9 +39,14 @@ class RemoteModuleInfo:
 class RemoteSpanInfo:
     """A chain of remote blocks served by one specific remote peer"""
 
+    peer_id: PeerID
     start: int
     end: int
-    peer_id: PeerID
+    throughput: float
+
+    @property
+    def length(self):
+        return self.end - self.start
 
 
 RPCInfo = Dict[str, Any]
