@@ -114,7 +114,9 @@ class RemoteSequenceManager:
             self._thread.ready.set()  # no need to await the first dht fetch
             self._need_latest_infos = True
 
-    def make_sequence(self, start_index: int = 0, end_index: Optional[int] = None, mode: str) -> List[RemoteSpanInfo]:
+    def make_sequence(
+        self, start_index: int = 0, end_index: Optional[int] = None, *, mode: str
+    ) -> List[RemoteSpanInfo]:
         """
         Form a sequence of remote servers that collectively serve all consecutive layers
 
