@@ -95,6 +95,7 @@ def get_server_throughput(
     average_blocks_used = (num_blocks + 1) / 2
     throughput = throughput_info["compute_rps"] / average_blocks_used
     throughput = min(throughput, throughput_info.get("network_rps", math.inf))
+    logger.info(f"Reporting throughput: {throughput:.1f} RPS for {num_blocks} blocks")
     return throughput
 
 
@@ -139,10 +140,9 @@ def measure_network_rps(config: BloomConfig) -> Optional[float]:
         raise ValueError("speedtest has returned network_rps == 0")
 
     logger.info(
-        f"Network throughput: "
-        f"{network_info['download'] / 1e6:.2f} Mbit/s on download, "
-        f"{network_info['upload'] / 1e6:.2f} Mbit/s on upload, "
-        f"{network_rps:.1f} RPS"
+        f"Network throughput: {network_rps:.1f} RPS "
+        f"({network_info['download'] / 1e6:.2f} Mbit/s on download, "
+        f"{network_info['upload'] / 1e6:.2f} Mbit/s on upload)"
     )
     return network_rps
 
@@ -180,7 +180,8 @@ def measure_compute_rps(
         devices_repr = ", ".join(f"{count}x {name}" for name, count in Counter(device_names).most_common())
 
     logger.info(
-        f"Forward pass throughput ({devices_repr}, {get_dtype_name(dtype, load_in_8bit)}): " f"{device_rps:.1f} RPS"
+        f"Forward pass throughput: {device_rps:.1f} RPS per block "
+        f"({devices_repr}, {get_dtype_name(dtype, load_in_8bit)})"
     )
     return device_rps
 
