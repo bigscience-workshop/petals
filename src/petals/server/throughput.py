@@ -6,7 +6,7 @@ import time
 from collections import Counter
 from hashlib import sha256
 from pathlib import Path
-from typing import Optional, Sequence, Union
+from typing import Dict, Optional, Sequence, Union
 
 import torch
 from hivemind.utils.logging import get_logger
@@ -89,6 +89,9 @@ def get_server_throughput(
 
     throughput_info = cache[cache_key]
 
+    # Most requests start at some block hosted by a server, then use all next blocks hosted on this server.
+    # Assuming the start block index is distributed uniformly, the average number of blocks used per request is
+    # E[Uniform{1, 2, ..., num_blocks}] = (num_blocks + 1) / 2
     average_blocks_used = (num_blocks + 1) / 2
     throughput = throughput_info["compute_rps"] / average_blocks_used
     throughput = min(throughput, throughput_info.get("network_rps", math.inf))
