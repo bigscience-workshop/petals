@@ -27,7 +27,7 @@ from petals.server.block_utils import get_block_size
 from petals.server.handler import TransformerConnectionHandler
 from petals.server.memory_cache import MemoryCache
 from petals.server.reachability import ReachabilityProtocol, check_direct_reachability, validate_reachability
-from petals.server.throughput import get_dtype_name, get_host_throughput
+from petals.server.throughput import get_dtype_name, get_server_throughput
 from petals.utils.convert_block import check_device_balance, convert_block
 from petals.utils.disk_cache import DEFAULT_CACHE_DIR
 
@@ -193,10 +193,11 @@ class Server:
 
         assert isinstance(throughput, float) or throughput in ["auto", "eval"]
         if throughput in ["auto", "eval"]:
-            throughput = get_host_throughput(
+            throughput = get_server_throughput(
                 self.block_config,
                 device,
                 torch_dtype,
+                num_blocks=num_blocks,
                 load_in_8bit=load_in_8bit,
                 tensor_parallel_devices=self.tensor_parallel_devices,
                 force_eval=(throughput == "eval"),
