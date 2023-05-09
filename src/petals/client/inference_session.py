@@ -253,7 +253,7 @@ class InferenceSession:
                             )
                         recovery_until = max(recovery_until, update_end)
 
-                        updated_spans = self._sequence_manager.make_sequence(block_idx, update_end, mode="fastest")
+                        updated_spans = self._sequence_manager.make_sequence(block_idx, update_end, mode="min_latency")
                         # make_sequence() could return a longer sequence
                         updated_spans[-1].end = min(updated_spans[-1].end, update_end)
                         updated_sessions = self._enter_server_sessions(updated_spans)

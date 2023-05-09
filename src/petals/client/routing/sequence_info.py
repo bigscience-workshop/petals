@@ -77,7 +77,9 @@ class RemoteSequenceInfo:
                     if server.state != ServerState.ONLINE:
                         continue
                     if peer_id not in active_spans:
-                        active_spans[peer_id] = RemoteSpanInfo(start=block_index, end=block_index + 1, peer_id=peer_id)
+                        active_spans[peer_id] = RemoteSpanInfo(
+                            peer_id=peer_id, start=block_index, end=block_index + 1, throughput=server.throughput
+                        )
                     else:  # peer_id in active_spans
                         active_spans[peer_id].end = block_index + 1
 
@@ -91,7 +93,7 @@ class RemoteSequenceInfo:
                     closed_spans.append(active_spans.pop(peer_id))
         assert not active_spans, f"spans: {active_spans}"
 
-        closed_spans.sort(key=lambda span: span.end - span.start, reverse=True)
+        closed_spans.sort(key=lambda span: span.length, reverse=True)
 
         spans_containing_block = tuple(list() for _ in range(len(block_infos)))
         for span in closed_spans:
