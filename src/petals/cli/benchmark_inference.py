@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import argparse
 import multiprocessing as mp
 from time import perf_counter
