@@ -15,10 +15,17 @@ logger = get_logger()
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", type=str, default="bigscience/bloom-petals")
-    parser.add_argument("--initial_peers", type=str, nargs='+', default=["/ip4/185.244.175.92/tcp/31337/p2p/QmehSoMKScoMF3HczLwaLVnw2Lgsap4bhAMrULEzGc1fSV"])
+    parser.add_argument("-i", "--initial_peers", type=str, nargs='+', required=True)
     parser.add_argument("-p", "--n_processes", type=int, required=True)
     parser.add_argument("-l", "--seq_len", type=int, required=True)
     args = parser.parse_args()
+
+    if args.initial_peers == ["3090"]:
+        args.initial_peers = ["/ip4/185.244.175.92/tcp/31337/p2p/QmehSoMKScoMF3HczLwaLVnw2Lgsap4bhAMrULEzGc1fSV"]
+    elif args.initial_peers == ["a100"]:
+        args.initial_peers = ["/ip4/127.0.0.1/tcp/38355/p2p/QmU3wFRRW1XUbByqXqk9sbA3wiYQBp1Lpa32doxt1RvKRv"]
+    else:
+        logger.warning(f"Non-standard initial peers: {args.initial_peers}")
 
     processes = [mp.Process(target=benchmark_inference, args=(i, args,)) for i in range(args.n_processes)]
     for proc in processes:
