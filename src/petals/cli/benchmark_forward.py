@@ -42,7 +42,7 @@ def main():
 @torch.inference_mode()
 def benchmark_forward(process_idx, args):
     tokenizer = BloomTokenizerFast.from_pretrained(args.model)
-    model = DistributedBloomForCausalLM.from_pretrained(args.model, initial_peers=args.initial_peers, torch_dtype=torch.float32)
+    model = DistributedBloomForCausalLM.from_pretrained(args.model, initial_peers=args.initial_peers, torch_dtype=torch.bfloat16)
     logger.info(f"Created model: {process_idx=} {model.device=}")
 
     torch.manual_seed(42)
