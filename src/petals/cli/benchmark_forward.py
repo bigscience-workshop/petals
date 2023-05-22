@@ -23,7 +23,7 @@ def main():
     args = parser.parse_args()
 
     if args.initial_peers == ["3090"]:
-        args.initial_peers = ["/ip4/185.244.175.92/tcp/31337/p2p/QmehSoMKScoMF3HczLwaLVnw2Lgsap4bhAMrULEzGc1fSV"]
+        args.initial_peers = ["/ip4/109.248.175.18/tcp/31337/p2p/QmehSoMKScoMF3HczLwaLVnw2Lgsap4bhAMrULEzGc1fSV"]
     elif args.initial_peers == ["a100"]:
         args.initial_peers = ["/ip4/127.0.0.1/tcp/38355/p2p/QmU3wFRRW1XUbByqXqk9sbA3wiYQBp1Lpa32doxt1RvKRv"]
     else:
@@ -47,7 +47,7 @@ def benchmark_forward(process_idx, args):
         input_ids = torch.randint(100, 10000, size=(args.batch_size, args.seq_len))
 
         logger.info(f"{process_idx=} Fwd begin {input_ids.shape=}")
-        embs = model.transformer.word_embeddings(token_ids)
+        embs = model.transformer.word_embeddings(input_ids)
         embs = model.transformer.word_embeddings_layernorm(embs)
         h = sess.step(embs)
         h_last = model.transformer.ln_f(h[:, -1])
