@@ -12,7 +12,7 @@ from transformers import BloomTokenizerFast
 
 logger = get_logger()
 
-petals.client.sequential_autograd.MAX_TOKENS_IN_BATCH = 1024
+# petals.client.sequential_autograd.MAX_TOKENS_IN_BATCH = 1024
 
 
 def main():
