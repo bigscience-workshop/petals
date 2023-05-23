@@ -21,7 +21,7 @@ def main():
     args = parser.parse_args()
 
     if args.initial_peers == ["3090"]:
-        args.initial_peers = ["/ip4/109.248.175.18/tcp/31337/p2p/QmehSoMKScoMF3HczLwaLVnw2Lgsap4bhAMrULEzGc1fSV"]
+        args.initial_peers = ["/dns/bench.petals.ml/tcp/31337/p2p/QmehSoMKScoMF3HczLwaLVnw2Lgsap4bhAMrULEzGc1fSV"]
     elif args.initial_peers == ["a100"]:
         args.initial_peers = ["/ip4/127.0.0.1/tcp/38355/p2p/QmU3wFRRW1XUbByqXqk9sbA3wiYQBp1Lpa32doxt1RvKRv"]
     else:
