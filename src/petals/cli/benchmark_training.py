@@ -54,7 +54,6 @@ def benchmark_training(process_idx, args):
 
         logger.info(f"{process_idx=} {step=} Forward")
         outputs = model(input_ids, labels=labels)
-        logger.info(f"{process_idx=} {step=} Loss: {outputs.loss=:.2f}")
 
         logger.info(f"{process_idx=} {step=} Backward")
         outputs.loss.backward()
