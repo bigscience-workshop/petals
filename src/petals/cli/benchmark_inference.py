@@ -15,17 +15,11 @@ logger = get_logger()
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", type=str, default="bigscience/bloom-petals")
-    parser.add_argument("-i", "--initial_peers", type=str, nargs='+', required=True)
+    parser.add_argument("-i", "--initial_peers", type=str, nargs='+',
+        default=["/dns/bench.petals.ml/tcp/31337/p2p/QmehSoMKScoMF3HczLwaLVnw2Lgsap4bhAMrULEzGc1fSV"])
     parser.add_argument("-p", "--n_processes", type=str, required=True)
     parser.add_argument("-l", "--seq_len", type=int, required=True)
     args = parser.parse_args()
-
-    if args.initial_peers == ["3090"]:
-        args.initial_peers = ["/dns/bench.petals.ml/tcp/31337/p2p/QmehSoMKScoMF3HczLwaLVnw2Lgsap4bhAMrULEzGc1fSV"]
-    elif args.initial_peers == ["a100"]:
-        args.initial_peers = ["/ip4/127.0.0.1/tcp/38355/p2p/QmU3wFRRW1XUbByqXqk9sbA3wiYQBp1Lpa32doxt1RvKRv"]
-    else:
-        logger.warning(f"Non-standard initial peers: {args.initial_peers}")
 
     if args.n_processes == "n_gpus":
         args.n_processes = torch.cuda.device_count()

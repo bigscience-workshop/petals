@@ -7,7 +7,7 @@ from time import perf_counter
 import torch
 import petals.client.sequential_autograd
 from hivemind.utils.logging import get_logger
-from petals import DistributedBloomForCausalLM
+from petals import DistributedBloomForSequenceClassification
 from transformers import BloomTokenizerFast
 
 logger = get_logger()
@@ -20,7 +20,7 @@ def main():
     parser.add_argument("--model", type=str, default="bigscience/bloom-petals")
     parser.add_argument("-i", "--initial_peers", type=str, nargs='+',
         default=["/dns/bench.petals.ml/tcp/31337/p2p/QmehSoMKScoMF3HczLwaLVnw2Lgsap4bhAMrULEzGc1fSV"])
-    parser.add_argument("-p", "--n_processes", type=str, required=True)
+    parser.add_argument("-p", "--n_processes", type=str, default="1")
     parser.add_argument("--seq_len", type=int, default=128)
     parser.add_argument("--n_steps", type=int, default=100)
     parser.add_argument("-b", "--batch_size", type=int, required=True)
@@ -31,27 +31,35 @@ def main():
     else:
         args.n_processes = int(args.n_processes)
 
-    processes = [mp.Process(target=benchmark_forward, args=(i, args,)) for i in range(args.n_processes)]
+    processes = [mp.Process(target=benchmark_training, args=(i, args,)) for i in range(args.n_processes)]
     for proc in processes:
         proc.start()
     for proc in processes:
         proc.join()
 
 
-@torch.inference_mode()
-def benchmark_forward(process_idx, args):
+def benchmark_training(process_idx, args):
     tokenizer = BloomTokenizerFast.from_pretrained(args.model)
-    model = DistributedBloomForCausalLM.from_pretrained(args.model, initial_peers=args.initial_peers, torch_dtype=torch.bfloat16)
+    model = DistributedBloomForSequenceClassification.from_pretrained(
+        args.model, initial_peers=args.initial_peers, tuning_mode="deep_ptune", pre_seq_len=16, num_labels=2)
+    optimizer = torch.optim.Adam(model.parameters())
     logger.info(f"Created model: {process_idx=} {model.device=}")
 
     torch.manual_seed(42)
     for step in range(args.n_steps):
         input_ids = torch.randint(100, 10000, size=(args.batch_size, args.seq_len))
+        labels = torch.randint(0, 2, size=[args.batch_size])
 
-        logger.info(f"{process_idx=} Fwd begin {input_ids.shape=}")
-        h = model.transformer(input_ids)
-        # We don't use model.lm_head
-        logger.info(f"{process_idx=} Fwd end")
+        logger.info(f"{process_idx=} {step=} Forward")
+        outputs = model(input_ids, labels=labels)
+        logger.info(f"{process_idx=} {step=} Loss: {outputs.loss=:.2f}")
+
+        logger.info(f"{process_idx=} {step=} Backward")
+        outputs.loss.backward()
+
+        logger.info(f"{process_idx=} {step=} Optimizer step")
+        opt.step()
+        opt.zero_grad()
 
         if step == 0:
             start_time = perf_counter()
