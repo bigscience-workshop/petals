@@ -6,8 +6,9 @@ from time import perf_counter
 
 import torch
 from hivemind.utils.logging import get_logger
-from petals import DistributedBloomForCausalLM
 from transformers import BloomTokenizerFast
+
+from petals import DistributedBloomForCausalLM
 
 logger = get_logger()
 
@@ -15,7 +16,7 @@ logger = get_logger()
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", type=str, default="bigscience/bloom-petals")
-    parser.add_argument("-i", "--initial_peers", type=str, nargs='+', required=True)
+    parser.add_argument("-i", "--initial_peers", type=str, nargs="+", required=True)
     parser.add_argument("-p", "--n_processes", type=str, required=True)
     parser.add_argument("--seq_len", type=int, default=128)
     parser.add_argument("--n_steps", type=int, default=100)
@@ -27,7 +28,7 @@ def main():
     else:
         args.n_processes = int(args.n_processes)
 
-    processes = [mp.Process(target=benchmark_forward, args=(i, args,)) for i in range(args.n_processes)]
+    processes = [mp.Process(target=benchmark_forward, args=(i, args)) for i in range(args.n_processes)]
     for proc in processes:
         proc.start()
     for proc in processes:
@@ -37,7 +38,9 @@ def main():
 @torch.inference_mode()
 def benchmark_forward(process_idx, args):
     tokenizer = BloomTokenizerFast.from_pretrained(args.model)
-    model = DistributedBloomForCausalLM.from_pretrained(args.model, initial_peers=args.initial_peers, torch_dtype=torch.bfloat16)
+    model = DistributedBloomForCausalLM.from_pretrained(
+        args.model, initial_peers=args.initial_peers, torch_dtype=torch.bfloat16
+    )
     logger.info(f"Created model: {process_idx=} {model.device=}")
 
     torch.manual_seed(42)

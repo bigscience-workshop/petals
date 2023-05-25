@@ -7,8 +7,9 @@ from time import perf_counter
 import numpy as np
 import torch
 from hivemind.utils.logging import get_logger
-from petals import DistributedBloomForSequenceClassification, DistributedBloomForCausalLM
 from transformers import BloomTokenizerFast
+
+from petals import DistributedBloomForCausalLM, DistributedBloomForSequenceClassification
 
 logger = get_logger()
 
@@ -18,7 +19,7 @@ def main():
     parser.add_argument("--model", type=str, default="bigscience/bloom-petals")
     parser.add_argument("--device", type=str, default="cpu")
     parser.add_argument("--task", type=str, default="cls")
-    parser.add_argument("-i", "--initial_peers", type=str, nargs='+', required=True)
+    parser.add_argument("-i", "--initial_peers", type=str, nargs="+", required=True)
     parser.add_argument("--n_processes", type=str, default="1")
     parser.add_argument("--seq_len", type=int, default=128)
     parser.add_argument("--pre_seq_len", type=int, default=16)
@@ -33,7 +34,7 @@ def main():
     else:
         args.n_processes = int(args.n_processes)
 
-    processes = [mp.Process(target=benchmark_training, args=(i, args,)) for i in range(args.n_processes)]
+    processes = [mp.Process(target=benchmark_training, args=(i, args)) for i in range(args.n_processes)]
     for proc in processes:
         proc.start()
     for proc in processes:
@@ -44,12 +45,16 @@ def benchmark_training(process_idx, args):
     tokenizer = BloomTokenizerFast.from_pretrained(args.model)
     if args.task == "cls":
         model = DistributedBloomForSequenceClassification.from_pretrained(
-            args.model, initial_peers=args.initial_peers, tuning_mode="deep_ptune",
-            pre_seq_len=args.pre_seq_len, num_labels=2)
+            args.model,
+            initial_peers=args.initial_peers,
+            tuning_mode="deep_ptune",
+            pre_seq_len=args.pre_seq_len,
+            num_labels=2,
+        )
     elif args.task == "causal_lm":
         model = DistributedBloomForCausalLM.from_pretrained(
-            args.model, initial_peers=args.initial_peers, tuning_mode="deep_ptune",
-            pre_seq_len=args.pre_seq_len)
+            args.model, initial_peers=args.initial_peers, tuning_mode="deep_ptune", pre_seq_len=args.pre_seq_len
+        )
     model = model.to(args.device)
     opt = torch.optim.Adam(model.parameters())
     logger.info(f"Created model: {process_idx=} {model.device=}")
