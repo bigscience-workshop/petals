@@ -18,8 +18,7 @@ petals.client.sequential_autograd.MAX_TOKENS_IN_BATCH = 1024
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", type=str, default="bigscience/bloom-petals")
-    parser.add_argument("-i", "--initial_peers", type=str, nargs='+',
-        default=["/dns/bench.petals.ml/tcp/31337/p2p/QmehSoMKScoMF3HczLwaLVnw2Lgsap4bhAMrULEzGc1fSV"])
+    parser.add_argument("-i", "--initial_peers", type=str, nargs='+', required=True)
     parser.add_argument("-p", "--n_processes", type=str, required=True)
     parser.add_argument("--seq_len", type=int, default=128)
     parser.add_argument("--n_steps", type=int, default=100)

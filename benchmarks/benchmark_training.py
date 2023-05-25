@@ -21,8 +21,7 @@ def main():
     parser.add_argument("--model", type=str, default="bigscience/bloom-petals")
     parser.add_argument("--device", type=str, default="cpu")
     parser.add_argument("--task", type=str, default="cls")
-    parser.add_argument("-i", "--initial_peers", type=str, nargs='+',
-        default=["/dns/bench.petals.ml/tcp/31337/p2p/QmehSoMKScoMF3HczLwaLVnw2Lgsap4bhAMrULEzGc1fSV"])
+    parser.add_argument("-i", "--initial_peers", type=str, nargs='+', required=True)
     parser.add_argument("--n_processes", type=str, default="1")
     parser.add_argument("--seq_len", type=int, default=128)
     parser.add_argument("--pre_seq_len", type=int, default=16)

@@ -15,8 +15,7 @@ logger = get_logger()
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", type=str, default="bigscience/bloom-petals")
-    parser.add_argument("-i", "--initial_peers", type=str, nargs='+',
-        default=["/dns/bench.petals.ml/tcp/31337/p2p/QmehSoMKScoMF3HczLwaLVnw2Lgsap4bhAMrULEzGc1fSV"])
+    parser.add_argument("-i", "--initial_peers", type=str, nargs='+', required=True)
     parser.add_argument("-p", "--n_processes", type=str, required=True)
     parser.add_argument("-l", "--seq_len", type=int, required=True)
     args = parser.parse_args()
