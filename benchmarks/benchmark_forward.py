@@ -5,14 +5,11 @@ import multiprocessing as mp
 from time import perf_counter
 
 import torch
-import petals.client.sequential_autograd
 from hivemind.utils.logging import get_logger
 from petals import DistributedBloomForCausalLM
 from transformers import BloomTokenizerFast
 
 logger = get_logger()
-
-petals.client.sequential_autograd.MAX_TOKENS_IN_BATCH = 1024
 
 
 def main():

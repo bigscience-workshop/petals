@@ -6,14 +6,11 @@ from time import perf_counter
 
 import numpy as np
 import torch
-import petals.client.sequential_autograd
 from hivemind.utils.logging import get_logger
 from petals import DistributedBloomForSequenceClassification, DistributedBloomForCausalLM
 from transformers import BloomTokenizerFast
 
 logger = get_logger()
-
-petals.client.sequential_autograd.MAX_TOKENS_IN_BATCH = 1024
 
 
 def main():
