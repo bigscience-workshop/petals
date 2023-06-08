@@ -6,7 +6,6 @@ If necessary, one can rewrite this to implement a different behavior, such as:
  - fetch the weights over IPoAC, using a fleet of trained pigeons ( http://www.faqs.org/rfcs/rfc1149.html )
 
 """
-import itertools
 import json
 import time
 from typing import Dict, Optional, Union
@@ -26,6 +25,7 @@ from petals.server.model_specs import MODEL_SPECS
 from petals.utils.disk_cache import DEFAULT_CACHE_DIR, allow_cache_reads, allow_cache_writes, free_disk_space_for
 
 logger = get_logger(__name__)
+logger.setLevel("DEBUG")
 
 
 class AutoBlockConfig:
@@ -75,11 +75,6 @@ def load_pretrained_block(
         cache_dir=cache_dir,
         max_disk_space=max_disk_space,
     )
-    state_dict = {
-        param_name[len(block_prefix) :]: param
-        for param_name, param in state_dict.items()
-        if param_name.startswith(block_prefix)
-    }
 
     # dummy load, check that keys match
     report = block.load_state_dict(state_dict, strict=True)
@@ -107,7 +102,6 @@ def _load_state_dict_from_repo(
     use_auth_token: Optional[str] = None,
     cache_dir: str,
     max_disk_space: Optional[int] = None,
-    min_backoff: float = 5,
 ) -> StateDict:
     index_file = get_file_from_repo(
         model_name, filename="pytorch_model.bin.index.json", use_auth_token=use_auth_token, cache_dir=cache_dir
@@ -118,59 +112,64 @@ def _load_state_dict_from_repo(
     filenames = {
         filename for param_name, filename in index["weight_map"].items() if param_name.startswith(block_prefix)
     }
-    if len(filenames) > 1:
-        raise RuntimeError(
-            f"Block {block_prefix}* is stored in {filenames}, but Petals can't load blocks divided into multiple files yet"
-        )
-    [filename] = filenames
-    logger.debug(f"Loading {block_prefix}* from {filename}")
+    if not filenames:
+        raise RuntimeError(f"Block {block_prefix}* not found in the index: {index['weight_map']}")
+    logger.debug(f"Loading {block_prefix}* from {filenames}")
 
+    state_dict = {}
+    for filename in filenames:
+        shard_state_dict = _load_state_dict_from_file(
+            model_name, filename, use_auth_token=use_auth_token, cache_dir=cache_dir, max_disk_space=max_disk_space
+        )
+        shard_state_dict = {
+            param_name[len(block_prefix) :]: param
+            for param_name, param in shard_state_dict.items()
+            if param_name.startswith(block_prefix)
+        }  # Remove unused parameters from memory
+        state_dict.update(shard_state_dict)
+    return state_dict
+
+
+def _load_state_dict_from_file(
+    model_name: str,
+    filename: str,
+    *,
+    use_auth_token: Optional[str],
+    cache_dir: str,
+    max_disk_space: Optional[int] = None,
+    delay: float = 30,
+) -> StateDict:
     # First, try to find the weights locally
     try:
         with allow_cache_reads(cache_dir):
-            return _load_state_dict_from_file(
+            path = get_file_from_repo(
                 model_name, filename, use_auth_token=use_auth_token, cache_dir=cache_dir, local_files_only=True
             )
+            if path is not None:
+                return torch.load(path, map_location="cpu")
     except Exception:
-        logger.debug(
-            f"Failed to load block {block_prefix}* from cache, proceeding to downloading the block", exc_info=True
-        )
+        logger.warning(f"Cache for file {filename} is corrupted, it will be downloaded again", exc_info=True)
 
     # If not found, ensure that we have enough disk space to download them (maybe remove something)
-    for attempt_no in itertools.count():
+    while True:
         try:
             with allow_cache_writes(cache_dir):
                 url = hf_hub_url(model_name, filename)
                 file_size = get_hf_file_metadata(url, token=use_auth_token).size
-                gib = 1024**3
-                logger.debug(f"Shard size for {filename}: {file_size / gib:.2f} GiB")
+                if file_size is not None:
+                    free_disk_space_for(model_name, file_size, cache_dir=cache_dir, max_disk_space=max_disk_space)
+                else:
+                    logger.warning(f"Failed to fetch size of file {filename} from repo {model_name}")
 
-                free_disk_space_for(model_name, file_size, cache_dir=cache_dir, max_disk_space=max_disk_space)
-
-                return _load_state_dict_from_file(
+                path = get_file_from_repo(
                     model_name, filename, use_auth_token=use_auth_token, cache_dir=cache_dir, local_files_only=False
                 )
+                if path is None:
+                    raise RuntimeError(f"File {filename} does not exist in repo {model_name}")
+                return torch.load(path, map_location="cpu")
         except Exception as e:
-            delay = min_backoff * (2**attempt_no)
-            logger.warning(
-                f"Failed to load block {block_prefix}* from HF Hub (retry in {delay:.0f} sec)", exc_info=True
-            )
+            logger.warning(f"Failed to load file {filename} from HF Hub (retry in {delay:.0f} sec)", exc_info=True)
             time.sleep(delay)
-
-
-def _load_state_dict_from_file(
-    model_name: str, filename: str, *, use_auth_token: Optional[str], cache_dir: str, local_files_only: bool
-) -> StateDict:
-    path = get_file_from_repo(
-        model_name,
-        filename=filename,
-        use_auth_token=use_auth_token,
-        cache_dir=cache_dir,
-        local_files_only=local_files_only,
-    )
-    if path is None:
-        raise RuntimeError(f"Failed to load file {filename} from repo {model_name}")
-    return torch.load(path, map_location="cpu")
 
 
 DTYPE_MAP = dict(bfloat16=torch.bfloat16, float16=torch.float16, float32=torch.float32, auto="auto")
