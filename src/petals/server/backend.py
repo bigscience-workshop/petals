@@ -1,4 +1,3 @@
-"""Code for serving bloom blocks via hivemind-server"""
 from __future__ import annotations
 
 from collections import Counter
@@ -12,8 +11,7 @@ from hivemind.moe.server.module_backend import ModuleBackend
 from hivemind.utils import get_logger
 from tensor_parallel import TensorParallel
 from tensor_parallel.tensor_parallel import PerDeviceTensors
-from transformers import BloomConfig
-from transformers.models.bloom.modeling_bloom import BloomAttention
+from transformers import PretrainedConfig
 
 from petals.data_structures import InferenceMetadata
 from petals.server.memory_cache import Handle, MemoryCache
@@ -24,17 +22,19 @@ logger = get_logger(__name__)
 
 
 class TransformerBackend(ModuleBackend):
-    """A wrapper for a BLOOM block that can process requests for BLOOM layer forward, backward and inference"""
+    """A wrapper for a transformer block that can process requests for forward, backward and inference"""
 
-    def __init__(self, *args, config: BloomConfig, memory_cache: MemoryCache, backend_dtype: torch.dtype, **kwargs):
+    def __init__(
+        self, *args, config: PretrainedConfig, memory_cache: MemoryCache, backend_dtype: torch.dtype, **kwargs
+    ):
         super().__init__(*args, **kwargs)
         assert isinstance(self.module, TensorParallel)
         self.config = config
         self.memory_cache = memory_cache
         for name, param in self.module.named_parameters():
-            assert not param.requires_grad, f"Bloom layer parameters must not accumulate gradients, but {name} does"
+            assert not param.requires_grad, f"Block parameters must not accumulate gradients, but {name} does"
         for name, buf in self.module.named_buffers():
-            assert not buf.requires_grad, f"Bloom layer parameters must not accumulate gradients, but {name} does"
+            assert not buf.requires_grad, f"Block parameters must not accumulate gradients, but {name} does"
 
         max_batch_size = self.forward_pool.max_batch_size
         device = self.module.devices[self.module.output_device_index]
@@ -53,9 +53,10 @@ class TransformerBackend(ModuleBackend):
         self.shard_num_heads = []
         for shard in self.module.module_shards:
             for submodule in shard.modules():
-                if isinstance(submodule, BloomAttention):
+                if isinstance(submodule, config.attn_class):
                     self.shard_num_heads.append(submodule.num_heads)
-        assert len(self.shard_num_heads) == len(self.module.devices) and sum(self.shard_num_heads) == config.n_head
+        assert len(self.shard_num_heads) == len(self.module.devices)
+        assert sum(self.shard_num_heads) == config.n_head
 
         self.inference_schema = (
             (

@@ -10,18 +10,15 @@ import torch
 import torch.nn as nn
 from hivemind.utils.logging import get_logger, use_hivemind_log_handler
 from tensor_parallel.slicing_configs import get_bloom_config
-from transformers import BloomConfig
-from transformers.models.bloom.modeling_bloom import BloomAttention
-
-from petals.bloom.block import WrappedBloomBlock
+from transformers import PretrainedConfig
 
 use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__name__)
 
 
 def convert_block(
-    block: WrappedBloomBlock,
-    config: BloomConfig,
+    block: nn.Module,
+    config: PretrainedConfig,
     tensor_parallel_devices: Sequence[torch.device],
     output_device: torch.device,
     load_in_8bit: bool,
@@ -58,7 +55,7 @@ def convert_block(
     return block
 
 
-def replace_8bit_linear(model: nn.Module, threshold=6.0):
+def replace_8bit_linear(model: nn.Module, threshold=6.0) -> nn.Module:
     """
     A helper function to convert all `torch.nn.Linear` modules to `bnb.nn.Linear8bit` modules from the `bitsandbytes`
     library. This will enable running your models using mixed int8 precision as described by the paper `GPT3.int8():
@@ -100,17 +97,20 @@ def replace_8bit_linear(model: nn.Module, threshold=6.0):
 
 
 def make_tensor_parallel(
-    block: WrappedBloomBlock, model_config: BloomConfig, devices: Sequence[torch.device], output_device: torch.device
-):
+    block: nn.Module, model_config: PretrainedConfig, devices: Sequence[torch.device], output_device: torch.device
+) -> nn.Module:
+    if model_config.model_type != "bloom" and len(devices) > 1:
+        logger.warning("Tensor parallelism is not tested for models other than BLOOM yet, proceed with caution")
+
     tp_config = get_bloom_config(model_config, devices)
     del tp_config.state_rules[re.compile(".*word_embeddings.weight$")]
     tp_block = tp.TensorParallel(block, devices, config=tp_config, output_device=output_device, delay_init=True)
     total_heads = 0
     for tp_shard in tp_block.module_shards:
         for submodule in tp_shard.modules():
-            if isinstance(submodule, BloomAttention):
+            if isinstance(submodule, model_config.attn_class):
                 total_heads += submodule.num_heads
-    assert total_heads == model_config.n_head
+    assert total_heads == model_config.n_head, f"{total_heads=} != {model_config.n_head=}"
     return tp_block
 
 

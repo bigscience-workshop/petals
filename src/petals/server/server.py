@@ -15,15 +15,15 @@ from hivemind.moe.server.layers import add_custom_models_from_file
 from hivemind.moe.server.runtime import Runtime
 from hivemind.proto.runtime_pb2 import CompressionType
 from hivemind.utils.logging import get_logger
-from transformers import BloomConfig
+from transformers import PretrainedConfig
 
-from petals.bloom.from_pretrained import DTYPE_MAP, load_pretrained_block
 from petals.constants import PUBLIC_INITIAL_PEERS
 from petals.data_structures import CHAIN_DELIMITER, UID_DELIMITER, ServerState
 from petals.dht_utils import declare_active_modules, get_remote_module_infos
 from petals.server import block_selection
 from petals.server.backend import TransformerBackend, merge_inference_pools_inplace
 from petals.server.block_utils import get_block_size
+from petals.server.from_pretrained import AutoBlockConfig, DTYPE_MAP, load_pretrained_block
 from petals.server.handler import TransformerConnectionHandler
 from petals.server.memory_cache import MemoryCache
 from petals.server.reachability import ReachabilityProtocol, check_direct_reachability, validate_reachability
@@ -54,7 +54,6 @@ class Server:
         max_batch_size: int = 2048,
         inference_max_length: int = 2048,
         torch_dtype: str = "auto",
-        revision: str = "main",
         cache_dir: Optional[str] = None,
         max_disk_space: Optional[int] = None,
         attn_cache_size: Optional[int] = None,
@@ -112,10 +111,9 @@ class Server:
         self.request_timeout = request_timeout
         self.session_timeout, self.step_timeout = session_timeout, step_timeout
 
-        self.block_config = BloomConfig.from_pretrained(
+        self.block_config = AutoBlockConfig.from_pretrained(
             converted_model_name_or_path,
             use_auth_token=use_auth_token,
-            revision=revision,
         )
         self.module_uids = [f"{self.prefix}.{block_index}" for block_index in range(self.block_config.n_layer)]
 
@@ -164,7 +162,6 @@ class Server:
         if load_in_8bit is None:
             load_in_8bit = device.type == "cuda"
         self.load_in_8bit = load_in_8bit
-        logger.info(f"Model weights will be loaded in {get_dtype_name(torch_dtype, load_in_8bit)} format")
 
         assert num_blocks is None or block_indices is None, "Please specify num_blocks or block_indices, not both"
         if num_blocks is None and block_indices is None:
@@ -194,6 +191,7 @@ class Server:
         assert isinstance(throughput, float) or throughput in ["auto", "eval"]
         if throughput in ["auto", "eval"]:
             throughput = get_server_throughput(
+                converted_model_name_or_path,
                 self.block_config,
                 device,
                 torch_dtype,
@@ -355,7 +353,7 @@ class ModuleContainer(threading.Thread):
         dht: DHT,
         prefix: str,
         converted_model_name_or_path: str,
-        block_config: BloomConfig,
+        block_config: PretrainedConfig,
         attn_cache_size: int,
         alloc_timeout: float,
         throughput: float,
@@ -403,9 +401,12 @@ class ModuleContainer(threading.Thread):
                     cache_dir=cache_dir,
                     max_disk_space=max_disk_space,
                 )
+                backend_dtype = next(block.parameters()).dtype if torch_dtype == "auto" else torch_dtype
                 block = convert_block(block, block_config, tensor_parallel_devices, device, load_in_8bit, freeze=True)
 
-                backend_dtype = next(block.parameters()).dtype if torch_dtype == "auto" else torch_dtype
+                if module_uid == module_uids[0]:
+                    logger.info(f"Model weights are loaded in {get_dtype_name(backend_dtype, load_in_8bit)} format")
+
                 blocks[module_uid] = TransformerBackend(
                     module_uid,
                     block,

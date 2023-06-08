@@ -2,13 +2,11 @@ from typing import Optional, Union
 
 import torch
 from accelerate import init_empty_weights
-from transformers import BloomConfig
-
-from petals.bloom.block import WrappedBloomBlock
+from transformers import PretrainedConfig
 
 
-def resolve_block_dtype(config: BloomConfig, dtype: Union[str, torch.dtype]) -> Union[str, torch.dtype]:
-    """If dtype is "auto", resolves it using BloomConfig. Returns `dtype` intact otherwise."""
+def resolve_block_dtype(config: PretrainedConfig, dtype: Union[str, torch.dtype]) -> Union[str, torch.dtype]:
+    """If dtype is "auto", resolves it using the config. Returns `dtype` intact otherwise."""
 
     if dtype == "auto" or dtype is None:
         dtype = config.torch_dtype
@@ -18,7 +16,7 @@ def resolve_block_dtype(config: BloomConfig, dtype: Union[str, torch.dtype]) -> 
 
 
 def get_block_size(
-    config: BloomConfig,
+    config: PretrainedConfig,
     location: str,
     *,
     dtype: Optional[Union[str, torch.dtype]] = None,
@@ -31,7 +29,7 @@ def get_block_size(
         ), 'get_block_size(..., location="memory") requires to specify dtype and load_in_8bit for calculations'
 
     with init_empty_weights(include_buffers=True):
-        block = WrappedBloomBlock(config)
+        block = config.block_class(config)
         n_params = sum(param.numel() for param in block.parameters())
 
     if location == "memory" and load_in_8bit:
