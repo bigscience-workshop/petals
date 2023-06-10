@@ -23,7 +23,7 @@ from petals.dht_utils import declare_active_modules, get_remote_module_infos
 from petals.server import block_selection
 from petals.server.backend import TransformerBackend, merge_inference_pools_inplace
 from petals.server.block_utils import get_block_size
-from petals.server.from_pretrained import AutoBlockConfig, DTYPE_MAP, load_pretrained_block
+from petals.server.from_pretrained import DTYPE_MAP, AutoBlockConfig, load_pretrained_block
 from petals.server.handler import TransformerConnectionHandler
 from petals.server.memory_cache import MemoryCache
 from petals.server.reachability import ReachabilityProtocol, check_direct_reachability, validate_reachability
