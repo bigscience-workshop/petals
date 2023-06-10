@@ -7,13 +7,13 @@ from transformers import BloomConfig
 from petals.bloom.block import WrappedBloomBlock
 
 
-def resolve_block_dtype(config: BloomConfig, dtype: Union[str, torch.dtype]) -> Union[str, torch.dtype]:
+def resolve_block_dtype(config: BloomConfig, dtype: Union[str, torch.dtype]) -> torch.dtype:
     """If dtype is "auto", resolves it using BloomConfig. Returns `dtype` intact otherwise."""
 
     if dtype == "auto" or dtype is None:
-        dtype = config.torch_dtype
-        if dtype == "auto" or dtype is None:
-            dtype = torch.float32
+        if config.torch_dtype == "auto" or config.torch_dtype is None:
+            return torch.bfloat16
+        return config.torch_dtype
     return dtype
 
 

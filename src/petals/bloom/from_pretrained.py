@@ -21,7 +21,7 @@ from transformers.models.bloom.configuration_bloom import BloomConfig
 from transformers.utils import get_file_from_repo
 
 from petals.bloom.block import WrappedBloomBlock
-from petals.server.block_utils import get_block_size
+from petals.server.block_utils import get_block_size, resolve_block_dtype
 from petals.utils.disk_cache import DEFAULT_CACHE_DIR, allow_cache_reads, allow_cache_writes, free_disk_space_for
 
 logger = get_logger(__name__)
@@ -41,6 +41,7 @@ def load_pretrained_block(
 ) -> WrappedBloomBlock:
     """Load one BLOOM block from a converted model. See convert_model.py (or README.md) on how to convert it."""
     assert torch_dtype in DTYPE_MAP.values(), f"torch_dtype must be one of {list(DTYPE_MAP.values())}"
+    torch_dtype = resolve_block_dtype(config, torch_dtype)
 
     if config is None:
         config = BloomConfig.from_pretrained(converted_model_name_or_path, use_auth_token=use_auth_token)
@@ -66,7 +67,7 @@ def load_pretrained_block(
     for param_name, _ in block.named_parameters():
         assert param_name in state_dict, f"{param_name} not in state dict"
         param = state_dict[param_name]
-        if torch_dtype != "auto" and not str(param.dtype).startswith(("torch.uint", "torch.int", "torch.bool")):
+        if not str(param.dtype).startswith(("torch.uint", "torch.int", "torch.bool")):
             param = param.to(torch_dtype)
         set_module_tensor_to_device(block, param_name, "cpu", value=param, dtype=param.dtype)
 
