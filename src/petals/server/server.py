@@ -411,15 +411,11 @@ class ModuleContainer(threading.Thread):
                     memory_cache=memory_cache,
                     dtype=dtype,
                     args_schema=(
-                        BatchTensorDescriptor(
-                            1, 2048, block_config.hidden_size, dtype=dtype, compression=compression
-                        ),
+                        BatchTensorDescriptor(1, 2048, block_config.hidden_size, dtype=dtype, compression=compression),
                     ),
                     kwargs_schema={},
                     outputs_schema=(
-                        BatchTensorDescriptor(
-                            1, 2048, block_config.hidden_size, dtype=dtype, compression=compression
-                        ),
+                        BatchTensorDescriptor(1, 2048, block_config.hidden_size, dtype=dtype, compression=compression),
                     ),
                     min_batch_size=min_batch_size,
                     max_batch_size=max_batch_size,
