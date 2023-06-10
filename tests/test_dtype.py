@@ -8,6 +8,7 @@ from petals.server.block_utils import resolve_block_dtype
 MODEL_NAME = "bloom-testing/test-bloomd-350m-main"
 
 
+@pytest.mark.forked
 @pytest.mark.parametrize("torch_dtype", [torch.float32, torch.float16, "auto"])
 def test_backend_dtype(torch_dtype):
     config = DistributedBloomConfig.from_pretrained(MODEL_NAME)
