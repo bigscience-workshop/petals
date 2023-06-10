@@ -3,7 +3,6 @@ A PyTorch autograd function that runs forward/backward on a sequence of remote s
 """
 import asyncio
 import itertools
-import logging
 from collections import deque
 from typing import List, Optional, Sequence, Tuple
 

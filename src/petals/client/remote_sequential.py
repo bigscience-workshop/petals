@@ -4,7 +4,6 @@ from typing import Optional, Union
 
 import torch
 from hivemind import DHT, get_logger
-from hivemind.moe.client.remote_expert_worker import RemoteExpertWorker
 from torch import nn
 
 import petals.client

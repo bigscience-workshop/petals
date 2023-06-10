@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import itertools
-import logging
 import time
 from typing import AsyncIterator, List, Optional
 
@@ -170,10 +169,6 @@ class InferenceSession:
         self._position = 0
         self._max_length = max_length
         self.last_token_id = None
-
-    @property
-    def position(self) -> int:
-        return self._position
 
     def _enter_server_sessions(self, chosen_spans: List[RemoteSpanInfo]) -> List[_ServerInferenceSession]:
         server_sessions = []

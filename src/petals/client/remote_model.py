@@ -1,6 +1,5 @@
-import os
 from contextlib import contextmanager
-from typing import Collection, List, Optional, Union
+from typing import List, Optional, Union
 
 import hivemind
 import torch
