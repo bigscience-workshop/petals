@@ -153,8 +153,7 @@ class Server:
         if isinstance(torch_dtype, str):
             torch_dtype = DTYPE_MAP[torch_dtype]
         assert torch_dtype in DTYPE_MAP.values(), f"torch_dtype must be one of {list(DTYPE_MAP.values())}"
-        self.torch_dtype = torch_dtype
-        self.backend_dtype = resolve_block_dtype(self.block_config, torch_dtype)
+        self.block_dtype = resolve_block_dtype(self.block_config, torch_dtype)
 
         if tensor_parallel_devices is None:
             tensor_parallel_devices = (device,)
@@ -234,7 +233,7 @@ class Server:
         else:
             total_memory = torch.cuda.get_device_properties(self.device).total_memory
 
-        block_size = get_block_size(self.block_config, "memory", dtype=self.torch_dtype, load_in_8bit=self.load_in_8bit)
+        block_size = get_block_size(self.block_config, "memory", dtype=self.block_dtype, load_in_8bit=self.load_in_8bit)
 
         # The estimates below are for bigscience/bloom-petals, serving as an upper bound for other models
         attn_cache_per_block = 0.5 * GIB * num_devices  # TODO: This does not account for manually set --attn_cache_size
@@ -265,8 +264,7 @@ class Server:
                 min_batch_size=self.min_batch_size,
                 max_batch_size=self.max_batch_size,
                 inference_max_length=self.inference_max_length,
-                torch_dtype=self.torch_dtype,
-                backend_dtype=self.backend_dtype,
+                dtype=self.block_dtype,
                 cache_dir=self.cache_dir,
                 max_disk_space=self.max_disk_space,
                 device=self.device,
@@ -363,8 +361,7 @@ class ModuleContainer(threading.Thread):
         block_indices: List[int],
         min_batch_size: int,
         max_batch_size: int,
-        torch_dtype: torch.dtype,
-        backend_dtype: torch.dtype,
+        dtype: torch.dtype,
         cache_dir: str,
         max_disk_space: int,
         device: Union[str, torch.device],
@@ -400,7 +397,7 @@ class ModuleContainer(threading.Thread):
                     converted_model_name_or_path,
                     block_index,
                     block_config,
-                    torch_dtype=torch_dtype,
+                    torch_dtype=dtype,
                     use_auth_token=use_auth_token,
                     cache_dir=cache_dir,
                     max_disk_space=max_disk_space,
@@ -412,16 +409,16 @@ class ModuleContainer(threading.Thread):
                     block,
                     config=block_config,
                     memory_cache=memory_cache,
-                    backend_dtype=backend_dtype,
+                    dtype=dtype,
                     args_schema=(
                         BatchTensorDescriptor(
-                            1, 2048, block_config.hidden_size, dtype=backend_dtype, compression=compression
+                            1, 2048, block_config.hidden_size, dtype=dtype, compression=compression
                         ),
                     ),
                     kwargs_schema={},
                     outputs_schema=(
                         BatchTensorDescriptor(
-                            1, 2048, block_config.hidden_size, dtype=backend_dtype, compression=compression
+                            1, 2048, block_config.hidden_size, dtype=dtype, compression=compression
                         ),
                     ),
                     min_batch_size=min_batch_size,
