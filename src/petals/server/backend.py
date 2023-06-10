@@ -48,7 +48,6 @@ class TransformerBackend(ModuleBackend):
             self.backward, max_batch_size=max_batch_size, device=device, name=f"{self.name}_backward"
         )
 
-        assert backend_dtype is not None
         self.dtype = backend_dtype
         self.shard_num_heads = []
         for shard in self.module.module_shards:

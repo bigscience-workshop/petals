@@ -4,9 +4,10 @@ import configargparse
 from hivemind.proto.runtime_pb2 import CompressionType
 from hivemind.utils.limits import increase_file_limit
 from hivemind.utils.logging import get_logger
+from humanfriendly import parse_size
 
 from petals.constants import PUBLIC_INITIAL_PEERS
-from petals.server.server import Server
+from petals.server.server import DTYPE_MAP, Server
 from petals.utils.version import validate_version
 
 logger = get_logger(__name__)
@@ -77,7 +78,7 @@ def main():
 
     parser.add_argument('--device', type=str, default=None, required=False,
                         help='all blocks will use this device in torch notation; default: cuda if available else cpu')
-    parser.add_argument("--torch_dtype", type=str, default="auto",
+    parser.add_argument("--torch_dtype", type=str, choices=DTYPE_MAP.keys(), default="auto",
                         help="Use this dtype to store block weights and do computations. "
                              "By default, respect the dtypes in the pre-trained state dict.")
     parser.add_argument('--attn_cache_tokens', type=int, default=8192,

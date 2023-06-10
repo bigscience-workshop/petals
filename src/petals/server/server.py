@@ -148,8 +148,7 @@ class Server:
             device = torch.device(device.type, index=0)
         self.device = device
 
-        if isinstance(torch_dtype, str):
-            torch_dtype = DTYPE_MAP[torch_dtype]
+        torch_dtype = DTYPE_MAP[torch_dtype]
         assert torch_dtype in DTYPE_MAP.values(), f"torch_dtype must be one of {list(DTYPE_MAP.values())}"
         self.torch_dtype = resolve_block_dtype(self.block_config, torch_dtype)
 
