@@ -8,7 +8,6 @@ import threading
 import time
 from typing import Dict, List, Optional, Sequence, Union
 
-import numpy as np
 import torch
 from hivemind import DHT, MAX_DHT_TIME_DISCREPANCY_SECONDS, BatchTensorDescriptor, get_dht_time
 from hivemind.moe.server.layers import add_custom_models_from_file
@@ -502,7 +501,6 @@ class ModuleContainer(threading.Thread):
             expiration=expiration,
             daemon=True,
         )
-        self.checkpoint_saver = None  # no need to save checkpoints since we do not change model state
 
         if start:
             self.run_in_background(await_ready=True)
@@ -516,9 +514,6 @@ class ModuleContainer(threading.Thread):
             self.dht.run_in_background(await_ready=True)
 
         self.online_announcer.start()
-
-        if self.checkpoint_saver is not None:
-            self.checkpoint_saver.start()
 
         for handler in self.conn_handlers:
             handler.run_in_background()

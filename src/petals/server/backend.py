@@ -16,7 +16,7 @@ from transformers import BloomConfig
 from transformers.models.bloom.modeling_bloom import BloomAttention
 
 from petals.data_structures import InferenceMetadata
-from petals.server.memory_cache import Handle, MemoryCache
+from petals.server.memory_cache import MemoryCache
 from petals.server.task_pool import PrioritizedTaskPool
 from petals.utils.misc import is_dummy
 
