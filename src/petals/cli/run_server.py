@@ -80,7 +80,7 @@ def main():
     parser.add_argument("--torch_dtype", type=str, default="auto",
                         help="Use this dtype to store block weights and do computations. "
                              "By default, respect the dtypes in the pre-trained state dict.")
-    parser.add_argument('--attn_cache_size', type=int, default=8192,
+    parser.add_argument('--attn_cache_tokens', type=int, default=8192,
                         help='The number of past attention key/value pairs that will be stored between inference steps. '
                              'Default: 8192 (4 simultaneous sessions of up to 2048 tokens).')
     parser.add_argument('--alloc_timeout', type=float, default=60,

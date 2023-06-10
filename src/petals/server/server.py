@@ -56,7 +56,7 @@ class Server:
         revision: str = "main",
         cache_dir: Optional[str] = None,
         max_disk_space: Optional[int] = None,
-        attn_cache_size: int = 8192,
+        attn_cache_tokens: int = 8192,
         alloc_timeout: float = 60,
         device: Optional[Union[str, torch.device]] = None,
         compression=CompressionType.NONE,
@@ -165,7 +165,7 @@ class Server:
         self.load_in_8bit = load_in_8bit
         logger.info(f"Model weights will be loaded in {get_dtype_name(torch_dtype, load_in_8bit)} format")
 
-        max_values_in_cache = 2 * self.block_config.hidden_size * attn_cache_size
+        max_values_in_cache = 2 * self.block_config.hidden_size * attn_cache_tokens
         self._cache_bytes_per_block = max_values_in_cache * torch.finfo(self.backend_dtype).bits // 8
 
         assert num_blocks is None or block_indices is None, "Please specify num_blocks or block_indices, not both"
