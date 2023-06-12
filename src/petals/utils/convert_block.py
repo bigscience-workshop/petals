@@ -24,12 +24,10 @@ def convert_block(
     config: BloomConfig,
     tensor_parallel_devices: Sequence[torch.device],
     output_device: torch.device,
-    load_in_8bit: bool,
-    threshold: float = 6.0,
     freeze: bool = True,
 ) -> tp.TensorParallel:
     """
-    Optimize a transformer block for use in a Petals server, apply tensor parallelism and/or LLM.8bit quantization
+    Optimize a transformer block for use in a Petals server and apply tensor parallelism
 
     :note: some optimizations will modify the input block in-place!
     :param block: a single transformer block, either pre-trained or newly initialized
@@ -37,8 +35,6 @@ def convert_block(
     :param tensor_parallel_devices: if specified, use tensor parallelism to split the model between these devices
     :note: if there is only a single device, model wil still be wrapped with TensorParallel (for uniformity)
     :param output_device: if tensor_parallel_devices is True, output
-    :param load_in_8bit: if True, use LLM.int8() quantization to reduce the model memory footprint
-    :param threshold: a quantization threshold from LLM.int8() paper ( https://arxiv.org/abs/2208.07339 )
     :param freeze: if True (default), make all module parameters non-trainable
     :return: a module that acts like the original block, but runs with all specified optimizations
 
@@ -48,9 +44,6 @@ def convert_block(
             param.requires_grad = False
 
     block = make_tensor_parallel(block, config, tensor_parallel_devices, output_device=output_device)
-
-    if load_in_8bit:
-        block = replace_8bit_linear(block, threshold=threshold)
 
     for shard, device in zip(block.module_shards, block.devices):
         shard.to(device)
