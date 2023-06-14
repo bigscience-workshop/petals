@@ -1,10 +1,5 @@
-"""
-PyTorch BLOOM model that implements several memory-efficient modes.
-Based on https://github.com/huggingface/transformers/commit/ca2a55e9dfb245527b5e1c954fec6ffbb7aef07b
-See commit history for authorship.
-"""
-
 import platform
+from contextlib import contextmanager
 
 import psutil
 import torch
@@ -97,3 +92,25 @@ class LMHead(nn.Module):
             chunk = word_embeddings[i : i + self.chunked_forward_step].float()
             output[..., i : i + self.chunked_forward_step] = F.linear(hidden_states, chunk)
         return output
+
+
+_original_register_parameter = nn.Module.register_parameter
+
+
+@contextmanager
+def force_non_empty_weights():
+    """
+    This context manager allows to bypass the accelerate.init_empty_weights() context manager
+    (that forces all nn.Parameters to be PyTorch's meta tensors) used when low_cpu_mem_usage=True.
+    The transformers library should replace all meta tensors by empty tensors by itself
+    but this feature does not work due to a bug ([1] fails if `add_prefix_to_model == True`).
+
+    [1] https://github.com/huggingface/transformers/blob/ab9fe45236cd99b8797df78219438f8f6662bb42/src/transformers/modeling_utils.py#L2515
+    """
+
+    try:
+        possibly_patched_register_parameter = nn.Module.register_parameter
+        nn.Module.register_parameter = _original_register_parameter
+        yield
+    finally:
+        nn.Module.register_parameter = possibly_patched_register_parameter
