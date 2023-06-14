@@ -5,8 +5,8 @@ import pytest
 import torch
 from hivemind import DHT, get_logger
 
+from petals import DistributedBloomConfig
 from petals.client import RemoteSequenceManager, RemoteSequential
-from petals.client.remote_model import DistributedBloomConfig
 from petals.data_structures import UID_DELIMITER
 from test_utils import *
 

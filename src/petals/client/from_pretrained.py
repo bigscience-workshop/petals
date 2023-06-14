@@ -1,4 +1,5 @@
 import contextlib
+import dataclasses
 import json
 import os
 import re
@@ -10,8 +11,21 @@ import torch
 from hivemind.utils.logging import get_logger
 from transformers import BloomPreTrainedModel, modeling_utils
 
+from petals.client.routing.sequence_manager import SequenceManagerConfig
+
 logger = get_logger(__name__)
 logger.setLevel("DEBUG")
+
+
+@dataclasses.dataclass
+class DistributedPretrainedConfig(SequenceManagerConfig):
+    pre_seq_len: int = 0  # a number of tokens for prompt tuning.
+    tuning_mode: Optional[str] = None  # fine-tuning regime, one of [None, "ptune", "deep_ptune"]
+
+    # This settings matter for running the client with dtype bfloat16 on CPU.
+    # If the CPU doesn't support AVX512, chunked_forward() significantly speeds up computations.
+    use_chunked_forward: Union[str, bool] = "auto"
+    chunked_forward_step: int = 16384
 
 
 class FromPretrainedMixin:

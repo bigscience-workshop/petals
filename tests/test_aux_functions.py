@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from petals.client import DistributedBloomConfig
+from petals import DistributedBloomConfig
 from petals.server.throughput import measure_compute_rps
 from test_utils import MODEL_NAME
 

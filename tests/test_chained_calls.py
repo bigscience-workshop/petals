@@ -8,7 +8,7 @@ import pytest
 import torch
 
 from petals.bloom.from_pretrained import load_pretrained_block
-from petals.client import DistributedBloomConfig
+from petals import DistributedBloomConfig
 from petals.client.remote_sequential import RemoteSequential
 from test_utils import *
 

@@ -4,12 +4,10 @@ from typing import Optional, Union
 
 import torch
 from hivemind import DHT, get_logger
-from hivemind.moe.client.remote_expert_worker import RemoteExpertWorker
 from torch import nn
 
-import petals.client
 from petals.client.inference_session import InferenceSession
-from petals.client.routing.sequence_manager import RemoteSequenceManager
+from petals.client.routing.sequence_manager import RemoteSequenceManager, SequenceManagerConfig
 from petals.client.sequential_autograd import _RemoteSequentialAutogradFunction
 from petals.data_structures import UID_DELIMITER
 from petals.utils.misc import DUMMY
@@ -24,7 +22,7 @@ class RemoteSequential(nn.Module):
 
     def __init__(
         self,
-        config: petals.client.DistributedBloomConfig,
+        config: SequenceManagerConfig,
         *,
         sequence_manager: Optional[RemoteSequenceManager] = None,
         dht: Optional[DHT] = None,

@@ -13,10 +13,9 @@ from transformers.models.bloom import (
     BloomPreTrainedModel,
 )
 
-from petals.client.from_pretrained import FromPretrainedMixin
+from petals.client.from_pretrained import DistributedPretrainedConfig, FromPretrainedMixin
 from petals.client.modeling_utils import LMHead, force_non_empty_weights
 from petals.client.remote_generation import RemoteGenerationMixin
-from petals.client.remote_model import DistributedPretrainedConfig
 from petals.client.remote_sequential import RemoteSequential
 from petals.utils.misc import DUMMY
 

@@ -18,6 +18,7 @@ from hivemind.proto import runtime_pb2
 from hivemind.utils.logging import get_logger
 
 import petals.dht_utils
+from petals.constants import PUBLIC_INITIAL_PEERS
 from petals.client.routing.sequence_info import RemoteSequenceInfo
 from petals.client.routing.spending_policy import NoSpendingPolicy
 from petals.data_structures import ModuleUID, RemoteSpanInfo, ServerState
@@ -28,6 +29,10 @@ logger = get_logger(__name__)
 
 @dataclasses.dataclass
 class SequenceManagerConfig:
+    initial_peers: Sequence[str] = tuple(PUBLIC_INITIAL_PEERS)  # a list of initial peers for hivemind DHT
+    dht_prefix: Optional[str] = None  # a prefix for all dht keys that correspond to this model (default: model name)
+    daemon_startup_timeout: int = 60  # timeout for the libp2p daemon connecting to initial peers
+
     allowed_servers: Optional[Collection[Union[PeerID, str]]] = None  # if defined, send requests only to these servers
 
     request_timeout: float = 3 * 60  # timeout for forward/backward/inference requests

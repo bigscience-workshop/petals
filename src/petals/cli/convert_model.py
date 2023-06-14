@@ -10,8 +10,8 @@ from huggingface_hub import HfApi, Repository
 from tqdm.auto import tqdm
 from transformers.models.bloom.modeling_bloom import BloomModel
 
+from petals.bloom import DistributedBloomConfig
 from petals.bloom.from_pretrained import BLOCK_BRANCH_PREFIX, CLIENT_BRANCH
-from petals.client import DistributedBloomConfig
 
 logger = get_logger(__name__)
 
