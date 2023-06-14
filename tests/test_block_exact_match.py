@@ -3,8 +3,8 @@ import random
 import pytest
 import torch
 
-from petals.server.from_pretrained import load_pretrained_block
 from petals import DistributedBloomConfig, RemoteSequential
+from petals.server.from_pretrained import load_pretrained_block
 from test_utils import *
 
 

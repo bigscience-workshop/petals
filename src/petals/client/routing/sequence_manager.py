@@ -18,9 +18,9 @@ from hivemind.proto import runtime_pb2
 from hivemind.utils.logging import get_logger
 
 import petals.dht_utils
-from petals.constants import PUBLIC_INITIAL_PEERS
 from petals.client.routing.sequence_info import RemoteSequenceInfo
 from petals.client.routing.spending_policy import NoSpendingPolicy
+from petals.constants import PUBLIC_INITIAL_PEERS
 from petals.data_structures import ModuleUID, RemoteSpanInfo, ServerState
 from petals.server.handler import TransformerConnectionHandler
 

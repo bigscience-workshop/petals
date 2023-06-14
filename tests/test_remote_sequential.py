@@ -4,8 +4,8 @@ import torch.nn.functional as F
 from hivemind import DHT, BatchTensorDescriptor, get_logger
 from hivemind.proto import runtime_pb2
 
-from petals.bloom.from_pretrained import load_pretrained_block
 from petals import DistributedBloomConfig
+from petals.bloom.from_pretrained import load_pretrained_block
 from petals.client import RemoteSequenceManager, RemoteSequential
 from petals.data_structures import UID_DELIMITER
 from test_utils import *
