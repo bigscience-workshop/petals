@@ -102,6 +102,8 @@ def _load_state_dict_from_repo(
     index_file = get_file_from_repo(
         model_name, filename="pytorch_model.bin.index.json", use_auth_token=use_auth_token, cache_dir=cache_dir
     )
+    if index_file is None:
+        raise NotImplementedError(f"Petals only supports sharded models for now ({model_name} is not sharded)")
     with open(index_file) as f:
         index = json.load(f)
 

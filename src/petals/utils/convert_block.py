@@ -110,7 +110,7 @@ def make_tensor_parallel(
         for submodule in tp_shard.modules():
             if isinstance(submodule, model_config.attn_class):
                 total_heads += submodule.num_heads
-    assert total_heads == model_config.n_head, f"{total_heads=} != {model_config.n_head=}"
+    assert total_heads == model_config.n_head
     return tp_block
 
 
