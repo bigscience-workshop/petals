@@ -14,7 +14,7 @@ from tensor_parallel.tensor_parallel import PerDeviceTensors
 from transformers import PretrainedConfig
 
 from petals.data_structures import InferenceMetadata
-from petals.server.memory_cache import Handle, MemoryCache
+from petals.server.memory_cache import MemoryCache
 from petals.server.task_pool import PrioritizedTaskPool
 from petals.utils.misc import is_dummy
 

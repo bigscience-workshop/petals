@@ -85,7 +85,6 @@ class NucleusAlgorithm(SamplingAlgorithm):
 class BeamSearchAlgorithm(DecodingAlgorithm):
     def __init__(self, num_beams: int, batch_size: int) -> None:
         self.num_beams = num_beams
-        self._cur_num_beams = 1
         self.batch_size = batch_size
 
         self._batch_beams = [list() for _ in range(batch_size)]

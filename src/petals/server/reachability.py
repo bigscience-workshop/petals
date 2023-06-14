@@ -5,7 +5,6 @@ import time
 from concurrent.futures import Future
 from contextlib import asynccontextmanager
 from functools import partial
-from secrets import token_hex
 from typing import Optional
 
 import requests
