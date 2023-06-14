@@ -121,7 +121,12 @@ def _load_state_dict_from_repo(
     state_dict = {}
     for filename in filenames:
         shard_state_dict = _load_state_dict_from_file(
-            model_name, filename, revision=revision, use_auth_token=use_auth_token, cache_dir=cache_dir, max_disk_space=max_disk_space
+            model_name,
+            filename,
+            revision=revision,
+            use_auth_token=use_auth_token,
+            cache_dir=cache_dir,
+            max_disk_space=max_disk_space,
         )
         shard_state_dict = {
             param_name[len(block_prefix) :]: param
@@ -146,7 +151,12 @@ def _load_state_dict_from_file(
     try:
         with allow_cache_reads(cache_dir):
             path = get_file_from_repo(
-                model_name, filename, revision=revision, use_auth_token=use_auth_token, cache_dir=cache_dir, local_files_only=True
+                model_name,
+                filename,
+                revision=revision,
+                use_auth_token=use_auth_token,
+                cache_dir=cache_dir,
+                local_files_only=True,
             )
             if path is not None:
                 return torch.load(path, map_location="cpu")
@@ -165,7 +175,12 @@ def _load_state_dict_from_file(
                     logger.warning(f"Failed to fetch size of file {filename} from repo {model_name}")
 
                 path = get_file_from_repo(
-                    model_name, filename, revision=revision, use_auth_token=use_auth_token, cache_dir=cache_dir, local_files_only=False
+                    model_name,
+                    filename,
+                    revision=revision,
+                    use_auth_token=use_auth_token,
+                    cache_dir=cache_dir,
+                    local_files_only=False,
                 )
                 if path is None:
                     raise RuntimeError(f"File {filename} does not exist in repo {model_name}")
