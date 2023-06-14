@@ -26,7 +26,7 @@ logger = get_logger(__name__)
 class TransformerBackend(ModuleBackend):
     """A wrapper for a BLOOM block that can process requests for BLOOM layer forward, backward and inference"""
 
-    def __init__(self, *args, config: BloomConfig, memory_cache: MemoryCache, dtype: torch.dtype, **kwargs):
+    def __init__(self, *args, config: BloomConfig, memory_cache: MemoryCache, backend_dtype: torch.dtype, **kwargs):
         super().__init__(*args, **kwargs)
         assert isinstance(self.module, TensorParallel)
         self.config = config
@@ -48,8 +48,8 @@ class TransformerBackend(ModuleBackend):
             self.backward, max_batch_size=max_batch_size, device=device, name=f"{self.name}_backward"
         )
 
-        assert dtype is not None
-        self.dtype = dtype
+        assert backend_dtype is not None
+        self.dtype = backend_dtype
         self.shard_num_heads = []
         for shard in self.module.module_shards:
             for submodule in shard.modules():

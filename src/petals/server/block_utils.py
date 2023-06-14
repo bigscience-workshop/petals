@@ -9,12 +9,11 @@ from petals.bloom.block import WrappedBloomBlock
 
 def resolve_block_dtype(config: BloomConfig, dtype: Union[str, torch.dtype]) -> torch.dtype:
     """If dtype is "auto", resolves it using BloomConfig. Returns `dtype` intact otherwise."""
-
-    if dtype == "auto" or dtype is None:
-        if config.torch_dtype == "auto" or config.torch_dtype is None:
-            return torch.bfloat16
+    if dtype not in ("auto", None):
+        return dtype
+    if config.torch_dtype not in ("auto", None):
         return config.torch_dtype
-    return dtype
+    return torch.bfloat16
 
 
 def get_block_size(
