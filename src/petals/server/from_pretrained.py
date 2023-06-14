@@ -102,16 +102,16 @@ def _load_state_dict_from_repo(
     index_file = get_file_from_repo(
         model_name, filename="pytorch_model.bin.index.json", use_auth_token=use_auth_token, cache_dir=cache_dir
     )
-    if index_file is None:
-        raise NotImplementedError(f"Petals only supports sharded models for now ({model_name} is not sharded)")
-    with open(index_file) as f:
-        index = json.load(f)
-
-    filenames = {
-        filename for param_name, filename in index["weight_map"].items() if param_name.startswith(block_prefix)
-    }
-    if not filenames:
-        raise RuntimeError(f"Block {block_prefix}* not found in the index: {index['weight_map']}")
+    if index_file is not None:  # Sharded model
+        with open(index_file) as f:
+            index = json.load(f)
+        filenames = {
+            filename for param_name, filename in index["weight_map"].items() if param_name.startswith(block_prefix)
+        }
+        if not filenames:
+            raise RuntimeError(f"Block {block_prefix}* not found in the index: {index['weight_map']}")
+    else:  # Non-sharded model
+        filenames = {"pytorch_model.bin"}
     logger.debug(f"Loading {block_prefix}* from {filenames}")
 
     state_dict = {}
