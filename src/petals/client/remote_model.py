@@ -1,6 +1,7 @@
+import dataclasses
 import os
 from contextlib import contextmanager
-from typing import Collection, List, Optional, Union
+from typing import Collection, Optional, Sequence, Union
 
 import hivemind
 import torch
@@ -26,13 +27,9 @@ from petals.utils.misc import DUMMY
 logger = get_logger(__name__)
 
 
-class DistributedBloomConfig(BloomConfig, SequenceManagerConfig):
-    """
-    A bloom config that contains information about DHT peers.
-    To create a distributed model, one must provide dht_prefix and either initial_peers or dht.
-    """
-
-    initial_peers: List[str] = PUBLIC_INITIAL_PEERS  # a list of initial peers for hivemind DHT
+@dataclasses.dataclass
+class DistributedPretrainedConfig(SequenceManagerConfig):
+    initial_peers: Sequence[str] = tuple(PUBLIC_INITIAL_PEERS)  # a list of initial peers for hivemind DHT
     dht_prefix: Optional[str] = None  # a prefix for all dht keys that correspond to this model (default: model name)
     daemon_startup_timeout: int = 60  # timeout for the libp2p daemon connecting to initial peers
 
@@ -43,6 +40,10 @@ class DistributedBloomConfig(BloomConfig, SequenceManagerConfig):
     # If the CPU doesn't support AVX512, chunked_forward() significantly speeds up computations.
     use_chunked_forward: Union[str, bool] = "auto"
     chunked_forward_step: int = 16384
+
+
+class DistributedBloomConfig(BloomConfig, DistributedPretrainedConfig):
+    pass
 
 
 original_register_parameter = nn.Module.register_parameter
