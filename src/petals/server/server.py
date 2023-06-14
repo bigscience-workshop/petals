@@ -90,7 +90,7 @@ class Server:
         self.compression = compression
         self.stats_report_interval, self.update_period = stats_report_interval, update_period
         self.prefetch_batches, self.sender_threads = prefetch_batches, sender_threads
-        self.use_auth_token = use_auth_token
+        self.revision, self.use_auth_token = revision, use_auth_token
 
         if custom_module_path is not None:
             add_custom_models_from_file(custom_module_path)
