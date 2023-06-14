@@ -14,7 +14,6 @@ from transformers import BloomPreTrainedModel, modeling_utils
 from petals.client.routing.sequence_manager import SequenceManagerConfig
 
 logger = get_logger(__name__)
-logger.setLevel("DEBUG")
 
 
 @dataclasses.dataclass

@@ -9,7 +9,6 @@ import huggingface_hub
 from hivemind.utils.logging import get_logger
 
 logger = get_logger(__name__)
-logger.setLevel("DEBUG")
 
 DEFAULT_CACHE_DIR = os.getenv("PETALS_CACHE", Path(Path.home(), ".cache", "petals"))
 

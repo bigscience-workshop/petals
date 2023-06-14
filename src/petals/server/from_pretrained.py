@@ -23,7 +23,6 @@ from petals.server.model_specs import MODEL_SPECS
 from petals.utils.disk_cache import DEFAULT_CACHE_DIR, allow_cache_reads, allow_cache_writes, free_disk_space_for
 
 logger = get_logger(__name__)
-logger.setLevel("DEBUG")
 
 
 class AutoBlockConfig:
