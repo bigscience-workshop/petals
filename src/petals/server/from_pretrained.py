@@ -17,10 +17,8 @@ from accelerate.utils import set_module_tensor_to_device
 from hivemind.utils.logging import get_logger
 from huggingface_hub import get_hf_file_metadata, hf_hub_url
 from transformers import AutoConfig, PretrainedConfig
-from transformers.modeling_utils import WEIGHTS_NAME
 from transformers.utils import get_file_from_repo
 
-from petals.server.block_utils import get_block_size
 from petals.server.model_specs import MODEL_SPECS
 from petals.utils.disk_cache import DEFAULT_CACHE_DIR, allow_cache_reads, allow_cache_writes, free_disk_space_for
 
@@ -70,7 +68,6 @@ def load_pretrained_block(
     state_dict = _load_state_dict_from_repo(
         model_name,
         block_prefix,
-        config,
         use_auth_token=use_auth_token,
         cache_dir=cache_dir,
         max_disk_space=max_disk_space,
@@ -97,7 +94,6 @@ StateDict = Dict[str, torch.Tensor]
 def _load_state_dict_from_repo(
     model_name: str,
     block_prefix: str,
-    config: PretrainedConfig,
     *,
     use_auth_token: Optional[str] = None,
     cache_dir: str,
