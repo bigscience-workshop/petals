@@ -32,6 +32,7 @@ jobs:
       - name: Test
         run: |
           export MODEL_NAME=bigscience/bloom-560m
+          export REF_NAME=bigscience/bloom-560m
 
           python -m petals.cli.run_server $MODEL_NAME --block_indices 0:12 \
             --new_swarm --identity tests/test.id --host_maddrs /ip4/127.0.0.1/tcp/31337 --throughput 1 \
