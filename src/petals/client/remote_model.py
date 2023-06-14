@@ -16,6 +16,7 @@ from transformers.models.bloom import (
 )
 
 from petals.bloom.modeling_utils import LMHead
+from petals.client.from_pretrained import FromPretrainedMixin
 from petals.client.remote_generation import RemoteGenerationMixin
 from petals.client.remote_sequential import RemoteSequential
 from petals.client.routing.sequence_manager import SequenceManagerConfig
@@ -32,7 +33,7 @@ class DistributedBloomConfig(BloomConfig, SequenceManagerConfig):
     """
 
     initial_peers: List[str] = PUBLIC_INITIAL_PEERS  # a list of initial peers for hivemind DHT
-    dht_prefix: str  # a prefix for all dht keys that correspond to this model (usually equal to model name)
+    dht_prefix: Optional[str] = None  # a prefix for all dht keys that correspond to this model (default: model name)
     daemon_startup_timeout: int = 60  # timeout for the libp2p daemon connecting to initial peers
 
     pre_seq_len: int = 0  # a number of tokens for prompt tuning.
@@ -66,38 +67,13 @@ def force_non_empty_weights():
         nn.Module.register_parameter = possibly_patched_register_parameter
 
 
-class _FromPretrainedDefaultsMixin:
-    @classmethod
-    def from_pretrained(
-        cls,
-        *args,
-        low_cpu_mem_usage: Optional[bool] = None,
-        torch_dtype: Optional[Union[str, torch.dtype]] = None,
-        **kwargs,
-    ):
-        if low_cpu_mem_usage is None:
-            low_cpu_mem_usage = True
-        if torch_dtype is None:
-            # torch_dtype=None gives torch.float32 in transformers>=4.26.0. In contrast,
-            # torch_dtype="auto" attempts to (1) use config.torch_dtype (if exists), (2) use dtype of the weights.
-            torch_dtype = "auto"
-        return super().from_pretrained(*args, low_cpu_mem_usage=low_cpu_mem_usage, torch_dtype=torch_dtype, **kwargs)
-
-    from_pretrained.__doc__ = BloomPreTrainedModel.from_pretrained.__doc__.replace(
-        "low_cpu_mem_usage(`bool`, *optional*)",
-        "low_cpu_mem_usage(`bool`, *optional*, defaults to `True` in Petals)",
-    ).replace(
-        "torch_dtype (`str` or `torch.dtype`, *optional*)",
-        'torch_dtype (`str` or `torch.dtype`, *optional*, defaults to `"auto"` in Petals)',
-    )
-
-
-class DistributedBloomModel(_FromPretrainedDefaultsMixin, BloomModel):
+class DistributedBloomModel(FromPretrainedMixin, BloomModel):
     """BloomModel, but all transformer layers are hosted by the swarm"""
 
     _keys_to_ignore_on_load_missing = BloomModel._keys_to_ignore_on_load_missing + [
         r"^(intermediate_)?prompt_embeddings\.weight$",
     ]
+    _keys_to_ignore_on_load_unexpected = [r"^h\."]
 
     config_class = DistributedBloomConfig
 
@@ -212,7 +188,7 @@ class DistributedBloomModel(_FromPretrainedDefaultsMixin, BloomModel):
         )
 
 
-class DistributedBloomForCausalLM(_FromPretrainedDefaultsMixin, RemoteGenerationMixin, BloomForCausalLM):
+class DistributedBloomForCausalLM(FromPretrainedMixin, RemoteGenerationMixin, BloomForCausalLM):
     """DistributedBloomForCausalLM, but all transformer layers are hosted by the swarm"""
 
     _keys_to_ignore_on_load_missing = (
@@ -220,6 +196,7 @@ class DistributedBloomForCausalLM(_FromPretrainedDefaultsMixin, RemoteGeneration
         + DistributedBloomModel._keys_to_ignore_on_load_missing
         + [r"^lm_head.word_embeddings\.weight$"]  # Missing since they are shared with input embeddings
     )
+    _keys_to_ignore_on_load_unexpected = DistributedBloomModel._keys_to_ignore_on_load_unexpected
 
     config_class = DistributedBloomConfig
 
@@ -250,11 +227,12 @@ class DistributedBloomForCausalLM(_FromPretrainedDefaultsMixin, RemoteGeneration
             self.lm_head.bias[...] = new_lm_head.bias
 
 
-class DistributedBloomForSequenceClassification(_FromPretrainedDefaultsMixin, BloomForSequenceClassification):
+class DistributedBloomForSequenceClassification(FromPretrainedMixin, BloomForSequenceClassification):
     _keys_to_ignore_on_load_missing = (
         BloomForSequenceClassification._keys_to_ignore_on_load_missing
         + DistributedBloomModel._keys_to_ignore_on_load_missing
     )
+    _keys_to_ignore_on_load_unexpected = DistributedBloomModel._keys_to_ignore_on_load_unexpected
 
     config_class = DistributedBloomConfig
 
