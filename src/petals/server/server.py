@@ -53,6 +53,7 @@ class Server:
         max_batch_size: int = 2048,
         inference_max_length: int = 2048,
         torch_dtype: str = "auto",
+        revision: Optional[str] = None,
         cache_dir: Optional[str] = None,
         max_disk_space: Optional[int] = None,
         attn_cache_size: Optional[int] = None,
@@ -113,6 +114,7 @@ class Server:
         self.block_config = AutoBlockConfig.from_pretrained(
             converted_model_name_or_path,
             use_auth_token=use_auth_token,
+            revision=revision,
         )
         self.module_uids = [f"{self.prefix}.{block_index}" for block_index in range(self.block_config.n_layer)]
 
@@ -274,6 +276,7 @@ class Server:
                 step_timeout=self.step_timeout,
                 prefetch_batches=self.prefetch_batches,
                 sender_threads=self.sender_threads,
+                revision=self.revision,
                 use_auth_token=self.use_auth_token,
                 load_in_8bit=self.load_in_8bit,
                 tensor_parallel_devices=self.tensor_parallel_devices,
@@ -366,6 +369,7 @@ class ModuleContainer(threading.Thread):
         compression: CompressionType,
         update_period: float,
         expiration: Optional[float],
+        revision: Optional[str],
         use_auth_token: Optional[str],
         load_in_8bit: bool,
         tensor_parallel_devices: Sequence[torch.device],
@@ -394,8 +398,9 @@ class ModuleContainer(threading.Thread):
                 block = load_pretrained_block(
                     converted_model_name_or_path,
                     block_index,
-                    block_config,
+                    config=block_config,
                     torch_dtype=torch_dtype,
+                    revision=revision,
                     use_auth_token=use_auth_token,
                     cache_dir=cache_dir,
                     max_disk_space=max_disk_space,

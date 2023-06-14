@@ -48,8 +48,10 @@ class AutoBlockConfig:
 def load_pretrained_block(
     model_name: str,
     block_index: int,
+    *,
     config: Optional[PretrainedConfig] = None,
     torch_dtype: Union[torch.dtype, str] = "auto",
+    revision: Optional[str] = None,
     use_auth_token: Optional[str] = None,
     cache_dir: Optional[str] = None,
     max_disk_space: Optional[int] = None,
@@ -68,6 +70,7 @@ def load_pretrained_block(
     state_dict = _load_state_dict_from_repo(
         model_name,
         block_prefix,
+        revision=revision,
         use_auth_token=use_auth_token,
         cache_dir=cache_dir,
         max_disk_space=max_disk_space,
@@ -95,6 +98,7 @@ def _load_state_dict_from_repo(
     model_name: str,
     block_prefix: str,
     *,
+    revision: Optional[str] = None,
     use_auth_token: Optional[str] = None,
     cache_dir: str,
     max_disk_space: Optional[int] = None,
@@ -117,7 +121,7 @@ def _load_state_dict_from_repo(
     state_dict = {}
     for filename in filenames:
         shard_state_dict = _load_state_dict_from_file(
-            model_name, filename, use_auth_token=use_auth_token, cache_dir=cache_dir, max_disk_space=max_disk_space
+            model_name, filename, revision=revision, use_auth_token=use_auth_token, cache_dir=cache_dir, max_disk_space=max_disk_space
         )
         shard_state_dict = {
             param_name[len(block_prefix) :]: param
@@ -132,7 +136,8 @@ def _load_state_dict_from_file(
     model_name: str,
     filename: str,
     *,
-    use_auth_token: Optional[str],
+    revision: Optional[str] = None,
+    use_auth_token: Optional[str] = None,
     cache_dir: str,
     max_disk_space: Optional[int] = None,
     delay: float = 30,
@@ -141,7 +146,7 @@ def _load_state_dict_from_file(
     try:
         with allow_cache_reads(cache_dir):
             path = get_file_from_repo(
-                model_name, filename, use_auth_token=use_auth_token, cache_dir=cache_dir, local_files_only=True
+                model_name, filename, revision=revision, use_auth_token=use_auth_token, cache_dir=cache_dir, local_files_only=True
             )
             if path is not None:
                 return torch.load(path, map_location="cpu")
@@ -152,7 +157,7 @@ def _load_state_dict_from_file(
     while True:
         try:
             with allow_cache_writes(cache_dir):
-                url = hf_hub_url(model_name, filename)
+                url = hf_hub_url(model_name, filename, revision=revision)
                 file_size = get_hf_file_metadata(url, token=use_auth_token).size
                 if file_size is not None:
                     free_disk_space_for(model_name, file_size, cache_dir=cache_dir, max_disk_space=max_disk_space)
@@ -160,7 +165,7 @@ def _load_state_dict_from_file(
                     logger.warning(f"Failed to fetch size of file {filename} from repo {model_name}")
 
                 path = get_file_from_repo(
-                    model_name, filename, use_auth_token=use_auth_token, cache_dir=cache_dir, local_files_only=False
+                    model_name, filename, revision=revision, use_auth_token=use_auth_token, cache_dir=cache_dir, local_files_only=False
                 )
                 if path is None:
                     raise RuntimeError(f"File {filename} does not exist in repo {model_name}")
