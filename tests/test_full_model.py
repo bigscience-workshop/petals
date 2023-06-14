@@ -5,7 +5,7 @@ from hivemind import get_logger
 from transformers.generation import BeamSearchScorer
 from transformers.models.bloom import BloomForCausalLM
 
-from petals.client.remote_model import DistributedBloomForCausalLM
+from petals import DistributedBloomForCausalLM
 from test_utils import *
 
 logger = get_logger(__name__)
