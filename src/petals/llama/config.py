@@ -19,11 +19,12 @@ class DistributedLlamaConfig(LlamaConfig, SequenceManagerConfig, LMHeadConfig):
     block_prefix = "model.layers"
 
     @classmethod
-    def from_pretrained(cls, model_name_or_path: Union[str, os.PathLike, None], *args, **kwargs):
-        config = super().from_pretrained(model_name_or_path, *args, **kwargs)
-        if config.dht_prefix is None and model_name_or_path is not None and not os.path.isdir(model_name_or_path):
-            config.dht_prefix = str(model_name_or_path)
-        return config
+    def from_pretrained(
+        cls, model_name_or_path: Union[str, os.PathLike, None], *args, dht_prefix: Optional[str] = None, **kwargs
+    ):
+        if dht_prefix is None and model_name_or_path is not None and not os.path.isdir(model_name_or_path):
+            dht_prefix = str(model_name_or_path)
+        return super().from_pretrained(model_name_or_path, *args, dht_prefix=dht_prefix, **kwargs)
 
 
 AutoDistributedConfig.register(DistributedLlamaConfig)
