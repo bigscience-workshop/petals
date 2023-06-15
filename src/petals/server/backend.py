@@ -56,7 +56,7 @@ class TransformerBackend(ModuleBackend):
                 if isinstance(submodule, config.attn_class):
                     self.shard_num_heads.append(submodule.num_heads)
         assert len(self.shard_num_heads) == len(self.module.devices)
-        assert sum(self.shard_num_heads) == config.n_head
+        assert sum(self.shard_num_heads) == config.num_attention_heads
 
         self.inference_schema = (
             (
@@ -73,7 +73,7 @@ class TransformerBackend(ModuleBackend):
 
     def get_inference_cache_descriptors(self, batch_size: int, max_length: int) -> Sequence[TensorDescriptor]:
         """Create tensor descriptors for attention cache tensors used during inference_step"""
-        head_dim = self.config.hidden_size // self.config.n_head
+        head_dim = self.config.hidden_size // self.config.num_attention_heads
         cache_tensors = []
         for device, num_heads in zip(self.module.devices, self.shard_num_heads):
             keys = TensorDescriptor((batch_size, num_heads, head_dim, max_length), dtype=self.dtype, device=device)

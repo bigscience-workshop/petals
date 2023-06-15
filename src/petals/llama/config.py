@@ -18,14 +18,6 @@ class DistributedLlamaConfig(LlamaConfig, SequenceManagerConfig, LMHeadConfig):
     attn_class = LlamaAttention
     block_prefix = "model.layers"
 
-    @property
-    def n_head(self) -> int:  # For BLOOM compatibility
-        return self.num_attention_heads
-
-    @property
-    def n_layer(self) -> int:  # For BLOOM compatibility
-        return self.num_hidden_layers
-
     @classmethod
     def from_pretrained(cls, model_name_or_path: Union[str, os.PathLike, None], *args, **kwargs):
         config = super().from_pretrained(model_name_or_path, *args, **kwargs)

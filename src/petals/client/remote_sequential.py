@@ -39,7 +39,7 @@ class RemoteSequential(nn.Module):
             if start_block is None:
                 start_block = 0
             if end_block is None:
-                end_block = self.config.n_layer
+                end_block = self.config.num_hidden_layers
             block_uids = tuple(f"{config.dht_prefix}{UID_DELIMITER}{i}" for i in range(start_block, end_block))
             sequence_manager = RemoteSequenceManager(config, block_uids, dht=dht)
         self.sequence_manager = sequence_manager

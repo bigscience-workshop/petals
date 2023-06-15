@@ -117,7 +117,9 @@ class Server:
             use_auth_token=use_auth_token,
             revision=revision,
         )
-        self.module_uids = [f"{self.prefix}.{block_index}" for block_index in range(self.block_config.n_layer)]
+        self.module_uids = [
+            f"{self.prefix}.{block_index}" for block_index in range(self.block_config.num_hidden_layers)
+        ]
 
         if dht_client_mode is None:
             is_reachable = check_direct_reachability(initial_peers=initial_peers, use_relay=False, **kwargs)
@@ -126,7 +128,7 @@ class Server:
         self.dht = DHT(
             initial_peers=initial_peers,
             start=True,
-            num_workers=self.block_config.n_layer,
+            num_workers=self.block_config.num_hidden_layers,
             use_relay=use_relay,
             use_auto_relay=use_auto_relay,
             client_mode=dht_client_mode,
@@ -246,7 +248,7 @@ class Server:
             f"Server will fill all your GPU memory with {num_blocks} transformer blocks. "
             f"If you want to leave some free GPU memory, please specify a lesser --num_blocks manually"
         )
-        return min(num_blocks, self.block_config.n_layer)
+        return min(num_blocks, self.block_config.num_hidden_layers)
 
     def run(self):
         while True:

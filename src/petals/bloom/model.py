@@ -28,10 +28,10 @@ class DistributedBloomModel(FromPretrainedMixin, BloomModel):
     config_class = DistributedBloomConfig
 
     def __init__(self, config: DistributedBloomConfig, *, dht: Optional[hivemind.DHT] = None):
-        n_layer, config.n_layer = config.n_layer, 0  # temporarily set n_layer to 0 to prevent layer initialization
+        n_layer, config.num_hidden_layers = config.num_hidden_layers, 0  # Prevent initialization
         super().__init__(config)
         assert len(self.h) == 0
-        config.n_layer = n_layer
+        config.num_hidden_layers = n_layer
 
         self.h = RemoteSequential(config, dht=dht)
 

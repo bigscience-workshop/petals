@@ -28,10 +28,10 @@ def test_remote_sequential():
     full_grad = test_inputs.grad.clone()
     test_inputs.grad.data.zero_()
 
-    first_half = sequential[: config.n_layer // 2]
-    second_half = sequential[config.n_layer // 2 :]
+    first_half = sequential[: config.num_hidden_layers // 2]
+    second_half = sequential[config.num_hidden_layers // 2 :]
     assert len(first_half) + len(second_half) == len(sequential)
-    assert abs(len(first_half) - len(second_half)) == config.n_layer % 2
+    assert abs(len(first_half) - len(second_half)) == config.num_hidden_layers % 2
     for m in sequential, first_half, second_half:
         assert isinstance(repr(m), str)
 
@@ -46,7 +46,7 @@ def test_remote_sequential():
     assert torch.allclose(test_inputs.grad, full_grad, atol=1e-3)
 
     # test RemoteSequential with lossy compression
-    block_uids = [f"{config.dht_prefix}{UID_DELIMITER}{i}" for i in range(config.n_layer)]
+    block_uids = [f"{config.dht_prefix}{UID_DELIMITER}{i}" for i in range(config.num_hidden_layers)]
     lossy_sequential = RemoteSequential(
         config, sequence_manager=DummyCustomSequenceManager(config, block_uids, dht=dht)
     )
@@ -90,7 +90,7 @@ def test_remote_sequential_prompts(batch_size=2, seq_len=5, pre_seq_len=3):
     inputs = F.normalize(torch.randn(batch_size, seq_len, config.hidden_size), dim=-1)
     output_proj = F.normalize(torch.randn(batch_size, seq_len + pre_seq_len, config.hidden_size), dim=-1)
     input_prompts = F.normalize(torch.randn(batch_size, pre_seq_len, config.hidden_size, requires_grad=True), dim=-1)
-    intermediate_prompts = torch.randn(config.n_layer, batch_size, pre_seq_len, config.hidden_size, requires_grad=True)
+    intermediate_prompts = torch.randn(config.num_hidden_layers, batch_size, pre_seq_len, config.hidden_size, requires_grad=True)
 
     input_prompts = input_prompts.detach().requires_grad_(True)
     intermediate_prompts = intermediate_prompts.detach().requires_grad_(True)
@@ -110,7 +110,7 @@ def test_remote_sequential_prompts(batch_size=2, seq_len=5, pre_seq_len=3):
     assert intermediate_prompts_ref.grad is None
 
     outputs_ref = torch.cat([inputs, input_prompts_ref], dim=1)
-    for block_index in range(config.n_layer):
+    for block_index in range(config.num_hidden_layers):
         block_prompt = intermediate_prompts_ref[block_index]
         outputs_ref[:, : block_prompt.shape[1]] += block_prompt
 

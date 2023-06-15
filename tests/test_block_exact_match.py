@@ -13,7 +13,7 @@ def test_remote_block_exact_match(atol_forward=1e-4, atol_inference=1e-3):
     config = DistributedBloomConfig.from_pretrained(MODEL_NAME, initial_peers=INITIAL_PEERS)
     remote_sequential = RemoteSequential(config)
 
-    for block_index in random.sample(range(config.n_layer), 3):
+    for block_index in random.sample(range(config.num_hidden_layers), 3):
         remote_block = remote_sequential[block_index]
 
         inputs = torch.randn(1, 8, config.hidden_size)
