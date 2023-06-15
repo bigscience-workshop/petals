@@ -90,7 +90,9 @@ def test_remote_sequential_prompts(batch_size=2, seq_len=5, pre_seq_len=3):
     inputs = F.normalize(torch.randn(batch_size, seq_len, config.hidden_size), dim=-1)
     output_proj = F.normalize(torch.randn(batch_size, seq_len + pre_seq_len, config.hidden_size), dim=-1)
     input_prompts = F.normalize(torch.randn(batch_size, pre_seq_len, config.hidden_size, requires_grad=True), dim=-1)
-    intermediate_prompts = torch.randn(config.num_hidden_layers, batch_size, pre_seq_len, config.hidden_size, requires_grad=True)
+    intermediate_prompts = torch.randn(
+        config.num_hidden_layers, batch_size, pre_seq_len, config.hidden_size, requires_grad=True
+    )
 
     input_prompts = input_prompts.detach().requires_grad_(True)
     intermediate_prompts = intermediate_prompts.detach().requires_grad_(True)

@@ -99,11 +99,13 @@ def replace_8bit_linear(model: nn.Module, threshold=6.0) -> nn.Module:
 def make_tensor_parallel(
     block: nn.Module, model_config: PretrainedConfig, devices: Sequence[torch.device], output_device: torch.device
 ) -> nn.Module:
-    if model_config.model_type != "bloom" and len(devices) > 1:
-        logger.warning("Tensor parallelism is not tested for models other than BLOOM yet, proceed with caution")
-
-    tp_config = get_bloom_config(model_config, devices)
-    del tp_config.state_rules[re.compile(".*word_embeddings.weight$")]
+    if model_config.model_type == "bloom":
+        tp_config = get_bloom_config(model_config, devices)
+        del tp_config.state_rules[re.compile(".*word_embeddings.weight$")]
+    else:
+        if len(devices) > 1:
+            logger.warning("Tensor parallelism is not tested for models other than BLOOM yet, proceed with caution")
+        tp_config = None
     tp_block = tp.TensorParallel(block, devices, config=tp_config, output_device=output_device, delay_init=True)
     total_heads = 0
     for tp_shard in tp_block.module_shards:
