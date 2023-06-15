@@ -7,11 +7,11 @@ from hivemind.utils.logging import get_logger
 from transformers.modeling_outputs import BaseModelOutputWithPastAndCrossAttentions
 from transformers.models.bloom import BloomForCausalLM, BloomForSequenceClassification, BloomModel, BloomPreTrainedModel
 
-from petals.bloom.config import DistributedBloomConfig
 from petals.client.from_pretrained import FromPretrainedMixin
 from petals.client.modeling_utils import LMHead, force_non_empty_weights
 from petals.client.remote_generation import RemoteGenerationMixin
 from petals.client.remote_sequential import RemoteSequential
+from petals.models.bloom.config import DistributedBloomConfig
 from petals.utils.misc import DUMMY
 
 logger = get_logger(__name__)

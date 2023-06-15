@@ -4,9 +4,8 @@ import hivemind
 import transformers
 from packaging import version
 
-from petals.bloom import *
 from petals.client import *
-from petals.llama import *
+from petals.models import *
 from petals.utils import *
 from petals.utils.logging import initialize_logs as _initialize_logs
 

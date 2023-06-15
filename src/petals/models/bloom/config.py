@@ -1,22 +1,22 @@
 import os
 from typing import Optional, Union
 
-from transformers.models.llama import LlamaConfig
-from transformers.models.llama.modeling_llama import LlamaAttention
+from transformers.models.bloom import BloomConfig
+from transformers.models.bloom.modeling_bloom import BloomAttention
 
 from petals.client.modeling_utils import LMHeadConfig
 from petals.client.routing.sequence_manager import SequenceManagerConfig
-from petals.llama.block import WrappedLlamaBlock
+from petals.models.bloom.block import WrappedBloomBlock
 from petals.utils.auto_config import AutoDistributedConfig
 
 
-class DistributedLlamaConfig(LlamaConfig, SequenceManagerConfig, LMHeadConfig):
+class DistributedBloomConfig(BloomConfig, SequenceManagerConfig, LMHeadConfig):
     pre_seq_len: int = 0  # a number of tokens for prompt tuning.
     tuning_mode: Optional[str] = None  # fine-tuning regime, one of [None, "ptune", "deep_ptune"]
 
-    block_class = WrappedLlamaBlock
-    attn_class = LlamaAttention
-    block_prefix = "model.layers"
+    block_class = WrappedBloomBlock
+    attn_class = BloomAttention
+    block_prefix = "h"
 
     @classmethod
     def from_pretrained(
@@ -27,4 +27,4 @@ class DistributedLlamaConfig(LlamaConfig, SequenceManagerConfig, LMHeadConfig):
         return super().from_pretrained(model_name_or_path, *args, dht_prefix=dht_prefix, **kwargs)
 
 
-AutoDistributedConfig.register(DistributedLlamaConfig)
+AutoDistributedConfig.register(DistributedBloomConfig)

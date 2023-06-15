@@ -6,7 +6,7 @@ from tqdm.auto import trange
 from transformers import BloomConfig
 from transformers.models.bloom.modeling_bloom import build_alibi_tensor
 
-from petals.bloom.block import BloomBlock
+from petals.models.bloom.block import BloomBlock
 
 logger = get_logger(__name__)
 
