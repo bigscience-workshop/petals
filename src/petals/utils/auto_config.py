@@ -8,11 +8,12 @@ CONFIG_MAPPING = {}  # Populated with AutoDistributedConfig.register()
 class AutoDistributedConfig:
     @classmethod
     def from_pretrained(cls, *args, **kwargs) -> PretrainedConfig:
-        config, kwargs = AutoConfig.from_pretrained(*args, **kwargs, return_unused_kwargs=True)
+        config = AutoConfig.from_pretrained(*args, **kwargs)
         if config.model_type not in CONFIG_MAPPING:
             raise ValueError(f"Petals does not support model type {config.model_type}")
+
         dist_config_class = CONFIG_MAPPING[config.model_type]
-        return dist_config_class.from_dict(config.to_dict(), **kwargs)
+        return dist_config_class.from_pretrained(*args, **kwargs)
 
     @staticmethod
     def register(config_class: Type[PretrainedConfig]) -> None:
