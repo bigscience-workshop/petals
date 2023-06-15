@@ -174,7 +174,7 @@ class Server:
                 first_block_index, last_block_index = map(int, map(str.strip, (first_block_index, last_block_index)))
             except Exception as e:
                 raise ValueError(f"Failed to parse `--block_indices {block_indices}`, must be start:end (e.g. 0:18)")
-            block_indices = list(range(first_block_index, last_block_index))
+            block_indices = range(first_block_index, last_block_index)
             num_blocks = len(block_indices)
         self.strict_block_indices, self.num_blocks = block_indices, num_blocks
 

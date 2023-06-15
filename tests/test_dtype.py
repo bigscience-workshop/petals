@@ -4,8 +4,7 @@ import torch
 from petals.bloom.from_pretrained import load_pretrained_block
 from petals.client import DistributedBloomConfig
 from petals.server.block_utils import resolve_block_dtype
-
-MODEL_NAME = "bloom-testing/test-bloomd-350m-main"
+from test_utils import MODEL_NAME
 
 
 @pytest.mark.forked
