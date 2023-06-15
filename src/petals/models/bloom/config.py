@@ -4,16 +4,14 @@ from typing import Optional, Union
 from transformers.models.bloom import BloomConfig
 from transformers.models.bloom.modeling_bloom import BloomAttention
 
-from petals.client.modeling_utils import LMHeadConfig
+from petals.client.lm_head import LMHeadConfig
+from petals.client.ptune import PTuneConfig
 from petals.client.routing.sequence_manager import SequenceManagerConfig
 from petals.models.bloom.block import WrappedBloomBlock
 from petals.utils.auto_config import AutoDistributedConfig
 
 
-class DistributedBloomConfig(BloomConfig, SequenceManagerConfig, LMHeadConfig):
-    pre_seq_len: int = 0  # a number of tokens for prompt tuning.
-    tuning_mode: Optional[str] = None  # fine-tuning regime, one of [None, "ptune", "deep_ptune"]
-
+class DistributedBloomConfig(BloomConfig, SequenceManagerConfig, PTuneConfig, LMHeadConfig):
     block_class = WrappedBloomBlock
     attn_class = BloomAttention
     block_prefix = "h"

@@ -4,16 +4,14 @@ from typing import Optional, Union
 from transformers.models.llama import LlamaConfig
 from transformers.models.llama.modeling_llama import LlamaAttention
 
-from petals.client.modeling_utils import LMHeadConfig
+from petals.client.lm_head import LMHeadConfig
+from petals.client.ptune import PTuneConfig
 from petals.client.routing.sequence_manager import SequenceManagerConfig
 from petals.models.llama.block import WrappedLlamaBlock
 from petals.utils.auto_config import AutoDistributedConfig
 
 
-class DistributedLlamaConfig(LlamaConfig, SequenceManagerConfig, LMHeadConfig):
-    pre_seq_len: int = 0  # a number of tokens for prompt tuning.
-    tuning_mode: Optional[str] = None  # fine-tuning regime, one of [None, "ptune", "deep_ptune"]
-
+class DistributedLlamaConfig(LlamaConfig, SequenceManagerConfig, PTuneConfig, LMHeadConfig):
     block_class = WrappedLlamaBlock
     attn_class = LlamaAttention
     block_prefix = "model.layers"

@@ -4,39 +4,43 @@ import hivemind
 import torch
 import torch.nn as nn
 from hivemind.utils.logging import get_logger
-from transformers.modeling_outputs import BaseModelOutputWithPastAndCrossAttentions
-from transformers.models.bloom import BloomForCausalLM, BloomForSequenceClassification, BloomModel, BloomPreTrainedModel
+from transformers.modeling_outputs import BaseModelOutputWithPast
+from transformers.models.llama import LlamaForCausalLM, LlamaForSequenceClassification, LlamaModel, LlamaPreTrainedModel
 
 from petals.client.from_pretrained import FromPretrainedMixin
 from petals.client.lm_head import LMHead
 from petals.client.ptune import PTuneMixin
 from petals.client.remote_generation import RemoteGenerationMixin
 from petals.client.remote_sequential import RemoteSequential
-from petals.models.bloom.config import DistributedBloomConfig
+from petals.models.llama.config import DistributedLlamaConfig
 
 logger = get_logger(__name__)
 
 
-class DistributedBloomModel(FromPretrainedMixin, PTuneMixin, BloomModel):
-    """BloomModel, but all transformer layers are hosted by the swarm"""
+class DistributedLlamaModel(FromPretrainedMixin, PTuneMixin, LlamaModel):
+    """LlamaModel, but all transformer layers are hosted by the swarm"""
 
     _keys_to_ignore_on_load_missing = (
-        BloomModel._keys_to_ignore_on_load_missing + PTuneMixin._keys_to_ignore_on_load_missing
+        LlamaModel._keys_to_ignore_on_load_missing + PTuneMixin._keys_to_ignore_on_load_missing
     )
-    _keys_to_ignore_on_load_unexpected = [r"^h\."]
+    _keys_to_ignore_on_load_unexpected = LlamaModel._keys_to_ignore_on_load_unexpected + [r"^layers\."]
 
-    config_class = DistributedBloomConfig
+    config_class = DistributedLlamaConfig
 
-    def __init__(self, config: DistributedBloomConfig, *, dht: Optional[hivemind.DHT] = None):
+    def __init__(self, config: DistributedLlamaConfig, *, dht: Optional[hivemind.DHT] = None):
         n_layer, config.num_hidden_layers = config.num_hidden_layers, 0  # Prevent initialization
         super().__init__(config)
-        assert len(self.h) == 0
+        assert len(self.layers) == 0
         config.num_hidden_layers = n_layer
 
-        self.h = RemoteSequential(config, dht=dht)
+        self.layers = RemoteSequential(config, dht=dht)
 
         self.set_requires_grad(False)  # Forbid accumulate grads for embeddings and layernorm
         self.init_prompts(config)
+
+    @property
+    def word_embeddings(self) -> nn.Embedding:  # For BLOOM compatibility
+        return self.embed_tokens
 
     def forward(
         self,
@@ -44,7 +48,7 @@ class DistributedBloomModel(FromPretrainedMixin, PTuneMixin, BloomModel):
         inputs_embeds: Optional[torch.Tensor] = None,
         attention_mask: Optional[torch.Tensor] = None,
         **kwargs,
-    ):
+    ) -> BaseModelOutputWithPast:
         assert attention_mask is None, f"{self.__class__.__name__} does not support attention masks right now"
 
         for k, v in kwargs.items():
@@ -62,14 +66,14 @@ class DistributedBloomModel(FromPretrainedMixin, PTuneMixin, BloomModel):
             raise ValueError("You have to specify either input_ids or inputs_embeds")
 
         if inputs_embeds is None:
-            inputs_embeds = self.word_embeddings(input_ids)
+            inputs_embeds = self.embed_tokens(input_ids)
 
         if self.config.tuning_mode and "ptune" in self.config.tuning_mode:
             batch_size = inputs_embeds.shape[0]
             prompts, intermediate_prompts = self.get_prompt(batch_size)
             inputs_embeds = torch.cat([prompts, inputs_embeds], dim=1)
 
-        hidden_states = self.word_embeddings_layernorm(inputs_embeds)
+        hidden_states = inputs_embeds
         output_shape = input_shape + (hidden_states.size(-1),)
 
         if self.config.tuning_mode and "ptune" in self.config.tuning_mode:
@@ -82,9 +86,9 @@ class DistributedBloomModel(FromPretrainedMixin, PTuneMixin, BloomModel):
             hidden_states = hidden_states[:, self.pre_seq_len :]
 
         # Add last hidden state
-        hidden_states = self.ln_f(hidden_states)
+        hidden_states = self.norm(hidden_states)
         hidden_states = hidden_states.view(output_shape)
-        return BaseModelOutputWithPastAndCrossAttentions(
+        return BaseModelOutputWithPast(
             last_hidden_state=hidden_states,
             past_key_values=None,
             hidden_states=None,
@@ -92,20 +96,20 @@ class DistributedBloomModel(FromPretrainedMixin, PTuneMixin, BloomModel):
         )
 
 
-class DistributedBloomForCausalLM(FromPretrainedMixin, RemoteGenerationMixin, BloomForCausalLM):
+class DistributedLlamaForCausalLM(FromPretrainedMixin, RemoteGenerationMixin, LlamaForCausalLM):
     _keys_to_ignore_on_load_missing = (
-        BloomForCausalLM._keys_to_ignore_on_load_missing
-        + DistributedBloomModel._keys_to_ignore_on_load_missing
+        LlamaForCausalLM._keys_to_ignore_on_load_missing
+        + DistributedLlamaModel._keys_to_ignore_on_load_missing
         + [r"^lm_head.word_embeddings\.weight$"]  # Missing since they are shared with input embeddings
     )
-    _keys_to_ignore_on_load_unexpected = DistributedBloomModel._keys_to_ignore_on_load_unexpected
+    _keys_to_ignore_on_load_unexpected = DistributedLlamaModel._keys_to_ignore_on_load_unexpected
 
-    config_class = DistributedBloomConfig
+    config_class = DistributedLlamaConfig
 
-    def __init__(self, config: DistributedBloomConfig):
-        BloomPreTrainedModel.__init__(self, config)
-        self.transformer = DistributedBloomModel(config)
-        self.lm_head = LMHead(config, self.transformer.word_embeddings)
+    def __init__(self, config: DistributedLlamaConfig):
+        LlamaPreTrainedModel.__init__(config)
+        self.model = DistributedLlamaModel(config)
+        self.lm_head = LMHead(config, self.model.embed_tokens)
 
         # Initialize weights and apply final processing
         self.post_init()
@@ -113,25 +117,25 @@ class DistributedBloomForCausalLM(FromPretrainedMixin, RemoteGenerationMixin, Bl
     def get_output_embeddings(self):
         return self.lm_head.word_embeddings
 
-    def set_output_embeddings(self, new_embeddings: torch.Tensor):
+    def set_output_embeddings(self, new_embeddings):
         self.lm_head.word_embeddings = new_embeddings
 
 
-class DistributedBloomForSequenceClassification(FromPretrainedMixin, BloomForSequenceClassification):
+class DistributedLlamaForSequenceClassification(FromPretrainedMixin, LlamaForSequenceClassification):
     _keys_to_ignore_on_load_missing = (
-        BloomForSequenceClassification._keys_to_ignore_on_load_missing
-        + DistributedBloomModel._keys_to_ignore_on_load_missing
+        LlamaForSequenceClassification._keys_to_ignore_on_load_missing
+        + DistributedLlamaModel._keys_to_ignore_on_load_missing
     )
-    _keys_to_ignore_on_load_unexpected = DistributedBloomModel._keys_to_ignore_on_load_unexpected
+    _keys_to_ignore_on_load_unexpected = DistributedLlamaModel._keys_to_ignore_on_load_unexpected
 
-    config_class = DistributedBloomConfig
+    config_class = DistributedLlamaConfig
 
-    def __init__(self, config: DistributedBloomConfig):
-        BloomPreTrainedModel.__init__(self, config)
+    def __init__(self, config):
+        LlamaPreTrainedModel.__init__(config)
         self.num_labels = config.num_labels
 
-        self.transformer = DistributedBloomModel(config)
-        self.score = nn.Linear(config.hidden_size, config.num_labels, bias=False).to(config.torch_dtype)
+        self.model = DistributedLlamaModel(config)
+        self.score = nn.Linear(config.hidden_size, self.num_labels, bias=False)
 
         # Initialize weights and apply final processing
         self.post_init()
