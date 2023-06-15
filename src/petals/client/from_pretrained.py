@@ -31,11 +31,9 @@ class FromPretrainedMixin:
     @classmethod
     def from_pretrained(
         cls,
-        pretrained_model_name_or_path: Union[str, os.PathLike, None],
         *args,
         low_cpu_mem_usage: Optional[bool] = None,
         torch_dtype: Optional[Union[str, torch.dtype]] = None,
-        dht_prefix: Optional[str] = None,
         **kwargs,
     ):
         if low_cpu_mem_usage is None:
@@ -44,19 +42,10 @@ class FromPretrainedMixin:
             # torch_dtype=None gives torch.float32 in transformers>=4.26.0. In contrast,
             # torch_dtype="auto" attempts to (1) use config.torch_dtype (if exists), (2) use dtype of the weights.
             torch_dtype = "auto"
-        if dht_prefix is None and pretrained_model_name_or_path is not None:
-            is_local = os.path.isdir(pretrained_model_name_or_path)
-            if not is_local:
-                dht_prefix = str(pretrained_model_name_or_path)
 
         with ignore_keys(cls._keys_to_ignore_on_load_unexpected):
             return super().from_pretrained(
-                pretrained_model_name_or_path,
-                *args,
-                low_cpu_mem_usage=low_cpu_mem_usage,
-                torch_dtype=torch_dtype,
-                dht_prefix=dht_prefix,
-                **kwargs,
+                *args, low_cpu_mem_usage=low_cpu_mem_usage, torch_dtype=torch_dtype, **kwargs
             )
 
     from_pretrained.__doc__ = BloomPreTrainedModel.from_pretrained.__doc__.replace(

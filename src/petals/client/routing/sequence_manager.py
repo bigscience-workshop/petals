@@ -78,6 +78,8 @@ class RemoteSequenceManager:
         dht: Optional[DHT] = None,
         state: Optional[SequenceManagerState] = None,
     ):
+        assert config.initial_peers or dht is not None, "Please specify `config.initial_peers` or `dht`"
+        assert config.dht_prefix, "Could not find dht_prefix in config, please create model with dht_prefix=..."
         assert len(block_uids) > 0, "Sequences must contain at least one block"
 
         self.config = config

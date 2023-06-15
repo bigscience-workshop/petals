@@ -1,4 +1,5 @@
-from typing import Optional
+import os
+from typing import Optional, Union
 
 import hivemind
 import torch
@@ -23,7 +24,19 @@ logger = get_logger(__name__)
 
 
 class DistributedBloomConfig(BloomConfig, DistributedPretrainedConfig):
-    pass
+    @classmethod
+    def from_pretrained(
+        cls,
+        pretrained_model_name_or_path: Union[str, os.PathLike, None],
+        *args,
+        dht_prefix: Optional[str] = None,
+        **kwargs,
+    ):
+        if pretrained_model_name_or_path is not None and dht_prefix is None:
+            is_local = os.path.isdir(pretrained_model_name_or_path)
+            if not is_local:
+                dht_prefix = str(pretrained_model_name_or_path)
+        return super().from_pretrained(pretrained_model_name_or_path, *args, dht_prefix=dht_prefix, **kwargs)
 
 
 class DistributedBloomModel(FromPretrainedMixin, BloomModel):
@@ -37,9 +50,6 @@ class DistributedBloomModel(FromPretrainedMixin, BloomModel):
     config_class = DistributedBloomConfig
 
     def __init__(self, config: DistributedBloomConfig, *, dht: Optional[hivemind.DHT] = None):
-        assert config.dht_prefix, "Could not find dht_prefix in config, please create model with dht_prefix=..."
-        assert config.initial_peers or dht is not None, "Please specify `config.initial_peers` or `dht`"
-
         n_layer, config.n_layer = config.n_layer, 0  # temporarily set n_layer to 0 to prevent layer initialization
         super().__init__(config)
         assert len(self.h) == 0
