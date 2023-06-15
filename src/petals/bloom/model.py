@@ -1,42 +1,20 @@
-import os
-from typing import Optional, Union
+from typing import Optional
 
 import hivemind
 import torch
 import torch.nn as nn
 from hivemind.utils.logging import get_logger
 from transformers.modeling_outputs import BaseModelOutputWithPastAndCrossAttentions
-from transformers.models.bloom import (
-    BloomConfig,
-    BloomForCausalLM,
-    BloomForSequenceClassification,
-    BloomModel,
-    BloomPreTrainedModel,
-)
+from transformers.models.bloom import BloomForCausalLM, BloomForSequenceClassification, BloomModel, BloomPreTrainedModel
 
-from petals.client.from_pretrained import DistributedPretrainedConfig, FromPretrainedMixin
+from petals.bloom.config import DistributedBloomConfig
+from petals.client.from_pretrained import FromPretrainedMixin
 from petals.client.modeling_utils import LMHead, force_non_empty_weights
 from petals.client.remote_generation import RemoteGenerationMixin
 from petals.client.remote_sequential import RemoteSequential
 from petals.utils.misc import DUMMY
 
 logger = get_logger(__name__)
-
-
-class DistributedBloomConfig(BloomConfig, DistributedPretrainedConfig):
-    @classmethod
-    def from_pretrained(
-        cls,
-        pretrained_model_name_or_path: Union[str, os.PathLike, None],
-        *args,
-        dht_prefix: Optional[str] = None,
-        **kwargs,
-    ):
-        if pretrained_model_name_or_path is not None and dht_prefix is None:
-            is_local = os.path.isdir(pretrained_model_name_or_path)
-            if not is_local:
-                dht_prefix = str(pretrained_model_name_or_path)
-        return super().from_pretrained(pretrained_model_name_or_path, *args, dht_prefix=dht_prefix, **kwargs)
 
 
 class DistributedBloomModel(FromPretrainedMixin, BloomModel):

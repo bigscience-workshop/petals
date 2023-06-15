@@ -22,11 +22,12 @@ from petals.dht_utils import declare_active_modules, get_remote_module_infos
 from petals.server import block_selection
 from petals.server.backend import TransformerBackend, merge_inference_pools_inplace
 from petals.server.block_utils import get_block_size
-from petals.server.from_pretrained import DTYPE_MAP, AutoBlockConfig, load_pretrained_block
+from petals.server.from_pretrained import DTYPE_MAP, load_pretrained_block
 from petals.server.handler import TransformerConnectionHandler
 from petals.server.memory_cache import MemoryCache
 from petals.server.reachability import ReachabilityProtocol, check_direct_reachability, validate_reachability
 from petals.server.throughput import get_dtype_name, get_server_throughput
+from petals.utils.auto_config import AutoDistributedConfig
 from petals.utils.convert_block import check_device_balance, convert_block
 from petals.utils.disk_cache import DEFAULT_CACHE_DIR
 
@@ -111,7 +112,7 @@ class Server:
         self.request_timeout = request_timeout
         self.session_timeout, self.step_timeout = session_timeout, step_timeout
 
-        self.block_config = AutoBlockConfig.from_pretrained(
+        self.block_config = AutoDistributedConfig.from_pretrained(
             converted_model_name_or_path,
             use_auth_token=use_auth_token,
             revision=revision,

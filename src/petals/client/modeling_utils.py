@@ -1,5 +1,7 @@
+import dataclasses
 import platform
 from contextlib import contextmanager
+from typing import Union
 
 import psutil
 import torch
@@ -8,9 +10,15 @@ import torch.utils.checkpoint
 from hivemind import get_logger
 from torch import nn
 
-from petals.client.from_pretrained import DistributedPretrainedConfig
-
 logger = get_logger(__name__)
+
+
+@dataclasses.dataclass
+class LMHeadConfig:
+    # This settings matter for running the client with dtype bfloat16 on CPU.
+    # If the CPU doesn't support AVX512, chunked_forward() significantly speeds up computations.
+    use_chunked_forward: Union[str, bool] = "auto"
+    chunked_forward_step: int = 16384
 
 
 class LMHead(nn.Module):
@@ -20,7 +28,7 @@ class LMHead(nn.Module):
     In addition, it provides an effcient way to deal with half-precision word embeddings on CPU.
     """
 
-    def __init__(self, config: DistributedPretrainedConfig, word_embeddings: nn.Embedding):
+    def __init__(self, config: LMHeadConfig, word_embeddings: nn.Embedding):
         super().__init__()
         self.word_embeddings = word_embeddings
 

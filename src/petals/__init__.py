@@ -6,6 +6,8 @@ from packaging import version
 
 from petals.bloom import *
 from petals.client import *
+from petals.llama import *
+from petals.utils import *
 from petals.utils.logging import initialize_logs as _initialize_logs
 
 __version__ = "1.1.5"

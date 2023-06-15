@@ -16,32 +16,13 @@ from accelerate import init_empty_weights
 from accelerate.utils import set_module_tensor_to_device
 from hivemind.utils.logging import get_logger
 from huggingface_hub import get_hf_file_metadata, hf_hub_url
-from transformers import AutoConfig, PretrainedConfig
+from transformers import PretrainedConfig
 from transformers.utils import get_file_from_repo
 
-from petals.server.model_specs import MODEL_SPECS
+from petals.utils.auto_config import AutoDistributedConfig
 from petals.utils.disk_cache import DEFAULT_CACHE_DIR, allow_cache_reads, allow_cache_writes, free_disk_space_for
 
 logger = get_logger(__name__)
-
-
-class AutoBlockConfig:
-    @staticmethod
-    def from_pretrained(*args, **kwargs) -> PretrainedConfig:
-        config = AutoConfig.from_pretrained(*args, **kwargs)
-
-        if config.model_type not in MODEL_SPECS:
-            raise ValueError(f"Unsupported model architecture: {config.model_type}")
-        model_spec = MODEL_SPECS[config.model_type]
-
-        config.block_class = model_spec.block_class
-        config.attn_class = model_spec.attn_class
-        config.block_prefix = model_spec.block_prefix
-
-        for dest, src in model_spec.config_map.items():
-            setattr(config, dest, getattr(config, src))
-
-        return config
 
 
 def load_pretrained_block(
@@ -58,7 +39,7 @@ def load_pretrained_block(
     assert torch_dtype in DTYPE_MAP.values(), f"torch_dtype must be one of {list(DTYPE_MAP.values())}"
 
     if config is None:
-        config = AutoBlockConfig.from_pretrained(model_name, use_auth_token=use_auth_token)
+        config = AutoDistributedConfig.from_pretrained(model_name, use_auth_token=use_auth_token)
     if cache_dir is None:
         cache_dir = DEFAULT_CACHE_DIR
 
