@@ -149,7 +149,6 @@ class Server:
         self.device = device
 
         torch_dtype = DTYPE_MAP[torch_dtype]
-        assert torch_dtype in DTYPE_MAP.values(), f"torch_dtype must be one of {list(DTYPE_MAP.values())}"
         self.torch_dtype = resolve_block_dtype(self.block_config, torch_dtype)
 
         if tensor_parallel_devices is None:
