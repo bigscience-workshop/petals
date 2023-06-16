@@ -180,7 +180,7 @@ class Server:
             num_blocks = len(block_indices)
         self.strict_block_indices, self.num_blocks = block_indices, num_blocks
 
-        gib = 1024 ** 3
+        gib = 1024**3
         self.attn_cache_bytes = self._cache_bytes_per_block * num_blocks
         logger.info(f"Attention cache for all blocks will consume up to {self.attn_cache_bytes / gib:.2f} GiB")
 
@@ -234,7 +234,7 @@ class Server:
         block_size = get_block_size(self.block_config, "memory", dtype=self.torch_dtype, load_in_8bit=self.load_in_8bit)
 
         # The estimates below are for bigscience/bloom-petals, serving as an upper bound for other models
-        gib = 1024 ** 3
+        gib = 1024**3
         autograd_memory = 2 * gib * num_devices  # GPU memory used for intermediate tensors in rpc_backward
 
         num_blocks = math.floor((total_memory - autograd_memory) / (block_size + self._cache_bytes_per_block))
