@@ -19,6 +19,7 @@ from huggingface_hub import get_hf_file_metadata, hf_hub_url
 from transformers import PretrainedConfig
 from transformers.utils import get_file_from_repo
 
+from petals.server.block_utils import resolve_block_dtype
 from petals.utils.auto_config import AutoDistributedConfig
 from petals.utils.disk_cache import DEFAULT_CACHE_DIR, allow_cache_reads, allow_cache_writes, free_disk_space_for
 
@@ -36,12 +37,13 @@ def load_pretrained_block(
     cache_dir: Optional[str] = None,
     max_disk_space: Optional[int] = None,
 ) -> nn.Module:
-    assert torch_dtype in DTYPE_MAP.values(), f"torch_dtype must be one of {list(DTYPE_MAP.values())}"
-
     if config is None:
         config = AutoDistributedConfig.from_pretrained(model_name, use_auth_token=use_auth_token)
     if cache_dir is None:
         cache_dir = DEFAULT_CACHE_DIR
+
+    assert torch_dtype in DTYPE_MAP.values(), f"torch_dtype must be one of {list(DTYPE_MAP.values())}"
+    torch_dtype = resolve_block_dtype(config, torch_dtype)
 
     with init_empty_weights():
         block = config.block_class(config)
@@ -63,7 +65,7 @@ def load_pretrained_block(
     for param_name, _ in block.named_parameters():
         assert param_name in state_dict, f"{param_name} not in state dict"
         param = state_dict[param_name]
-        if torch_dtype != "auto" and not str(param.dtype).startswith(("torch.uint", "torch.int", "torch.bool")):
+        if not str(param.dtype).startswith(("torch.uint", "torch.int", "torch.bool")):
             param = param.to(torch_dtype)
         set_module_tensor_to_device(block, param_name, "cpu", value=param, dtype=param.dtype)
 

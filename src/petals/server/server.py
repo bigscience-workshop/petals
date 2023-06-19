@@ -21,7 +21,7 @@ from petals.data_structures import CHAIN_DELIMITER, UID_DELIMITER, ServerState
 from petals.dht_utils import declare_active_modules, get_remote_module_infos
 from petals.server import block_selection
 from petals.server.backend import TransformerBackend, merge_inference_pools_inplace
-from petals.server.block_utils import get_block_size
+from petals.server.block_utils import get_block_size, resolve_block_dtype
 from petals.server.from_pretrained import DTYPE_MAP, load_pretrained_block
 from petals.server.handler import TransformerConnectionHandler
 from petals.server.memory_cache import MemoryCache
@@ -154,7 +154,7 @@ class Server:
         if isinstance(torch_dtype, str):
             torch_dtype = DTYPE_MAP[torch_dtype]
         assert torch_dtype in DTYPE_MAP.values(), f"torch_dtype must be one of {list(DTYPE_MAP.values())}"
-        self.torch_dtype = torch_dtype
+        self.torch_dtype = resolve_block_dtype(self.block_config, torch_dtype)
 
         if tensor_parallel_devices is None:
             tensor_parallel_devices = (device,)
@@ -166,6 +166,7 @@ class Server:
         if load_in_8bit is None:
             load_in_8bit = device.type == "cuda"
         self.load_in_8bit = load_in_8bit
+        logger.info(f"Model weights are loaded in {get_dtype_name(torch_dtype, load_in_8bit)} format")
 
         assert num_blocks is None or block_indices is None, "Please specify num_blocks or block_indices, not both"
         if num_blocks is None and block_indices is None:
@@ -408,27 +409,22 @@ class ModuleContainer(threading.Thread):
                     cache_dir=cache_dir,
                     max_disk_space=max_disk_space,
                 )
-                backend_dtype = next(block.parameters()).dtype if torch_dtype == "auto" else torch_dtype
                 block = convert_block(block, block_config, tensor_parallel_devices, device, load_in_8bit, freeze=True)
-
-                if module_uid == module_uids[0]:
-                    logger.info(f"Model weights are loaded in {get_dtype_name(backend_dtype, load_in_8bit)} format")
-
                 blocks[module_uid] = TransformerBackend(
                     module_uid,
                     block,
                     config=block_config,
                     memory_cache=memory_cache,
-                    backend_dtype=backend_dtype,
+                    backend_dtype=torch_dtype,
                     args_schema=(
                         BatchTensorDescriptor(
-                            1, 2048, block_config.hidden_size, dtype=backend_dtype, compression=compression
+                            1, 2048, block_config.hidden_size, dtype=torch_dtype, compression=compression
                         ),
                     ),
                     kwargs_schema={},
                     outputs_schema=(
                         BatchTensorDescriptor(
-                            1, 2048, block_config.hidden_size, dtype=backend_dtype, compression=compression
+                            1, 2048, block_config.hidden_size, dtype=torch_dtype, compression=compression
                         ),
                     ),
                     min_batch_size=min_batch_size,
@@ -576,13 +572,9 @@ class ModuleContainer(threading.Thread):
 
         self.ready.clear()
 
+        logger.debug("Shutting down connection handlers")
         for handler in self.conn_handlers:
             handler.shutdown()
-        logger.debug("Connection handlers terminated")
-
-        if self.checkpoint_saver is not None:
-            self.checkpoint_saver.stop.set()
-            self.checkpoint_saver.join()
 
         logger.debug(f"Shutting down pools")
         for pool in self.runtime.pools:

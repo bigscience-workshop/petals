@@ -5,14 +5,13 @@ from accelerate import init_empty_weights
 from transformers import PretrainedConfig
 
 
-def resolve_block_dtype(config: PretrainedConfig, dtype: Union[str, torch.dtype]) -> Union[str, torch.dtype]:
-    """If dtype is "auto", resolves it using the config. Returns `dtype` intact otherwise."""
-
-    if dtype == "auto" or dtype is None:
-        dtype = config.torch_dtype
-        if dtype == "auto" or dtype is None:
-            dtype = torch.float32
-    return dtype
+def resolve_block_dtype(config: PretrainedConfig, dtype: Union[str, torch.dtype]) -> torch.dtype:
+    """If dtype is "auto", resolves it using BloomConfig. Returns `dtype` intact otherwise."""
+    if dtype not in ("auto", None):
+        return dtype
+    if config.torch_dtype not in ("auto", None):
+        return config.torch_dtype
+    return torch.bfloat16
 
 
 def get_block_size(
