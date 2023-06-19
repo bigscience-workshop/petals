@@ -243,11 +243,12 @@ class Server:
         num_blocks = math.floor((total_memory - autograd_memory) / (block_size + self._cache_bytes_per_block))
         assert num_blocks >= 1, "Your GPU does not have enough memory to serve at least one block"
 
+        num_blocks = min(num_blocks, self.block_config.num_hidden_layers)
         logger.info(
             f"Server will fill all your GPU memory with {num_blocks} transformer blocks. "
             f"If you want to leave some free GPU memory, please specify a lesser --num_blocks manually"
         )
-        return min(num_blocks, self.block_config.num_hidden_layers)
+        return num_blocks
 
     def run(self):
         while True:
