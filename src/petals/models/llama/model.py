@@ -20,10 +20,8 @@ logger = get_logger(__name__)
 class DistributedLlamaModel(FromPretrainedMixin, PTuneMixin, LlamaModel):
     """LlamaModel, but all transformer layers are hosted by the swarm"""
 
-    _keys_to_ignore_on_load_missing = (
-        LlamaModel._keys_to_ignore_on_load_missing + PTuneMixin._keys_to_ignore_on_load_missing
-    )
-    _keys_to_ignore_on_load_unexpected = LlamaModel._keys_to_ignore_on_load_unexpected + [r"^layers\."]
+    _keys_to_ignore_on_load_missing = PTuneMixin._keys_to_ignore_on_load_missing
+    _keys_to_ignore_on_load_unexpected = LlamaModel._keys_to_ignore_on_load_unexpected + [r"^model\.layers\."]
 
     config_class = DistributedLlamaConfig
 
@@ -37,10 +35,6 @@ class DistributedLlamaModel(FromPretrainedMixin, PTuneMixin, LlamaModel):
 
         self.set_requires_grad(False)  # Forbid accumulate grads for embeddings and layernorm
         self.init_prompts(config)
-
-    @property
-    def word_embeddings(self) -> nn.Embedding:  # For BLOOM compatibility
-        return self.embed_tokens
 
     def forward(
         self,
@@ -77,9 +71,9 @@ class DistributedLlamaModel(FromPretrainedMixin, PTuneMixin, LlamaModel):
         output_shape = input_shape + (hidden_states.size(-1),)
 
         if self.config.tuning_mode and "ptune" in self.config.tuning_mode:
-            hidden_states = self.h(hidden_states, prompts=intermediate_prompts)
+            hidden_states = self.layers(hidden_states, prompts=intermediate_prompts)
         else:
-            hidden_states = self.h(hidden_states)
+            hidden_states = self.layers(hidden_states)
 
         # Remove prefix
         if self.config.tuning_mode and "ptune" in self.config.tuning_mode:
@@ -95,21 +89,33 @@ class DistributedLlamaModel(FromPretrainedMixin, PTuneMixin, LlamaModel):
             attentions=None,
         )
 
+    @property
+    def word_embeddings(self) -> nn.Embedding:  # For compatibility with RemoteGenerationMixin
+        return self.embed_tokens
+
+    @property
+    def word_embeddings_layernorm(self) -> nn.Module:  # For compatibility with RemoteGenerationMixin
+        return nn.Identity()
+
+    @property
+    def h(self) -> RemoteSequential:  # For compatibility with RemoteGenerationMixin
+        return self.layers
+
+    @property
+    def ln_f(self) -> nn.Module:  # For compatibility with RemoteGenerationMixin
+        return self.norm
+
 
 class DistributedLlamaForCausalLM(FromPretrainedMixin, RemoteGenerationMixin, LlamaForCausalLM):
-    _keys_to_ignore_on_load_missing = (
-        LlamaForCausalLM._keys_to_ignore_on_load_missing
-        + DistributedLlamaModel._keys_to_ignore_on_load_missing
-        + [r"^lm_head.word_embeddings\.weight$"]  # Missing since they are shared with input embeddings
-    )
+    _keys_to_ignore_on_load_missing = DistributedLlamaModel._keys_to_ignore_on_load_missing
     _keys_to_ignore_on_load_unexpected = DistributedLlamaModel._keys_to_ignore_on_load_unexpected
 
     config_class = DistributedLlamaConfig
 
     def __init__(self, config: DistributedLlamaConfig):
-        LlamaPreTrainedModel.__init__(config)
+        LlamaPreTrainedModel.__init__(self, config)
         self.model = DistributedLlamaModel(config)
-        self.lm_head = LMHead(config, self.model.embed_tokens)
+        self.lm_head = LMHead(config, nn.Embedding(config.vocab_size, config.hidden_size))
 
         # Initialize weights and apply final processing
         self.post_init()
@@ -119,6 +125,10 @@ class DistributedLlamaForCausalLM(FromPretrainedMixin, RemoteGenerationMixin, Ll
 
     def set_output_embeddings(self, new_embeddings):
         self.lm_head.word_embeddings = new_embeddings
+
+    @property
+    def transformer(self) -> DistributedLlamaModel:  # For compatibility with RemoteGenerationMixin
+        return self.model
 
 
 class DistributedLlamaForSequenceClassification(FromPretrainedMixin, LlamaForSequenceClassification):
@@ -131,7 +141,7 @@ class DistributedLlamaForSequenceClassification(FromPretrainedMixin, LlamaForSeq
     config_class = DistributedLlamaConfig
 
     def __init__(self, config):
-        LlamaPreTrainedModel.__init__(config)
+        LlamaPreTrainedModel.__init__(self, config)
         self.num_labels = config.num_labels
 
         self.model = DistributedLlamaModel(config)
@@ -139,3 +149,7 @@ class DistributedLlamaForSequenceClassification(FromPretrainedMixin, LlamaForSeq
 
         # Initialize weights and apply final processing
         self.post_init()
+
+    @property
+    def transformer(self) -> DistributedLlamaModel:  # For compatibility with RemoteGenerationMixin
+        return self.model
