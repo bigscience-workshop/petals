@@ -1,6 +1,6 @@
 import dataclasses
 import platform
-from typing import Union
+from typing import Optional, Union
 
 import psutil
 import torch
@@ -8,6 +8,7 @@ import torch.nn.functional as F
 import torch.utils.checkpoint
 from hivemind import get_logger
 from torch import nn
+from transformers import PretrainedConfig
 
 logger = get_logger(__name__)
 
@@ -21,15 +22,16 @@ class LMHeadConfig:
 
 
 class LMHead(nn.Module):
-    """
-    The modified language modeling head which does not create extra tensor for the linear layer with weights tied to the input
-    embeddings. Thus, it reduces initial memory consumption which might be crucial for large dictionaries.
-    In addition, it provides an effcient way to deal with half-precision word embeddings on CPU.
-    """
-
-    def __init__(self, config: LMHeadConfig, word_embeddings: nn.Embedding):
+    def __init__(self, config: PretrainedConfig):
         super().__init__()
-        self.word_embeddings = word_embeddings
+
+        if not config.tie_word_embeddings:
+            self.weight = nn.Parameter(torch.zeros((config.vocab_size, config.hidden_size), requires_grad=False))
+        else:
+            self.weight = None  # Will be set to get_input_embeddings().weight during loading the model
+        self.bias = None
+        self.in_features = config.hidden_size  # Similar to nn.Linear attributes
+        self.out_features = config.vocab_size
 
         self.use_chunked_forward = config.use_chunked_forward
         if self.use_chunked_forward == "auto":
@@ -45,35 +47,17 @@ class LMHead(nn.Module):
         self.chunked_forward_step = config.chunked_forward_step
         self._bf16_warning_shown = False
 
-    @property
-    def in_features(self) -> int:
-        return self.word_embeddings.num_embeddings
-
-    @property
-    def out_features(self) -> int:
-        return self.word_embeddings.embedding_dim
-
-    @property
-    def weight(self):
-        return self.word_embeddings.weight
-
-    @property
-    def bias(self):
-        return None
-
     def forward(self, hidden_states):
-        word_embeddings = self.word_embeddings.weight
-
         if (
-            word_embeddings.dtype in [torch.float16, torch.bfloat16]
-            and word_embeddings.device.type == "cpu"
+            self.weight.dtype in [torch.float16, torch.bfloat16]
+            and self.weight.device.type == "cpu"
             and self.use_chunked_forward
         ):
             lm_logits = self.chunked_forward(hidden_states)
         else:
             # Switch dtype in case word_embeddings are fp16/bf16
-            hidden_states = hidden_states.to(word_embeddings.dtype)
-            lm_logits = F.linear(hidden_states, word_embeddings)
+            hidden_states = hidden_states.to(self.weight.dtype)
+            lm_logits = F.linear(hidden_states, self.weight)
         return lm_logits
 
     def chunked_forward(self, hidden_states):
@@ -83,20 +67,17 @@ class LMHead(nn.Module):
         assert self.chunked_forward_step > 0, "Chunk size for chunked forward must be positive"
 
         if not self._bf16_warning_shown:
-            if self.word_embeddings.weight.numel() * 4 < 0.9 * psutil.virtual_memory().total:
+            if self.weight.numel() * 4 < 0.9 * psutil.virtual_memory().total:
                 logger.warning(
                     "Running the client with dtype bfloat16 on CPU may be slow, since your CPU doesn't support AVX512. "
                     "Consider loading the model with torch_dtype='float32'"
                 )
             self._bf16_warning_shown = True
 
-        word_embeddings = self.word_embeddings.weight
-        num_embeddings = self.word_embeddings.num_embeddings
-
         hidden_states = hidden_states.float()
-        output = torch.empty(*hidden_states.shape[:-1], num_embeddings)
+        output = torch.empty(*hidden_states.shape[:-1], self.out_features)
 
-        for i in range(0, num_embeddings, self.chunked_forward_step):
-            chunk = word_embeddings[i : i + self.chunked_forward_step].float()
+        for i in range(0, self.out_features, self.chunked_forward_step):
+            chunk = self.weight[i : i + self.chunked_forward_step].float()
             output[..., i : i + self.chunked_forward_step] = F.linear(hidden_states, chunk)
         return output

@@ -96,7 +96,7 @@ class DistributedBloomForCausalLM(FromPretrainedMixin, RemoteGenerationMixin, Bl
     _keys_to_ignore_on_load_missing = (
         BloomForCausalLM._keys_to_ignore_on_load_missing
         + DistributedBloomModel._keys_to_ignore_on_load_missing
-        + [r"^lm_head.word_embeddings\.weight$"]  # Missing since they are shared with input embeddings
+        + [r"^lm_head\."]  # Missing since they are shared with input embeddings
     )
     _keys_to_ignore_on_load_unexpected = DistributedBloomModel._keys_to_ignore_on_load_unexpected
 
@@ -105,16 +105,13 @@ class DistributedBloomForCausalLM(FromPretrainedMixin, RemoteGenerationMixin, Bl
     def __init__(self, config: DistributedBloomConfig):
         BloomPreTrainedModel.__init__(self, config)
         self.transformer = DistributedBloomModel(config)
-        self.lm_head = LMHead(config, self.transformer.word_embeddings)
+        self.lm_head = LMHead(config)
 
         # Initialize weights and apply final processing
         self.post_init()
 
     def get_output_embeddings(self):
-        return self.lm_head.word_embeddings
-
-    def set_output_embeddings(self, new_embeddings: torch.Tensor):
-        self.lm_head.word_embeddings = new_embeddings
+        return self.lm_head
 
 
 class DistributedBloomForSequenceClassification(FromPretrainedMixin, BloomForSequenceClassification):

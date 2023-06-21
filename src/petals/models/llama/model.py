@@ -115,16 +115,13 @@ class DistributedLlamaForCausalLM(FromPretrainedMixin, RemoteGenerationMixin, Ll
     def __init__(self, config: DistributedLlamaConfig):
         LlamaPreTrainedModel.__init__(self, config)
         self.model = DistributedLlamaModel(config)
-        self.lm_head = LMHead(config, nn.Embedding(config.vocab_size, config.hidden_size))
+        self.lm_head = LMHead(config)
 
         # Initialize weights and apply final processing
         self.post_init()
 
     def get_output_embeddings(self):
-        return self.lm_head.word_embeddings
-
-    def set_output_embeddings(self, new_embeddings):
-        self.lm_head.word_embeddings = new_embeddings
+        return self.lm_head
 
     @property
     def transformer(self) -> DistributedLlamaModel:  # For compatibility with RemoteGenerationMixin
