@@ -19,7 +19,7 @@ class PTuneConfig:
 
 
 class PTuneMixin:
-    _keys_to_ignore_on_load_missing = [r"^(intermediate_)?prompt_embeddings\.weight$"]
+    _keys_to_ignore_on_load_missing = [r"(intermediate_)?prompt_embeddings\.weight$"]
 
     def init_prompts(self, config: PretrainedConfig) -> None:
         if config.tuning_mode and "ptune" in config.tuning_mode:
