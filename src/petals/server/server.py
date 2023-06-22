@@ -30,6 +30,7 @@ from petals.server.throughput import get_dtype_name, get_server_throughput
 from petals.utils.auto_config import AutoDistributedConfig
 from petals.utils.convert_block import check_device_balance, convert_block
 from petals.utils.disk_cache import DEFAULT_CACHE_DIR
+from petals.utils.version import get_compatible_model_repo
 
 logger = get_logger(__name__)
 
@@ -84,7 +85,9 @@ class Server:
     ):
         """Create a server with one or more bloom blocks. See run_server.py for documentation."""
 
+        converted_model_name_or_path = get_compatible_model_repo(converted_model_name_or_path)
         self.converted_model_name_or_path = converted_model_name_or_path
+
         self.num_handlers = num_handlers
         self.min_batch_size, self.max_batch_size = min_batch_size, max_batch_size
         self.inference_max_length = inference_max_length
@@ -96,13 +99,18 @@ class Server:
         if custom_module_path is not None:
             add_custom_models_from_file(custom_module_path)
 
+        self.block_config = AutoDistributedConfig.from_pretrained(
+            converted_model_name_or_path,
+            use_auth_token=use_auth_token,
+            revision=revision,
+        )
+
         if prefix is None:
-            prefix = converted_model_name_or_path
-            assert UID_DELIMITER not in prefix and CHAIN_DELIMITER not in prefix, (
-                f"Cannot use model name as prefix (contains '{UID_DELIMITER}' or '{CHAIN_DELIMITER}'); "
-                f"Please specify --prefix manually when starting a server"
-            )
-            logger.debug(f"Automatic dht prefix: {prefix}")
+            prefix = self.block_config.dht_prefix
+        assert UID_DELIMITER not in prefix and CHAIN_DELIMITER not in prefix, (
+            f"DHT prefix should not contain '{UID_DELIMITER}' or '{CHAIN_DELIMITER}'. "
+            f"Please specify another --prefix manually when starting a server"
+        )
         self.prefix = prefix
 
         if expiration is None:
@@ -112,11 +120,6 @@ class Server:
         self.request_timeout = request_timeout
         self.session_timeout, self.step_timeout = session_timeout, step_timeout
 
-        self.block_config = AutoDistributedConfig.from_pretrained(
-            converted_model_name_or_path,
-            use_auth_token=use_auth_token,
-            revision=revision,
-        )
         self.module_uids = [
             f"{self.prefix}.{block_index}" for block_index in range(self.block_config.num_hidden_layers)
         ]

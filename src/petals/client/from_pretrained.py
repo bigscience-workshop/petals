@@ -4,11 +4,13 @@ import os
 import re
 import tempfile
 import threading
-from typing import List, Optional, Tuple, Union
+from typing import List, Tuple, Union
 
 import torch
 from hivemind.utils.logging import get_logger
 from transformers import BloomPreTrainedModel, modeling_utils
+
+from petals.utils.version import get_compatible_model_repo
 
 logger = get_logger(__name__)
 
@@ -17,21 +19,18 @@ class FromPretrainedMixin:
     @classmethod
     def from_pretrained(
         cls,
+        model_name_or_path: Union[str, os.PathLike, None],
         *args,
-        low_cpu_mem_usage: Optional[bool] = None,
-        torch_dtype: Optional[Union[str, torch.dtype]] = None,
+        low_cpu_mem_usage: bool = True,
+        torch_dtype: Union[str, torch.dtype] = "auto",
+        # torch_dtype=None gives torch.float32 in transformers>=4.26.0. In contrast,
+        # torch_dtype="auto" attempts to (1) use config.torch_dtype (if exists), (2) use dtype of the weights.
         **kwargs,
     ):
-        if low_cpu_mem_usage is None:
-            low_cpu_mem_usage = True
-        if torch_dtype is None:
-            # torch_dtype=None gives torch.float32 in transformers>=4.26.0. In contrast,
-            # torch_dtype="auto" attempts to (1) use config.torch_dtype (if exists), (2) use dtype of the weights.
-            torch_dtype = "auto"
-
+        model_name_or_path = get_compatible_model_repo(model_name_or_path)
         with ignore_keys(cls._keys_to_ignore_on_load_unexpected):
             return super().from_pretrained(
-                *args, low_cpu_mem_usage=low_cpu_mem_usage, torch_dtype=torch_dtype, **kwargs
+                model_name_or_path, *args, low_cpu_mem_usage=low_cpu_mem_usage, torch_dtype=torch_dtype, **kwargs
             )
 
     from_pretrained.__doc__ = BloomPreTrainedModel.from_pretrained.__doc__.replace(
