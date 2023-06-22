@@ -54,19 +54,23 @@ jobs:
             --initial_peers $INITIAL_PEERS --throughput 1 --torch_dtype float32 &> server3.log &
           SERVER3_PID=$!
 
-          python -m petals.cli.run_server $MODEL_NAME --num_blocks 3 \
-            --initial_peers $INITIAL_PEERS --throughput 1 --tensor_parallel_devices cpu cpu --torch_dtype float32 &> server4.log &
+          python -m petals.cli.run_server $MODEL_NAME --block_indices 4:14 \
+            --initial_peers $INITIAL_PEERS --throughput 1 --torch_dtype float32 &> server4.log &
           SERVER4_PID=$!
+
+          python -m petals.cli.run_server $MODEL_NAME --num_blocks 3 \
+            --initial_peers $INITIAL_PEERS --throughput 1 --torch_dtype float32 --tensor_parallel_devices cpu cpu &> server5.log &
+          SERVER5_PID=$!
 
           tail -n 100 -f server*.log &
           LOGGER_PID=$!
           sleep 30  # wait for servers to download layers
 
-          kill -0 $SERVER1_PID $SERVER2_PID $SERVER3_PID $SERVER4_PID  # ensure all servers survived init
+          kill -0 $SERVER1_PID $SERVER2_PID $SERVER3_PID $SERVER4_PID $SERVER5_PID  # ensure all servers survived init
 
           pytest tests --durations=0 --durations-min=1.0 -v
 
-          kill -0 $SERVER1_PID $SERVER2_PID $SERVER3_PID $SERVER4_PID  # ensure all servers survived tests
+          kill -0 $SERVER1_PID $SERVER2_PID $SERVER3_PID $SERVER4_PID $SERVER5_PID  # ensure all servers survived tests
 
-          kill -s SIGINT $SERVER1_PID $SERVER2_PID $SERVER3_PID $SERVER4_PID $LOGGER_PID
+          kill -s SIGINT $SERVER1_PID $SERVER2_PID $SERVER3_PID $SERVER4_PID $SERVER5_PID $LOGGER_PID
           echo "Done!"
