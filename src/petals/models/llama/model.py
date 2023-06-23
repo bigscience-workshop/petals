@@ -33,7 +33,7 @@ class DistributedLlamaModel(FromPretrainedMixin, PTuneMixin, LlamaModel):
 
         self.layers = RemoteSequential(config, dht=dht)
 
-        self.set_requires_grad(False)  # Forbid accumulate grads for embeddings and layernorm
+        self.requires_grad_(False)  # Forbid accumulate grads for embeddings and layernorm
         self.init_prompts(config)
 
     def forward(
