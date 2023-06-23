@@ -20,8 +20,6 @@ class DistributedBloomConfig(BloomConfig, SequenceManagerConfig, PTuneConfig, LM
     attn_class = BloomAttention
     block_prefix = "h"
 
-    compat_suffix = "-prefix"
-
     @classmethod
     def from_pretrained(
         cls, model_name_or_path: Union[str, os.PathLike, None], *args, dht_prefix: Optional[str] = None, **kwargs
