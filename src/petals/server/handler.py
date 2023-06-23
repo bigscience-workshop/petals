@@ -190,7 +190,7 @@ class TransformerConnectionHandler(ConnectionHandler):
                         )
 
                         # prepare for next step
-                        prefix_length += hidden_states.shape[1]
+                        prefix_length += length_increment
                         try:
                             request = await asyncio.wait_for(anext(requests), self.step_timeout)
                         except asyncio.TimeoutError:
@@ -348,7 +348,7 @@ class TransformerConnectionHandler(ConnectionHandler):
     @contextlib.asynccontextmanager
     async def _allocate_cache(
         self, backends: Sequence[TransformerBackend], batch_size: int, max_length: int
-    ) -> Sequence[Sequence[Handle, ...]]:
+    ) -> Sequence[Sequence[Handle]]:
         """
         Allocate memory cache for all transformer blocks, return cache handle
         :returns: a list of {len(backends)} elements, where i-th element is a tuple of cache handles for i-th backend
