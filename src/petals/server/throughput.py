@@ -5,15 +5,13 @@ import multiprocessing as mp
 import os
 import time
 from collections import Counter
-from hashlib import sha256
 from pathlib import Path
 from typing import Dict, Optional, Sequence, Union
 
 import torch
 from hivemind.utils.logging import get_logger
-from transformers import BloomConfig
+from transformers import PretrainedConfig
 
-from petals.bloom.block import WrappedBloomBlock
 from petals.server.block_utils import resolve_block_dtype
 from petals.utils.convert_block import convert_block
 from petals.utils.disk_cache import DEFAULT_CACHE_DIR
@@ -35,7 +33,8 @@ if not hasattr(speedtest, "Speedtest"):
 
 
 def get_server_throughput(
-    config: BloomConfig,
+    model_name: str,
+    config: PretrainedConfig,
     device: torch.device,
     dtype: Union[str, torch.dtype],
     *,
@@ -59,7 +58,7 @@ def get_server_throughput(
         fcntl.flock(lock_fd.fileno(), fcntl.LOCK_EX)
         # The OS will release the lock when lock_fd is closed or the process is killed
 
-        cache_key = f"config_{sha256(str(config).encode()).hexdigest()[-16:]}"
+        cache_key = f"model_{model_name}"
         cache_key += f"_device_{get_device_name(device).replace(' ', '_')}"
         cache_key += f"_dtype_{get_dtype_name(dtype, load_in_8bit)}"
         if len(tensor_parallel_devices) > 1:
@@ -101,7 +100,7 @@ def get_server_throughput(
 
 
 def measure_throughput_info(
-    config: BloomConfig,
+    config: PretrainedConfig,
     device: torch.device,
     dtype: torch.dtype,
     *,
@@ -127,7 +126,7 @@ def measure_throughput_info(
     return throughput_info
 
 
-def measure_network_rps(config: BloomConfig, *, timeout: float = 60) -> Optional[float]:
+def measure_network_rps(config: PretrainedConfig, *, timeout: float = 60) -> Optional[float]:
     pipe_recv, pipe_send = mp.Pipe(duplex=False)
     process = mp.Process(target=_measure_bits_per_second, args=(pipe_send,))
     process.start()
@@ -160,7 +159,7 @@ def _measure_bits_per_second(pipe_send: mp.Pipe):
 
 
 def measure_compute_rps(
-    config: BloomConfig,
+    config: PretrainedConfig,
     device: torch.device,
     dtype: torch.dtype,
     *,
@@ -172,7 +171,7 @@ def measure_compute_rps(
     if not tensor_parallel_devices:
         tensor_parallel_devices = (device,)
     with torch.inference_mode():
-        block = WrappedBloomBlock(config).to(dtype)
+        block = config.block_class(config).to(dtype)
         block = convert_block(block, config, tensor_parallel_devices, device, load_in_8bit=load_in_8bit, freeze=True)
 
         cache = None
@@ -203,4 +202,7 @@ def get_device_name(device: torch.device) -> str:
 
 
 def get_dtype_name(dtype: torch.dtype, load_in_8bit: bool) -> str:
-    return "8-bit" if load_in_8bit else str(dtype)
+    name = str(dtype)
+    if load_in_8bit:
+        name += ", 8-bit quantized"
+    return name

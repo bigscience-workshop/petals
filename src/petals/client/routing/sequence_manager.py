@@ -20,6 +20,7 @@ from hivemind.utils.logging import get_logger
 import petals.dht_utils
 from petals.client.routing.sequence_info import RemoteSequenceInfo
 from petals.client.routing.spending_policy import NoSpendingPolicy
+from petals.constants import PUBLIC_INITIAL_PEERS
 from petals.data_structures import ModuleUID, RemoteSpanInfo, ServerState
 from petals.server.handler import TransformerConnectionHandler
 
@@ -28,6 +29,10 @@ logger = get_logger(__name__)
 
 @dataclasses.dataclass
 class SequenceManagerConfig:
+    initial_peers: Sequence[str] = tuple(PUBLIC_INITIAL_PEERS)  # a list of initial peers for hivemind DHT
+    dht_prefix: Optional[str] = None  # a prefix for all dht keys that correspond to this model (default: model name)
+    daemon_startup_timeout: int = 60  # timeout for the libp2p daemon connecting to initial peers
+
     allowed_servers: Optional[Collection[Union[PeerID, str]]] = None  # if defined, send requests only to these servers
 
     request_timeout: float = 3 * 60  # timeout for forward/backward/inference requests
@@ -73,6 +78,8 @@ class RemoteSequenceManager:
         dht: Optional[DHT] = None,
         state: Optional[SequenceManagerState] = None,
     ):
+        assert config.initial_peers or dht is not None, "Please specify `config.initial_peers` or `dht`"
+        assert config.dht_prefix, "Could not find dht_prefix in config, please create model with dht_prefix=..."
         assert len(block_uids) > 0, "Sequences must contain at least one block"
 
         self.config = config
@@ -84,7 +91,7 @@ class RemoteSequenceManager:
             dht = DHT(
                 initial_peers=config.initial_peers,
                 client_mode=True,
-                num_workers=config.n_layer,
+                num_workers=config.num_hidden_layers,
                 startup_timeout=config.daemon_startup_timeout,
                 start=True,
             )

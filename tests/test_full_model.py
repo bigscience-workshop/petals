@@ -5,7 +5,7 @@ from hivemind import get_logger
 from transformers.generation import BeamSearchScorer
 from transformers.models.bloom import BloomForCausalLM
 
-from petals.client.remote_model import DistributedBloomForCausalLM
+from petals import DistributedBloomForCausalLM
 from test_utils import *
 
 logger = get_logger(__name__)
@@ -20,7 +20,7 @@ def test_full_model_exact_match(pass_empty_tensors: bool, atol_forward=1e-3, ato
     )
     config = model.config
     assert isinstance(model, DistributedBloomForCausalLM)
-    assert len(model.transformer.h) == model.config.n_layer
+    assert len(model.transformer.h) == model.config.num_hidden_layers
 
     test_inputs = tokenizer("A cat sat on a mat", return_tensors="pt")["input_ids"]
 

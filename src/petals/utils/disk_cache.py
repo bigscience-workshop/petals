@@ -57,13 +57,16 @@ def free_disk_space_for(
     available_space = shutil.disk_usage(cache_dir).free - os_quota
     if max_disk_space is not None:
         available_space = min(available_space, max_disk_space - occupied_space)
+
+    gib = 1024**3
+    logger.debug(f"Disk space: required {size / gib:.1f} GiB, available {available_space / gib:.1f} GiB")
     if size <= available_space:
         return
 
     revisions = [revision for repo in model_repos for revision in repo.revisions]
     revisions.sort(key=lambda rev: max([item.blob_last_accessed for item in rev.files], default=rev.last_modified))
 
-    # Remove as few least recently used blocks as possible
+    # Remove as few least recently used shards as possible
     pending_removal = []
     freed_space = 0
     extra_space_needed = size - available_space
@@ -73,9 +76,8 @@ def free_disk_space_for(
         if freed_space >= extra_space_needed:
             break
 
-    gib = 1024**3
     if pending_removal:
-        logger.info(f"Removing {len(pending_removal)} blocks to free {freed_space / gib:.1f} GiB of disk space")
+        logger.info(f"Removing {len(pending_removal)} shards to free {freed_space / gib:.1f} GiB of disk space")
         delete_strategy = cache_info.delete_revisions(*pending_removal)
         delete_strategy.execute()
 

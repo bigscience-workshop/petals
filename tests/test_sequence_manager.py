@@ -5,8 +5,8 @@ import pytest
 import torch
 from hivemind import DHT, get_logger
 
+from petals import DistributedBloomConfig
 from petals.client import RemoteSequenceManager, RemoteSequential
-from petals.client.remote_model import DistributedBloomConfig
 from petals.data_structures import UID_DELIMITER
 from test_utils import *
 
@@ -22,7 +22,7 @@ def test_sequence_manager_basics(mode: str):
     shutdown_evt = threading.Event()
 
     # test RemoteSequential with lossy compression
-    block_uids = [f"{config.dht_prefix}{UID_DELIMITER}{i}" for i in range(config.n_layer)]
+    block_uids = [f"{config.dht_prefix}{UID_DELIMITER}{i}" for i in range(config.num_hidden_layers)]
     sequential = RemoteSequential(
         config,
         sequence_manager=TestSequenceManager(config, block_uids, dht=dht, _was_shut_down=shutdown_evt),
