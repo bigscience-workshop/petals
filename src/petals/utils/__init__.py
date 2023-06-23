@@ -1,1 +1,6 @@
-from petals.utils.auto_config import AutoDistributedConfig
+from petals.utils.auto_config import (
+    AutoDistributedConfig,
+    AutoDistributedModel,
+    AutoDistributedModelForCausalLM,
+    AutoDistributedModelForSequenceClassification,
+)

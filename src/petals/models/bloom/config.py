@@ -30,6 +30,3 @@ class DistributedBloomConfig(BloomConfig, SequenceManagerConfig, PTuneConfig, LM
             dht_prefix = str(model_name_or_path) + "-petals"
             logger.info(f"Using DHT prefix: {dht_prefix}")
         return super().from_pretrained(model_name_or_path, *args, dht_prefix=dht_prefix, **kwargs)
-
-
-AutoDistributedConfig.register(DistributedBloomConfig)
