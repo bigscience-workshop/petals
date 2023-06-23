@@ -26,7 +26,8 @@ class LMHead(nn.Module):
         super().__init__()
 
         if not config.tie_word_embeddings:
-            self.weight = nn.Parameter(torch.zeros((config.vocab_size, config.hidden_size), requires_grad=False))
+            self.weight = nn.Parameter(torch.zeros(config.vocab_size, config.hidden_size))
+            self.weight.requires_grad = False
         else:
             self.weight = None  # Will be set to get_input_embeddings().weight during loading the model
         self.bias = None
