@@ -2,7 +2,11 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import multiprocessing as mp
+import threading
 from itertools import chain
+from multiprocessing.connection import Connection as PipeConnection
+from multiprocessing.managers import SyncManager
 from typing import Any, AsyncIterator, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 
 import torch
@@ -47,6 +51,8 @@ class TransformerConnectionHandler(ConnectionHandler):
         dht: DHT,
         module_backends: Dict[str, TransformerBackend],
         *,
+        push_manager: SyncManager,
+        session_pipes: Dict[str, Tuple[PipeConnection, threading.Lock]],
         inference_max_length: int,
         request_timeout: float,
         session_timeout: float,
@@ -56,6 +62,9 @@ class TransformerConnectionHandler(ConnectionHandler):
         super().__init__(dht, module_backends)
         for module_backend in self.module_backends.values():
             assert isinstance(module_backend, TransformerBackend)
+        self._push_manager = push_manager
+        self._session_pipes = session_pipes
+
         self.inference_max_length = inference_max_length
         self.request_timeout = request_timeout
         self.session_timeout, self.step_timeout = session_timeout, step_timeout
@@ -92,11 +101,20 @@ class TransformerConnectionHandler(ConnectionHandler):
         assert isinstance(block_uid, str) and isinstance(metadata, dict)
         return block_uid, inputs, metadata
 
+    async def rpc_push(self, request: runtime_pb2.ExpertRequest, context: P2PContext) -> runtime_pb2.ExpertResponse:
+        self._log_request("rpc_push", None, context)
+        metadata = MSGPackSerializer.loads(request.metadata)
+        session_id = metadata["session_id"]
+        pipe, lock = self._session_pipes[session_id]
+        with lock:  # Ensures that two connection handlers don't do pipe.send() at the same time
+            pipe.send(request)
+        return runtime_pb2.ExpertResponse()
+
     async def rpc_inference(
         self,
         requests: AsyncIterator[runtime_pb2.ExpertRequest],
         context: P2PContext,
-    ) -> AsyncIterator[runtime_pb2.ExpertRequest]:
+    ) -> AsyncIterator[runtime_pb2.ExpertResponse]:
         """Compute a single step of inference using attention cache; update attention cache accordingly."""
 
         async with timeout(self.session_timeout):
@@ -113,6 +131,7 @@ class TransformerConnectionHandler(ConnectionHandler):
                 requested_backends = tuple(self.module_backends[uid] for uid in requested_uids)
                 max_length = metadata.get("max_length")
                 points = metadata.get("points", 0)
+                session_id = metadata.get("session_id")
 
                 if not requested_uids:
                     raise ValueError("User must specify at least one block for inference, but got none")
@@ -133,7 +152,10 @@ class TransformerConnectionHandler(ConnectionHandler):
 
                 async with self._allocate_cache(requested_backends, batch_size, max_length) as cache_handles:
                     assert len(cache_handles) == len(requested_backends)
-                    while request.tensors:  # iterate while user is willing to supply tensors
+                    first_request = request
+                    async for request in self._iterate_inference_steps(
+                        first_request, requests, session_id, requested_uids, context
+                    ):
                         hidden_states, prompts, hypo_ids = map(deserialize_torch_tensor, request.tensors)
 
                         # Cast inputs to backend dtype
@@ -191,13 +213,63 @@ class TransformerConnectionHandler(ConnectionHandler):
 
                         # prepare for next step
                         prefix_length += length_increment
-                        try:
-                            request = await asyncio.wait_for(anext(requests), self.step_timeout)
-                        except asyncio.TimeoutError:
-                            self._log_request("rpc_inference.step", requested_uids, context, warning="timed out")
-                            return
             finally:
                 self._log_request("rpc_inference.close", requested_uids, context)
+
+    async def _iterate_inference_steps(
+        self,
+        first_request: runtime_pb2.ExpertRequest,
+        requests: AsyncIterator[runtime_pb2.ExpertRequest],
+        session_id: Optional[str],
+        requested_uids: Sequence[str],
+        context: P2PContext,
+    ) -> AsyncIterator[runtime_pb2.ExpertRequest]:
+        seen_request_ids = set()
+        anext_task = asyncio.create_task(anext(requests))
+
+        loop = asyncio.get_event_loop()
+        if session_id is not None:
+            push_recv, push_send = mp.Pipe(duplex=False)
+            # rpc_push() will be able to activate push_event (even if called in different handler)
+            push_event = asyncio.Event()
+            loop.add_reader(push_recv.fileno(), push_event.set)
+            self._session_pipes[session_id] = (push_send, self._push_manager.Lock())
+            push_wait_task = asyncio.create_task(push_event.wait())
+
+        request = first_request
+        try:
+            while request.tensors:  # iterate while user is willing to supply tensors
+                metadata = MSGPackSerializer.loads(request.metadata) if request.metadata else {}
+                request_id = metadata.get("request_id")
+                if request_id is None or request_id not in seen_request_ids:
+                    yield request
+                if request_id is not None:
+                    seen_request_ids.add(request_id)
+
+                awaited_tasks = [anext_task]
+                if session_id is not None:
+                    awaited_tasks.append(push_wait_task)
+                done, _ = await asyncio.wait(
+                    awaited_tasks, timeout=self.step_timeout, return_when=asyncio.FIRST_COMPLETED
+                )
+
+                if anext_task in done:
+                    request = await anext_task
+                    anext_task = asyncio.create_task(anext(requests))
+                elif session_id is not None and push_wait_task in done:
+                    request = push_recv.recv()
+                    if not push_recv.poll():
+                        push_wait_task.clear()
+                    push_wait_task = asyncio.create_task(push_event.wait())
+                else:
+                    self._log_request("rpc_inference.step", requested_uids, context, warning="timed out")
+                    anext_task.cancel()
+                    push_wait_task.cancel()
+                    return
+        finally:
+            if session_id is not None:
+                del self._session_pipes[session_id]
+                loop.remove_reader(push_recv.fileno())
 
     async def rpc_forward(self, request: runtime_pb2.ExpertRequest, context: P2PContext) -> runtime_pb2.ExpertResponse:
         async with timeout(self.request_timeout):

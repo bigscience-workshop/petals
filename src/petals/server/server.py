@@ -486,10 +486,16 @@ class ModuleContainer(threading.Thread):
 
         self.dht, self.module_backends = dht, module_backends
         self.throughput, self.update_period, self.expiration = throughput, update_period, expiration
+
+        self.push_manager = mp.Manager()
+        self.push_manager.__enter__()
+        session_pipes = self.push_manager.dict()
         self.conn_handlers = [
             TransformerConnectionHandler(
                 dht,
                 self.module_backends,
+                push_manager=self.push_manager,
+                session_pipes=session_pipes,
                 inference_max_length=inference_max_length,
                 request_timeout=request_timeout,
                 session_timeout=session_timeout,
@@ -497,6 +503,7 @@ class ModuleContainer(threading.Thread):
             )
             for _ in range(num_handlers)
         ]
+
         self.runtime = RuntimeWithDeduplicatedPools(self.module_backends, device=None, **kwargs)
         # note: We set device=None in runtime to avoid moving all modules to device 0 in runtime.run(). tensor_parallel has already moved it as needed.
         self.online_announcer = ModuleAnnouncerThread(
@@ -577,6 +584,7 @@ class ModuleContainer(threading.Thread):
         logger.debug("Shutting down connection handlers")
         for handler in self.conn_handlers:
             handler.shutdown()
+        self.push_manager.__exit__()
 
         logger.debug(f"Shutting down pools")
         for pool in self.runtime.pools:
