@@ -128,7 +128,7 @@ class DistributedBloomForSequenceClassification(FromPretrainedMixin, BloomForSeq
         self.num_labels = config.num_labels
 
         self.transformer = DistributedBloomModel(config)
-        self.score = nn.Linear(config.hidden_size, config.num_labels, bias=False).to(config.torch_dtype)
+        self.score = nn.Linear(config.hidden_size, config.num_labels, bias=False)
 
         # Initialize weights and apply final processing
         self.post_init()
