@@ -3,6 +3,7 @@ import torch
 
 from petals import AutoDistributedConfig
 from petals.server.throughput import measure_compute_rps
+from petals.utils.convert_block import QuantType
 from test_utils import MODEL_NAME
 
 
@@ -15,7 +16,7 @@ def test_compute_throughput(tensor_parallel: bool):
         config,
         device=torch.device("cpu"),
         dtype=torch.bfloat16,
-        quant_type=None,
+        quant_type=QuantType.NONE,
         tensor_parallel_devices=tensor_parallel_devices,
         n_steps=10,
     )
