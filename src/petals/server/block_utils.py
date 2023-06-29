@@ -40,7 +40,7 @@ def get_block_size(
         elif quant_type == QuantType.INT8:
             bytes_per_value = 1
         elif quant_type == QuantType.NF4:
-            bytes_per_value = 0.5
+            bytes_per_value = 4.25 / 8  # Bitness of NF4 with this config (measured empirically)
         else:
             raise ValueError(f"Unsupported quant_type={quant_type}")
     elif location == "disk":
