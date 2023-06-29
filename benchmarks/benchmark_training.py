@@ -7,24 +7,25 @@ from time import perf_counter
 import numpy as np
 import torch
 from hivemind.utils.logging import get_logger
-from transformers import BloomTokenizerFast
 
-from petals import DistributedBloomForCausalLM, DistributedBloomForSequenceClassification
+from petals import AutoDistributedModelForCausalLM, AutoDistributedModelForSequenceClassification
+from petals.constants import PUBLIC_INITIAL_PEERS
 
 logger = get_logger()
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", type=str, default="bigscience/bloom-petals")
+    parser.add_argument("--model", type=str, default="bigscience/bloom")
     parser.add_argument("--device", type=str, default="cpu")
     parser.add_argument("--task", type=str, default="cls")
-    parser.add_argument("-i", "--initial_peers", type=str, nargs="+", required=True)
-    parser.add_argument("--n_processes", type=str, default="1")
+    parser.add_argument("-i", "--initial_peers", type=str, nargs="+", default=PUBLIC_INITIAL_PEERS)
+    parser.add_argument("--n_processes", type=str, default=1)
     parser.add_argument("--seq_len", type=int, default=128)
     parser.add_argument("--pre_seq_len", type=int, default=16)
     parser.add_argument("--n_steps", type=int, default=10)
     parser.add_argument("-b", "--batch_size", type=int, required=True)
+    parser.add_argument("--warmup_steps", type=int, default=1)
     args = parser.parse_args()
 
     assert args.task in ["cls", "causal_lm"]
@@ -42,9 +43,8 @@ def main():
 
 
 def benchmark_training(process_idx, args):
-    tokenizer = BloomTokenizerFast.from_pretrained(args.model)
     if args.task == "cls":
-        model = DistributedBloomForSequenceClassification.from_pretrained(
+        model = AutoDistributedModelForSequenceClassification.from_pretrained(
             args.model,
             initial_peers=args.initial_peers,
             tuning_mode="deep_ptune",
@@ -52,7 +52,7 @@ def benchmark_training(process_idx, args):
             num_labels=2,
         )
     elif args.task == "causal_lm":
-        model = DistributedBloomForCausalLM.from_pretrained(
+        model = AutoDistributedModelForCausalLM.from_pretrained(
             args.model, initial_peers=args.initial_peers, tuning_mode="deep_ptune", pre_seq_len=args.pre_seq_len
         )
     model = model.to(args.device)
@@ -63,7 +63,7 @@ def benchmark_training(process_idx, args):
     fwd_times = []
     bwd_times = []
     for step in range(args.n_steps):
-        input_ids = torch.randint(100, 10000, size=(args.batch_size, args.seq_len), device=args.device)
+        input_ids = torch.randint(0, model.config.vocab_size, size=(args.batch_size, args.seq_len), device=args.device)
         if args.task == "cls":
             labels = torch.randint(0, 2, size=[args.batch_size], device=args.device)
         else:
@@ -83,7 +83,7 @@ def benchmark_training(process_idx, args):
         opt.step()
         opt.zero_grad()
 
-        if step >= 1:
+        if step >= args.warmup_steps:
             fwd_speed = input_ids.numel() / np.mean(fwd_times[1:])
             bwd_speed = input_ids.numel() / np.mean(bwd_times[1:])
             logger.info(f"{process_idx=} Fwd speed: {fwd_speed:.2f} | Bwd speed: {bwd_speed:.2f}")

@@ -6,19 +6,23 @@ from time import perf_counter
 
 import torch
 from hivemind.utils.logging import get_logger
-from transformers import BloomTokenizerFast
+from transformers import AutoTokenizer
 
-from petals import DistributedBloomForCausalLM
+from petals import AutoDistributedModelForCausalLM
+from petals.constants import PUBLIC_INITIAL_PEERS
+from petals.server.from_pretrained import DTYPE_MAP
 
 logger = get_logger()
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", type=str, default="bigscience/bloom-petals")
-    parser.add_argument("-i", "--initial_peers", type=str, nargs="+", required=True)
-    parser.add_argument("-p", "--n_processes", type=str, required=True)
-    parser.add_argument("-l", "--seq_len", type=int, required=True)
+    parser.add_argument("--model", type=str, default="bigscience/bloom")
+    parser.add_argument("-i", "--initial_peers", type=str, nargs="+", default=PUBLIC_INITIAL_PEERS)
+    parser.add_argument("--torch_dtype", type=str, default="bfloat16")
+    parser.add_argument("-p", "--n_processes", type=str, default=1)
+    parser.add_argument("-l", "--seq_len", type=int, default=2048)
+    parser.add_argument("--warmup_steps", type=int, default=1)
     args = parser.parse_args()
 
     if args.n_processes == "n_gpus":
@@ -35,19 +39,22 @@ def main():
 
 @torch.inference_mode()
 def benchmark_inference(process_idx, args):
-    tokenizer = BloomTokenizerFast.from_pretrained(args.model)
-    model = DistributedBloomForCausalLM.from_pretrained(args.model, initial_peers=args.initial_peers)
-    logger.info(f"Created model: {process_idx=} {model.device=}")
+    tokenizer = AutoTokenizer.from_pretrained(args.model)
+    model = AutoDistributedModelForCausalLM.from_pretrained(
+        args.model, initial_peers=args.initial_peers, torch_dtype=DTYPE_MAP[args.torch_dtype]
+    )
+    logger.info(f"Created model: {process_idx=} {model.device=} {model.config.torch_dtype=}")
 
     result = ""
     with model.transformer.h.inference_session(max_length=args.seq_len) as sess:
         for step in range(args.seq_len):
+            if step == args.warmup_steps:
+                start_time = perf_counter()
+
             outputs = model.generate(max_new_tokens=1, session=sess)
             result += tokenizer.decode(outputs[0])
 
-            if step == 0:
-                start_time = perf_counter()
-            else:
+            if step >= args.warmup_steps:
                 speed = step / (perf_counter() - start_time)
                 logger.info(f"{process_idx=} {step=} {speed=:.3f}")
 
