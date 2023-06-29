@@ -9,8 +9,7 @@ from hivemind.utils.logging import get_logger
 from transformers import AutoTokenizer
 
 from petals import AutoDistributedModelForCausalLM
-from petals.constants import PUBLIC_INITIAL_PEERS
-from petals.server.from_pretrained import DTYPE_MAP
+from petals.constants import DTYPE_MAP, PUBLIC_INITIAL_PEERS
 
 logger = get_logger()
 
@@ -18,10 +17,10 @@ logger = get_logger()
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", type=str, default="bigscience/bloom")
-    parser.add_argument("-i", "--initial_peers", type=str, nargs="+", default=PUBLIC_INITIAL_PEERS)
+    parser.add_argument("--initial_peers", type=str, nargs="+", default=PUBLIC_INITIAL_PEERS)
     parser.add_argument("--torch_dtype", type=str, default="bfloat16")
-    parser.add_argument("-p", "--n_processes", type=str, default=1)
-    parser.add_argument("-l", "--seq_len", type=int, default=2048)
+    parser.add_argument("--n_processes", type=str, default=1)
+    parser.add_argument("--seq_len", type=int, default=2048)
     parser.add_argument("--warmup_steps", type=int, default=1)
     args = parser.parse_args()
 

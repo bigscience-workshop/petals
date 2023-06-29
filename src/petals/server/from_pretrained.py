@@ -19,6 +19,7 @@ from huggingface_hub import get_hf_file_metadata, hf_hub_url
 from transformers import PretrainedConfig
 from transformers.utils import get_file_from_repo
 
+from petals.constants import DTYPE_MAP
 from petals.server.block_utils import resolve_block_dtype
 from petals.utils.auto_config import AutoDistributedConfig
 from petals.utils.disk_cache import DEFAULT_CACHE_DIR, allow_cache_reads, allow_cache_writes, free_disk_space_for
@@ -170,6 +171,3 @@ def _load_state_dict_from_file(
         except Exception as e:
             logger.warning(f"Failed to load file {filename} from HF Hub (retry in {delay:.0f} sec)", exc_info=True)
             time.sleep(delay)
-
-
-DTYPE_MAP = dict(bfloat16=torch.bfloat16, float16=torch.float16, float32=torch.float32, auto="auto")
