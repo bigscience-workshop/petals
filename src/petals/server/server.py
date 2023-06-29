@@ -154,8 +154,8 @@ class Server:
             device = torch.device(device.type, index=0)
         self.device = device
 
-        torch_dtype = DTYPE_MAP[torch_dtype]
-        self.torch_dtype = resolve_block_dtype(self.block_config, torch_dtype)
+        torch_dtype = resolve_block_dtype(self.block_config, DTYPE_MAP[torch_dtype])
+        self.torch_dtype = torch_dtype
 
         if tensor_parallel_devices is None:
             tensor_parallel_devices = (device,)
