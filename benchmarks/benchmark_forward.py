@@ -4,6 +4,7 @@ import argparse
 import multiprocessing as mp
 from time import perf_counter
 
+import numpy as np
 import torch
 from hivemind.utils.logging import get_logger
 
@@ -47,9 +48,9 @@ def benchmark_forward(process_idx, args):
     logger.info(f"Created model: {process_idx=} {model.device=}")
 
     torch.manual_seed(42)
+    step_times = []
     for step in range(args.n_steps):
-        if step == args.warmup_steps:
-            start_time = perf_counter()
+        start_time = perf_counter()
 
         input_ids = torch.randint(0, model.config.vocab_size, size=(args.batch_size, args.seq_len))
 
@@ -59,10 +60,11 @@ def benchmark_forward(process_idx, args):
         logger.info(f"{process_idx=} Fwd end")
 
         if step >= args.warmup_steps:
-            speed = step / (perf_counter() - start_time) * input_ids.numel()
-            logger.info(f"{process_idx=} {step=} {speed=:.3f}")
+            step_times.append(perf_counter() - start_time)
+            speed = input_ids.numel() / np.mean(step_times)
+            logger.info(f"{process_idx=} {step=} {speed=:.2f}")
 
-    logger.info(f"Final result: {process_idx=} {speed=:.3f}")
+    logger.info(f"Final result: {process_idx=} {speed=:.2f}")
 
 
 if __name__ == "__main__":
