@@ -86,9 +86,10 @@ def quantize_module(model: nn.Module, *, quant_type: QuantType) -> nn.Module:
                     module.in_features,
                     module.out_features,
                     module.bias is not None,
+                    compress_statistics=True,
                 )
                 model._modules[n].weight = bnb.nn.Params4bit(
-                    module.weight.data, requires_grad=False, quant_type="nf4"
+                    module.weight.data, requires_grad=False, quant_type="nf4", blocksize=64, compress_statistics=True
                 ).to(module.weight.dtype)
             else:
                 raise ValueError(f"Unsupported quant_type='{quant_type}'")
