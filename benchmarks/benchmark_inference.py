@@ -38,11 +38,13 @@ def main():
 
 @torch.inference_mode()
 def benchmark_inference(process_idx, args):
-    tokenizer = AutoTokenizer.from_pretrained(args.model)
+    tokenizer = AutoTokenizer.from_pretrained(args.model, use_fast=False)
+    # Using use_fast=False since LlamaTokenizerFast takes a long time to start, and we decode 1 token at a time anyway
+
     model = AutoDistributedModelForCausalLM.from_pretrained(
         args.model, initial_peers=args.initial_peers, torch_dtype=DTYPE_MAP[args.torch_dtype]
     )
-    logger.info(f"Created model: {process_idx=} {model.device=} {model.config.torch_dtype=}")
+    logger.info(f"Created model: {process_idx=} {model.device=}")
 
     result = ""
     with model.transformer.h.inference_session(max_length=args.seq_len) as sess:
