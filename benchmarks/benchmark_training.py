@@ -68,7 +68,7 @@ def benchmark_training(process_idx, args):
     torch.manual_seed(42)
     fwd_times = []
     bwd_times = []
-    for step in range(args.n_steps):
+    for step in range(args.warmup_steps + args.n_steps):
         input_ids = torch.randint(0, model.config.vocab_size, size=(args.batch_size, args.seq_len), device=args.device)
         if args.task == "cls":
             labels = torch.randint(0, 2, size=[args.batch_size], device=args.device)

@@ -49,7 +49,7 @@ def benchmark_forward(process_idx, args):
 
     torch.manual_seed(42)
     step_times = []
-    for step in range(args.n_steps):
+    for step in range(args.warmup_steps + args.n_steps):
         start_time = perf_counter()
 
         input_ids = torch.randint(0, model.config.vocab_size, size=(args.batch_size, args.seq_len))
