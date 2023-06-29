@@ -19,8 +19,8 @@ logger = get_logger(__name__)
 
 class QuantType(Enum):
     NONE = 0
-    INT8 = 1
-    NF4 = 2
+    INT8 = 1  # 8-bit as in the LLM.int8() paper
+    NF4 = 2  # 4-bit as in the QLoRA paper
 
 
 def convert_block(
@@ -40,7 +40,7 @@ def convert_block(
     :param tensor_parallel_devices: if specified, use tensor parallelism to split the model between these devices
     :note: if there is only a single device, model wil still be wrapped with TensorParallel (for uniformity)
     :param output_device: if tensor_parallel_devices is True, output
-    :param quant_type: one of None, "int8" (see LLM.int8() paper), "nf4" (see QLoRA paper)
+    :param quant_type: quantization type
     :param freeze: if True (default), make all module parameters non-trainable
     :return: a module that acts like the original block, but runs with all specified optimizations
 
@@ -60,22 +60,6 @@ def convert_block(
 
 
 def quantize_module(model: nn.Module, *, quant_type: QuantType) -> nn.Module:
-    """
-    A helper function to convert all `torch.nn.Linear` modules to `bnb.nn.Linear8bit` modules from the `bitsandbytes`
-    library. This will enable running your models using mixed int8 precision as described by the paper `GPT3.int8():
-    8-bit Matrix Multiplication for Transformers at Scale`. Make sure `bitsandbytes` compiled with the correct CUDA
-    version of your hardware is installed before running this function. `pip install -i https://test.pypi.org/simple/
-    bitsandbytes-cudaXXX` with `XXX` is your CUDA version (e.g., 11.6 = 116)
-    The function will be run recursively and replace all `torch.nn.Linear` modules except for the `lm_head` and 'score' that should
-    be kept as a `torch.nn.Linear` module.
-    Parameters:
-        model (`torch.nn.Module`):
-            Input model or `torch.nn.Module` as the function is run recursively.
-        threshold (`float`, *optional*):
-            `int8_threshold` for outlier detection as described in the formentioned paper. This parameters is set to
-            `6.0` as described by the paper.
-    """
-
     # Import bitsandbytes only when necessary, so Petals runs on platforms not supported by bitsandbytes
     os.environ["BITSANDBYTES_NOWELCOME"] = "1"
     import bitsandbytes as bnb

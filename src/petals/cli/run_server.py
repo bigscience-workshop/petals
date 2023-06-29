@@ -188,6 +188,10 @@ def main():
     if args.pop("new_swarm"):
         args["initial_peers"] = []
 
+    quant_type = args.pop("quant_type")
+    if quant_type is not None:
+        args["quant_type"] = QuantType[quant_type.upper()]
+
     validate_version()
 
     server = Server(
