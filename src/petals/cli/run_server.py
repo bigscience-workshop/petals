@@ -8,6 +8,7 @@ from humanfriendly import parse_size
 
 from petals.constants import DTYPE_MAP, PUBLIC_INITIAL_PEERS
 from petals.server.server import Server
+from petals.utils.convert_block import QuantType
 from petals.utils.version import validate_version
 
 logger = get_logger(__name__)
@@ -133,9 +134,10 @@ def main():
                         help="Check the swarm's balance every N seconds (and rebalance it if necessary)")
 
     parser.add_argument("--use_auth_token", action='store_true', help="auth token for from_pretrained")
-    parser.add_argument('--load_in_8bit', type=str, default=None,
-                        help="Convert the loaded transformer blocks into mixed-8bit quantized model. "
-                             "Default: True if GPU is available. Use `--load_in_8bit False` to disable this")
+    parser.add_argument('--quant_type', type=str, default=None, choices=[choice.name.lower() for choice in QuantType],
+                        help="Quantize blocks to 8-bit (int8 from the LLM.int8() paper) or "
+                             "4-bit (nf4 from the QLoRA paper) formats to save GPU memory. "
+                             "Default: 'nf4' for LLaMA on GPU, 'int8' for BLOOM on GPU, 'none' for CPU")
     parser.add_argument("--tensor_parallel_devices", nargs='+', default=None,
                         help=
                         "Split each block between the specified GPUs such that each device holds a portion of every "
@@ -185,10 +187,6 @@ def main():
 
     if args.pop("new_swarm"):
         args["initial_peers"] = []
-
-    load_in_8bit = args.pop("load_in_8bit")
-    if load_in_8bit is not None:
-        args["load_in_8bit"] = load_in_8bit.lower() in ["true", "1"]
 
     validate_version()
 

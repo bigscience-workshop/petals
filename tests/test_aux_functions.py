@@ -15,7 +15,7 @@ def test_compute_throughput(tensor_parallel: bool):
         config,
         device=torch.device("cpu"),
         dtype=torch.bfloat16,
-        load_in_8bit=False,
+        quant_type=None,
         tensor_parallel_devices=tensor_parallel_devices,
         n_steps=10,
     )
