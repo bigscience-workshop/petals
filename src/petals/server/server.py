@@ -243,9 +243,9 @@ class Server:
 
         block_size = get_block_size(self.block_config, "memory", dtype=self.torch_dtype, quant_type=self.quant_type)
 
-        # The estimates below are for bigscience/bloom-petals, serving as an upper bound for other models
         gib = 1024**3
-        autograd_memory = 2 * gib * num_devices  # GPU memory used for intermediate tensors in rpc_backward
+        # Estimate of GPU memory used in rpc_backward (2 GiB for BLOOM, proportional for other models)
+        autograd_memory = 2 * gib * num_devices / 14336 * self.block_config.hidden_size
 
         num_blocks = math.floor((total_memory - autograd_memory) / (block_size + self._cache_bytes_per_block))
         assert num_blocks >= 1, "Your GPU does not have enough memory to serve at least one block"
