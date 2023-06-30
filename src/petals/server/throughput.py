@@ -203,6 +203,6 @@ def get_device_name(device: torch.device) -> str:
 
 def get_dtype_name(dtype: torch.dtype, quant_type: QuantType) -> str:
     name = str(dtype)
-    if quant_type is not None:
+    if quant_type != QuantType.NONE:
         name += f", quantized to {quant_type.name.lower()}"
     return name
