@@ -68,7 +68,7 @@ def benchmark_training(process_idx, args):
     torch.manual_seed(42)
     fwd_times = []
     bwd_times = []
-    for step in range(args.n_steps):
+    for step in range(args.warmup_steps + args.n_steps):
         input_ids = torch.randint(0, model.config.vocab_size, size=(args.batch_size, args.seq_len), device=args.device)
         if args.task == "cls":
             labels = torch.randint(0, 2, size=[args.batch_size], device=args.device)
@@ -78,20 +78,22 @@ def benchmark_training(process_idx, args):
         logger.info(f"{process_idx=} {step=} Forward")
         start_time = perf_counter()
         outputs = model(input_ids, labels=labels)
-        fwd_times.append(perf_counter() - start_time)
+        if step >= args.warmup_steps:
+            fwd_times.append(perf_counter() - start_time)
 
         logger.info(f"{process_idx=} {step=} Backward")
         start_time = perf_counter()
         outputs.loss.backward()
-        bwd_times.append(perf_counter() - start_time)
+        if step >= args.warmup_steps:
+            bwd_times.append(perf_counter() - start_time)
 
         logger.info(f"{process_idx=} {step=} Optimizer step")
         opt.step()
         opt.zero_grad()
 
         if step >= args.warmup_steps:
-            fwd_speed = input_ids.numel() / np.mean(fwd_times[1:])
-            bwd_speed = input_ids.numel() / np.mean(bwd_times[1:])
+            fwd_speed = input_ids.numel() / np.mean(fwd_times)
+            bwd_speed = input_ids.numel() / np.mean(bwd_times)
             logger.info(f"{process_idx=} Fwd speed: {fwd_speed:.2f} | Bwd speed: {bwd_speed:.2f}")
 
     logger.info(f"Final result: {process_idx=} {fwd_speed=:.2f} | {bwd_speed=:.2f}")
