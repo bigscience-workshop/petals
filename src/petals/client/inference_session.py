@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import itertools
 import time
+import uuid
 from typing import AsyncIterator, List, Optional
 
 import torch
@@ -49,7 +50,8 @@ class _ServerInferenceSession:
         self._inputs_queue: asyncio.Queue[runtime_pb2.ExpertRequest] = inputs_queue
         self._outputs_stream: AsyncIterator[runtime_pb2.ExpertResponse] = outputs_aiter
         self.timeout = timeout
-        self._serialized_metadata = MSGPackSerializer.dumps(dict(max_length=max_length, **metadata))
+        self.session_id = str(uuid.uuid4())
+        self.session_metadata = dict(max_length=max_length, **metadata)
         self.stepped = False
         self.closed = False
 
@@ -103,6 +105,9 @@ class _ServerInferenceSession:
 
         # serialize inputs and put them into the queue
         inputs = (new_hidden_states, prompts, hypo_ids)
+        request_metadata = dict(session_id=self.session_id, request_id=str(uuid.uuid4()))
+        if not self.stepped:
+            request_metadata.update(self.session_metadata)
         outputs_serialized = RemoteExpertWorker.run_coroutine(
             self._step(
                 runtime_pb2.ExpertRequest(
@@ -111,7 +116,7 @@ class _ServerInferenceSession:
                         serialize_torch_tensor(tensor.to(proto.dtype), proto.compression)
                         for tensor, proto in zip(inputs, nested_flatten(self.rpc_info["inference_schema"]))
                     ],
-                    metadata=self._serialized_metadata if not self.stepped else None,
+                    metadata=MSGPackSerializer.dumps(request_metadata),
                 )
             )
         )
