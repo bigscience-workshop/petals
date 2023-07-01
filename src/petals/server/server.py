@@ -165,11 +165,7 @@ class Server:
             check_device_balance(self.tensor_parallel_devices)
 
         if quant_type is None:
-            if device.type == "cuda":
-                quant_type = QuantType.INT8 if self.block_config.model_type == "bloom" else QuantType.NF4
-                # The default is int8 for BLOOM (for backward compatibility) and nf4 otherwise
-            else:
-                quant_type = QuantType.NONE
+            quant_type = QuantType.INT8 if device.type == "cuda" else QuantType.NONE
         self.quant_type = quant_type
         logger.info(f"Model weights are loaded in {get_dtype_name(torch_dtype, quant_type)} format")
 
