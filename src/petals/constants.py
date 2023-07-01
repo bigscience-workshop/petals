@@ -1,3 +1,5 @@
+import torch
+
 PUBLIC_INITIAL_PEERS = [
     "/dns/bootstrap1.petals.ml/tcp/31337/p2p/QmedTaZXmULqwspJXz44SsPZyTNKxhnnFvYRajfH7MGhCY",
     "/dns6/bootstrap1.petals.ml/tcp/31337/p2p/QmedTaZXmULqwspJXz44SsPZyTNKxhnnFvYRajfH7MGhCY",
@@ -7,3 +9,5 @@ PUBLIC_INITIAL_PEERS = [
 
 # The reachability API is currently used only when connecting to the public swarm
 REACHABILITY_API_URL = "http://health.petals.ml"
+
+DTYPE_MAP = dict(bfloat16=torch.bfloat16, float16=torch.float16, float32=torch.float32, auto="auto")

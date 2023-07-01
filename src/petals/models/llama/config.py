@@ -23,6 +23,11 @@ class DistributedLlamaConfig(LlamaConfig, SequenceManagerConfig, PTuneConfig, LM
     def from_pretrained(
         cls, model_name_or_path: Union[str, os.PathLike, None], *args, dht_prefix: Optional[str] = None, **kwargs
     ):
+        logger.info(
+            "LLaMA is available solely for non-commercial research purposes. "
+            "Make sure you follow the terms of use: https://bit.ly/llama-license"
+        )
+
         loading_from_repo = model_name_or_path is not None and not os.path.isdir(model_name_or_path)
         if loading_from_repo and dht_prefix is None:
             dht_prefix = str(model_name_or_path)

@@ -6,8 +6,8 @@ from hivemind.utils.limits import increase_file_limit
 from hivemind.utils.logging import get_logger
 from humanfriendly import parse_size
 
-from petals.constants import PUBLIC_INITIAL_PEERS
-from petals.server.server import DTYPE_MAP, Server
+from petals.constants import DTYPE_MAP, PUBLIC_INITIAL_PEERS
+from petals.server.server import Server
 from petals.utils.version import validate_version
 
 logger = get_logger(__name__)
