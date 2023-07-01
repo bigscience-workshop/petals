@@ -16,7 +16,7 @@ from hivemind import (
     serialize_torch_tensor,
 )
 from hivemind.moe.client.remote_expert_worker import RemoteExpertWorker
-from hivemind.p2p import StubBase
+from hivemind.p2p import P2P, PeerID
 from hivemind.proto import runtime_pb2
 
 from petals.client.routing.sequence_manager import RemoteSequenceManager, maybe_log_traceback
@@ -36,6 +36,7 @@ class _ServerInferenceSession:
 
     def __init__(
         self,
+        peer_id: PeerID,
         uid: ModuleUID,
         rpc_info: RPCInfo,
         inputs_queue: asyncio.Queue,
@@ -45,7 +46,7 @@ class _ServerInferenceSession:
         max_length: int,
         **metadata,
     ):
-        self.uid, self.rpc_info = uid, rpc_info
+        self.peer_id, self.uid, self.rpc_info = peer_id, uid, rpc_info
         self.num_blocks = uid.count(CHAIN_DELIMITER) + 1
         self._inputs_queue: asyncio.Queue[runtime_pb2.ExpertRequest] = inputs_queue
         self._outputs_stream: AsyncIterator[runtime_pb2.ExpertResponse] = outputs_aiter
@@ -57,15 +58,16 @@ class _ServerInferenceSession:
 
     @classmethod
     async def create(
-        cls, stub: StubBase, uid: ModuleUID, rpc_info: RPCInfo, timeout: float, **metadata
+        cls, p2p: P2P, peer_id: PeerID, uid: ModuleUID, rpc_info: RPCInfo, timeout: float, **metadata
     ) -> _ServerInferenceSession:
         """Create a new session for a given remote module. This code is meant to be run inside RemoteExpertWorker"""
+        stub = TransformerConnectionHandler.get_stub(p2p, peer_id)
         inputs_queue = asyncio.Queue()
         outputs_stream = await asyncio.wait_for(
             stub.rpc_inference(cls._read_inputs_from_queue(inputs_queue)),
             timeout,
         )
-        return cls(uid, rpc_info, inputs_queue, outputs_stream, timeout=timeout, **metadata)
+        return cls(peer_id, uid, rpc_info, inputs_queue, outputs_stream, timeout=timeout, **metadata)
 
     @staticmethod
     async def _read_inputs_from_queue(queue: asyncio.Queue, input_timeout: Optional[float] = None) -> AsyncIterator:
@@ -188,12 +190,12 @@ class InferenceSession:
         server_sessions = []
         try:
             for span in chosen_spans:
-                stub = TransformerConnectionHandler.get_stub(self._sequence_manager.state.p2p, span.peer_id)
                 span_uids = CHAIN_DELIMITER.join(self._sequence_manager.block_uids[span.start : span.end])
                 metadata = self._sequence_manager.get_request_metadata("rpc_inference", span_uids, peer_id=span.peer_id)
                 session = RemoteExpertWorker.run_coroutine(
                     _ServerInferenceSession.create(
-                        stub,
+                        self._sequence_manager.state.p2p,
+                        span.peer_id,
                         span_uids,
                         rpc_info=self._sequence_manager.rpc_info,
                         timeout=self._sequence_manager.config.request_timeout,
