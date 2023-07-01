@@ -171,9 +171,14 @@ class InferenceSession:
         self._chosen_spans = []
         self._server_sessions = []
         self._server_inputs = []  # Used in case of server failures to regenerate attention caches on new servers
+        self._recovery_until = -1
         self._position = 0
         self._max_length = max_length
         self.last_token_id = None
+
+    @property
+    def n_blocks(self) -> int:
+        return len(self._sequence_manager)
 
     @property
     def position(self) -> int:
@@ -219,11 +224,10 @@ class InferenceSession:
         if torch.is_grad_enabled():
             logger.warning("Running inference session with grad enabled. Gradients will *not* be propagated correctly.")
 
-        n_blocks = len(self._sequence_manager)
         if prompts is None or is_dummy(prompts):
             prompts = DUMMY
         else:
-            assert prompts.ndim == 4 and prompts.shape[0] == n_blocks
+            assert prompts.ndim == 4 and prompts.shape[0] == self.n_blocks
 
         inputs_device = inputs.device
         inputs_dtype = inputs.dtype
@@ -238,44 +242,14 @@ class InferenceSession:
 
         server_idx = 0
         block_idx = 0
-        recovery_until = -1  # Recovery mode is disabled until a failure happens
-        while block_idx < n_blocks:
+        self._recovery_until = -1  # Recovery mode is disabled until a failure happens
+        while block_idx < self.n_blocks:
             for attempt_no in itertools.count():
                 logger.debug(f"Inference: block {block_idx}, attempt {attempt_no}")
                 span = None
                 try:
                     if not self._chosen_spans or not self._server_sessions or attempt_no >= 1:
-                        # If there is a failed server session, this code closes it
-                        self._exit_server_sessions(self._server_sessions[server_idx : server_idx + 1])
-
-                        n_prev_spans = len(self._chosen_spans)
-                        update_end = self._chosen_spans[server_idx].end if server_idx < n_prev_spans else n_blocks
-                        if attempt_no >= 1 and update_end > recovery_until:
-                            logger.info(
-                                f"Due to a server failure, remote attention caches "
-                                f"from block {block_idx} to {update_end} will be regenerated"
-                            )
-                        recovery_until = max(recovery_until, update_end)
-
-                        updated_spans = self._sequence_manager.make_sequence(block_idx, update_end, mode="min_latency")
-                        # make_sequence() could return a longer sequence
-                        updated_spans[-1].end = min(updated_spans[-1].end, update_end)
-                        updated_sessions = self._enter_server_sessions(updated_spans)
-                        logger.debug(
-                            f"Found path from block {block_idx} to {update_end} via {len(updated_spans)} servers"
-                        )
-
-                        # If there is a failed span, this code replaces it, otherwise it just adds new ones
-                        self._chosen_spans[server_idx : server_idx + 1] = updated_spans
-                        self._server_sessions[server_idx : server_idx + 1] = updated_sessions
-                        recovery_inputs = self._server_inputs[server_idx] if server_idx < n_prev_spans else None
-                        self._server_inputs[server_idx : server_idx + 1] = [recovery_inputs] + [None] * (
-                            len(updated_spans) - 1
-                        )
-                        assert len(self._chosen_spans) == len(self._server_sessions) == len(self._server_inputs), (
-                            f"Broken state: {len(self._chosen_spans)} spans, {len(self._server_sessions)} sessions, "
-                            f"{len(self._server_inputs)} inputs"
-                        )
+                        self._update_sequence(server_idx, block_idx, attempt_no)
 
                     session = self._server_sessions[server_idx]
                     span = self._chosen_spans[server_idx]
@@ -321,6 +295,35 @@ class InferenceSession:
         inputs = inputs[:, -n_input_tokens:]
         outputs = inputs.to(device=inputs_device, dtype=inputs_dtype)
         return outputs
+
+    def _update_sequence(self, server_idx: int, block_idx: int, attempt_no: int) -> int:
+        # If there is a failed server session, this code closes it
+        self._exit_server_sessions(self._server_sessions[server_idx : server_idx + 1])
+
+        n_prev_spans = len(self._chosen_spans)
+        update_end = self._chosen_spans[server_idx].end if server_idx < n_prev_spans else self.n_blocks
+        if attempt_no >= 1 and update_end > self._recovery_until:
+            logger.info(
+                f"Due to a server failure, remote attention caches "
+                f"from block {block_idx} to {update_end} will be regenerated"
+            )
+        self._recovery_until = max(self._recovery_until, update_end)
+
+        updated_spans = self._sequence_manager.make_sequence(block_idx, update_end, mode="min_latency")
+        # make_sequence() could return a longer sequence
+        updated_spans[-1].end = min(updated_spans[-1].end, update_end)
+        updated_sessions = self._enter_server_sessions(updated_spans)
+        logger.debug(f"Found path from block {block_idx} to {update_end} via {len(updated_spans)} servers")
+
+        # If there is a failed span, this code replaces it, otherwise it just adds new ones
+        self._chosen_spans[server_idx : server_idx + 1] = updated_spans
+        self._server_sessions[server_idx : server_idx + 1] = updated_sessions
+        recovery_inputs = self._server_inputs[server_idx] if server_idx < n_prev_spans else None
+        self._server_inputs[server_idx : server_idx + 1] = [recovery_inputs] + [None] * (len(updated_spans) - 1)
+        assert len(self._chosen_spans) == len(self._server_sessions) == len(self._server_inputs), (
+            f"Broken state: {len(self._chosen_spans)} spans, {len(self._server_sessions)} sessions, "
+            f"{len(self._server_inputs)} inputs"
+        )
 
     def close(self, *exc_details):
         """Finish a given inference session, close the underlying connection"""
