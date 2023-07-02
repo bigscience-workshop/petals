@@ -127,9 +127,15 @@ class _ServerInferenceSession:
 
         # serialize inputs and put them into the queue
         input_tensors = (inputs, prompts, hypo_ids)
+
         request_metadata = dict(session_id=self.session_id, request_id=str(uuid.uuid4()))
         if not self.stepped:
             request_metadata.update(self.session_metadata)
+        else:
+            next_servers = self._collect_next_servers()
+            if next_servers:
+                request_metadata["next_servers"] = next_servers
+
         outputs_serialized = RemoteExpertWorker.run_coroutine(
             self._step(
                 runtime_pb2.ExpertRequest(
@@ -150,6 +156,13 @@ class _ServerInferenceSession:
         self._position += n_input_tokens
 
         return outputs[0]
+
+    def _collect_next_servers(self):
+        next_servers = []
+        session = self.next_session
+        while session is not None and session.stepped:
+            next_servers.append(dict(peer_id=session.span.peer_id, session_id=session.session_id))
+            session = session.next_session
 
     async def _step(self, inputs_serialized: runtime_pb2.ExpertRequest) -> runtime_pb2.ExpertResponse:
         """Inference step on serialized data. This code is meant to be run inside RemoteExpertWorker"""
