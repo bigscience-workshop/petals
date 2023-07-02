@@ -86,6 +86,8 @@ class _ServerInferenceSession:
         inputs: torch.Tensor,
         prompts: Optional[torch.Tensor] = None,
         hypo_ids: Optional[torch.Tensor] = None,
+        *,
+        step_id: str,
     ) -> torch.Tensor:
         """
         Inference step: send a chunk of input tesors and receive a chunk of outputs
@@ -128,7 +130,7 @@ class _ServerInferenceSession:
         # serialize inputs and put them into the queue
         input_tensors = (inputs, prompts, hypo_ids)
 
-        request_metadata = dict(session_id=self.session_id, request_id=str(uuid.uuid4()))
+        request_metadata = dict(session_id=self.session_id, step_id=step_id)
         if not self.stepped:
             request_metadata.update(self.session_metadata)
         else:
@@ -270,6 +272,7 @@ class InferenceSession:
         inputs_dtype = inputs.dtype
         inputs = inputs.cpu()
         prompts = prompts.cpu()
+        step_id = str(uuid.uuid4())
 
         n_input_tokens = inputs.shape[1]
         if self._position + n_input_tokens > self._max_length:
@@ -288,7 +291,9 @@ class InferenceSession:
                         self._update_sequence(server_idx, block_idx, attempt_no)
 
                     session = self._server_sessions[server_idx]
-                    inputs = session.step(inputs, prompts[session.span.start : session.span.end], **kwargs)
+                    inputs = session.step(
+                        inputs, prompts[session.span.start : session.span.end], step_id=step_id, **kwargs
+                    )
 
                     server_idx += 1
                     block_idx = session.span.end

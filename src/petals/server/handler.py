@@ -102,7 +102,9 @@ class TransformerConnectionHandler(ConnectionHandler):
         return block_uid, inputs, metadata
 
     async def rpc_push(self, request: runtime_pb2.ExpertRequest, context: P2PContext) -> runtime_pb2.ExpertResponse:
-        self._log_request("rpc_push", None, context)
+        requested_uids = self._check_uids(request.uid)
+        self._log_request("rpc_push", requested_uids, context)
+
         metadata = MSGPackSerializer.loads(request.metadata)
         session_id = metadata["session_id"]
         pipe, lock = self._session_pipes[session_id]
@@ -224,7 +226,7 @@ class TransformerConnectionHandler(ConnectionHandler):
         requested_uids: Sequence[str],
         context: P2PContext,
     ) -> AsyncIterator[runtime_pb2.ExpertRequest]:
-        seen_request_ids = set()
+        processed_step_ids = set()
         anext_task = asyncio.create_task(anext(requests))
 
         loop = asyncio.get_event_loop()
@@ -240,11 +242,13 @@ class TransformerConnectionHandler(ConnectionHandler):
         try:
             while request.tensors:  # iterate while user is willing to supply tensors
                 metadata = MSGPackSerializer.loads(request.metadata) if request.metadata else {}
-                request_id = metadata.get("request_id")
-                if request_id is None or request_id not in seen_request_ids:
+                step_id = metadata.get("step_id")
+                if step_id is None or step_id not in processed_step_ids:
                     yield request
-                if request_id is not None:
-                    seen_request_ids.add(request_id)
+                    if step_id is not None:
+                        processed_step_ids.add(step_id)
+                else:
+                    self._log_request("rpc_push", requested_uids, context, warning="arrived late")
 
                 awaited_tasks = [anext_task]
                 if session_id is not None:
