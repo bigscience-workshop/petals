@@ -163,7 +163,7 @@ class _ServerInferenceSession:
         next_servers = []
         session = self.next_session
         while session is not None and session.stepped:
-            next_servers.append(dict(peer_id=session.span.peer_id, session_id=session.session_id))
+            next_servers.append((session.span.peer_id.to_base58(), session.uid, session.session_id))
             session = session.next_session
 
     async def _step(self, inputs_serialized: runtime_pb2.ExpertRequest) -> runtime_pb2.ExpertResponse:
