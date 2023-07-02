@@ -196,7 +196,6 @@ class InferenceSession:
         self._sequence_manager = sequence_manager
         self._closed = False
         self._server_sessions = []
-        self._recovery_until = -1
         self._position = 0
         self._max_length = max_length
         self.last_token_id = None
@@ -267,7 +266,6 @@ class InferenceSession:
 
         server_idx = 0
         block_idx = 0
-        self._recovery_until = -1  # Recovery mode is disabled until a failure happens
         while block_idx < self.n_blocks:
             for attempt_no in itertools.count():
                 logger.debug(f"Inference: block {block_idx}, attempt {attempt_no}")
@@ -306,12 +304,11 @@ class InferenceSession:
 
         n_prev_spans = len(self._server_sessions)
         update_end = self._server_sessions[server_idx].span.end if server_idx < n_prev_spans else self.n_blocks
-        if attempt_no >= 1 and update_end > self._recovery_until:
+        if attempt_no >= 1:
             logger.info(
                 f"Due to a server failure, remote attention caches "
                 f"from block {block_idx} to {update_end} will be regenerated"
             )
-        self._recovery_until = max(self._recovery_until, update_end)
 
         updated_spans = self._sequence_manager.make_sequence(block_idx, update_end, mode="min_latency")
         # make_sequence() could return a longer sequence
