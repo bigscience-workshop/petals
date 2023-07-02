@@ -55,6 +55,7 @@ class _ServerInferenceSession:
         self.session_metadata = dict(max_length=max_length, **metadata)
         self.stepped = False
         self.closed = False
+        self.next_session = None
 
     @classmethod
     async def create(
@@ -326,6 +327,10 @@ class InferenceSession:
             f"Broken state: {len(self._chosen_spans)} spans, {len(self._server_sessions)} sessions, "
             f"{len(self._server_inputs)} inputs"
         )
+
+        # Update links to the next server session for direct server-to-server communication via rpc_push()
+        for i in range(max(server_idx - 1, 0), min(server_idx + len(updated_spans), len(self._server_sessions) - 1)):
+            self._server_sessions[i].next_session = self._server_sessions[i + 1]
 
     def close(self, *exc_details):
         """Finish a given inference session, close the underlying connection"""
