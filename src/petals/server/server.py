@@ -584,7 +584,7 @@ class ModuleContainer(threading.Thread):
         logger.debug("Shutting down connection handlers")
         for handler in self.conn_handlers:
             handler.shutdown()
-        self.push_manager.__exit__()
+        self.push_manager.__exit__(None, None, None)
 
         logger.debug(f"Shutting down pools")
         for pool in self.runtime.pools:

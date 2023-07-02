@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import multiprocessing as mp
+import sys
 import threading
 from itertools import chain
 from multiprocessing.connection import Connection as PipeConnection
@@ -38,6 +39,8 @@ from petals.server.task_prioritizer import DummyTaskPrioritizer, TaskPrioritizer
 from petals.utils.misc import DUMMY, is_dummy
 
 logger = get_logger(__name__)
+
+sys.modules["runtime_pb2"] = runtime_pb2  # Fix pickling protobufs, see https://stackoverflow.com/a/74873028
 
 CACHE_TOKENS_AVAILABLE = "cache_tokens_available"
 
@@ -102,17 +105,6 @@ class TransformerConnectionHandler(ConnectionHandler):
         assert isinstance(block_uid, str) and isinstance(metadata, dict)
         return block_uid, inputs, metadata
 
-    async def rpc_push(self, request: runtime_pb2.ExpertRequest, context: P2PContext) -> runtime_pb2.ExpertResponse:
-        requested_uids = self._check_uids(request.uid)
-        self._log_request("rpc_push", requested_uids, context)
-
-        metadata = MSGPackSerializer.loads(request.metadata)
-        session_id = metadata["session_id"]
-        pipe, lock = self._session_pipes[session_id]
-        with lock:  # Ensures that two connection handlers don't do pipe.send() at the same time
-            pipe.send(request)
-        return runtime_pb2.ExpertResponse()
-
     async def rpc_inference(
         self,
         requests: AsyncIterator[runtime_pb2.ExpertRequest],
@@ -167,8 +159,8 @@ class TransformerConnectionHandler(ConnectionHandler):
                         assert hypo_ids.dtype == torch.int64, f"hypo ids must be int64, got {hypo_ids.dtype}"
 
                         # parse deep prompts (optional argument)
-                        has_prompts = prompts is None or is_dummy(prompts)
-                        if has_prompts:
+                        has_prompts = prompts is not None and not is_dummy(prompts)
+                        if not has_prompts:
                             prompts = [None] * len(requested_backends)
                         else:
                             prompts = [p.squeeze(0) for p in prompts.to(requested_backends[0].dtype).split(1, dim=0)]
@@ -221,6 +213,9 @@ class TransformerConnectionHandler(ConnectionHandler):
 
                         # prepare for next step
                         prefix_length += length_increment
+            except Exception:
+                logger.error("rpc_inference exception:", exc_info=True)
+                raise
             finally:
                 self._log_request("rpc_inference.close", requested_uids, context)
 
@@ -248,6 +243,7 @@ class TransformerConnectionHandler(ConnectionHandler):
         try:
             while request.tensors:  # iterate while user is willing to supply tensors
                 metadata = MSGPackSerializer.loads(request.metadata) if request.metadata else {}
+                logger.info(f"Request: {metadata=}")
                 step_id = metadata.get("step_id")
                 if step_id is None or step_id not in processed_step_ids:
                     yield request, metadata
@@ -271,17 +267,35 @@ class TransformerConnectionHandler(ConnectionHandler):
                 elif session_id is not None and push_wait_task in done:
                     request = push_recv.recv()
                     if not push_recv.poll():
-                        push_wait_task.clear()
+                        push_event.clear()
                     push_wait_task = asyncio.create_task(push_event.wait())
                 else:
                     self._log_request("rpc_inference.step", requested_uids, context, warning="timed out")
                     anext_task.cancel()
                     push_wait_task.cancel()
                     return
+        except Exception:
+            logger.error("_iterate_inference_steps exception:", exc_info=True)
+            raise
         finally:
             if session_id is not None:
                 del self._session_pipes[session_id]
                 loop.remove_reader(push_recv.fileno())
+
+    async def rpc_push(self, request: runtime_pb2.ExpertRequest, context: P2PContext) -> runtime_pb2.ExpertResponse:
+        try:
+            requested_uids = self._check_uids(request.uid)
+            self._log_request("rpc_push", requested_uids, context)
+
+            metadata = MSGPackSerializer.loads(request.metadata)
+            session_id = metadata["session_id"]
+            pipe, lock = self._session_pipes[session_id]
+            with lock:  # Ensures that two connection handlers don't do pipe.send() at the same time
+                pipe.send(request)
+            return runtime_pb2.ExpertResponse()
+        except Exception:
+            logger.error("rpc_push exception:", exc_info=True)
+            raise
 
     async def _push_outputs(
         self, request: runtime_pb2.ExpertRequest, serialized_outputs: runtime_pb2.Tensor, metadata: dict

@@ -4,7 +4,7 @@ import asyncio
 import itertools
 import time
 import uuid
-from typing import AsyncIterator, List, Optional
+from typing import AsyncIterator, List, Optional, Tuple
 
 import torch
 from hivemind import (
@@ -159,12 +159,13 @@ class _ServerInferenceSession:
 
         return outputs[0]
 
-    def _collect_next_servers(self):
+    def _collect_next_servers(self) -> List[Tuple[str, str, str]]:
         next_servers = []
         session = self.next_session
         while session is not None and session.stepped:
             next_servers.append((session.span.peer_id.to_base58(), session.uid, session.session_id))
             session = session.next_session
+        return next_servers
 
     async def _step(self, inputs_serialized: runtime_pb2.ExpertRequest) -> runtime_pb2.ExpertResponse:
         """Inference step on serialized data. This code is meant to be run inside RemoteExpertWorker"""
