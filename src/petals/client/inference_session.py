@@ -16,7 +16,7 @@ from hivemind import (
     serialize_torch_tensor,
 )
 from hivemind.moe.client.remote_expert_worker import RemoteExpertWorker
-from hivemind.p2p import P2P, PeerID
+from hivemind.p2p import P2P
 from hivemind.proto import runtime_pb2
 
 from petals.client.routing.sequence_manager import RemoteSequenceManager, maybe_log_traceback
@@ -55,6 +55,9 @@ class _ServerInferenceSession:
         self.session_metadata = dict(max_length=max_length, **metadata)
         self.stepped = False
         self.closed = False
+
+        self._position = 0
+        self.history = None  # Used in case of server failures to regenerate attention caches on new servers
         self.next_session = None
 
     @classmethod
@@ -80,7 +83,7 @@ class _ServerInferenceSession:
 
     def step(
         self,
-        new_hidden_states: torch.Tensor,
+        inputs: torch.Tensor,
         prompts: Optional[torch.Tensor] = None,
         hypo_ids: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
@@ -91,23 +94,39 @@ class _ServerInferenceSession:
         """
         if self.closed:
             raise Exception("Session is closed, cannot perform step")
+
+        n_input_tokens = inputs.shape[1]
+        if self.history is None:
+            self.history = inputs
+        elif self.history.shape[1] == self._position:
+            self.history = torch.cat([self.history, inputs[:, -n_input_tokens:]], dim=1)
+        assert self.history.shape[1] == self._position + n_input_tokens, (
+            f"Broken input cache: span={self.span} shape={self.history.shape} "
+            f"position={self._position} n_input_tokens={n_input_tokens}"
+        )
+
+        if not self.stepped:
+            inputs = self.history  # Pass full inputs including prefix
+        else:
+            inputs = inputs[:, -n_input_tokens:]  # No need to pass prefix further
+
         if prompts is None or is_dummy(prompts):
             prompts = DUMMY
         else:
             assert prompts.ndim == 4, "deep prompts should have shape [num_layers, batch_size, prefix_len, hid_size]"
             assert prompts.shape[0] == self.num_blocks
-            assert prompts.shape[1] in (new_hidden_states.shape[0], 1)
-            assert prompts.shape[2] <= new_hidden_states.shape[1]
-            assert prompts.shape[3] == new_hidden_states.shape[2]
+            assert prompts.shape[1] in (inputs.shape[0], 1)
+            assert prompts.shape[2] <= inputs.shape[1]
+            assert prompts.shape[3] == inputs.shape[2]
 
         if hypo_ids is None or is_dummy(hypo_ids):
             hypo_ids = DUMMY
         else:
-            assert len(hypo_ids) == len(new_hidden_states)
+            assert len(hypo_ids) == len(inputs)
             assert hypo_ids.dtype == torch.int64
 
         # serialize inputs and put them into the queue
-        inputs = (new_hidden_states, prompts, hypo_ids)
+        input_tensors = (inputs, prompts, hypo_ids)
         request_metadata = dict(session_id=self.session_id, request_id=str(uuid.uuid4()))
         if not self.stepped:
             request_metadata.update(self.session_metadata)
@@ -117,14 +136,19 @@ class _ServerInferenceSession:
                     uid=self.uid,
                     tensors=[
                         serialize_torch_tensor(tensor.to(proto.dtype), proto.compression)
-                        for tensor, proto in zip(inputs, nested_flatten(self.rpc_info["inference_schema"]))
+                        for tensor, proto in zip(input_tensors, nested_flatten(self.rpc_info["inference_schema"]))
                     ],
                     metadata=MSGPackSerializer.dumps(request_metadata),
                 )
             )
         )
         outputs = list(map(deserialize_torch_tensor, outputs_serialized.tensors))
-        assert outputs[0].shape == inputs[0].shape, f"expected outputs[0] to be hidden states but got {outputs[0]}"
+        assert (
+            outputs[0].shape == inputs.shape
+        ), f"output activation shape is different from input shape: {outputs[0].shape} != {inputs.shape}"
+
+        self._position += n_input_tokens
+
         return outputs[0]
 
     async def _step(self, inputs_serialized: runtime_pb2.ExpertRequest) -> runtime_pb2.ExpertResponse:
@@ -172,7 +196,6 @@ class InferenceSession:
         self._sequence_manager = sequence_manager
         self._closed = False
         self._server_sessions = []
-        self._server_inputs = []  # Used in case of server failures to regenerate attention caches on new servers
         self._recovery_until = -1
         self._position = 0
         self._max_length = max_length
@@ -254,29 +277,8 @@ class InferenceSession:
                         self._update_sequence(server_idx, block_idx, attempt_no)
 
                     session = self._server_sessions[server_idx]
+                    inputs = session.step(inputs, prompts[session.span.start : session.span.end], **kwargs)
 
-                    if self._server_inputs[server_idx] is None:
-                        self._server_inputs[server_idx] = inputs
-                    elif self._server_inputs[server_idx].shape[1] == self._position:
-                        self._server_inputs[server_idx] = torch.cat(
-                            [self._server_inputs[server_idx], inputs[:, -n_input_tokens:]], dim=1
-                        )
-                    assert self._server_inputs[server_idx].shape[1] == self._position + n_input_tokens, (
-                        f"Broken input cache: server_idx={server_idx} shape={self._server_inputs[server_idx].shape} "
-                        f"position={self._position} n_input_tokens={n_input_tokens}"
-                    )
-
-                    if not session.stepped:
-                        inputs = self._server_inputs[server_idx]  # Pass full inputs including prefix
-                    else:
-                        inputs = inputs[:, -n_input_tokens:]  # No need to pass prefix further
-
-                    outputs = session.step(inputs, prompts[session.span.start : session.span.end], **kwargs)
-                    assert (
-                        inputs.shape == outputs.shape
-                    ), f"Shape mismatch: inputs.shape={inputs.shape}, outputs.shape={outputs.shape})"
-
-                    inputs = outputs
                     server_idx += 1
                     block_idx = session.span.end
                     self._sequence_manager.on_request_success(session.span.peer_id)
@@ -294,8 +296,8 @@ class InferenceSession:
                     time.sleep(delay)
 
         self._position += n_input_tokens
-        inputs = inputs[:, -n_input_tokens:]
-        outputs = inputs.to(device=inputs_device, dtype=inputs_dtype)
+        outputs = inputs[:, -n_input_tokens:]
+        outputs = outputs.to(device=inputs_device, dtype=inputs_dtype)
         return outputs
 
     def _update_sequence(self, server_idx: int, block_idx: int, attempt_no: int) -> int:
@@ -318,12 +320,9 @@ class InferenceSession:
         logger.debug(f"Found path from block {block_idx} to {update_end} via {len(updated_spans)} servers")
 
         # If there is a failed span, this code replaces it, otherwise it just adds new ones
+        if server_idx < n_prev_spans:
+            updated_sessions[0].history = self._server_sessions[server_idx].history
         self._server_sessions[server_idx : server_idx + 1] = updated_sessions
-        recovery_inputs = self._server_inputs[server_idx] if server_idx < n_prev_spans else None
-        self._server_inputs[server_idx : server_idx + 1] = [recovery_inputs] + [None] * (len(updated_spans) - 1)
-        assert len(self._server_sessions) == len(self._server_inputs), (
-            f"Broken state: {len(self._server_sessions)} sessions, {len(self._server_inputs)} inputs"
-        )
 
         # Update links to the next server session for direct server-to-server communication via rpc_push()
         for i in range(max(server_idx - 1, 0), min(server_idx + len(updated_spans), len(self._server_sessions) - 1)):
@@ -332,7 +331,6 @@ class InferenceSession:
     def close(self, *exc_details):
         """Finish a given inference session, close the underlying connection"""
         if not self._closed:
-            self._server_inputs.clear()
             self._exit_server_sessions(self._server_sessions)
             self._server_sessions.clear()
             self._closed = True
