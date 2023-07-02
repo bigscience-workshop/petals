@@ -36,7 +36,7 @@ class _ServerInferenceSession:
 
     def __init__(
         self,
-        peer_id: PeerID,
+        span: RemoteSpanInfo,
         uid: ModuleUID,
         rpc_info: RPCInfo,
         inputs_queue: asyncio.Queue,
@@ -46,7 +46,7 @@ class _ServerInferenceSession:
         max_length: int,
         **metadata,
     ):
-        self.peer_id, self.uid, self.rpc_info = peer_id, uid, rpc_info
+        self.span, self.uid, self.rpc_info = span, uid, rpc_info
         self.num_blocks = uid.count(CHAIN_DELIMITER) + 1
         self._inputs_queue: asyncio.Queue[runtime_pb2.ExpertRequest] = inputs_queue
         self._outputs_stream: AsyncIterator[runtime_pb2.ExpertResponse] = outputs_aiter
@@ -59,16 +59,16 @@ class _ServerInferenceSession:
 
     @classmethod
     async def create(
-        cls, p2p: P2P, peer_id: PeerID, uid: ModuleUID, rpc_info: RPCInfo, timeout: float, **metadata
+        cls, p2p: P2P, span: RemoteSpanInfo, uid: ModuleUID, rpc_info: RPCInfo, timeout: float, **metadata
     ) -> _ServerInferenceSession:
         """Create a new session for a given remote module. This code is meant to be run inside RemoteExpertWorker"""
-        stub = TransformerConnectionHandler.get_stub(p2p, peer_id)
+        stub = TransformerConnectionHandler.get_stub(p2p, span.peer_id)
         inputs_queue = asyncio.Queue()
         outputs_stream = await asyncio.wait_for(
             stub.rpc_inference(cls._read_inputs_from_queue(inputs_queue)),
             timeout,
         )
-        return cls(peer_id, uid, rpc_info, inputs_queue, outputs_stream, timeout=timeout, **metadata)
+        return cls(span, uid, rpc_info, inputs_queue, outputs_stream, timeout=timeout, **metadata)
 
     @staticmethod
     async def _read_inputs_from_queue(queue: asyncio.Queue, input_timeout: Optional[float] = None) -> AsyncIterator:
@@ -171,7 +171,6 @@ class InferenceSession:
     def __init__(self, sequence_manager: RemoteSequenceManager, max_length: int):
         self._sequence_manager = sequence_manager
         self._closed = False
-        self._chosen_spans = []
         self._server_sessions = []
         self._server_inputs = []  # Used in case of server failures to regenerate attention caches on new servers
         self._recovery_until = -1
@@ -196,7 +195,7 @@ class InferenceSession:
                 session = RemoteExpertWorker.run_coroutine(
                     _ServerInferenceSession.create(
                         self._sequence_manager.state.p2p,
-                        span.peer_id,
+                        span,
                         span_uids,
                         rpc_info=self._sequence_manager.rpc_info,
                         timeout=self._sequence_manager.config.request_timeout,
@@ -219,7 +218,7 @@ class InferenceSession:
                 logger.debug("Caught exception while closing connection to server:", exc_info=True)
 
     def __enter__(self) -> "InferenceSession":
-        assert not self._closed and not self._chosen_spans
+        assert not self._closed and not self._server_sessions
         return self
 
     def step(self, inputs: torch.Tensor, prompts: Optional[torch.Tensor] = None, **kwargs) -> torch.Tensor:
@@ -249,13 +248,12 @@ class InferenceSession:
         while block_idx < self.n_blocks:
             for attempt_no in itertools.count():
                 logger.debug(f"Inference: block {block_idx}, attempt {attempt_no}")
-                span = None
+                session = None
                 try:
-                    if not self._chosen_spans or not self._server_sessions or attempt_no >= 1:
+                    if not self._server_sessions or attempt_no >= 1:
                         self._update_sequence(server_idx, block_idx, attempt_no)
 
                     session = self._server_sessions[server_idx]
-                    span = self._chosen_spans[server_idx]
 
                     if self._server_inputs[server_idx] is None:
                         self._server_inputs[server_idx] = inputs
@@ -273,23 +271,24 @@ class InferenceSession:
                     else:
                         inputs = inputs[:, -n_input_tokens:]  # No need to pass prefix further
 
-                    outputs = session.step(inputs, prompts[span.start : span.end], **kwargs)
+                    outputs = session.step(inputs, prompts[session.span.start : session.span.end], **kwargs)
                     assert (
                         inputs.shape == outputs.shape
                     ), f"Shape mismatch: inputs.shape={inputs.shape}, outputs.shape={outputs.shape})"
 
                     inputs = outputs
                     server_idx += 1
-                    block_idx = span.end
-                    self._sequence_manager.on_request_success(span.peer_id)
+                    block_idx = session.span.end
+                    self._sequence_manager.on_request_success(session.span.peer_id)
                     break
                 except Exception as e:
-                    self._sequence_manager.on_request_failure(span.peer_id if span is not None else None)
+                    self._sequence_manager.on_request_failure(session.span.peer_id if session is not None else None)
                     if attempt_no + 1 == self._sequence_manager.config.max_retries:
                         raise
                     delay = self._sequence_manager.get_retry_delay(attempt_no)
                     logger.warning(
-                        f"Caught exception when running inference via {span} (retry in {delay:.0f} sec): {repr(e)}"
+                        f"Caught exception when running inference via {session.span if session is not None else None} "
+                        f"(retry in {delay:.0f} sec): {repr(e)}"
                     )
                     maybe_log_traceback(e)
                     time.sleep(delay)
@@ -303,8 +302,8 @@ class InferenceSession:
         # If there is a failed server session, this code closes it
         self._exit_server_sessions(self._server_sessions[server_idx : server_idx + 1])
 
-        n_prev_spans = len(self._chosen_spans)
-        update_end = self._chosen_spans[server_idx].end if server_idx < n_prev_spans else self.n_blocks
+        n_prev_spans = len(self._server_sessions)
+        update_end = self._server_sessions[server_idx].span.end if server_idx < n_prev_spans else self.n_blocks
         if attempt_no >= 1 and update_end > self._recovery_until:
             logger.info(
                 f"Due to a server failure, remote attention caches "
@@ -319,13 +318,11 @@ class InferenceSession:
         logger.debug(f"Found path from block {block_idx} to {update_end} via {len(updated_spans)} servers")
 
         # If there is a failed span, this code replaces it, otherwise it just adds new ones
-        self._chosen_spans[server_idx : server_idx + 1] = updated_spans
         self._server_sessions[server_idx : server_idx + 1] = updated_sessions
         recovery_inputs = self._server_inputs[server_idx] if server_idx < n_prev_spans else None
         self._server_inputs[server_idx : server_idx + 1] = [recovery_inputs] + [None] * (len(updated_spans) - 1)
-        assert len(self._chosen_spans) == len(self._server_sessions) == len(self._server_inputs), (
-            f"Broken state: {len(self._chosen_spans)} spans, {len(self._server_sessions)} sessions, "
-            f"{len(self._server_inputs)} inputs"
+        assert len(self._server_sessions) == len(self._server_inputs), (
+            f"Broken state: {len(self._server_sessions)} sessions, {len(self._server_inputs)} inputs"
         )
 
         # Update links to the next server session for direct server-to-server communication via rpc_push()
@@ -338,7 +335,6 @@ class InferenceSession:
             self._server_inputs.clear()
             self._exit_server_sessions(self._server_sessions)
             self._server_sessions.clear()
-            self._chosen_spans.clear()
             self._closed = True
 
     def __exit__(self, *exc_details):
