@@ -137,7 +137,7 @@ def main():
     parser.add_argument('--quant_type', type=str, default=None, choices=[choice.name.lower() for choice in QuantType],
                         help="Quantize blocks to 8-bit (int8 from the LLM.int8() paper) or "
                              "4-bit (nf4 from the QLoRA paper) formats to save GPU memory. "
-                             "Default: 'nf4' for LLaMA on GPU, 'int8' for BLOOM on GPU, 'none' for CPU")
+                             "Default: 'int8' if GPU is available, 'none' otherwise")
     parser.add_argument("--tensor_parallel_devices", nargs='+', default=None,
                         help=
                         "Split each block between the specified GPUs such that each device holds a portion of every "
