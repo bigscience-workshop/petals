@@ -153,7 +153,7 @@ def _load_state_dict_from_file(
                 url = hf_hub_url(model_name, filename, revision=revision)
                 file_size = get_hf_file_metadata(url, token=use_auth_token).size
                 if file_size is not None:
-                    free_disk_space_for(model_name, file_size, cache_dir=cache_dir, max_disk_space=max_disk_space)
+                    free_disk_space_for(file_size, cache_dir=cache_dir, max_disk_space=max_disk_space)
                 else:
                     logger.warning(f"Failed to fetch size of file {filename} from repo {model_name}")
 
