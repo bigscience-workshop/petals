@@ -33,9 +33,7 @@ def allow_cache_reads(cache_dir: Optional[str]):
     return _blocks_lock(cache_dir, fcntl.LOCK_SH)
 
 
-def allow_cache_writes(
-    cache_dir: Optional[str], *, reserve: Optional[int] = None, max_disk_space: Optional[int] = None
-):
+def allow_cache_writes(cache_dir: Optional[str]):
     """Allows saving new blocks and removing the old ones (exclusive lock)"""
     return _blocks_lock(cache_dir, fcntl.LOCK_EX)
 
