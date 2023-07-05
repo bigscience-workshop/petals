@@ -2,12 +2,10 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-import multiprocessing as mp
+import multiprocessing.managers
 import sys
-import threading
+from concurrent.futures import ThreadPoolExecutor
 from itertools import chain
-from multiprocessing.connection import Connection as PipeConnection
-from multiprocessing.managers import SyncManager
 from typing import Any, AsyncIterator, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 
 import torch
@@ -40,7 +38,20 @@ from petals.utils.misc import DUMMY, is_dummy
 
 logger = get_logger(__name__)
 
-sys.modules["runtime_pb2"] = runtime_pb2  # Fix pickling protobufs, see https://stackoverflow.com/a/74873028
+
+# Fix pickling protobufs, see https://stackoverflow.com/a/74873028
+sys.modules["runtime_pb2"] = runtime_pb2
+
+# Fix queues in multiprocessing.Manager in Python < 3.9.7, see https://bugs.python.org/issue30256
+
+_OriginalAutoProxy = multiprocessing.managers.AutoProxy
+
+def patched_autoproxy(*args, manager_owned=True, **kwargs):
+    # Calling original AutoProxy without the unwanted key argument
+    return _OriginalAutoProxy(*args, **kwargs)
+
+multiprocessing.managers.AutoProxy = patched_autoproxy
+
 
 CACHE_TOKENS_AVAILABLE = "cache_tokens_available"
 
@@ -55,8 +66,8 @@ class TransformerConnectionHandler(ConnectionHandler):
         dht: DHT,
         module_backends: Dict[str, TransformerBackend],
         *,
-        push_manager: SyncManager,
-        session_pipes: Dict[str, Tuple[PipeConnection, threading.Lock]],
+        push_manager: multiprocessing.managers.SyncManager,
+        session_queues: Dict[str, multiprocessing.managers.BaseProxy],  # BaseProxy for queue.Queue
         inference_max_length: int,
         request_timeout: float,
         session_timeout: float,
@@ -67,7 +78,8 @@ class TransformerConnectionHandler(ConnectionHandler):
         for module_backend in self.module_backends.values():
             assert isinstance(module_backend, TransformerBackend)
         self._push_manager = push_manager
-        self._session_pipes = session_pipes
+        self._session_queues = session_queues
+        self._executor = ThreadPoolExecutor(max_workers=float("inf"))  # For waiting on self.session_queues
 
         self.inference_max_length = inference_max_length
         self.request_timeout = request_timeout
@@ -227,19 +239,14 @@ class TransformerConnectionHandler(ConnectionHandler):
         requested_uids: Sequence[str],
         context: P2PContext,
     ) -> AsyncIterator[Tuple[runtime_pb2.ExpertRequest, dict]]:
-        processed_step_ids = set()
-        anext_task = asyncio.create_task(anext(requests))
-
         loop = asyncio.get_event_loop()
         if session_id is not None:
-            push_recv, push_send = mp.Pipe(duplex=False)
-            # rpc_push() will be able to activate push_event (even if called in different handler)
-            push_event = asyncio.Event()
-            loop.add_reader(push_recv.fileno(), push_event.set)
-            self._session_pipes[session_id] = (push_send, self._push_manager.Lock())
-            push_wait_task = asyncio.create_task(push_event.wait())
+            push_queue = self._push_manager.Queue()
+            self._session_queues[session_id] = push_queue
 
+        processed_step_ids = set()
         request = first_request
+        anext_task = get_push_task = None
         try:
             while request.tensors:  # iterate while user is willing to supply tensors
                 metadata = MSGPackSerializer.loads(request.metadata) if request.metadata else {}
@@ -254,33 +261,36 @@ class TransformerConnectionHandler(ConnectionHandler):
                 else:
                     self._log_request("rpc_push", requested_uids, context, warning="arrived early")
 
-                awaited_tasks = [anext_task]
-                if session_id is not None:
-                    awaited_tasks.append(push_wait_task)
+                # Wait for the next request, coming either from the `requests` iterator or `push_queue`
+                if anext_task is None:
+                    anext_task = asyncio.create_task(anext(requests))
+                if get_push_task is None:
+                    if session_id is not None:
+                        get_push_task = asyncio.create_task(loop.run_in_executor(self._executor, push_queue.get()))
+                    else:
+                        get_push_task = asyncio.create_task(asyncio.Event.wait())  # Dummy never-ending task
                 done, _ = await asyncio.wait(
-                    awaited_tasks, timeout=self.step_timeout, return_when=asyncio.FIRST_COMPLETED
+                    [anext_task, get_push_task], timeout=self.step_timeout, return_when=asyncio.FIRST_COMPLETED
                 )
 
                 if anext_task in done:
                     request = await anext_task
-                    anext_task = asyncio.create_task(anext(requests))
-                elif session_id is not None and push_wait_task in done:
-                    request = push_recv.recv()
-                    if not push_recv.poll():
-                        push_event.clear()
-                    push_wait_task = asyncio.create_task(push_event.wait())
+                    anext_task = None
+                elif get_push_task in done:
+                    request = await get_push_task
+                    get_push_task = None
                 else:
                     self._log_request("rpc_inference.step", requested_uids, context, warning="timed out")
                     anext_task.cancel()
-                    push_wait_task.cancel()
+                    get_push_task.cancel()
                     return
         except Exception:
             logger.error("_iterate_inference_steps exception:", exc_info=True)
             raise
         finally:
             if session_id is not None:
-                del self._session_pipes[session_id]
-                loop.remove_reader(push_recv.fileno())
+                push_queue.put(None)  # Stop thread for get_push_task
+                del self._session_queues[session_id]
 
     async def rpc_push(self, request: runtime_pb2.ExpertRequest, context: P2PContext) -> runtime_pb2.ExpertResponse:
         try:
@@ -289,9 +299,7 @@ class TransformerConnectionHandler(ConnectionHandler):
 
             metadata = MSGPackSerializer.loads(request.metadata)
             session_id = metadata["session_id"]
-            pipe, lock = self._session_pipes[session_id]
-            with lock:  # Ensures that two connection handlers don't do pipe.send() at the same time
-                pipe.send(request)
+            self._session_queues[session_id].put(request)
             return runtime_pb2.ExpertResponse()
         except Exception:
             logger.error("rpc_push exception:", exc_info=True)

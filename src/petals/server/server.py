@@ -489,13 +489,13 @@ class ModuleContainer(threading.Thread):
 
         self.push_manager = mp.Manager()
         self.push_manager.__enter__()
-        session_pipes = self.push_manager.dict()
+        session_queues = self.push_manager.dict()
         self.conn_handlers = [
             TransformerConnectionHandler(
                 dht,
                 self.module_backends,
                 push_manager=self.push_manager,
-                session_pipes=session_pipes,
+                session_queues=session_queues,
                 inference_max_length=inference_max_length,
                 request_timeout=request_timeout,
                 session_timeout=session_timeout,
