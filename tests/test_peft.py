@@ -47,3 +47,17 @@ def test_load_cached(tmpdir):
     snapshot_download(SAFE_PEFT_REPO, cache_dir=tmpdir)
     
     load_peft(SAFE_PEFT_REPO, cache_dir=tmpdir)
+
+
+@pytest.mark.forked
+def test_load_layer_exists(tmpdir):
+    clear_dir(tmpdir)
+    
+    load_peft(SAFE_PEFT_REPO, layers_name=["base_model.model.transformer.h.0"], cache_dir=tmpdir)
+
+
+@pytest.mark.forked
+def test_load_layer_nonexists(tmpdir):
+    clear_dir(tmpdir)
+    
+    load_peft(SAFE_PEFT_REPO, layers_name=["base_model.model.transformer.h.0", "base_model.model.transformer.h.100"], cache_dir=tmpdir)
