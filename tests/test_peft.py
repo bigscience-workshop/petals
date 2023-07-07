@@ -7,8 +7,8 @@ from huggingface_hub import snapshot_download
 from petals.utils.peft import check_peft_repository, load_peft
 
 
-NOSAFE_PEFT_REPO = "timdettmers/guanaco-7b"
-SAFE_PEFT_REPO = "artek0chumak/guanaco-7b"
+UNSAFE_PEFT_REPO = "artek0chumak/bloom-560m-unsafe-peft"
+SAFE_PEFT_REPO = "artek0chumak/bloom-560m-safe-peft"
 TMP_CACHE_DIR = "tmp_cache/"
 
 
@@ -24,7 +24,7 @@ def dir_empty(path_to_dir):
 
 @pytest.mark.forked
 def test_check_peft():
-    assert not check_peft_repository(NOSAFE_PEFT_REPO), "NOSAFE_PEFT_REPO is safe to load."
+    assert not check_peft_repository(UNSAFE_PEFT_REPO), "NOSAFE_PEFT_REPO is safe to load."
     assert check_peft_repository(SAFE_PEFT_REPO), "SAFE_PEFT_REPO is not safe to load."
 
 
@@ -32,9 +32,9 @@ def test_check_peft():
 def test_load_noncached(tmpdir):
     clear_dir(tmpdir)
     with pytest.raises(Exception):
-        load_peft(NOSAFE_PEFT_REPO, cache_dir=tmpdir)
+        load_peft(UNSAFE_PEFT_REPO, cache_dir=tmpdir)
         
-    assert dir_empty(tmpdir), "NOSAFE_PEFT_REPO is loaded"
+    assert dir_empty(tmpdir), "UNSAFE_PEFT_REPO is loaded"
 
     load_peft(SAFE_PEFT_REPO, cache_dir=tmpdir)
 
