@@ -1,16 +1,14 @@
 import time
-
 from typing import List, Optional
 
 from hivemind.utils.logging import get_logger
-from huggingface_hub import HfFileSystem, hf_hub_url, get_hf_file_metadata
+from huggingface_hub import HfFileSystem, get_hf_file_metadata, hf_hub_url
 from peft.utils import CONFIG_NAME, SAFETENSORS_WEIGHTS_NAME, PeftConfig
 from safetensors import safe_open
 from safetensors.torch import load_file
 from transformers.utils import get_file_from_repo
 
 from petals.utils.disk_cache import allow_cache_reads, allow_cache_writes, free_disk_space_for
-
 
 logger = get_logger(__name__)
 
@@ -58,13 +56,13 @@ def load_peft(
     use_auth_token: Optional[str] = None,
     cache_dir: str,
     max_disk_space: Optional[int] = None,
-    delay: float = 30
+    delay: float = 30,
 ):
     # TODO: Check is it possible to add safetensors loading inside petals/server/from_pretrained.py and reuse it here
 
     if not check_peft_repository(repo_id):
         raise ValueError(f"Repo: {repo_id} doesn't have safetensors inside for a safe loading.")
-    
+
     try:
         with allow_cache_reads(cache_dir):
             return get_adapter_from_repo(
@@ -101,5 +99,7 @@ def load_peft(
                     local_files_only=False,
                 )
         except Exception as e:
-            logger.warning(f"Failed to load peft weights {repo_id} from HF Hub (retry in {delay:.0f} sec)", exc_info=True)
+            logger.warning(
+                f"Failed to load peft weights {repo_id} from HF Hub (retry in {delay:.0f} sec)", exc_info=True
+            )
             time.sleep(delay)
