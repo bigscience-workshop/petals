@@ -1,11 +1,10 @@
 import os
-import pytest
 import shutil
 
+import pytest
 from huggingface_hub import snapshot_download
 
 from petals.utils.peft import check_peft_repository, load_peft
-
 
 UNSAFE_PEFT_REPO = "artek0chumak/bloom-560m-unsafe-peft"
 SAFE_PEFT_REPO = "artek0chumak/bloom-560m-safe-peft"
@@ -33,7 +32,7 @@ def test_load_noncached(tmpdir):
     clear_dir(tmpdir)
     with pytest.raises(Exception):
         load_peft(UNSAFE_PEFT_REPO, cache_dir=tmpdir)
-        
+
     assert dir_empty(tmpdir), "UNSAFE_PEFT_REPO is loaded"
 
     load_peft(SAFE_PEFT_REPO, cache_dir=tmpdir)
@@ -45,19 +44,23 @@ def test_load_noncached(tmpdir):
 def test_load_cached(tmpdir):
     clear_dir(tmpdir)
     snapshot_download(SAFE_PEFT_REPO, cache_dir=tmpdir)
-    
+
     load_peft(SAFE_PEFT_REPO, cache_dir=tmpdir)
 
 
 @pytest.mark.forked
 def test_load_layer_exists(tmpdir):
     clear_dir(tmpdir)
-    
+
     load_peft(SAFE_PEFT_REPO, layers_name=["base_model.model.transformer.h.0"], cache_dir=tmpdir)
 
 
 @pytest.mark.forked
 def test_load_layer_nonexists(tmpdir):
     clear_dir(tmpdir)
-    
-    load_peft(SAFE_PEFT_REPO, layers_name=["base_model.model.transformer.h.0", "base_model.model.transformer.h.100"], cache_dir=tmpdir)
+
+    load_peft(
+        SAFE_PEFT_REPO,
+        layers_name=["base_model.model.transformer.h.0", "base_model.model.transformer.h.100"],
+        cache_dir=tmpdir,
+    )
