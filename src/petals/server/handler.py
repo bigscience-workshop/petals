@@ -46,9 +46,11 @@ sys.modules["runtime_pb2"] = runtime_pb2
 
 _OriginalAutoProxy = multiprocessing.managers.AutoProxy
 
+
 def patched_autoproxy(*args, manager_owned=True, **kwargs):
     # Calling original AutoProxy without the unwanted key argument
     return _OriginalAutoProxy(*args, **kwargs)
+
 
 multiprocessing.managers.AutoProxy = patched_autoproxy
 

@@ -19,7 +19,7 @@ from hivemind.moe.client.remote_expert_worker import RemoteExpertWorker
 from hivemind.p2p import P2P
 from hivemind.proto import runtime_pb2
 
-from petals.client.routing.sequence_manager import RemoteSequenceManager, maybe_log_traceback
+from petals.client.routing.sequence_manager import SequenceManagerConfig, RemoteSequenceManager, maybe_log_traceback
 from petals.data_structures import CHAIN_DELIMITER, ModuleUID, RemoteSpanInfo, RPCInfo
 from petals.server.handler import TransformerConnectionHandler
 from petals.utils.misc import DUMMY, is_dummy
@@ -36,21 +36,21 @@ class _ServerInferenceSession:
 
     def __init__(
         self,
+        config: SequenceManagerConfig,
         span: RemoteSpanInfo,
         uid: ModuleUID,
         rpc_info: RPCInfo,
         inputs_queue: asyncio.Queue,
         outputs_aiter: AsyncIterator,
         *,
-        timeout: float,
         max_length: int,
         **metadata,
     ):
+        self.config = config
         self.span, self.uid, self.rpc_info = span, uid, rpc_info
         self.num_blocks = uid.count(CHAIN_DELIMITER) + 1
         self._inputs_queue: asyncio.Queue[runtime_pb2.ExpertRequest] = inputs_queue
         self._outputs_stream: AsyncIterator[runtime_pb2.ExpertResponse] = outputs_aiter
-        self.timeout = timeout
         self.session_id = str(uuid.uuid4())
         self.session_metadata = dict(max_length=max_length, **metadata)
         self.stepped = False
@@ -62,16 +62,22 @@ class _ServerInferenceSession:
 
     @classmethod
     async def create(
-        cls, p2p: P2P, span: RemoteSpanInfo, uid: ModuleUID, rpc_info: RPCInfo, timeout: float, **metadata
+        cls,
+        config: SequenceManagerConfig,
+        p2p: P2P,
+        span: RemoteSpanInfo,
+        uid: ModuleUID,
+        rpc_info: RPCInfo,
+        **metadata,
     ) -> _ServerInferenceSession:
         """Create a new session for a given remote module. This code is meant to be run inside RemoteExpertWorker"""
         stub = TransformerConnectionHandler.get_stub(p2p, span.peer_id)
         inputs_queue = asyncio.Queue()
         outputs_stream = await asyncio.wait_for(
             stub.rpc_inference(cls._read_inputs_from_queue(inputs_queue)),
-            timeout,
+            config.request_timeout,
         )
-        return cls(span, uid, rpc_info, inputs_queue, outputs_stream, timeout=timeout, **metadata)
+        return cls(config, span, uid, rpc_info, inputs_queue, outputs_stream, **metadata)
 
     @staticmethod
     async def _read_inputs_from_queue(queue: asyncio.Queue, input_timeout: Optional[float] = None) -> AsyncIterator:
@@ -133,7 +139,7 @@ class _ServerInferenceSession:
         request_metadata = dict(session_id=self.session_id, step_id=step_id)
         if not self.stepped:
             request_metadata.update(self.session_metadata)
-        else:
+        elif self.config.use_server_to_server:
             next_servers = self._collect_next_servers()
             if next_servers:
                 request_metadata["next_servers"] = next_servers
@@ -171,7 +177,7 @@ class _ServerInferenceSession:
         """Inference step on serialized data. This code is meant to be run inside RemoteExpertWorker"""
         await self._inputs_queue.put(inputs_serialized)
         self.stepped = True
-        return await asyncio.wait_for(anext(self._outputs_stream), self.timeout)
+        return await asyncio.wait_for(anext(self._outputs_stream), self.config.request_timeout)
 
     def close(self):
         """Finish a given inference session, close the underlying connection"""
@@ -232,11 +238,11 @@ class InferenceSession:
                 metadata = self._sequence_manager.get_request_metadata("rpc_inference", span_uids, peer_id=span.peer_id)
                 session = RemoteExpertWorker.run_coroutine(
                     _ServerInferenceSession.create(
+                        self._sequence_manager.config,
                         self._sequence_manager.state.p2p,
                         span,
                         span_uids,
                         rpc_info=self._sequence_manager.rpc_info,
-                        timeout=self._sequence_manager.config.request_timeout,
                         max_length=self._max_length,
                         **metadata,
                     )
