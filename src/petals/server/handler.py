@@ -229,9 +229,6 @@ class TransformerConnectionHandler(ConnectionHandler):
 
                         # prepare for next step
                         prefix_length += length_increment
-            except:
-                logger.error("rpc_inference exception:", exc_info=True)
-                raise
             finally:
                 self._log_request("rpc_inference.close", requested_uids, context)
 
@@ -298,7 +295,7 @@ class TransformerConnectionHandler(ConnectionHandler):
                     get_push_task.cancel()
                     return
         except:
-            logger.error("_iterate_inference_steps exception:", exc_info=True)
+            logger.warning("rpc_inference._iterate_inference_steps() exception:", exc_info=True)
             raise
         finally:
             if session_id is not None:
@@ -306,17 +303,13 @@ class TransformerConnectionHandler(ConnectionHandler):
                 del self._session_queues[session_id]
 
     async def rpc_push(self, request: runtime_pb2.ExpertRequest, context: P2PContext) -> runtime_pb2.ExpertResponse:
-        try:
-            requested_uids = self._check_uids(request.uid)
-            self._log_request("rpc_push", requested_uids, context)
+        requested_uids = self._check_uids(request.uid)
+        self._log_request("rpc_push", requested_uids, context)
 
-            metadata = MSGPackSerializer.loads(request.metadata)
-            session_id = metadata["session_id"]
-            self._session_queues[session_id].put(request)
-            return runtime_pb2.ExpertResponse()
-        except:
-            logger.error("rpc_push exception:", exc_info=True)
-            raise
+        metadata = MSGPackSerializer.loads(request.metadata)
+        session_id = metadata["session_id"]
+        self._session_queues[session_id].put(request)
+        return runtime_pb2.ExpertResponse()
 
     async def _push_outputs(
         self, request: runtime_pb2.ExpertRequest, serialized_outputs: runtime_pb2.Tensor, metadata: dict
