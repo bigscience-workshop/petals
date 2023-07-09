@@ -225,7 +225,7 @@ class TransformerConnectionHandler(ConnectionHandler):
 
                         # prepare for next step
                         prefix_length += length_increment
-            except Exception:
+            except:
                 logger.error("rpc_inference exception:", exc_info=True)
                 raise
             finally:
@@ -256,7 +256,7 @@ class TransformerConnectionHandler(ConnectionHandler):
                     yield request, metadata
                     if step_id is not None:
                         processed_step_ids.add(step_id)
-                elif metadata["pushed"]:
+                elif metadata.get("pushed"):
                     self._log_request("rpc_push", requested_uids, context, warning="arrived late")
                 else:
                     self._log_request("rpc_push", requested_uids, context, warning="arrived early")
@@ -266,9 +266,9 @@ class TransformerConnectionHandler(ConnectionHandler):
                     anext_task = asyncio.create_task(anext(requests))
                 if get_push_task is None:
                     if session_id is not None:
-                        get_push_task = asyncio.create_task(loop.run_in_executor(self._executor, push_queue.get()))
+                        get_push_task = loop.run_in_executor(self._executor, push_queue.get)
                     else:
-                        get_push_task = asyncio.create_task(asyncio.Event.wait())  # Dummy never-ending task
+                        get_push_task = asyncio.create_task(asyncio.Event().wait())  # Dummy never-ending task
                 done, _ = await asyncio.wait(
                     [anext_task, get_push_task], timeout=self.step_timeout, return_when=asyncio.FIRST_COMPLETED
                 )
@@ -284,7 +284,7 @@ class TransformerConnectionHandler(ConnectionHandler):
                     anext_task.cancel()
                     get_push_task.cancel()
                     return
-        except Exception:
+        except:
             logger.error("_iterate_inference_steps exception:", exc_info=True)
             raise
         finally:
@@ -301,7 +301,7 @@ class TransformerConnectionHandler(ConnectionHandler):
             session_id = metadata["session_id"]
             self._session_queues[session_id].put(request)
             return runtime_pb2.ExpertResponse()
-        except Exception:
+        except:
             logger.error("rpc_push exception:", exc_info=True)
             raise
 
