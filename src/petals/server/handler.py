@@ -252,16 +252,16 @@ class TransformerConnectionHandler(ConnectionHandler):
         try:
             while request.tensors:  # iterate while user is willing to supply tensors
                 metadata = MSGPackSerializer.loads(request.metadata) if request.metadata else {}
-                logger.info(f"Request: {metadata=}")
+                self._log_request("rpc_push", requested_uids, context, debug=f"metadata={metadata}")
                 step_id = metadata.get("step_id")
                 if step_id is None or step_id not in processed_step_ids:
                     yield request, metadata
                     if step_id is not None:
                         processed_step_ids.add(step_id)
                 elif metadata.get("pushed"):
-                    self._log_request("rpc_push", requested_uids, context, warning="arrived late")
+                    self._log_request("rpc_inference.push", requested_uids, context, warning="arrived late")
                 else:
-                    self._log_request("rpc_push", requested_uids, context, warning="arrived early")
+                    self._log_request("rpc_inference.push", requested_uids, context, warning="arrived early")
 
                 # Wait for the next request, coming either from the `requests` iterator or `push_queue`
                 if anext_task is None:
@@ -496,7 +496,13 @@ class TransformerConnectionHandler(ConnectionHandler):
             yield nested_pack(handles, descriptors)
 
     def _log_request(
-        self, method: str, uids: Optional[Sequence[ModuleUID]], context: P2PContext, *, warning: Optional[str] = None
+        self,
+        method: str,
+        uids: Optional[Sequence[ModuleUID]],
+        context: P2PContext,
+        *,
+        debug: Optional[str] = None,
+        warning: Optional[str] = None,
     ) -> None:
         if uids is not None:
             friendly_uids = [uid.split(".")[-1] for uid in uids if "." in uid]
@@ -508,10 +514,12 @@ class TransformerConnectionHandler(ConnectionHandler):
         friendly_remote_id = "..." + str(context.remote_id)[-6:]
 
         message = f"{method}(blocks={friendly_uids}, remote_peer={friendly_remote_id})"
-        if warning is None:
-            logger.info(message)
-        else:
+        if warning is not None:
             logger.warning(f"{message}: {warning}")
+        elif debug is not None:
+            logger.debug(f"{message}: {debug}")
+        else:
+            logger.info(message)
 
     async def rpc_info(self, request: runtime_pb2.ExpertUID, context: P2PContext) -> runtime_pb2.ExpertInfo:
         """Return metadata about stored block uids and current load"""
