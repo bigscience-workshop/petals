@@ -29,7 +29,7 @@ from hivemind.utils.logging import get_logger
 from hivemind.utils.streaming import split_for_streaming
 
 import petals
-from petals.data_structures import CHAIN_DELIMITER, InferenceMetadata, ModuleUID
+from petals.data_structures import CHAIN_DELIMITER, UID_DELIMITER, InferenceMetadata, ModuleUID
 from petals.server.backend import TransformerBackend
 from petals.server.memory_cache import Handle
 from petals.server.task_pool import PrioritizedTaskPool
@@ -68,6 +68,7 @@ class TransformerConnectionHandler(ConnectionHandler):
         dht: DHT,
         module_backends: Dict[str, TransformerBackend],
         *,
+        dht_prefix: str,
         push_manager: multiprocessing.managers.SyncManager,
         session_queues: Dict[str, multiprocessing.managers.BaseProxy],  # BaseProxy for queue.Queue
         inference_max_length: int,
@@ -79,6 +80,7 @@ class TransformerConnectionHandler(ConnectionHandler):
         super().__init__(dht, module_backends)
         for module_backend in self.module_backends.values():
             assert isinstance(module_backend, TransformerBackend)
+        self.dht_prefix = dht_prefix
         self._push_manager = push_manager
         self._session_queues = session_queues
         self._executor = ThreadPoolExecutor(max_workers=float("inf"))  # For waiting on self.session_queues
@@ -315,8 +317,10 @@ class TransformerConnectionHandler(ConnectionHandler):
             if not next_servers:
                 return
 
-            next_peer_id, next_uid, next_session_id = next_servers[0]
+            next_peer_id, next_session_id, next_start, next_end = next_servers[0]
             next_peer_id = PeerID.from_base58(next_peer_id)
+            next_uid = CHAIN_DELIMITER.join(f"{self.dht_prefix}{UID_DELIMITER}{i}" for i in range(next_start, next_end))
+
             # Sending hidden states serialized with output_schema to avoid double serialization
             next_tensors = [serialized_outputs] + request.tensors[1:]
             next_metadata = metadata.copy()

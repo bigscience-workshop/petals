@@ -27,8 +27,7 @@ def main():
 
     parser.add_argument('--num_blocks', type=int, default=None, help="The number of blocks to serve")
     parser.add_argument('--block_indices', type=str, default=None, help="Specific block indices to serve")
-    parser.add_argument('--prefix', type=str, default=None, help="Announce all blocks with this prefix. By default,"
-                                                                 "use the same name as in the converted model.")
+    parser.add_argument('--dht_prefix', type=str, default=None, help="Announce all blocks with this DHT prefix")
 
     parser.add_argument('--port', type=int, required=False,
                         help='Port this server listens to. '

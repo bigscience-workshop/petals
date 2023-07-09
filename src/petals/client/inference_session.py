@@ -169,7 +169,9 @@ class _ServerInferenceSession:
         next_servers = []
         session = self.next_session
         while session is not None and session.stepped:
-            next_servers.append((session.span.peer_id.to_base58(), session.uid, session.session_id))
+            next_servers.append(
+                (session.span.peer_id.to_base58(), session.session_id, session.span.start, session.span.end)
+            )
             session = session.next_session
         return next_servers
 
