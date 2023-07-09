@@ -249,21 +249,30 @@ class TransformerConnectionHandler(ConnectionHandler):
             self._session_queues[session_id] = push_queue
 
         processed_step_ids = set()
+        n_pushes = n_late_pushes = 0
         request = first_request
         anext_task = get_push_task = None
         try:
             while request.tensors:  # iterate while user is willing to supply tensors
                 metadata = MSGPackSerializer.loads(request.metadata) if request.metadata else {}
-                self._log_request("rpc_push", requested_uids, context, debug=f"metadata={metadata}")
                 step_id = metadata.get("step_id")
+
+                pushed = metadata.get("pushed")
+                if pushed:
+                    n_pushes += 1
+
                 if step_id is None or step_id not in processed_step_ids:
                     yield request, metadata
                     if step_id is not None:
                         processed_step_ids.add(step_id)
-                elif metadata.get("pushed"):
-                    self._log_request("rpc_inference.push", requested_uids, context, warning="arrived late")
-                else:
-                    self._log_request("rpc_inference.push", requested_uids, context, warning="arrived early")
+                elif pushed:
+                    n_late_pushes += 1
+                    self._log_request(
+                        "rpc_inference.push",
+                        requested_uids,
+                        context,
+                        warning=f"arrived late {n_late_pushes / n_pushes * 100:.1f}% of the time",
+                    )
 
                 # Wait for the next request, coming either from the `requests` iterator or `push_queue`
                 if anext_task is None:
