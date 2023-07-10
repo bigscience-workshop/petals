@@ -340,8 +340,8 @@ class TransformerConnectionHandler(ConnectionHandler):
                 timeout=self.request_timeout,
             )
         except Exception:
-            logger.warning(
-                f"Failed to push outputs to peer_id={next_peer_id}, uid={next_uid}, session_id={next_session_id}:",
+            logger.debug(
+                f"Failed to push outputs to peer_id={next_peer_id}, session_id={next_session_id}, blocks={next_start}:{next_end}:",
                 exc_info=True,
             )
 
