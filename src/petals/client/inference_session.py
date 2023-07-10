@@ -121,7 +121,7 @@ class _ServerInferenceSession:
         if prompts is None or is_dummy(prompts):
             prompts = DUMMY
         else:
-            assert prompts.ndim == 4, "deep prompts should have shape [num_layers, batch_size, prefix_len, hid_size]"
+            assert prompts.ndim == 4, "deep prompts should have shape [num_blocks, batch_size, prefix_len, hid_size]"
             assert prompts.shape[0] == self.num_blocks
             assert prompts.shape[1] in (inputs.shape[0], 1)
             assert prompts.shape[2] <= inputs.shape[1]
@@ -225,7 +225,7 @@ class InferenceSession:
         self.last_token_id = None
 
     @property
-    def n_blocks(self) -> int:
+    def num_blocks(self) -> int:
         return len(self._sequence_manager)
 
     @property
@@ -275,7 +275,8 @@ class InferenceSession:
         if prompts is None or is_dummy(prompts):
             prompts = DUMMY
         else:
-            assert prompts.ndim == 4 and prompts.shape[0] == self.n_blocks
+            assert prompts.ndim == 4, "deep prompts should have shape [num_blocks, batch_size, prefix_len, hid_size]"
+            assert prompts.shape[0] == self.num_blocks
 
         inputs_device = inputs.device
         inputs_dtype = inputs.dtype
@@ -291,30 +292,32 @@ class InferenceSession:
 
         server_idx = 0
         block_idx = 0
-        while block_idx < self.n_blocks:
+        while block_idx < self.num_blocks:
             for attempt_no in itertools.count():
                 logger.debug(f"Inference: block {block_idx}, attempt {attempt_no}")
-                session = None
+                server_session = None
                 try:
                     if not self._server_sessions or attempt_no >= 1:
                         self._update_sequence(server_idx, block_idx, attempt_no)
 
-                    session = self._server_sessions[server_idx]
-                    inputs = session.step(
-                        inputs, prompts[session.span.start : session.span.end], step_id=step_id, **kwargs
+                    server_session = self._server_sessions[server_idx]
+                    inputs = server_session.step(
+                        inputs, prompts[server_session.span.start : server_session.span.end], step_id=step_id, **kwargs
                     )
 
                     server_idx += 1
-                    block_idx = session.span.end
-                    self._sequence_manager.on_request_success(session.span.peer_id)
+                    block_idx = server_session.span.end
+                    self._sequence_manager.on_request_success(server_session.span.peer_id)
                     break
                 except Exception as e:
-                    self._sequence_manager.on_request_failure(session.span.peer_id if session is not None else None)
+                    self._sequence_manager.on_request_failure(
+                        server_session.span.peer_id if server_session is not None else None
+                    )
                     if attempt_no + 1 == self._sequence_manager.config.max_retries:
                         raise
                     delay = self._sequence_manager.get_retry_delay(attempt_no)
                     logger.warning(
-                        f"Caught exception when running inference via {session.span if session is not None else None} "
+                        f"Caught exception when running inference via {server_session.span if server_session is not None else None} "
                         f"(retry in {delay:.0f} sec): {repr(e)}"
                     )
                     maybe_log_traceback(e)
@@ -330,7 +333,7 @@ class InferenceSession:
         self._exit_server_sessions(self._server_sessions[server_idx : server_idx + 1])
 
         n_prev_spans = len(self._server_sessions)
-        update_end = self._server_sessions[server_idx].span.end if server_idx < n_prev_spans else self.n_blocks
+        update_end = self._server_sessions[server_idx].span.end if server_idx < n_prev_spans else self.num_blocks
         if attempt_no >= 1:
             logger.info(
                 f"Due to a server failure, remote attention caches "

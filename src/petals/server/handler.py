@@ -303,6 +303,8 @@ class TransformerConnectionHandler(ConnectionHandler):
                 del self._session_queues[session_id]
 
     async def rpc_push(self, request: runtime_pb2.ExpertRequest, context: P2PContext) -> runtime_pb2.ExpertResponse:
+        """Directly push activation tensors from one server to another"""
+
         requested_uids = self._check_uids(request.uid)
         self._log_request("rpc_push", requested_uids, context)
 
