@@ -165,7 +165,7 @@ class _ServerInferenceSession:
 
         return outputs[0]
 
-    def _collect_next_servers(self) -> List[Tuple[str, str, str]]:
+    def _collect_next_servers(self) -> List[Tuple[str, str, int, int]]:
         next_servers = []
         session = self.next_session
         while session is not None and session.stepped:
