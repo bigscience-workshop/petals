@@ -590,7 +590,7 @@ async def _rpc_forward(
             hidden_states, points=points / len(requested_backends), backend=backend, type="forward"
         )
         (hidden_states,) = await backend.forward_pool.submit_task(
-            active_adapter, hidden_states, priority=priority,
+            hidden_states, active_adapter, priority=priority,
         )
         assert isinstance(hidden_states, torch.Tensor)
         assert (
@@ -629,7 +629,7 @@ async def _rpc_backward(
         priority = prioritizer.prioritize(
             inputs, points=points / len(requested_backends), backend=backend, type="forward_in_backward"
         )
-        (inputs,) = await backend.forward_pool.submit_task(active_adapter, inputs, priority=priority)
+        (inputs,) = await backend.forward_pool.submit_task(inputs, active_adapter, priority=priority)
 
         assert isinstance(inputs, torch.Tensor)
 
@@ -645,7 +645,7 @@ async def _rpc_backward(
         priority = prioritizer.prioritize(
             inp, grad_outputs, points=points / len(requested_backends), backend=backend, type="backward"
         )
-        (grad_outputs,) = await backend.backward_pool.submit_task(active_adapter, inp, grad_outputs, priority=priority)
+        (grad_outputs,) = await backend.backward_pool.submit_task(inp, grad_outputs, active_adapter, priority=priority)
 
         assert isinstance(grad_outputs, torch.Tensor)
         if not is_dummy(prompt):

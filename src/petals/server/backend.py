@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import Counter
 from itertools import chain
-from typing import Any, Dict, Optional, Sequence, Tuple
+from typing import Any, Dict, Optional, Sequence, Tuple, Union
 
 import peft
 import torch
@@ -81,12 +81,14 @@ class TransformerBackend(ModuleBackend):
             cache_tensors.extend((keys, values))
         return cache_tensors
 
-    def forward(self, active_adapter: str, *inputs: torch.Tensor) -> Tuple[torch.Tensor, ...]:
+    def forward(self, *inputs: Union[torch.Tensor, str]) -> Tuple[torch.Tensor, ...]:
+        *inputs, active_adapter = inputs
         if active_adapter and not self.load_adapter_(active_adapter):
             raise KeyError("Could not find adapter {inference_info.active_adapter}; perhaps it is not loaded")
         return super().forward(*inputs)
 
-    def backward(self, active_adapter: str, *inputs: torch.Tensor) -> Tuple[torch.Tensor, ...]:
+    def backward(self, *inputs: Union[torch.Tensor, str]) -> Tuple[torch.Tensor, ...]:
+        *inputs, active_adapter = inputs
         if active_adapter and not self.load_adapter_(active_adapter):
             raise KeyError("Could not find adapter {inference_info.active_adapter}; perhaps it is not loaded")
         return super().backward(*inputs)
