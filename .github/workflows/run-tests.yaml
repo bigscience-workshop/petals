@@ -33,6 +33,7 @@ jobs:
         run: |
           export MODEL_NAME=bigscience/bloom-560m
           export REF_NAME=bigscience/bloom-560m
+          export ADAPTER_NAME=artek0chumak/bloom-560m-safe-peft
 
           python -m petals.cli.run_server --converted_model_name_or_path $MODEL_NAME --block_indices 0:12 \
             --new_swarm --identity tests/test.id --host_maddrs /ip4/127.0.0.1/tcp/31337 --throughput 1 \
@@ -58,11 +59,14 @@ jobs:
             --initial_peers $INITIAL_PEERS --throughput 1 --torch_dtype float32 --tensor_parallel_devices cpu cpu &> server4.log &
           SERVER4_PID=$!
 
+          python -m petals.cli.run_server --converted_model_name_or_path $MODEL_NAME --block_indices 0:24             --new_swarm --identity tests/test.id --host_maddrs /ip4/127.0.0.1/tcp/31337 --throughput 1             --torch_dtype float32 --compression NONE --attn_cache_tokens 2048 --adapters $ADAPTER_NAME &> server5.log &
+          SERVER5_PID=$!
+
           tail -n 100 -f server*.log &
           LOGGER_PID=$!
           sleep 30  # wait for servers to download layers
 
-          kill -0 $SERVER1_PID $SERVER2_PID $SERVER3_PID $SERVER4_PID # ensure all servers survived init
+          kill -0 $SERVER1_PID $SERVER2_PID $SERVER3_PID $SERVER4_PID $SERVER5_PID # ensure all servers survived init
 
           pytest tests --durations=0 --durations-min=1.0 -v
 
