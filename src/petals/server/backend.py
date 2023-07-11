@@ -4,6 +4,7 @@ from collections import Counter
 from itertools import chain
 from typing import Any, Dict, Optional, Sequence, Tuple
 
+import peft
 import torch
 from hivemind import BatchTensorDescriptor, TensorDescriptor
 from hivemind.moe.expert_uid import ExpertUID
@@ -80,6 +81,14 @@ class TransformerBackend(ModuleBackend):
             cache_tensors.extend((keys, values))
         return cache_tensors
 
+    def forward(self, active_adapter: str, *inputs: torch.Tensor) -> Tuple[torch.Tensor, ...]:
+        self.load_adapter_(active_adapter)  # empty string means remove any adapters
+        return super().forward(*inputs)
+
+    def backward(self, active_adapter: str, *inputs: torch.Tensor) -> Tuple[torch.Tensor, ...]:
+        self.load_adapter_(active_adapter)  # empty string means remove any adapters
+        return super().backward(*inputs)
+
     @torch.inference_mode()
     def inference_step(
         self,
@@ -88,6 +97,9 @@ class TransformerBackend(ModuleBackend):
         inference_info: InferenceMetadata,
     ) -> Tuple[torch.Tensor, ...]:
         assert hidden_states.ndim == 3, "expected hidden states to be 3-dimensional: [batch_size, seq_len, hid_size]"
+
+        if not self.load_adapter_(inference_info.active_adapter):
+            raise KeyError("Could not find adapter {inference_info.active_adapter}; perhaps it is not loaded")
         with self.memory_cache.use_cache(*inference_info.cache_handles) as cache_tensors:
             self._reorder_cache_inplace(cache_tensors, hypo_ids)
             layer_past = self._select_layer_past(cache_tensors, inference_info.prefix_length)
@@ -138,6 +150,16 @@ class TransformerBackend(ModuleBackend):
         dummy = torch.tensor([])
         for p in self.module.parameters():
             p.data = dummy
+
+    def load_adapter_(self, active_adapter: str = '') -> bool:
+        """Try to make a given adapter set active if it was loaded. Return True if loaded, False if no such adapter"""
+        adapter_is_loaded = False
+        for layer in self.module.modules():  # select adapter set -- leave empty string for no adapter
+            if isinstance(layer, peft.tuners.lora.Linear):
+                layer.active_adapter = active_adapter  # empty string for no adapter
+                if active_adapter in layer.lora_A.keys():
+                    adapter_is_loaded = True
+        return adapter_is_loaded
 
 
 def merge_inference_pools_inplace(backends: Dict[ExpertUID, TransformerBackend]):

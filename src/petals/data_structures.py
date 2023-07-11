@@ -57,3 +57,4 @@ class InferenceMetadata:
     uid: ExpertUID
     prefix_length: int
     cache_handles: Tuple[Handle, ...]
+    active_adapter: Optional[str]
