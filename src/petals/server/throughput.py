@@ -13,7 +13,7 @@ from hivemind.utils.logging import get_logger
 from transformers import PretrainedConfig
 
 from petals.server.block_utils import resolve_block_dtype
-from petals.utils.convert_block import convert_block
+from petals.utils.convert_block import QuantType, convert_block
 from petals.utils.disk_cache import DEFAULT_CACHE_DIR
 
 logger = get_logger(__name__)
@@ -39,7 +39,7 @@ def get_server_throughput(
     dtype: Union[str, torch.dtype],
     *,
     num_blocks: int,
-    load_in_8bit: bool,
+    quant_type: QuantType,
     tensor_parallel_devices: Sequence[torch.device],
     force_eval: bool = False,
     cache_dir: Optional[str] = None,
@@ -60,7 +60,7 @@ def get_server_throughput(
 
         cache_key = f"model_{model_name}"
         cache_key += f"_device_{get_device_name(device).replace(' ', '_')}"
-        cache_key += f"_dtype_{get_dtype_name(dtype, load_in_8bit)}"
+        cache_key += f"_dtype_{get_dtype_name(dtype, quant_type)}"
         if len(tensor_parallel_devices) > 1:
             for i, device_i in enumerate(tensor_parallel_devices):
                 cache_key += f"_tp{i}_{get_device_name(device_i).replace(' ', '_')}"
@@ -77,7 +77,7 @@ def get_server_throughput(
 
         if cache_key not in cache:
             cache[cache_key] = measure_throughput_info(
-                config, device, dtype, load_in_8bit=load_in_8bit, tensor_parallel_devices=tensor_parallel_devices
+                config, device, dtype, quant_type=quant_type, tensor_parallel_devices=tensor_parallel_devices
             )
 
             try:
@@ -104,7 +104,7 @@ def measure_throughput_info(
     device: torch.device,
     dtype: torch.dtype,
     *,
-    load_in_8bit: bool,
+    quant_type: QuantType,
     tensor_parallel_devices: Sequence[torch.device],
 ) -> Dict[str, float]:
     """Measure network and compute throughput in forward pass tokens per second"""
@@ -115,7 +115,7 @@ def measure_throughput_info(
 
     throughput_info = {
         "compute_rps": measure_compute_rps(
-            config, device, dtype, load_in_8bit=load_in_8bit, tensor_parallel_devices=tensor_parallel_devices
+            config, device, dtype, quant_type=quant_type, tensor_parallel_devices=tensor_parallel_devices
         )
     }
     try:
@@ -163,7 +163,7 @@ def measure_compute_rps(
     device: torch.device,
     dtype: torch.dtype,
     *,
-    load_in_8bit: bool,
+    quant_type: QuantType,
     tensor_parallel_devices: Sequence[torch.device],
     n_tokens: int = 16,
     n_steps: int = 500,
@@ -172,7 +172,7 @@ def measure_compute_rps(
         tensor_parallel_devices = (device,)
     with torch.inference_mode():
         block = config.block_class(config).to(dtype)
-        block = convert_block(block, config, tensor_parallel_devices, device, load_in_8bit=load_in_8bit, freeze=True)
+        block = convert_block(block, config, tensor_parallel_devices, device, quant_type=quant_type, freeze=True)
 
         cache = None
         elapsed = 0
@@ -192,7 +192,7 @@ def measure_compute_rps(
 
     logger.info(
         f"Forward pass throughput: {device_rps:.1f} RPS per block "
-        f"({devices_repr}, {get_dtype_name(dtype, load_in_8bit)})"
+        f"({devices_repr}, {get_dtype_name(dtype, quant_type)})"
     )
     return device_rps
 
@@ -201,8 +201,8 @@ def get_device_name(device: torch.device) -> str:
     return f"{torch.cuda.get_device_name(device)} GPU" if device.type == "cuda" else "CPU"
 
 
-def get_dtype_name(dtype: torch.dtype, load_in_8bit: bool) -> str:
+def get_dtype_name(dtype: torch.dtype, quant_type: QuantType) -> str:
     name = str(dtype)
-    if load_in_8bit:
-        name += ", 8-bit quantized"
+    if quant_type != QuantType.NONE:
+        name += f", quantized to {quant_type.name.lower()}"
     return name

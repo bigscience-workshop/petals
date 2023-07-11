@@ -34,6 +34,7 @@ class SequenceManagerConfig:
     daemon_startup_timeout: int = 60  # timeout for the libp2p daemon connecting to initial peers
 
     allowed_servers: Optional[Collection[Union[PeerID, str]]] = None  # if defined, send requests only to these servers
+    use_server_to_server: bool = True  # Use direct server-to-server communication
 
     request_timeout: float = 3 * 60  # timeout for forward/backward/inference requests
     update_period: float = 60  # refresh DHT information once in this many seconds

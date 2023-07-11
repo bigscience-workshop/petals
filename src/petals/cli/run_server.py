@@ -8,6 +8,7 @@ from humanfriendly import parse_size
 
 from petals.constants import DTYPE_MAP, PUBLIC_INITIAL_PEERS
 from petals.server.server import Server
+from petals.utils.convert_block import QuantType
 from petals.utils.version import validate_version
 
 logger = get_logger(__name__)
@@ -26,8 +27,7 @@ def main():
 
     parser.add_argument('--num_blocks', type=int, default=None, help="The number of blocks to serve")
     parser.add_argument('--block_indices', type=str, default=None, help="Specific block indices to serve")
-    parser.add_argument('--prefix', type=str, default=None, help="Announce all blocks with this prefix. By default,"
-                                                                 "use the same name as in the converted model.")
+    parser.add_argument('--dht_prefix', type=str, default=None, help="Announce all blocks with this DHT prefix")
 
     parser.add_argument('--port', type=int, required=False,
                         help='Port this server listens to. '
@@ -133,9 +133,10 @@ def main():
                         help="Check the swarm's balance every N seconds (and rebalance it if necessary)")
 
     parser.add_argument("--use_auth_token", action='store_true', help="auth token for from_pretrained")
-    parser.add_argument('--load_in_8bit', type=str, default=None,
-                        help="Convert the loaded transformer blocks into mixed-8bit quantized model. "
-                             "Default: True if GPU is available. Use `--load_in_8bit False` to disable this")
+    parser.add_argument('--quant_type', type=str, default=None, choices=[choice.name.lower() for choice in QuantType],
+                        help="Quantize blocks to 8-bit (int8 from the LLM.int8() paper) or "
+                             "4-bit (nf4 from the QLoRA paper) formats to save GPU memory. "
+                             "Default: 'int8' if GPU is available, 'none' otherwise")
     parser.add_argument("--tensor_parallel_devices", nargs='+', default=None,
                         help=
                         "Split each block between the specified GPUs such that each device holds a portion of every "
@@ -186,9 +187,9 @@ def main():
     if args.pop("new_swarm"):
         args["initial_peers"] = []
 
-    load_in_8bit = args.pop("load_in_8bit")
-    if load_in_8bit is not None:
-        args["load_in_8bit"] = load_in_8bit.lower() in ["true", "1"]
+    quant_type = args.pop("quant_type")
+    if quant_type is not None:
+        args["quant_type"] = QuantType[quant_type.upper()]
 
     validate_version()
 
