@@ -155,7 +155,7 @@ class TransformerBackend(ModuleBackend):
         for p in self.module.parameters():
             p.data = dummy
 
-    def load_adapter_(self, active_adapter: str = '') -> bool:
+    def load_adapter_(self, active_adapter: str = "") -> bool:
         """Try to make a given adapter set active if it was loaded. Return True if loaded, False if no such adapter"""
         adapter_is_loaded = False
         for layer in self.module.modules():  # select adapter set -- leave empty string for no adapter

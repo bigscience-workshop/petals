@@ -10,9 +10,10 @@ import tensor_parallel as tp
 import torch
 import torch.nn as nn
 from hivemind.utils.logging import get_logger, use_hivemind_log_handler
-from petals.utils.peft import create_lora_adapter, add_adapter_to_block, load_peft
 from tensor_parallel.slicing_configs import get_bloom_config
 from transformers import PretrainedConfig
+
+from petals.utils.peft import add_adapter_to_block, create_lora_adapter, load_peft
 
 use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__name__)

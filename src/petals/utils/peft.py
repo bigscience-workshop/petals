@@ -2,9 +2,8 @@ import re
 import time
 from typing import List, Optional
 
-import torch.nn as nn
 import bitsandbytes as bnb
-
+import torch.nn as nn
 from hivemind.utils.logging import get_logger
 from huggingface_hub import HfFileSystem, get_hf_file_metadata, hf_hub_url
 from peft.tuners import lora
@@ -27,7 +26,9 @@ def check_peft_repository(repo_id: str) -> bool:
 def load_specific_module(block_idx: int, filepath: str, framework: str = "pt", device: Optional[int] = None):
     tensors = dict()
     is_tensors_found = dict()
-    common_layer_patter_re = ".+\." + "".join(f"({common_name})?" for common_name in COMMON_LAYERS_PATTERN) + f"({block_idx})?\.0\..+"
+    common_layer_patter_re = (
+        ".+\." + "".join(f"({common_name})?" for common_name in COMMON_LAYERS_PATTERN) + f"({block_idx})?\.0\..+"
+    )
     with safe_open(filepath, framework=framework, device=device) as f:
         for k in f.keys():
             if re.match(common_layer_patter_re, k):
@@ -38,9 +39,7 @@ def load_specific_module(block_idx: int, filepath: str, framework: str = "pt", d
         return tensors
 
 
-def get_adapter_from_repo(
-    repo_id: str, block_idx: Optional[int] = None, device: Optional[int] = None, **kwargs
-):
+def get_adapter_from_repo(repo_id: str, block_idx: Optional[int] = None, device: Optional[int] = None, **kwargs):
     config_path = get_file_from_repo(repo_id, CONFIG_NAME, **kwargs)
     if config_path is None:
         raise RuntimeError(f"File {CONFIG_NAME} does not exist in repo {repo_id}")
@@ -158,8 +157,8 @@ def create_lora_adapter(block):
                 for p in lora_wrapped_child.parameters():
                     p.requires_grad = False
                 setattr(module, child_name, lora_wrapped_child)
-                
-                
+
+
 def add_adapter_to_block(block, block_index, adapter_name, peft_config, peft_state_dict):
     assert peft_config["peft_type"] == "LORA", "Petals works only with LORA adapters"
     for name, module in block.named_modules():
@@ -167,7 +166,10 @@ def add_adapter_to_block(block, block_index, adapter_name, peft_config, peft_sta
             if not isinstance(child, (lora.Linear, lora.Linear8bitLt, lora.Linear4bit)):
                 continue
 
-            if child_name in peft_config["target_modules"] or (isinstance(peft_config["target_modules"], str) and re.fullmatch(peft_config["target_modules"], child_name)):
+            if child_name in peft_config["target_modules"] or (
+                isinstance(peft_config["target_modules"], str)
+                and re.fullmatch(peft_config["target_modules"], child_name)
+            ):
                 is_lora_a_loaded = False
                 is_lora_b_loaded = False
                 for peft_key in peft_state_dict:
@@ -188,6 +190,6 @@ def add_adapter_to_block(block, block_index, adapter_name, peft_config, peft_sta
                     elif "lora_B" in peft_key:
                         child.lora_B[adapter_name].weight.data = peft_state_dict[peft_key]
                         is_lora_b_loaded = True
-                        
+
                 if is_lora_a_loaded and is_lora_b_loaded:
                     logger.info(f"Loading {adapter_name} for block {block_index} is ended successfully")

@@ -218,7 +218,7 @@ class Server:
         self.balance_quality = balance_quality
         self.mean_balance_check_period = mean_balance_check_period
         self.mean_block_selection_delay = mean_block_selection_delay
-        
+
         self.adapters = adapters
 
         self.stop = threading.Event()
@@ -421,7 +421,14 @@ class ModuleContainer(threading.Thread):
                     max_disk_space=max_disk_space,
                 )
                 block = convert_block(
-                    block, block_index, block_config, tensor_parallel_devices, device, quant_type, adapters=adapters, freeze=True,
+                    block,
+                    block_index,
+                    block_config,
+                    tensor_parallel_devices,
+                    device,
+                    quant_type,
+                    adapters=adapters,
+                    freeze=True,
                     use_auth_token=use_auth_token,
                     cache_dir=cache_dir,
                     max_disk_space=max_disk_space,
