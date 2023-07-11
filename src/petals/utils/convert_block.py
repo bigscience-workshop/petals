@@ -10,6 +10,7 @@ import tensor_parallel as tp
 import torch
 import torch.nn as nn
 from hivemind.utils.logging import get_logger, use_hivemind_log_handler
+from peft import create_lora_adapter, add_adapter_to_block, load_peft
 from tensor_parallel.slicing_configs import get_bloom_config
 from transformers import PretrainedConfig
 
@@ -30,6 +31,7 @@ def convert_block(
     output_device: torch.device,
     quant_type: QuantType,
     freeze: bool = True,
+    adapters: Optional[List[str]] = None,
 ) -> tp.TensorParallel:
     """
     Optimize a transformer block for use in a Petals server, apply tensor parallelism and/or LLM.8bit quantization
@@ -55,6 +57,12 @@ def convert_block(
 
     for shard, device in zip(block.module_shards, block.devices):
         shard.to(device)
+        
+    if adapters:
+        create_lora_adapter(block)
+        for adapter in adapters:
+            adapter_config, adapter_state_dict = load_peft(adapter)
+            add_adapter_to_block(block, adapter_config, adapter_state_dict)
 
     return block
 
