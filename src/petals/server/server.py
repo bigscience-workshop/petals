@@ -45,7 +45,7 @@ class Server:
         self,
         *,
         initial_peers: List[str],
-        prefix: Optional[str],
+        dht_prefix: Optional[str],
         converted_model_name_or_path: str,
         throughput: Union[float, str],
         num_blocks: Optional[int] = None,
@@ -105,13 +105,13 @@ class Server:
             revision=revision,
         )
 
-        if prefix is None:
-            prefix = self.block_config.dht_prefix
-        assert UID_DELIMITER not in prefix and CHAIN_DELIMITER not in prefix, (
+        if dht_prefix is None:
+            dht_prefix = self.block_config.dht_prefix
+        assert UID_DELIMITER not in dht_prefix and CHAIN_DELIMITER not in dht_prefix, (
             f"DHT prefix should not contain '{UID_DELIMITER}' or '{CHAIN_DELIMITER}'. "
-            f"Please specify another --prefix manually when starting a server"
+            f"Please specify another --dht_prefix manually when starting a server"
         )
-        self.prefix = prefix
+        self.dht_prefix = dht_prefix
 
         if expiration is None:
             expiration = max(2 * update_period, MAX_DHT_TIME_DISCREPANCY_SECONDS)
@@ -121,7 +121,8 @@ class Server:
         self.session_timeout, self.step_timeout = session_timeout, step_timeout
 
         self.module_uids = [
-            f"{self.prefix}.{block_index}" for block_index in range(self.block_config.num_hidden_layers)
+            f"{self.dht_prefix}{UID_DELIMITER}{block_index}"
+            for block_index in range(self.block_config.num_hidden_layers)
         ]
 
         if dht_client_mode is None:
@@ -258,7 +259,7 @@ class Server:
             block_indices = self._choose_blocks()
             self.module_container = ModuleContainer.create(
                 dht=self.dht,
-                prefix=self.prefix,
+                dht_prefix=self.dht_prefix,
                 converted_model_name_or_path=self.converted_model_name_or_path,
                 block_config=self.block_config,
                 attn_cache_bytes=self.attn_cache_bytes,
@@ -359,7 +360,7 @@ class ModuleContainer(threading.Thread):
         cls,
         *,
         dht: DHT,
-        prefix: str,
+        dht_prefix: str,
         converted_model_name_or_path: str,
         block_config: PretrainedConfig,
         attn_cache_bytes: int,
@@ -382,7 +383,7 @@ class ModuleContainer(threading.Thread):
         should_validate_reachability: bool,
         **kwargs,
     ) -> ModuleContainer:
-        module_uids = [f"{prefix}.{block_index}" for block_index in block_indices]
+        module_uids = [f"{dht_prefix}{UID_DELIMITER}{block_index}" for block_index in block_indices]
         joining_announcer = ModuleAnnouncerThread(
             module_uids,
             dht,
@@ -459,6 +460,7 @@ class ModuleContainer(threading.Thread):
 
         return cls(
             dht,
+            dht_prefix,
             blocks,
             throughput=throughput,
             update_period=update_period,
@@ -469,6 +471,7 @@ class ModuleContainer(threading.Thread):
     def __init__(
         self,
         dht: DHT,
+        dht_prefix: str,
         module_backends: Dict[str, TransformerBackend],
         *,
         inference_max_length: int,
@@ -486,10 +489,17 @@ class ModuleContainer(threading.Thread):
 
         self.dht, self.module_backends = dht, module_backends
         self.throughput, self.update_period, self.expiration = throughput, update_period, expiration
+
+        self.push_manager = mp.Manager()
+        self.push_manager.__enter__()
+        session_queues = self.push_manager.dict()
         self.conn_handlers = [
             TransformerConnectionHandler(
                 dht,
                 self.module_backends,
+                dht_prefix=dht_prefix,
+                push_manager=self.push_manager,
+                session_queues=session_queues,
                 inference_max_length=inference_max_length,
                 request_timeout=request_timeout,
                 session_timeout=session_timeout,
@@ -497,6 +507,7 @@ class ModuleContainer(threading.Thread):
             )
             for _ in range(num_handlers)
         ]
+
         self.runtime = RuntimeWithDeduplicatedPools(self.module_backends, device=None, **kwargs)
         # note: We set device=None in runtime to avoid moving all modules to device 0 in runtime.run(). tensor_parallel has already moved it as needed.
         self.online_announcer = ModuleAnnouncerThread(
@@ -577,6 +588,7 @@ class ModuleContainer(threading.Thread):
         logger.debug("Shutting down connection handlers")
         for handler in self.conn_handlers:
             handler.shutdown()
+        self.push_manager.__exit__(None, None, None)
 
         logger.debug(f"Shutting down pools")
         for pool in self.runtime.pools:
