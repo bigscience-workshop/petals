@@ -1,7 +1,7 @@
+import peft
 import pytest
 import torch
 import transformers
-import peft
 from hivemind import get_logger
 from transformers.generation import BeamSearchScorer
 from transformers.models.bloom import BloomForCausalLM

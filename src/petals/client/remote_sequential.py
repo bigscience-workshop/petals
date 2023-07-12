@@ -28,7 +28,7 @@ class RemoteSequential(nn.Module):
         dht: Optional[DHT] = None,
         start_block: Optional[int] = None,
         end_block: Optional[int] = None,
-        **kwargs
+        **kwargs,
     ):
         super().__init__()
         self.config = config
