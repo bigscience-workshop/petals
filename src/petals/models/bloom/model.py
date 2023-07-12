@@ -90,6 +90,9 @@ class DistributedBloomModel(FromPretrainedMixin, PTuneMixin, BloomModel):
             hidden_states=None,
             attentions=None,
         )
+        
+    def use_adapter(self, adapter_name: Optional[str] = None):
+        self.h.sequence_manager.active_adapter = "" if adapter_name is None else adapter_name
 
 
 class DistributedBloomForCausalLM(FromPretrainedMixin, RemoteGenerationMixin, BloomForCausalLM):
@@ -112,6 +115,9 @@ class DistributedBloomForCausalLM(FromPretrainedMixin, RemoteGenerationMixin, Bl
 
     def get_output_embeddings(self):
         return self.lm_head
+    
+    def use_adapter(self, adapter_name: Optional[str] = None):
+        self.transformer.use_adapter(adapter_name)
 
 
 class DistributedBloomForSequenceClassification(FromPretrainedMixin, BloomForSequenceClassification):
@@ -132,3 +138,6 @@ class DistributedBloomForSequenceClassification(FromPretrainedMixin, BloomForSeq
 
         # Initialize weights and apply final processing
         self.post_init()
+        
+    def use_adapter(self, adapter_name: Optional[str] = None):
+        self.transformer.use_adapter(adapter_name)

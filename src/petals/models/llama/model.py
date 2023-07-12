@@ -104,6 +104,9 @@ class DistributedLlamaModel(FromPretrainedMixin, PTuneMixin, LlamaModel):
     @property
     def ln_f(self) -> nn.Module:  # For compatibility with RemoteGenerationMixin
         return self.norm
+    
+    def use_adapter(self, adapter_name: Optional[str] = None):
+        self.layers.sequence_manager.active_adapter = "" if adapter_name is None else adapter_name
 
 
 class DistributedLlamaForCausalLM(FromPretrainedMixin, RemoteGenerationMixin, LlamaForCausalLM):
@@ -126,6 +129,9 @@ class DistributedLlamaForCausalLM(FromPretrainedMixin, RemoteGenerationMixin, Ll
     @property
     def transformer(self) -> DistributedLlamaModel:  # For compatibility with RemoteGenerationMixin
         return self.model
+    
+    def use_adapter(self, adapter_name: Optional[str] = None):
+        self.model.use_adapter(adapter_name)
 
 
 class DistributedLlamaForSequenceClassification(FromPretrainedMixin, LlamaForSequenceClassification):
@@ -150,3 +156,6 @@ class DistributedLlamaForSequenceClassification(FromPretrainedMixin, LlamaForSeq
     @property
     def transformer(self) -> DistributedLlamaModel:  # For compatibility with RemoteGenerationMixin
         return self.model
+    
+    def use_adapter(self, adapter_name: Optional[str] = None):
+        self.model.use_adapter(adapter_name)
