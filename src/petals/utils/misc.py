@@ -1,5 +1,7 @@
-import torch
 from enum import Enum
+
+import torch
+
 
 class QuantType(Enum):
     NONE = 0
