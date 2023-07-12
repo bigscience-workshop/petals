@@ -12,4 +12,4 @@ if not MODEL_NAME:
 
 REF_NAME = os.environ.get("REF_NAME")
 
-ADAPTER_NAME = os.environ.get("PEFT_NAME")
+ADAPTER_NAME = os.environ.get("ADAPTER_NAME")

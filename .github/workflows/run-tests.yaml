@@ -56,7 +56,8 @@ jobs:
           SERVER3_PID=$!
 
           python -m petals.cli.run_server --converted_model_name_or_path $MODEL_NAME --num_blocks 3 \
-            --initial_peers $INITIAL_PEERS --throughput 1 --torch_dtype float32 --tensor_parallel_devices cpu cpu &> server4.log &
+            --initial_peers $INITIAL_PEERS --throughput 1 --torch_dtype float32 --tensor_parallel_devices cpu cpu \
+            --adapters $ADAPTER_NAME &> server4.log &
           SERVER4_PID=$!
 
           tail -n 100 -f server*.log &
