@@ -123,7 +123,7 @@ async def _get_remote_module_infos(
                 peer_id = PeerID.from_base58(peer_id)
                 state, throughput = server_info.value[:2]
                 available_adapters = server_info.value[2] if len(server_info.value) > 2 else []
-                if active_adapter is not None and active_adapter not in available_adapters:
+                if bool(active_adapter) and active_adapter not in available_adapters:
                     logger.warning(f"Skipped server {peer_id} since it does not have adapter {active_adapter}")
                     continue
 

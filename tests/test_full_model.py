@@ -15,13 +15,13 @@ logger = get_logger(__name__)
 @pytest.mark.forked
 @pytest.mark.parametrize("use_peft", (True, False) if ADAPTER_NAME else (False,))
 @pytest.mark.parametrize("pass_empty_tensors", (True, False))
-def test_full_model_exact_match(use_peft: bool, pass_empty_tensors: bool, atol_forward=1e-3, atol_inference=1e-3):
+def test_full_model_exact_match(use_peft: bool=True, pass_empty_tensors: bool=True, atol_forward=1e-3, atol_inference=1e-3):
     tokenizer = transformers.BloomTokenizerFast.from_pretrained(MODEL_NAME)
     model = DistributedBloomForCausalLM.from_pretrained(
         MODEL_NAME, initial_peers=INITIAL_PEERS, low_cpu_mem_usage=True, torch_dtype=torch.float32
     )
     if use_peft:
-        model.transformer.h.sequence_manager.extra_metadata = dict(active_adapter=ADAPTER_NAME)
+        model.transformer.h.sequence_manager.active_adapter = ADAPTER_NAME
 
     config = model.config
     assert isinstance(model, DistributedBloomForCausalLM)
