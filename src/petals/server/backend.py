@@ -155,7 +155,7 @@ class TransformerBackend(ModuleBackend):
         for p in self.module.parameters():
             p.data = dummy
 
-    def load_adapter_(self, active_adapter: str = "") -> bool:
+    def load_adapter_(self, active_adapter: Optional[str] = None) -> bool:
         """Activate a given adapter set if available. Return True if available (or no adapter), False if missing"""
         adapter_was_loaded = False
         for layer in self.module.modules():  # select adapter set -- leave empty string for no adapter
@@ -163,7 +163,7 @@ class TransformerBackend(ModuleBackend):
                 layer.active_adapter = active_adapter  # empty string for no adapter
                 if active_adapter in layer.lora_A.keys():
                     adapter_was_loaded = True
-        return adapter_was_loaded or active_adapter == ""
+        return adapter_was_loaded or not active_adapter
 
 
 def merge_inference_pools_inplace(backends: Dict[ExpertUID, TransformerBackend]):

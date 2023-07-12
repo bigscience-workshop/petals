@@ -3,7 +3,7 @@ from __future__ import annotations
 import dataclasses
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Tuple, Optional
 
 from hivemind import PeerID
 from hivemind.moe.expert_uid import ExpertUID
