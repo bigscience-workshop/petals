@@ -28,7 +28,7 @@ def load_specific_module(block_idx: int, filepath: str, framework: str = "pt", d
     tensors = dict()
     is_tensors_found = dict()
     common_layer_patter_re = (
-        ".+\." + "".join(f"({common_name})?" for common_name in COMMON_LAYERS_PATTERN) + f"({block_idx})?\.0\..+"
+        ".+\." + "".join(f"({common_name})?" for common_name in COMMON_LAYERS_PATTERN) + f"\.({block_idx})?\..+"
     )
     with safe_open(filepath, framework=framework, device=device) as f:
         for k in f.keys():
@@ -184,19 +184,25 @@ def add_adapter_to_block(block, block_index, adapter_name, peft_config, peft_sta
                             adapter_name,
                             peft_config["r"],
                             peft_config["lora_alpha"],
-                            lora_dropout=0,
+                            lora_dropout=peft_config["lora_dropout"],
                             init_lora_weights=peft_config["init_lora_weights"],
                         )
+                        child.train(False)
                         if peft_config["lora_dropout"] > 0:
                             logger.warning("Loading LoRA config with dropout enabled; this server will disable dropout")
                         for p in child.parameters():
                             p.requires_grad = False
-                    if "lora_A" in peft_key:
+
+                    if peft_key.endswith(".lora_A.weight"):
                         child.lora_A[adapter_name].weight.data = peft_state_dict[peft_key]
                         is_lora_a_loaded = True
-                    elif "lora_B" in peft_key:
+                    elif peft_key.endswith(".lora_A.bias"):
+                        raise NotImplementedError(f"LoRA adapters with bias not supported: {peft_key}")
+                    elif peft_key.endswith(".lora_B.weight"):
                         child.lora_B[adapter_name].weight.data = peft_state_dict[peft_key]
                         is_lora_b_loaded = True
+                    elif peft_key.endswith(".lora_B.bias"):
+                        raise NotImplementedError(f"LoRA adapters with bias not supported: {peft_key}")
 
                 if is_lora_a_loaded and is_lora_b_loaded:
                     logger.info(f"Loading {adapter_name} for block {block_index}.{child_name} is ended successfully")
