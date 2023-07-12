@@ -81,6 +81,7 @@ class Server:
         dht_client_mode: Optional[bool] = None,
         use_relay: bool = True,
         use_auto_relay: bool = True,
+        adapters: Optional[List[str]] = None,
         **kwargs,
     ):
         """Create a server with one or more bloom blocks. See run_server.py for documentation."""
@@ -218,6 +219,8 @@ class Server:
         self.mean_balance_check_period = mean_balance_check_period
         self.mean_block_selection_delay = mean_block_selection_delay
 
+        self.adapters = adapters
+
         self.stop = threading.Event()
 
     def _choose_num_blocks(self) -> int:
@@ -291,6 +294,7 @@ class Server:
                 quant_type=self.quant_type,
                 tensor_parallel_devices=self.tensor_parallel_devices,
                 should_validate_reachability=self.should_validate_reachability,
+                adapters=self.adapters,
                 start=True,
             )
             try:
@@ -384,6 +388,7 @@ class ModuleContainer(threading.Thread):
         quant_type: QuantType,
         tensor_parallel_devices: Sequence[torch.device],
         should_validate_reachability: bool,
+        adapters: Optional[List[str]] = None,
         **kwargs,
     ) -> ModuleContainer:
         module_uids = [f"{dht_prefix}{UID_DELIMITER}{block_index}" for block_index in block_indices]
@@ -391,6 +396,7 @@ class ModuleContainer(threading.Thread):
             module_uids,
             dht,
             ServerState.JOINING,
+            adapters=adapters,
             throughput=throughput,
             update_period=update_period,
             expiration=expiration,
@@ -415,7 +421,19 @@ class ModuleContainer(threading.Thread):
                     cache_dir=cache_dir,
                     max_disk_space=max_disk_space,
                 )
-                block = convert_block(block, block_config, tensor_parallel_devices, device, quant_type, freeze=True)
+                block = convert_block(
+                    block,
+                    block_index,
+                    block_config,
+                    tensor_parallel_devices,
+                    device,
+                    quant_type,
+                    adapters=adapters,
+                    freeze=True,
+                    use_auth_token=use_auth_token,
+                    cache_dir=cache_dir,
+                    max_disk_space=max_disk_space,
+                )
                 blocks[module_uid] = TransformerBackend(
                     module_uid,
                     block,
@@ -452,6 +470,7 @@ class ModuleContainer(threading.Thread):
                 expiration_time=get_dht_time() + expiration,
                 state=ServerState.OFFLINE,
                 throughput=throughput,
+                adapters=adapters,
             )
             logger.info(f"Announced that blocks {module_uids} are offline")
             raise
@@ -465,6 +484,7 @@ class ModuleContainer(threading.Thread):
             dht,
             dht_prefix,
             blocks,
+            adapters=adapters,
             throughput=throughput,
             update_period=update_period,
             expiration=expiration,
@@ -480,6 +500,7 @@ class ModuleContainer(threading.Thread):
         inference_max_length: int,
         num_handlers: int,
         throughput: float,
+        adapters: Optional[Sequence[str]],
         update_period: float,
         expiration: Optional[float] = None,
         request_timeout: float,
@@ -517,6 +538,7 @@ class ModuleContainer(threading.Thread):
             list(self.module_backends.keys()),
             dht,
             ServerState.ONLINE,
+            adapters=adapters,
             throughput=throughput,
             update_period=update_period,
             expiration=expiration,
@@ -616,6 +638,7 @@ class ModuleAnnouncerThread(threading.Thread):
         module_uids: List[str],
         dht: DHT,
         state: ServerState,
+        adapters: Optional[Sequence[str]],
         *,
         throughput: float,
         update_period: float = 30,
@@ -626,6 +649,7 @@ class ModuleAnnouncerThread(threading.Thread):
         self.module_uids = module_uids
         self.dht = dht
         self.state = state
+        self.adapters = adapters
         self.throughput = throughput
         self.update_period = update_period
         self.expiration = expiration
@@ -639,6 +663,7 @@ class ModuleAnnouncerThread(threading.Thread):
                 expiration_time=get_dht_time() + self.expiration,
                 state=self.state,
                 throughput=self.throughput,
+                adapters=self.adapters,
             )
             if self.stop.wait(self.update_period):
                 break

@@ -172,7 +172,7 @@ def measure_compute_rps(
         tensor_parallel_devices = (device,)
     with torch.inference_mode():
         block = config.block_class(config).to(dtype)
-        block = convert_block(block, config, tensor_parallel_devices, device, quant_type=quant_type, freeze=True)
+        block = convert_block(block, 0, config, tensor_parallel_devices, device, quant_type=quant_type, freeze=True)
 
         cache = None
         elapsed = 0

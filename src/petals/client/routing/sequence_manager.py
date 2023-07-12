@@ -43,6 +43,7 @@ class SequenceManagerConfig:
     min_backoff: float = 1  # after a repeated failure, sleep for this many seconds times 2 ** (num_failures - 1)
     max_backoff: float = 60  # limit maximal sleep time between retries to this value
     ban_timeout: float = 15  # when a remote peer fails to respond, prevent routing to that peer for this many seconds
+    active_adapter: Optional[str] = None
 
 
 @dataclasses.dataclass
@@ -78,6 +79,7 @@ class RemoteSequenceManager:
         *,
         dht: Optional[DHT] = None,
         state: Optional[SequenceManagerState] = None,
+        active_adapter: Optional[str] = None,
     ):
         assert config.initial_peers or dht is not None, "Please specify `config.initial_peers` or `dht`"
         assert config.dht_prefix, "Could not find dht_prefix in config, please create model with dht_prefix=..."
@@ -115,7 +117,9 @@ class RemoteSequenceManager:
         if state.sequence_info.last_updated_time is None:
             # Pre-fetch module infos in DHT in parallel with .from_pretrained(), then use cached records
             # in the first _update() instead of the latest ones. This makes the first .update() faster.
-            petals.dht_utils.get_remote_module_infos(self.dht, self.block_uids, latest=True, return_future=True)
+            petals.dht_utils.get_remote_module_infos(
+                self.dht, self.block_uids, active_adapter=active_adapter, latest=True, return_future=True
+            )
             self._need_latest_infos = False
         else:
             assert block_uids == state.sequence_info.block_uids
@@ -179,7 +183,7 @@ class RemoteSequenceManager:
     def _update(self):
         """Perform an immediate and synchronous refresh, may take time"""
         new_block_infos = petals.dht_utils.get_remote_module_infos(
-            self.dht, self.block_uids, latest=self._need_latest_infos
+            self.dht, self.block_uids, active_adapter=self.config.active_adapter, latest=self._need_latest_infos
         )
         self._need_latest_infos = True  # All future _update() should use latest infos
 
@@ -307,7 +311,7 @@ class RemoteSequenceManager:
         :param kwargs: additional request context, such as remote peer ID
         :returns: msgpack-serialized metadata dict that will be passed alongside a given request
         """
-        return dict(points=self.policy.get_points(protocol, *args, **kwargs))
+        return dict(points=self.policy.get_points(protocol, *args, **kwargs), active_adapter=self.config.active_adapter)
 
     def shutdown(self):
         self._thread.shutdown()
