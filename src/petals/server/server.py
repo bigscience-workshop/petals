@@ -30,6 +30,7 @@ from petals.server.throughput import get_dtype_name, get_server_throughput
 from petals.utils.auto_config import AutoDistributedConfig
 from petals.utils.convert_block import QuantType, check_device_balance, convert_block
 from petals.utils.disk_cache import DEFAULT_CACHE_DIR
+from petals.utils.peft import estimate_adapter_memory_per_block
 from petals.utils.version import get_compatible_model_repo
 
 logger = get_logger(__name__)
@@ -176,6 +177,8 @@ class Server:
 
         cache_values_per_block = 2 * self.block_config.hidden_size * attn_cache_tokens
         self._cache_bytes_per_block = cache_values_per_block * torch.finfo(self.torch_dtype).bits // 8
+        self.cache_dir = cache_dir
+        self.adapters = adapters
 
         assert num_blocks is None or block_indices is None, "Please specify num_blocks or block_indices, not both"
         if num_blocks is None and block_indices is None:
@@ -197,7 +200,6 @@ class Server:
         self.alloc_timeout = alloc_timeout
         if cache_dir is None:
             cache_dir = DEFAULT_CACHE_DIR
-        self.cache_dir = cache_dir
         self.max_disk_space = max_disk_space
 
         assert isinstance(throughput, float) or throughput in ["auto", "eval"]
@@ -218,8 +220,6 @@ class Server:
         self.balance_quality = balance_quality
         self.mean_balance_check_period = mean_balance_check_period
         self.mean_block_selection_delay = mean_block_selection_delay
-
-        self.adapters = adapters
 
         self.stop = threading.Event()
 
@@ -250,7 +250,12 @@ class Server:
         # Estimate of GPU memory used in rpc_backward (2 GiB for BLOOM, proportional for other models)
         autograd_memory = 2 * gib * num_devices / 14336 * self.block_config.hidden_size
 
-        num_blocks = math.floor((total_memory - autograd_memory) / (block_size + self._cache_bytes_per_block))
+        adapter_memory_per_block = estimate_adapter_memory_per_block(
+            self.block_config, self.torch_dtype, self.adapters, self.cache_dir
+        )
+        total_memory_per_block = block_size + adapter_memory_per_block + self._cache_bytes_per_block
+
+        num_blocks = math.floor((total_memory - autograd_memory) / total_memory_per_block)
         assert num_blocks >= 1, "Your GPU does not have enough memory to serve at least one block"
 
         num_blocks = min(num_blocks, self.block_config.num_hidden_layers)
