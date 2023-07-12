@@ -83,7 +83,6 @@ class TransformerBackend(ModuleBackend):
 
     def forward(self, *inputs: Union[torch.Tensor, str]) -> Tuple[torch.Tensor, ...]:
         *inputs, active_adapter = inputs
-        print("--forward...")
         if not self.load_adapter_(active_adapter):
             raise KeyError("Could not find adapter {inference_info.active_adapter}; perhaps it is not loaded")
         return super().forward(*inputs)
@@ -103,7 +102,6 @@ class TransformerBackend(ModuleBackend):
     ) -> Tuple[torch.Tensor, ...]:
         assert hidden_states.ndim == 3, "expected hidden states to be 3-dimensional: [batch_size, seq_len, hid_size]"
 
-        print("--inference...")
         if not self.load_adapter_(inference_info.active_adapter):
             raise KeyError("Could not find adapter {inference_info.active_adapter}; perhaps it is not loaded")
         with self.memory_cache.use_cache(*inference_info.cache_handles) as cache_tensors:
@@ -159,7 +157,6 @@ class TransformerBackend(ModuleBackend):
 
     def load_adapter_(self, active_adapter: str = "") -> bool:
         """Activate a given adapter set if available. Return True if available (or no adapter), False if missing"""
-        print("LOADING ADAPTER [", active_adapter, "]")
         adapter_was_loaded = False
         for layer in self.module.modules():  # select adapter set -- leave empty string for no adapter
             if isinstance(layer, peft.tuners.lora.Linear):
