@@ -169,6 +169,8 @@ class TransformerConnectionHandler(ConnectionHandler):
                     async for request, metadata in self._iterate_inference_steps(
                         first_request, requests, session_id, requested_uids, context
                     ):
+                        #active_adapter = metadata.get("active_adapter", "")
+                        print("inference step active adapter - [", active_adapter, ']')
                         hidden_states, prompts, hypo_ids = map(deserialize_torch_tensor, request.tensors)
 
                         # Cast inputs to backend dtype

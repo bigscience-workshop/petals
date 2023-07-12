@@ -184,14 +184,15 @@ def add_adapter_to_block(block, block_index, adapter_name, peft_config, peft_sta
                             adapter_name,
                             peft_config["r"],
                             peft_config["lora_alpha"],
-                            peft_config["lora_dropout"],
-                            peft_config["init_lora_weights"],
+                            lora_dropout=0,
+                            init_lora_weights=peft_config["init_lora_weights"],
                         )
+                        if peft_config["lora_dropout"] > 0:
+                            logger.warning("Loading LoRA config with dropout enabled; this server will disable dropout")
                         for p in child.parameters():
                             p.requires_grad = False
-
                     if "lora_A" in peft_key:
-                        child.lora_A[adapter_name].weight.data = peft_state_dict[peft_key] * child.scaling[adapter_name]
+                        child.lora_A[adapter_name].weight.data = peft_state_dict[peft_key]
                         is_lora_a_loaded = True
                     elif "lora_B" in peft_key:
                         child.lora_B[adapter_name].weight.data = peft_state_dict[peft_key]
