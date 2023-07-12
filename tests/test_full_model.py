@@ -71,8 +71,6 @@ def test_full_model_exact_match(use_peft: bool, pass_empty_tensors: bool, atol_f
             # note: this creates a dummy mask to make the test compatible with older transformer versions
             # prior to https://github.com/huggingface/transformers/pull/17837
             ref_outputs = ref_model.forward(test_inputs, attention_mask=dummy_mask).logits.float()
-            print('ref', ref_outputs)
-            print('parallel', parallel_outputs)
             assert torch.allclose(ref_outputs, parallel_outputs, rtol=0, atol=atol_forward)
             logger.warning(f"Distributed forward is consistent with {type(ref_model)}.forward")
             del ref_model, ref_outputs, dummy_mask
