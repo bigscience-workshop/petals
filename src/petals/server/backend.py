@@ -4,7 +4,6 @@ from collections import Counter
 from itertools import chain
 from typing import Any, Dict, Optional, Sequence, Tuple, Union
 
-import peft
 import torch
 from hivemind import BatchTensorDescriptor, TensorDescriptor
 from hivemind.moe.expert_uid import ExpertUID
@@ -156,9 +155,13 @@ class TransformerBackend(ModuleBackend):
 
     def load_adapter_(self, active_adapter: Optional[str] = None) -> bool:
         """Activate a given adapter set if available. Return True if available (or no adapter), False if missing"""
+
+        # Import petals.utils.peft only when necessary to avoid importing bitsandbytes
+        from peft.tuners.lora import Linear, Linear4bit, Linear8bitLt
+
         adapter_was_loaded = False
         for layer in self.module.modules():  # select adapter set -- leave empty string for no adapter
-            if isinstance(layer, (peft.tuners.lora.Linear, peft.tuners.lora.Linear8bitLt, peft.tuners.lora.Linear4bit)):
+            if isinstance(layer, (Linear, Linear4bit, Linear8bitLt)):
                 layer.active_adapter = active_adapter  # empty string for no adapter
                 if active_adapter in layer.lora_A.keys():
                     adapter_was_loaded = True

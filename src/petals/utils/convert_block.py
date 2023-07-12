@@ -13,7 +13,6 @@ from tensor_parallel.slicing_configs import get_bloom_config
 from transformers import PretrainedConfig
 
 from petals.utils.misc import QuantType
-from petals.utils.peft import add_adapter_to_block, create_lora_adapter, load_peft
 
 use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__name__)
@@ -56,6 +55,10 @@ def convert_block(
         shard.to(device)
 
     if adapters:
+        # Import petals.utils.peft only when necessary to avoid importing bitsandbytes
+        os.environ["BITSANDBYTES_NOWELCOME"] = "1"
+        from petals.utils.peft import add_adapter_to_block, create_lora_adapter, load_peft
+
         create_lora_adapter(block, quant_type=quant_type)
         for adapter_name in adapters:
             adapter_config, adapter_state_dict = load_peft(
