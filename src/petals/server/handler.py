@@ -356,7 +356,6 @@ class TransformerConnectionHandler(ConnectionHandler):
             requested_backends = tuple(self.module_backends[uid] for uid in requested_uids)
             metadata = MSGPackSerializer.loads(request.metadata) if request.metadata else {}
             active_adapter = metadata.get("active_adapter", "")
-            logger.info(f"Run with {active_adapter}")
             points = metadata.get("points", 0)
             assert isinstance(
                 points, (float, int)
