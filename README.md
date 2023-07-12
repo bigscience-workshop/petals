@@ -5,12 +5,12 @@
     <a href="https://pypi.org/project/petals/"><img src="https://img.shields.io/pypi/v/petals.svg?color=green"></a><br>
 </p>
 
-Generate text using distributed 176B-parameter [BLOOM](https://huggingface.co/bigscience/bloom) or [BLOOMZ](https://huggingface.co/bigscience/bloomz) and fine-tune them for your own tasks:
+Generate text using distributed [LLaMA-65B](https://github.com/facebookresearch/llama/blob/main/MODEL_CARD.md), [BLOOM-176B](https://huggingface.co/bigscience/bloom) or [BLOOMZ-176B](https://huggingface.co/bigscience/bloomz) and fine-tune them for your own tasks:
 
 ```python
-from petals import DistributedBloomForCausalLM
+from petals import AutoDistributedModelForCausalLM
 
-model = DistributedBloomForCausalLM.from_pretrained("bigscience/bloom-petals", tuning_mode="ptune", pre_seq_len=16)
+model = AutoDistributedModelForCausalLM.from_pretrained("bigscience/bloom", tuning_mode="ptune", pre_seq_len=16)
 # Embeddings & prompts are on your device, BLOOM blocks are distributed across the Internet
 
 inputs = tokenizer("A cat sat", return_tensors="pt")["input_ids"]
@@ -39,7 +39,7 @@ Run our [Docker](https://www.docker.com) image (works on Linux, macOS, and Windo
 
 ```bash
 sudo docker run -p 31330:31330 --ipc host --gpus all --volume petals-cache:/cache --rm \
-    learningathome/petals:main python -m petals.cli.run_server bigscience/bloom-petals --port 31330
+    learningathome/petals:main python -m petals.cli.run_server bigscience/bloom --port 31330
 ```
 
 Or run these commands in an [Anaconda](https://www.anaconda.com) env (requires Linux and Python 3.7+):
@@ -47,12 +47,10 @@ Or run these commands in an [Anaconda](https://www.anaconda.com) env (requires L
 ```bash
 conda install pytorch pytorch-cuda=11.7 -c pytorch -c nvidia
 pip install -U petals
-python -m petals.cli.run_server bigscience/bloom-petals
+python -m petals.cli.run_server bigscience/bloom
 ```
 
 📚 See [FAQ](https://github.com/bigscience-workshop/petals/wiki/FAQ:-Frequently-asked-questions#running-a-server) to learn how to configure the server to use multiple GPUs, address common issues, etc.
-
-You can also host [BLOOMZ](https://huggingface.co/bigscience/bloomz), a version of BLOOM fine-tuned to follow human instructions in the zero-shot regime — just replace `bloom-petals` with `bloomz-petals`.
 
 🔒 Hosting a server does not allow others to run custom code on your computer. Learn more about security [here](https://github.com/bigscience-workshop/petals/wiki/Security,-privacy,-and-AI-safety).
 
