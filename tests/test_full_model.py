@@ -16,7 +16,7 @@ logger = get_logger(__name__)
 @pytest.mark.parametrize("use_peft", (True, False) if ADAPTER_NAME else (False,))
 @pytest.mark.parametrize("pass_empty_tensors", (True, False))
 def test_full_model_exact_match(
-    use_peft: bool = True, pass_empty_tensors: bool = True, atol_forward=1e-3, atol_inference=1e-3
+    use_peft: bool, pass_empty_tensors: bool, atol_forward=1e-3, atol_inference=1e-3
 ):
     tokenizer = transformers.BloomTokenizerFast.from_pretrained(MODEL_NAME)
     model = DistributedBloomForCausalLM.from_pretrained(
