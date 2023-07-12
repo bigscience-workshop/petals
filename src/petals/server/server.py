@@ -396,6 +396,7 @@ class ModuleContainer(threading.Thread):
             module_uids,
             dht,
             ServerState.JOINING,
+            adapters=adapters,
             throughput=throughput,
             update_period=update_period,
             expiration=expiration,
@@ -469,6 +470,7 @@ class ModuleContainer(threading.Thread):
                 expiration_time=get_dht_time() + expiration,
                 state=ServerState.OFFLINE,
                 throughput=throughput,
+                adapters=adapters,
             )
             logger.info(f"Announced that blocks {module_uids} are offline")
             raise
@@ -482,6 +484,7 @@ class ModuleContainer(threading.Thread):
             dht,
             dht_prefix,
             blocks,
+            adapters=adapters,
             throughput=throughput,
             update_period=update_period,
             expiration=expiration,
@@ -497,6 +500,7 @@ class ModuleContainer(threading.Thread):
         inference_max_length: int,
         num_handlers: int,
         throughput: float,
+        adapters: Optional[Sequence[str]],
         update_period: float,
         expiration: Optional[float] = None,
         request_timeout: float,
@@ -534,6 +538,7 @@ class ModuleContainer(threading.Thread):
             list(self.module_backends.keys()),
             dht,
             ServerState.ONLINE,
+            adapters=adapters,
             throughput=throughput,
             update_period=update_period,
             expiration=expiration,
@@ -633,6 +638,7 @@ class ModuleAnnouncerThread(threading.Thread):
         module_uids: List[str],
         dht: DHT,
         state: ServerState,
+        adapters: Optional[Sequence[str]],
         *,
         throughput: float,
         update_period: float = 30,
@@ -643,6 +649,7 @@ class ModuleAnnouncerThread(threading.Thread):
         self.module_uids = module_uids
         self.dht = dht
         self.state = state
+        self.adapters = adapters
         self.throughput = throughput
         self.update_period = update_period
         self.expiration = expiration
@@ -656,6 +663,7 @@ class ModuleAnnouncerThread(threading.Thread):
                 expiration_time=get_dht_time() + self.expiration,
                 state=self.state,
                 throughput=self.throughput,
+                adapters=self.adapters,
             )
             if self.stop.wait(self.update_period):
                 break

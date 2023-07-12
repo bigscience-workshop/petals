@@ -154,6 +154,8 @@ def create_lora_adapter(block):
                 )
             if lora_wrapped_child:
                 lora_wrapped_child.active_adapter = None
+                lora_wrapped_child.weight = child.weight
+                lora_wrapped_child.bias = child.bias
                 for p in lora_wrapped_child.parameters():
                     p.requires_grad = False
                 setattr(module, child_name, lora_wrapped_child)
