@@ -51,7 +51,7 @@ jobs:
 
           sleep 10 # wait for initial servers to declare blocks, then let server decide which blocks to serve
 
-          python -m petals.cli.run_server --converted_model_name_or_path $MODEL_NAME --block_indices 0:3 \
+          python -m petals.cli.run_server --converted_model_name_or_path $MODEL_NAME --block_indices 12:15 \
             --initial_peers $INITIAL_PEERS --throughput 1 --torch_dtype float32 --tensor_parallel_devices cpu cpu &> server3.log &
           SERVER3_PID=$!
 
