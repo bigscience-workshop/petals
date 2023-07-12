@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import multiprocessing.managers
+import sys
+from concurrent.futures import ThreadPoolExecutor
 from itertools import chain
 from typing import Any, AsyncIterator, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 
@@ -11,6 +14,7 @@ from hivemind import (
     DHT,
     MSGPackSerializer,
     P2PContext,
+    PeerID,
     deserialize_tensor_stream,
     deserialize_torch_tensor,
     nested_flatten,
@@ -25,7 +29,7 @@ from hivemind.utils.logging import get_logger
 from hivemind.utils.streaming import split_for_streaming
 
 import petals
-from petals.data_structures import CHAIN_DELIMITER, InferenceMetadata, ModuleUID
+from petals.data_structures import CHAIN_DELIMITER, UID_DELIMITER, InferenceMetadata, ModuleUID
 from petals.server.backend import TransformerBackend
 from petals.server.memory_cache import Handle
 from petals.server.task_pool import PrioritizedTaskPool
@@ -33,6 +37,23 @@ from petals.server.task_prioritizer import DummyTaskPrioritizer, TaskPrioritizer
 from petals.utils.misc import DUMMY, is_dummy
 
 logger = get_logger(__name__)
+
+
+# Fix pickling protobufs, see https://stackoverflow.com/a/74873028
+sys.modules["runtime_pb2"] = runtime_pb2
+
+# Fix queues in multiprocessing.Manager in Python < 3.9.7, see https://bugs.python.org/issue30256
+
+_OriginalAutoProxy = multiprocessing.managers.AutoProxy
+
+
+def patched_autoproxy(*args, manager_owned=True, **kwargs):
+    # Calling original AutoProxy without the unwanted key argument
+    return _OriginalAutoProxy(*args, **kwargs)
+
+
+multiprocessing.managers.AutoProxy = patched_autoproxy
+
 
 CACHE_TOKENS_AVAILABLE = "cache_tokens_available"
 
@@ -47,6 +68,9 @@ class TransformerConnectionHandler(ConnectionHandler):
         dht: DHT,
         module_backends: Dict[str, TransformerBackend],
         *,
+        dht_prefix: str,
+        push_manager: multiprocessing.managers.SyncManager,
+        session_queues: Dict[str, multiprocessing.managers.BaseProxy],  # BaseProxy for queue.Queue
         inference_max_length: int,
         request_timeout: float,
         session_timeout: float,
@@ -56,6 +80,11 @@ class TransformerConnectionHandler(ConnectionHandler):
         super().__init__(dht, module_backends)
         for module_backend in self.module_backends.values():
             assert isinstance(module_backend, TransformerBackend)
+        self.dht_prefix = dht_prefix
+        self._push_manager = push_manager
+        self._session_queues = session_queues
+        self._executor = ThreadPoolExecutor(max_workers=float("inf"))  # For waiting on self.session_queues
+
         self.inference_max_length = inference_max_length
         self.request_timeout = request_timeout
         self.session_timeout, self.step_timeout = session_timeout, step_timeout
@@ -96,7 +125,7 @@ class TransformerConnectionHandler(ConnectionHandler):
         self,
         requests: AsyncIterator[runtime_pb2.ExpertRequest],
         context: P2PContext,
-    ) -> AsyncIterator[runtime_pb2.ExpertRequest]:
+    ) -> AsyncIterator[runtime_pb2.ExpertResponse]:
         """Compute a single step of inference using attention cache; update attention cache accordingly."""
 
         async with timeout(self.session_timeout):
@@ -112,7 +141,9 @@ class TransformerConnectionHandler(ConnectionHandler):
                 metadata = MSGPackSerializer.loads(request.metadata) if request.metadata else {}
                 requested_backends = tuple(self.module_backends[uid] for uid in requested_uids)
                 max_length = metadata.get("max_length")
+                active_adapter = metadata.get("active_adapter", "")
                 points = metadata.get("points", 0)
+                session_id = metadata.get("session_id")
 
                 if not requested_uids:
                     raise ValueError("User must specify at least one block for inference, but got none")
@@ -133,7 +164,11 @@ class TransformerConnectionHandler(ConnectionHandler):
 
                 async with self._allocate_cache(requested_backends, batch_size, max_length) as cache_handles:
                     assert len(cache_handles) == len(requested_backends)
-                    while request.tensors:  # iterate while user is willing to supply tensors
+                    first_request = request
+                    background_tasks = set()
+                    async for request, metadata in self._iterate_inference_steps(
+                        first_request, requests, session_id, requested_uids, context
+                    ):
                         hidden_states, prompts, hypo_ids = map(deserialize_torch_tensor, request.tensors)
 
                         # Cast inputs to backend dtype
@@ -141,7 +176,8 @@ class TransformerConnectionHandler(ConnectionHandler):
                         assert hypo_ids.dtype == torch.int64, f"hypo ids must be int64, got {hypo_ids.dtype}"
 
                         # parse deep prompts (optional argument)
-                        if prompts is None or is_dummy(prompts):
+                        has_prompts = prompts is not None and not is_dummy(prompts)
+                        if not has_prompts:
                             prompts = [None] * len(requested_backends)
                         else:
                             prompts = [p.squeeze(0) for p in prompts.to(requested_backends[0].dtype).split(1, dim=0)]
@@ -166,7 +202,7 @@ class TransformerConnectionHandler(ConnectionHandler):
                         )
 
                         inference_infos = tuple(
-                            InferenceMetadata(uid, prefix_length, tuple(handles))
+                            InferenceMetadata(uid, prefix_length, tuple(handles), active_adapter)
                             for uid, handles in zip(requested_uids, cache_handles)
                         )
 
@@ -180,24 +216,135 @@ class TransformerConnectionHandler(ConnectionHandler):
                             )
 
                         # serialize and send last layer outputs
-                        yield runtime_pb2.ExpertResponse(
-                            tensors=[
-                                serialize_torch_tensor(result.to(proto.dtype), proto.compression, allow_inplace=True)
-                                for result, proto in zip(
-                                    (hidden_states,), nested_flatten(requested_backends[-1].outputs_schema)
-                                )
-                            ]
-                        )
+                        output_tensors = [
+                            serialize_torch_tensor(result.to(proto.dtype), proto.compression, allow_inplace=True)
+                            for result, proto in zip(
+                                (hidden_states,), nested_flatten(requested_backends[-1].outputs_schema)
+                            )
+                        ]
+                        if not has_prompts:
+                            task = asyncio.create_task(self._push_outputs(request, output_tensors[0], metadata))
+                            background_tasks.add(task)  # Keep reference until it is done to save it from GC
+                            task.add_done_callback(background_tasks.discard)
+                        yield runtime_pb2.ExpertResponse(tensors=output_tensors)
 
                         # prepare for next step
-                        prefix_length += hidden_states.shape[1]
-                        try:
-                            request = await asyncio.wait_for(anext(requests), self.step_timeout)
-                        except asyncio.TimeoutError:
-                            self._log_request("rpc_inference.step", requested_uids, context, warning="timed out")
-                            return
+                        prefix_length += length_increment
             finally:
                 self._log_request("rpc_inference.close", requested_uids, context)
+
+    async def _iterate_inference_steps(
+        self,
+        first_request: runtime_pb2.ExpertRequest,
+        requests: AsyncIterator[runtime_pb2.ExpertRequest],
+        session_id: Optional[str],
+        requested_uids: Sequence[str],
+        context: P2PContext,
+    ) -> AsyncIterator[Tuple[runtime_pb2.ExpertRequest, dict]]:
+        loop = asyncio.get_event_loop()
+        if session_id is not None:
+            push_queue = self._push_manager.Queue()
+            self._session_queues[session_id] = push_queue
+
+        processed_step_ids = set()
+        n_pushes = n_late_pushes = 0
+        request = first_request
+        anext_task = get_push_task = None
+        try:
+            while request.tensors:  # iterate while user is willing to supply tensors
+                metadata = MSGPackSerializer.loads(request.metadata) if request.metadata else {}
+                step_id = metadata.get("step_id")
+
+                pushed = metadata.get("pushed")
+                if pushed:
+                    n_pushes += 1
+
+                if step_id is None or step_id not in processed_step_ids:
+                    yield request, metadata
+                    if step_id is not None:
+                        processed_step_ids.add(step_id)
+                elif pushed:
+                    n_late_pushes += 1
+                    self._log_request(
+                        "rpc_inference.push",
+                        requested_uids,
+                        context,
+                        warning=f"arrived late {n_late_pushes / n_pushes * 100:.1f}% of the time",
+                    )
+
+                # Wait for the next request, coming either from the `requests` iterator or `push_queue`
+                if anext_task is None:
+                    anext_task = asyncio.create_task(anext(requests))
+                if get_push_task is None:
+                    if session_id is not None:
+                        get_push_task = loop.run_in_executor(self._executor, push_queue.get)
+                    else:
+                        get_push_task = asyncio.create_task(asyncio.Event().wait())  # Dummy never-ending task
+                done, _ = await asyncio.wait(
+                    [anext_task, get_push_task], timeout=self.step_timeout, return_when=asyncio.FIRST_COMPLETED
+                )
+
+                if anext_task in done:
+                    request = await anext_task
+                    anext_task = None
+                elif get_push_task in done:
+                    request = await get_push_task
+                    get_push_task = None
+                else:
+                    self._log_request("rpc_inference.step", requested_uids, context, warning="timed out")
+                    anext_task.cancel()
+                    get_push_task.cancel()
+                    return
+        except:
+            logger.warning("rpc_inference._iterate_inference_steps() exception:", exc_info=True)
+            raise
+        finally:
+            if session_id is not None:
+                push_queue.put(None)  # Stop thread for get_push_task
+                del self._session_queues[session_id]
+
+    async def rpc_push(self, request: runtime_pb2.ExpertRequest, context: P2PContext) -> runtime_pb2.ExpertResponse:
+        """Directly push activation tensors from one server to another"""
+
+        requested_uids = self._check_uids(request.uid)
+        self._log_request("rpc_push", requested_uids, context)
+
+        metadata = MSGPackSerializer.loads(request.metadata)
+        session_id = metadata["session_id"]
+        self._session_queues[session_id].put(request)
+        return runtime_pb2.ExpertResponse()
+
+    async def _push_outputs(
+        self, request: runtime_pb2.ExpertRequest, serialized_outputs: runtime_pb2.Tensor, metadata: dict
+    ) -> None:
+        try:
+            next_servers = metadata.get("next_servers")
+            if not next_servers:
+                return
+
+            next_peer_id, next_session_id, next_start, next_end = next_servers[0]
+            next_peer_id = PeerID.from_base58(next_peer_id)
+            next_uid = CHAIN_DELIMITER.join(f"{self.dht_prefix}{UID_DELIMITER}{i}" for i in range(next_start, next_end))
+
+            # Sending hidden states serialized with output_schema to avoid double serialization
+            next_tensors = [serialized_outputs] + request.tensors[1:]
+            next_metadata = metadata.copy()
+            next_metadata.update(session_id=next_session_id, next_servers=next_servers[1:], pushed=True)
+
+            stub = self.get_stub(self._p2p, next_peer_id)
+            await stub.rpc_push(
+                runtime_pb2.ExpertRequest(
+                    uid=next_uid,
+                    tensors=next_tensors,
+                    metadata=MSGPackSerializer.dumps(next_metadata),
+                ),
+                timeout=self.request_timeout,
+            )
+        except Exception:
+            logger.debug(
+                f"Failed to push outputs to peer_id={next_peer_id}, session_id={next_session_id}, blocks={next_start}:{next_end}:",
+                exc_info=True,
+            )
 
     async def rpc_forward(self, request: runtime_pb2.ExpertRequest, context: P2PContext) -> runtime_pb2.ExpertResponse:
         async with timeout(self.request_timeout):
@@ -208,13 +355,18 @@ class TransformerConnectionHandler(ConnectionHandler):
 
             requested_backends = tuple(self.module_backends[uid] for uid in requested_uids)
             metadata = MSGPackSerializer.loads(request.metadata) if request.metadata else {}
+            active_adapter = metadata.get("active_adapter", "")
             points = metadata.get("points", 0)
             assert isinstance(
                 points, (float, int)
             ), f"rpc_forward should have number of points as number or None, got {points}"
 
             hidden_states = await _rpc_forward(
-                *flat_inputs, requested_backends=requested_backends, prioritizer=self._prioritizer, points=points
+                *flat_inputs,
+                requested_backends=requested_backends,
+                prioritizer=self._prioritizer,
+                active_adapter=active_adapter,
+                points=points,
             )
             return runtime_pb2.ExpertResponse(
                 tensors=self._serialize_outputs(hidden_states, requested_backends, metadata)
@@ -230,13 +382,18 @@ class TransformerConnectionHandler(ConnectionHandler):
             self._log_request("rpc_forward_stream", requested_uids, context)
 
             requested_backends = tuple(self.module_backends[uid] for uid in requested_uids)
+            active_adapter = metadata.get("active_adapter", "")
             points = metadata.get("points", 0)
             assert isinstance(
                 points, (float, int)
             ), f"rpc_forward_stream should have number of points as number or None, got {points}"
 
             hidden_states = await _rpc_forward(
-                *flat_inputs, requested_backends=requested_backends, prioritizer=self._prioritizer, points=points
+                *flat_inputs,
+                requested_backends=requested_backends,
+                prioritizer=self._prioritizer,
+                active_adapter=active_adapter,
+                points=points,
             )
 
             # Split the serialized_output for streaming and respond to client
@@ -276,13 +433,18 @@ class TransformerConnectionHandler(ConnectionHandler):
 
             requested_backends = tuple(self.module_backends[uid] for uid in requested_uids)
             metadata = MSGPackSerializer.loads(request.metadata) if request.metadata else {}
+            active_adapter = metadata.get("active_adapter", "")
             points = metadata.get("points", 0)
             assert isinstance(
                 points, (float, int)
             ), f"rpc_backward should have number of points as number or None, got {points}"
 
             grads = await _rpc_backward(
-                *flat_tensors, requested_backends=requested_backends, prioritizer=self._prioritizer, points=points
+                *flat_tensors,
+                requested_backends=requested_backends,
+                prioritizer=self._prioritizer,
+                active_adapter=active_adapter,
+                points=points,
             )
 
             return runtime_pb2.ExpertResponse(tensors=self._serialize_grads(grads, requested_backends, metadata))
@@ -296,13 +458,18 @@ class TransformerConnectionHandler(ConnectionHandler):
             self._log_request("rpc_backward_stream", requested_uids, context)
 
             requested_backends = tuple(self.module_backends[uid] for uid in requested_uids)
+            active_adapter = metadata.get("active_adapter", "")
             points = metadata.get("points", 0)
             assert isinstance(
                 points, (float, int)
             ), f"rpc_backward_stream should have number of points as number or None, got {points}"
 
             grads = await _rpc_backward(
-                *flat_tensors, requested_backends=requested_backends, prioritizer=self._prioritizer, points=points
+                *flat_tensors,
+                requested_backends=requested_backends,
+                prioritizer=self._prioritizer,
+                active_adapter=active_adapter,
+                points=points,
             )
             # Split the serialized_grad_inputs for streaming and respond
             for tensor in self._serialize_grads(grads, requested_backends, metadata):
@@ -348,7 +515,7 @@ class TransformerConnectionHandler(ConnectionHandler):
     @contextlib.asynccontextmanager
     async def _allocate_cache(
         self, backends: Sequence[TransformerBackend], batch_size: int, max_length: int
-    ) -> Sequence[Sequence[Handle, ...]]:
+    ) -> Sequence[Sequence[Handle]]:
         """
         Allocate memory cache for all transformer blocks, return cache handle
         :returns: a list of {len(backends)} elements, where i-th element is a tuple of cache handles for i-th backend
@@ -358,7 +525,13 @@ class TransformerConnectionHandler(ConnectionHandler):
             yield nested_pack(handles, descriptors)
 
     def _log_request(
-        self, method: str, uids: Optional[Sequence[ModuleUID]], context: P2PContext, *, warning: Optional[str] = None
+        self,
+        method: str,
+        uids: Optional[Sequence[ModuleUID]],
+        context: P2PContext,
+        *,
+        debug: Optional[str] = None,
+        warning: Optional[str] = None,
     ) -> None:
         if uids is not None:
             friendly_uids = [uid.split(".")[-1] for uid in uids if "." in uid]
@@ -370,10 +543,12 @@ class TransformerConnectionHandler(ConnectionHandler):
         friendly_remote_id = "..." + str(context.remote_id)[-6:]
 
         message = f"{method}(blocks={friendly_uids}, remote_peer={friendly_remote_id})"
-        if warning is None:
-            logger.info(message)
-        else:
+        if warning is not None:
             logger.warning(f"{message}: {warning}")
+        elif debug is not None:
+            logger.debug(f"{message}: {debug}")
+        else:
+            logger.info(message)
 
     async def rpc_info(self, request: runtime_pb2.ExpertUID, context: P2PContext) -> runtime_pb2.ExpertInfo:
         """Return metadata about stored block uids and current load"""
@@ -399,6 +574,7 @@ class TransformerConnectionHandler(ConnectionHandler):
 async def _rpc_forward(
     *flat_tensors: torch.Tensor,
     requested_backends: Sequence[TransformerBackend],
+    active_adapter: str = "",
     prioritizer: TaskPrioritizerBase,
     points: int = 0,
 ) -> torch.Tensor:
@@ -431,6 +607,7 @@ async def _rpc_forward(
         )
         (hidden_states,) = await backend.forward_pool.submit_task(
             hidden_states,
+            active_adapter,
             priority=priority,
         )
         assert isinstance(hidden_states, torch.Tensor)
@@ -444,6 +621,7 @@ async def _rpc_forward(
 async def _rpc_backward(
     *flat_tensors: torch.Tensor,
     requested_backends: Sequence[TransformerBackend],
+    active_adapter: str = "",
     prioritizer: TaskPrioritizerBase,
     points: int = 0,
 ) -> Union[torch.Tensor, Sequence[torch.Tensor]]:
@@ -469,7 +647,7 @@ async def _rpc_backward(
         priority = prioritizer.prioritize(
             inputs, points=points / len(requested_backends), backend=backend, type="forward_in_backward"
         )
-        (inputs,) = await backend.forward_pool.submit_task(inputs, priority=priority)
+        (inputs,) = await backend.forward_pool.submit_task(inputs, active_adapter, priority=priority)
 
         assert isinstance(inputs, torch.Tensor)
 
@@ -485,7 +663,7 @@ async def _rpc_backward(
         priority = prioritizer.prioritize(
             inp, grad_outputs, points=points / len(requested_backends), backend=backend, type="backward"
         )
-        (grad_outputs,) = await backend.backward_pool.submit_task(inp, grad_outputs, priority=priority)
+        (grad_outputs,) = await backend.backward_pool.submit_task(inp, grad_outputs, active_adapter, priority=priority)
 
         assert isinstance(grad_outputs, torch.Tensor)
         if not is_dummy(prompt):

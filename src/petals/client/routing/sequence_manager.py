@@ -34,6 +34,7 @@ class SequenceManagerConfig:
     daemon_startup_timeout: int = 60  # timeout for the libp2p daemon connecting to initial peers
 
     allowed_servers: Optional[Collection[Union[PeerID, str]]] = None  # if defined, send requests only to these servers
+    use_server_to_server: bool = True  # Use direct server-to-server communication
 
     request_timeout: float = 3 * 60  # timeout for forward/backward/inference requests
     update_period: float = 60  # refresh DHT information once in this many seconds
@@ -77,6 +78,7 @@ class RemoteSequenceManager:
         *,
         dht: Optional[DHT] = None,
         state: Optional[SequenceManagerState] = None,
+        active_adapter: str = "",
     ):
         assert config.initial_peers or dht is not None, "Please specify `config.initial_peers` or `dht`"
         assert config.dht_prefix, "Could not find dht_prefix in config, please create model with dht_prefix=..."
@@ -97,6 +99,7 @@ class RemoteSequenceManager:
             )
         assert isinstance(dht, DHT) and dht.is_alive(), "`dht` must be a running hivemind.DHT instance"
         self.dht = dht
+        self.active_adapter = active_adapter
 
         if state.p2p is None:
             state.p2p = RemoteExpertWorker.run_coroutine(dht.replicate_p2p())
@@ -114,7 +117,9 @@ class RemoteSequenceManager:
         if state.sequence_info.last_updated_time is None:
             # Pre-fetch module infos in DHT in parallel with .from_pretrained(), then use cached records
             # in the first _update() instead of the latest ones. This makes the first .update() faster.
-            petals.dht_utils.get_remote_module_infos(self.dht, self.block_uids, latest=True, return_future=True)
+            petals.dht_utils.get_remote_module_infos(
+                self.dht, self.block_uids, active_adapter=active_adapter, latest=True, return_future=True
+            )
             self._need_latest_infos = False
         else:
             assert block_uids == state.sequence_info.block_uids
@@ -166,7 +171,9 @@ class RemoteSequenceManager:
         assert isinstance(ix, (int, slice))
         if not isinstance(ix, slice):
             ix = slice(int(ix), int(ix) + 1, 1)
-        return type(self)(self.config, self.block_uids[ix], dht=self.dht, state=self.state[ix])
+        return type(self)(
+            self.config, self.block_uids[ix], dht=self.dht, state=self.state[ix], active_adapter=self.active_adapter
+        )
 
     def update(self, *, wait: bool):
         """Run an asynchronous update in background as soon as possible"""
@@ -178,7 +185,7 @@ class RemoteSequenceManager:
     def _update(self):
         """Perform an immediate and synchronous refresh, may take time"""
         new_block_infos = petals.dht_utils.get_remote_module_infos(
-            self.dht, self.block_uids, latest=self._need_latest_infos
+            self.dht, self.block_uids, active_adapter=self.active_adapter, latest=self._need_latest_infos
         )
         self._need_latest_infos = True  # All future _update() should use latest infos
 
@@ -306,7 +313,7 @@ class RemoteSequenceManager:
         :param kwargs: additional request context, such as remote peer ID
         :returns: msgpack-serialized metadata dict that will be passed alongside a given request
         """
-        return dict(points=self.policy.get_points(protocol, *args, **kwargs))
+        return dict(points=self.policy.get_points(protocol, *args, **kwargs), active_adapter=self.active_adapter)
 
     def shutdown(self):
         self._thread.shutdown()

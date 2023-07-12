@@ -11,3 +11,5 @@ if not MODEL_NAME:
     raise RuntimeError("Must specify MODEL_NAME as an index of a transformer block to be tested")
 
 REF_NAME = os.environ.get("REF_NAME")
+
+ADAPTER_NAME = os.environ.get("ADAPTER_NAME")

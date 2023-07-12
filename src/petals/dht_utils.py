@@ -22,6 +22,7 @@ def declare_active_modules(
     expiration_time: DHTExpiration,
     state: ServerState,
     throughput: float,
+    adapters: Optional[Sequence[str]] = None,
     wait: bool = True,
 ) -> Union[Dict[ModuleUID, bool], MPFuture[Dict[ModuleUID, bool]]]:
     """
@@ -39,6 +40,7 @@ def declare_active_modules(
         uids = list(uids)
     for uid in uids:
         assert isinstance(uid, ModuleUID) and UID_DELIMITER in uid and CHAIN_DELIMITER not in uid
+
     return dht.run_coroutine(
         partial(
             _declare_active_modules,
@@ -46,6 +48,7 @@ def declare_active_modules(
             expiration_time=expiration_time,
             state=state,
             throughput=throughput,
+            adapters=list(adapters or []),
         ),
         return_future=not wait,
     )
@@ -58,12 +61,13 @@ async def _declare_active_modules(
     expiration_time: DHTExpiration,
     state: ServerState,
     throughput: float,
+    adapters: List[str],
 ) -> Dict[ModuleUID, bool]:
     num_workers = len(uids) if dht.num_workers is None else min(len(uids), dht.num_workers)
     return await node.store_many(
         keys=uids,
         subkeys=[dht.peer_id.to_base58()] * len(uids),
-        values=[(state.value, throughput)] * len(uids),
+        values=[(state.value, throughput, adapters)] * len(uids),
         expiration_time=expiration_time,
         num_workers=num_workers,
     )
@@ -73,18 +77,30 @@ def get_remote_module_infos(
     dht: DHT,
     uids: Sequence[ModuleUID],
     expiration_time: Optional[DHTExpiration] = None,
+    active_adapter: Optional[str] = None,
     *,
     latest: bool = False,
     return_future: bool = False,
 ) -> Union[List[Optional[RemoteModuleInfo]], MPFuture]:
     return dht.run_coroutine(
-        partial(_get_remote_module_infos, uids=uids, expiration_time=expiration_time, latest=latest),
+        partial(
+            _get_remote_module_infos,
+            uids=uids,
+            active_adapter=active_adapter,
+            expiration_time=expiration_time,
+            latest=latest,
+        ),
         return_future=return_future,
     )
 
 
 async def _get_remote_module_infos(
-    dht: DHT, node: DHTNode, uids: List[ModuleUID], expiration_time: Optional[DHTExpiration], latest: bool
+    dht: DHT,
+    node: DHTNode,
+    uids: List[ModuleUID],
+    active_adapter: Optional[str],
+    expiration_time: Optional[DHTExpiration],
+    latest: bool,
 ) -> List[Optional[RemoteModuleInfo]]:
     if latest:
         assert expiration_time is None, "You should define either `expiration_time` or `latest`, not both"
@@ -105,7 +121,12 @@ async def _get_remote_module_infos(
         for peer_id, server_info in metadata.value.items():
             try:
                 peer_id = PeerID.from_base58(peer_id)
-                state, throughput = server_info.value
+                state, throughput = server_info.value[:2]
+                available_adapters = server_info.value[2] if len(server_info.value) > 2 else []
+                if bool(active_adapter) and active_adapter not in available_adapters:
+                    logger.debug(f"Skipped server {peer_id} since it does not have adapter {active_adapter}")
+                    continue
+
                 if not (
                     isinstance(state, int)
                     and isinstance(throughput, float)

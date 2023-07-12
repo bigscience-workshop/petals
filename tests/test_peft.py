@@ -52,7 +52,7 @@ def test_load_cached(tmpdir):
 def test_load_layer_exists(tmpdir):
     clear_dir(tmpdir)
 
-    load_peft(SAFE_PEFT_REPO, layers_name=["base_model.model.transformer.h.0"], cache_dir=tmpdir)
+    load_peft(SAFE_PEFT_REPO, block_idx=2, cache_dir=tmpdir)
 
 
 @pytest.mark.forked
@@ -61,6 +61,6 @@ def test_load_layer_nonexists(tmpdir):
 
     load_peft(
         SAFE_PEFT_REPO,
-        layers_name=["base_model.model.transformer.h.0", "base_model.model.transformer.h.100"],
+        block_idx=1337,
         cache_dir=tmpdir,
     )
