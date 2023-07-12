@@ -13,6 +13,7 @@ from safetensors.torch import load_file
 from transformers.utils import get_file_from_repo
 
 from petals.utils.disk_cache import allow_cache_reads, allow_cache_writes, free_disk_space_for
+from petals.utils.misc import QuantType
 
 logger = get_logger(__name__)
 
@@ -113,24 +114,16 @@ def load_peft(
             time.sleep(delay)
 
 
-def create_lora_adapter(block):
+def create_lora_adapter(block, quant_type: QuantType):
     for name, module in block.named_modules():
         for child_name, child in module.named_children():
             lora_wrapped_child = None
-            if isinstance(child, nn.Linear):
-                bias = hasattr(child, "bias") and child.bias is not None
-                lora_wrapped_child = lora.Linear(
-                    child_name,
-                    child.in_features,
-                    child.out_features,
-                    bias=bias,
-                )
-            elif isinstance(child, bnb.nn.Linear8bitLt):
+            if not isinstance(child, (nn.Linear, bnb.nn.Linear8bitLt, bnb.nn.Linear4bit)):
+                continue
+            if quant_type == QuantType.INT8:
                 kwargs = {
-                    "has_fp16_weights": child.state.has_fp16_weights,
-                    "memory_efficient_backward": child.state.memory_efficient_backward,
-                    "threshold": child.state.threshold,
-                    "index": child.index,
+                    "has_fp16_weights": False,
+                    "threshold": 6.0,
                     "bias": hasattr(child, "bias") and child.bias is not None,
                 }
                 lora_wrapped_child = lora.Linear8bitLt(
@@ -139,11 +132,11 @@ def create_lora_adapter(block):
                     child.out_features,
                     **kwargs,
                 )
-            elif isinstance(child, bnb.nn.Linear4bit):
+            elif quant_type == QuantType.NF4:
                 kwargs = {
-                    "compute_dtype": child.compute_dtype,
-                    "compress_statistics": child.weight.compress_statistics,
-                    "quant_type": child.weight.quant_type,
+                    "compress_statistics": True,
+                    "quant_type": "nf4",
+                    "blocksize": 64,
                     "bias": hasattr(child, "bias") and child.bias is not None,
                 }
                 lora_wrapped_child = lora.Linear4bit(
@@ -151,6 +144,14 @@ def create_lora_adapter(block):
                     child.in_features,
                     child.out_features,
                     **kwargs,
+                )
+            else:
+                bias = hasattr(child, "bias") and child.bias is not None
+                lora_wrapped_child = lora.Linear(
+                    child_name,
+                    child.in_features,
+                    child.out_features,
+                    bias=bias,
                 )
             if lora_wrapped_child:
                 lora_wrapped_child.active_adapter = None
@@ -175,6 +176,9 @@ def add_adapter_to_block(block, block_index, adapter_name, peft_config, peft_sta
                 is_lora_a_loaded = False
                 is_lora_b_loaded = False
                 for peft_key in peft_state_dict:
+                    if peft_key.find(child_name) == -1:
+                        continue
+
                     if adapter_name not in child.lora_A:
                         child.update_layer(
                             adapter_name,
@@ -194,4 +198,4 @@ def add_adapter_to_block(block, block_index, adapter_name, peft_config, peft_sta
                         is_lora_b_loaded = True
 
                 if is_lora_a_loaded and is_lora_b_loaded:
-                    logger.info(f"Loading {adapter_name} for block {block_index} is ended successfully")
+                    logger.info(f"Loading {adapter_name} for block {block_index}.{child_name} is ended successfully")

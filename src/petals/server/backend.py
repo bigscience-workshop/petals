@@ -159,7 +159,7 @@ class TransformerBackend(ModuleBackend):
         """Activate a given adapter set if available. Return True if available (or no adapter), False if missing"""
         adapter_was_loaded = False
         for layer in self.module.modules():  # select adapter set -- leave empty string for no adapter
-            if isinstance(layer, peft.tuners.lora.Linear):
+            if isinstance(layer, (peft.tuners.lora.Linear, peft.tuners.lora.Linear8bitLt, peft.tuners.lora.Linear4bit)):
                 layer.active_adapter = active_adapter  # empty string for no adapter
                 if active_adapter in layer.lora_A.keys():
                     adapter_was_loaded = True

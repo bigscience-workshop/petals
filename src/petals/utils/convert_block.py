@@ -3,7 +3,6 @@ Tools for converting transformer blocks, applying quantization and/or tensor par
 """
 import os
 import re
-from enum import Enum
 from typing import List, Optional, Sequence
 
 import tensor_parallel as tp
@@ -13,16 +12,11 @@ from hivemind.utils.logging import get_logger, use_hivemind_log_handler
 from tensor_parallel.slicing_configs import get_bloom_config
 from transformers import PretrainedConfig
 
+from petals.utils.misc import QuantType
 from petals.utils.peft import add_adapter_to_block, create_lora_adapter, load_peft
 
 use_hivemind_log_handler("in_root_logger")
 logger = get_logger(__name__)
-
-
-class QuantType(Enum):
-    NONE = 0
-    INT8 = 1  # 8-bit as in the LLM.int8() paper
-    NF4 = 2  # 4-bit as in the QLoRA paper
 
 
 def convert_block(
@@ -62,7 +56,7 @@ def convert_block(
         shard.to(device)
 
     if adapters:
-        create_lora_adapter(block)
+        create_lora_adapter(block, quant_type=quant_type)
         for adapter_name in adapters:
             adapter_config, adapter_state_dict = load_peft(
                 adapter_name,
