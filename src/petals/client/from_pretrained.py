@@ -29,9 +29,8 @@ class FromPretrainedMixin:
         if low_cpu_mem_usage is None:
             low_cpu_mem_usage = True
         if torch_dtype is None:
-            # torch_dtype=None gives torch.float32 in transformers>=4.26.0. In contrast,
-            # torch_dtype="auto" attempts to (1) use config.torch_dtype (if exists), (2) use dtype of the weights.
-            torch_dtype = "auto"
+            # torch_dtype=None gives torch.float32 in transformers>=4.26.0
+            torch_dtype = torch.bfloat16
 
         with ignore_keys(cls._keys_to_ignore_on_load_unexpected):
             return super().from_pretrained(
