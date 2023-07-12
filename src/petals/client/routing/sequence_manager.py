@@ -43,6 +43,7 @@ class SequenceManagerConfig:
     min_backoff: float = 1  # after a repeated failure, sleep for this many seconds times 2 ** (num_failures - 1)
     max_backoff: float = 60  # limit maximal sleep time between retries to this value
     ban_timeout: float = 15  # when a remote peer fails to respond, prevent routing to that peer for this many seconds
+    active_adapter: Optional[str] = None
 
 
 @dataclasses.dataclass
@@ -99,7 +100,6 @@ class RemoteSequenceManager:
             )
         assert isinstance(dht, DHT) and dht.is_alive(), "`dht` must be a running hivemind.DHT instance"
         self.dht = dht
-        self.active_adapter = "" if active_adapter is None else active_adapter
 
         if state.p2p is None:
             state.p2p = RemoteExpertWorker.run_coroutine(dht.replicate_p2p())
@@ -171,9 +171,7 @@ class RemoteSequenceManager:
         assert isinstance(ix, (int, slice))
         if not isinstance(ix, slice):
             ix = slice(int(ix), int(ix) + 1, 1)
-        return type(self)(
-            self.config, self.block_uids[ix], dht=self.dht, state=self.state[ix], active_adapter=self.active_adapter
-        )
+        return type(self)(self.config, self.block_uids[ix], dht=self.dht, state=self.state[ix])
 
     def update(self, *, wait: bool):
         """Run an asynchronous update in background as soon as possible"""
@@ -185,7 +183,7 @@ class RemoteSequenceManager:
     def _update(self):
         """Perform an immediate and synchronous refresh, may take time"""
         new_block_infos = petals.dht_utils.get_remote_module_infos(
-            self.dht, self.block_uids, active_adapter=self.active_adapter, latest=self._need_latest_infos
+            self.dht, self.block_uids, active_adapter=self.config.active_adapter, latest=self._need_latest_infos
         )
         self._need_latest_infos = True  # All future _update() should use latest infos
 
@@ -313,7 +311,7 @@ class RemoteSequenceManager:
         :param kwargs: additional request context, such as remote peer ID
         :returns: msgpack-serialized metadata dict that will be passed alongside a given request
         """
-        return dict(points=self.policy.get_points(protocol, *args, **kwargs), active_adapter=self.active_adapter)
+        return dict(points=self.policy.get_points(protocol, *args, **kwargs), active_adapter=self.config.active_adapter)
 
     def shutdown(self):
         self._thread.shutdown()

@@ -91,9 +91,6 @@ class DistributedBloomModel(FromPretrainedMixin, PTuneMixin, BloomModel):
             attentions=None,
         )
 
-    def use_adapter(self, adapter_name: Optional[str] = None):
-        self.h.sequence_manager.active_adapter = "" if adapter_name is None else adapter_name
-
 
 class DistributedBloomForCausalLM(FromPretrainedMixin, RemoteGenerationMixin, BloomForCausalLM):
     _keys_to_ignore_on_load_missing = (
@@ -116,9 +113,6 @@ class DistributedBloomForCausalLM(FromPretrainedMixin, RemoteGenerationMixin, Bl
     def get_output_embeddings(self):
         return self.lm_head
 
-    def use_adapter(self, adapter_name: Optional[str] = None):
-        self.transformer.use_adapter(adapter_name)
-
 
 class DistributedBloomForSequenceClassification(FromPretrainedMixin, BloomForSequenceClassification):
     _keys_to_ignore_on_load_missing = (
@@ -138,6 +132,3 @@ class DistributedBloomForSequenceClassification(FromPretrainedMixin, BloomForSeq
 
         # Initialize weights and apply final processing
         self.post_init()
-
-    def use_adapter(self, adapter_name: Optional[str] = None):
-        self.transformer.use_adapter(adapter_name)

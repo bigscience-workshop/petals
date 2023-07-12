@@ -67,7 +67,7 @@ async def _declare_active_modules(
     return await node.store_many(
         keys=uids,
         subkeys=[dht.peer_id.to_base58()] * len(uids),
-        values=[(state.value, throughput, adapters)] * len(uids),
+        values=[(state.value, throughput, dict(adapters=adapters))] * len(uids),
         expiration_time=expiration_time,
         num_workers=num_workers,
     )
@@ -122,8 +122,9 @@ async def _get_remote_module_infos(
             try:
                 peer_id = PeerID.from_base58(peer_id)
                 state, throughput = server_info.value[:2]
-                available_adapters = server_info.value[2] if len(server_info.value) > 2 else []
-                if bool(active_adapter) and active_adapter not in available_adapters:
+                extra_info = server_info.value[2] if len(server_info.value) > 2 else {}
+                adapters = extra_info.get("adapters", [])
+                if bool(active_adapter) and active_adapter not in adapters:
                     logger.debug(f"Skipped server {peer_id} since it does not have adapter {active_adapter}")
                     continue
 
