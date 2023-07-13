@@ -307,10 +307,10 @@ class TransformerConnectionHandler(ConnectionHandler):
         """Directly push activation tensors from one server to another"""
 
         requested_uids = self._check_uids(request.uid)
-        self._log_request("rpc_push", requested_uids, context)
-
         metadata = MSGPackSerializer.loads(request.metadata)
         session_id = metadata["session_id"]
+        self._log_request("rpc_push", requested_uids, context, debug=f"session_id={session_id}")
+
         self._session_queues[session_id].put(request)
         return runtime_pb2.ExpertResponse()
 

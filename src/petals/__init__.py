@@ -1,5 +1,7 @@
 import os
 
+os.environ.setdefault("BITSANDBYTES_NOWELCOME", "1")
+
 import hivemind
 import transformers
 from packaging import version

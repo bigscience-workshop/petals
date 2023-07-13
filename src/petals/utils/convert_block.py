@@ -71,7 +71,6 @@ def convert_block(
 
 def quantize_module(model: nn.Module, *, quant_type: QuantType) -> nn.Module:
     # Import bitsandbytes only when necessary, so Petals runs on platforms not supported by bitsandbytes
-    os.environ["BITSANDBYTES_NOWELCOME"] = "1"
     import bitsandbytes as bnb
 
     for n, module in model.named_children():

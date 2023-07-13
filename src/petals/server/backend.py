@@ -82,14 +82,12 @@ class TransformerBackend(ModuleBackend):
 
     def forward(self, *inputs: Union[torch.Tensor, str]) -> Tuple[torch.Tensor, ...]:
         *inputs, active_adapter = inputs
-        if not self.load_adapter_(active_adapter):
-            raise KeyError(f"Could not find adapter {active_adapter}; perhaps it is not loaded")
+        self.load_adapter_(active_adapter)
         return super().forward(*inputs)
 
     def backward(self, *inputs: Union[torch.Tensor, str]) -> Tuple[torch.Tensor, ...]:
         *inputs, active_adapter = inputs
-        if not self.load_adapter_(active_adapter):
-            raise KeyError(f"Could not find adapter {active_adapter}; perhaps it is not loaded")
+        self.load_adapter_(active_adapter)
         return super().backward(*inputs)
 
     @torch.inference_mode()
@@ -100,8 +98,7 @@ class TransformerBackend(ModuleBackend):
         inference_info: InferenceMetadata,
     ) -> Tuple[torch.Tensor, ...]:
         assert hidden_states.ndim == 3, "expected hidden states to be 3-dimensional: [batch_size, seq_len, hid_size]"
-        if not self.load_adapter_(inference_info.active_adapter):
-            raise KeyError(f"Could not find adapter {inference_info.active_adapter}; perhaps it is not loaded")
+        self.load_adapter_(inference_info.active_adapter)
         with self.memory_cache.use_cache(*inference_info.cache_handles) as cache_tensors:
             self._reorder_cache_inplace(cache_tensors, hypo_ids)
             layer_past = self._select_layer_past(cache_tensors, inference_info.prefix_length)
@@ -159,13 +156,15 @@ class TransformerBackend(ModuleBackend):
         # Import petals.utils.peft only when necessary to avoid importing bitsandbytes
         from peft.tuners.lora import Linear, Linear4bit, Linear8bitLt
 
-        adapter_was_loaded = False
+        loaded = False
         for layer in self.module.modules():  # select adapter set -- leave empty string for no adapter
             if isinstance(layer, (Linear, Linear4bit, Linear8bitLt)):
                 layer.active_adapter = active_adapter  # empty string for no adapter
                 if active_adapter in layer.lora_A.keys():
-                    adapter_was_loaded = True
-        return adapter_was_loaded or not active_adapter
+                    loaded = True
+
+        if active_adapter and not loaded:
+            raise KeyError(f"Could not find adapter {active_adapter}, perhaps it is not loaded")
 
 
 def merge_inference_pools_inplace(backends: Dict[ExpertUID, TransformerBackend]):
