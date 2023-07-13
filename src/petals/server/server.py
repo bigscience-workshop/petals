@@ -250,9 +250,13 @@ class Server:
         # Estimate of GPU memory used in rpc_backward (2 GiB for BLOOM, proportional for other models)
         autograd_memory = 2 * gib * num_devices / 14336 * self.block_config.hidden_size
 
-        adapter_memory_per_block = estimate_adapter_memory_per_block(
-            self.block_config, self.torch_dtype, self.adapters, self.cache_dir
-        )
+        if adapters:
+            # Delay import of petals.utils.peft to avoid unnecessary import of bitsandbytes
+            from petals.utils.peft import estimate_adapter_memory_per_block
+            
+            adapter_memory_per_block = estimate_adapter_memory_per_block(
+                self.block_config, self.torch_dtype, self.adapters, self.cache_dir
+            )
         total_memory_per_block = block_size + adapter_memory_per_block + self._cache_bytes_per_block
 
         num_blocks = math.floor((total_memory - autograd_memory) / total_memory_per_block)
