@@ -17,7 +17,7 @@ RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -
   bash install_miniconda.sh -b -p /opt/conda && rm install_miniconda.sh
 ENV PATH="/opt/conda/bin:${PATH}"
 
-RUN conda install python~=3.10 pip && \
+RUN conda install python~=3.10.12 pip && \
     pip install --no-cache-dir "torch>=1.12" && \
     conda clean --all && rm -rf ~/.cache/pip
 
