@@ -1,6 +1,9 @@
 import re
 import time
+import os
 from typing import List, Optional, Sequence
+
+os.environ["BITSANDBYTES_NOWELCOME"] = "1"
 
 import bitsandbytes as bnb
 import peft
