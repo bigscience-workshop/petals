@@ -123,7 +123,7 @@ class GlobalAdapterMixin:
     """A mixin that makes LoRA-wrapped linear layers obey a globally set adapter"""
 
     ADAPTER_NOT_SET = "__ADAPTER_NOT_SET"
-    GLOBAL_ACTIVE_ADAPTER = None
+    GLOBAL_ACTIVE_ADAPTER = ADAPTER_NOT_SET
 
     @staticmethod
     @contextlib.contextmanager
