@@ -534,6 +534,7 @@ class ModuleContainer(threading.Thread):
             TransformerConnectionHandler(
                 dht,
                 self.module_backends,
+                adapters=adapters,
                 dht_prefix=dht_prefix,
                 push_manager=self.push_manager,
                 session_queues=session_queues,
