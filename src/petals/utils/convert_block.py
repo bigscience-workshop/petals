@@ -1,7 +1,6 @@
 """
 Tools for converting transformer blocks, applying quantization and/or tensor parallelism
 """
-import os
 import re
 from typing import List, Optional, Sequence
 
