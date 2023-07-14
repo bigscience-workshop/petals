@@ -174,9 +174,13 @@ class Server:
         self.quant_type = quant_type
         logger.info(f"Model weights are loaded in {get_dtype_name(torch_dtype, quant_type)} format")
 
+        # For attention cache in GPU or RAM
         cache_values_per_block = 2 * self.block_config.hidden_size * attn_cache_tokens
         self._cache_bytes_per_block = cache_values_per_block * torch.finfo(self.torch_dtype).bits // 8
+
+        # For disk cache
         self.cache_dir = cache_dir
+        self.max_disk_space = max_disk_space
         self.adapters = adapters
 
         assert num_blocks is None or block_indices is None, "Please specify num_blocks or block_indices, not both"
@@ -197,9 +201,6 @@ class Server:
         logger.info(f"Attention cache for all blocks will consume up to {self.attn_cache_bytes / gib:.2f} GiB")
 
         self.alloc_timeout = alloc_timeout
-        if cache_dir is None:
-            cache_dir = DEFAULT_CACHE_DIR
-        self.max_disk_space = max_disk_space
 
         assert isinstance(throughput, float) or throughput in ["auto", "eval"]
         if throughput in ["auto", "eval"]:
@@ -243,20 +244,24 @@ class Server:
         else:
             total_memory = torch.cuda.get_device_properties(self.device).total_memory
 
-        block_size = get_block_size(self.block_config, "memory", dtype=self.torch_dtype, quant_type=self.quant_type)
-
         gib = 1024**3
         # Estimate of GPU memory used in rpc_backward (2 GiB for BLOOM, proportional for other models)
         autograd_memory = 2 * gib * num_devices / 14336 * self.block_config.hidden_size
 
-        if adapters:
+        block_size = get_block_size(self.block_config, "memory", dtype=self.torch_dtype, quant_type=self.quant_type)
+        total_memory_per_block = block_size + self._cache_bytes_per_block
+        if self.adapters:
             # Delay import of petals.utils.peft to avoid unnecessary import of bitsandbytes
             from petals.utils.peft import estimate_adapter_memory_per_block
 
-            adapter_memory_per_block = estimate_adapter_memory_per_block(
-                self.block_config, self.torch_dtype, self.adapters, self.cache_dir
+            total_memory_per_block += estimate_adapter_memory_per_block(
+                self.block_config,
+                self.torch_dtype,
+                self.adapters,
+                use_auth_token=self.use_auth_token,
+                cache_dir=self.cache_dir,
+                max_disk_space=self.max_disk_space,
             )
-        total_memory_per_block = block_size + adapter_memory_per_block + self._cache_bytes_per_block
 
         num_blocks = math.floor((total_memory - autograd_memory) / total_memory_per_block)
         assert num_blocks >= 1, "Your GPU does not have enough memory to serve at least one block"
