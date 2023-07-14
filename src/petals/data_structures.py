@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import math
+
 import dataclasses
 from dataclasses import dataclass
 from enum import Enum
@@ -25,6 +27,29 @@ class ServerState(Enum):
 class ServerInfo:
     state: ServerState
     throughput: float
+
+    adapters: Tuple[str] = ()
+    version: Optional[str] = None
+    using_relay: Optional[bool] = None
+    cache_tokens_left: Optional[int] = None
+
+    def to_tuple(self) -> Tuple[int, float, dict]:
+        extra_info = dataclasses.asdict(self)
+        del extra_info["state"], extra_info["throughput"]
+        return (self.state.value, self.throughput, extra_info)
+
+    @classmethod
+    def from_tuple(cls, info: tuple):
+        state, throughput = info[:2]
+        extra_info = info[2] if len(info) > 2 else {}
+
+        if not (
+            isinstance(state, int) and isinstance(throughput, float) and math.isfinite(throughput) and throughput >= 0.0
+        ):
+            # FIXME: Use proper validation for all fields with pydantic 1.0
+            raise ValueError(f"Invalid server info: {info}")
+
+        return cls(ServerState(info["state"]), info["throughput"], **extra_info)
 
 
 @dataclass

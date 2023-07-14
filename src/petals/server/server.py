@@ -16,8 +16,9 @@ from hivemind.proto.runtime_pb2 import CompressionType
 from hivemind.utils.logging import get_logger
 from transformers import PretrainedConfig
 
+import petals
 from petals.constants import DTYPE_MAP, PUBLIC_INITIAL_PEERS
-from petals.data_structures import CHAIN_DELIMITER, UID_DELIMITER, ServerState
+from petals.data_structures import CHAIN_DELIMITER, UID_DELIMITER, ServerInfo, ServerState
 from petals.dht_utils import declare_active_modules, get_remote_module_infos
 from petals.server import block_selection
 from petals.server.backend import TransformerBackend, merge_inference_pools_inplace
@@ -405,12 +406,17 @@ class ModuleContainer(threading.Thread):
         **kwargs,
     ) -> ModuleContainer:
         module_uids = [f"{dht_prefix}{UID_DELIMITER}{block_index}" for block_index in block_indices]
+        server_info = ServerInfo(
+            state=ServerState.JOINING,
+            throughput=throughput,
+            adapters=tuple(adapters),
+            version=petals.__version__,
+            using_relay=dht.client_mode,
+        )
         joining_announcer = ModuleAnnouncerThread(
             module_uids,
             dht,
-            ServerState.JOINING,
-            adapters=adapters,
-            throughput=throughput,
+            server_info,
             update_period=update_period,
             expiration=expiration,
             daemon=True,
@@ -477,13 +483,12 @@ class ModuleContainer(threading.Thread):
 
             joining_announcer.stop.set()
             joining_announcer.join()
+            server_info.state = ServerState.OFFLINE
             declare_active_modules(
                 dht,
                 module_uids,
+                server_info,
                 expiration_time=get_dht_time() + expiration,
-                state=ServerState.OFFLINE,
-                throughput=throughput,
-                adapters=adapters,
             )
             logger.info(f"Announced that blocks {module_uids} are offline")
             raise
@@ -497,8 +502,7 @@ class ModuleContainer(threading.Thread):
             dht,
             dht_prefix,
             blocks,
-            adapters=adapters,
-            throughput=throughput,
+            server_info=server_info,
             update_period=update_period,
             expiration=expiration,
             **kwargs,
@@ -512,8 +516,7 @@ class ModuleContainer(threading.Thread):
         *,
         inference_max_length: int,
         num_handlers: int,
-        throughput: float,
-        adapters: Optional[Sequence[str]],
+        server_info: ServerInfo,
         update_period: float,
         expiration: Optional[float] = None,
         request_timeout: float,
@@ -525,7 +528,7 @@ class ModuleContainer(threading.Thread):
         super().__init__()
 
         self.dht, self.module_backends = dht, module_backends
-        self.throughput, self.update_period, self.expiration = throughput, update_period, expiration
+        self.server_info, self.update_period, self.expiration = server_info, update_period, expiration
 
         self.push_manager = mp.Manager()
         self.push_manager.__enter__()
@@ -548,12 +551,12 @@ class ModuleContainer(threading.Thread):
 
         self.runtime = RuntimeWithDeduplicatedPools(self.module_backends, device=None, **kwargs)
         # note: We set device=None in runtime to avoid moving all modules to device 0 in runtime.run(). tensor_parallel has already moved it as needed.
+
+        self.server_info.state = ServerState.ONLINE
         self.online_announcer = ModuleAnnouncerThread(
             list(self.module_backends.keys()),
             dht,
-            ServerState.ONLINE,
-            adapters=adapters,
-            throughput=throughput,
+            self.server_info,
             update_period=update_period,
             expiration=expiration,
             daemon=True,
@@ -613,12 +616,12 @@ class ModuleContainer(threading.Thread):
         self.online_announcer.stop.set()
         self.online_announcer.join()
 
+        self.server_info.state = ServerState.OFFLINE
         declare_active_modules(
             self.dht,
             self.module_backends.keys(),
+            self.server_info,
             expiration_time=get_dht_time() + self.expiration,
-            state=ServerState.OFFLINE,
-            throughput=self.throughput,
         )
         logger.info(f"Announced that blocks {list(self.module_backends.keys())} are offline")
 
@@ -651,10 +654,8 @@ class ModuleAnnouncerThread(threading.Thread):
         self,
         module_uids: List[str],
         dht: DHT,
-        state: ServerState,
-        adapters: Optional[Sequence[str]],
+        server_info: ServerInfo,
         *,
-        throughput: float,
         update_period: float = 30,
         expiration: float,
         **kwargs,
@@ -662,9 +663,7 @@ class ModuleAnnouncerThread(threading.Thread):
         super().__init__(**kwargs)
         self.module_uids = module_uids
         self.dht = dht
-        self.state = state
-        self.adapters = adapters
-        self.throughput = throughput
+        self.server_info = server_info
         self.update_period = update_period
         self.expiration = expiration
         self.stop = threading.Event()
@@ -674,10 +673,8 @@ class ModuleAnnouncerThread(threading.Thread):
             declare_active_modules(
                 self.dht,
                 self.module_uids,
+                self.server_info,
                 expiration_time=get_dht_time() + self.expiration,
-                state=self.state,
-                throughput=self.throughput,
-                adapters=self.adapters,
             )
             if self.stop.wait(self.update_period):
                 break
