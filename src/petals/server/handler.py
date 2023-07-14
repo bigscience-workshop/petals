@@ -478,6 +478,12 @@ class TransformerConnectionHandler(ConnectionHandler):
                 for part in split_for_streaming(tensor, DEFAULT_MAX_MSG_SIZE):
                     yield runtime_pb2.ExpertResponse(tensors=[part])
 
+    def _get_active_adapter(self, metadata: dict) -> str:
+        active_adapter = metadata.get("active_adapter", "")
+        if active_adapter and (active_adapter not in self.adapters):
+            raise KeyError(f"adapter {active_adapter} not found")
+        return active_adapter
+
     def _serialize_grads(
         self,
         grads: Sequence[torch.Tensor],
@@ -571,12 +577,6 @@ class TransformerConnectionHandler(ConnectionHandler):
             result.update(block_info)
 
         return runtime_pb2.ExpertInfo(serialized_info=MSGPackSerializer.dumps(result))
-
-    def _get_active_adapter(self, metadata: dict) -> str:
-        active_adapter = metadata.get("active_adapter", "")
-        if active_adapter and (active_adapter not in self.adapters):
-            raise KeyError(f"adapter {active_adapter} not found")
-        return active_adapter
 
 
 async def _rpc_forward(
