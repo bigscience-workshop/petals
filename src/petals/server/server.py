@@ -181,6 +181,7 @@ class Server:
         # For disk cache
         self.cache_dir = cache_dir
         self.max_disk_space = max_disk_space
+        self.adapters = adapters
 
         assert num_blocks is None or block_indices is None, "Please specify num_blocks or block_indices, not both"
         if num_blocks is None and block_indices is None:
@@ -257,14 +258,14 @@ class Server:
 
         block_size = get_block_size(self.block_config, "memory", dtype=self.torch_dtype, quant_type=self.quant_type)
         total_memory_per_block = block_size + self._cache_bytes_per_block
-        if self.server_info.adapters:
+        if self.adapters:
             # Delay import of petals.utils.peft to avoid unnecessary import of bitsandbytes
             from petals.utils.peft import estimate_adapter_memory_per_block
 
             total_memory_per_block += estimate_adapter_memory_per_block(
                 self.block_config,
                 self.torch_dtype,
-                self.server_info.adapters,
+                self.adapters,
                 use_auth_token=self.use_auth_token,
                 cache_dir=self.cache_dir,
                 max_disk_space=self.max_disk_space,
