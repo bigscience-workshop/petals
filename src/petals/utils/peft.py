@@ -1,3 +1,4 @@
+import contextlib
 import re
 import time
 from typing import Optional, Sequence
@@ -118,6 +119,47 @@ def load_peft(
             time.sleep(delay)
 
 
+class GlobalAdapterMixin:
+    """A mixin that makes LoRA-wrapped linear layers obey a globally set adapter"""
+
+    ADAPTER_NOT_SET = "__ADAPTER_NOT_SET"
+    GLOBAL_ACTIVE_ADAPTER = None
+
+    @staticmethod
+    @contextlib.contextmanager
+    def using_global_adapter(active_adapter: Optional[str]):
+        prev, GlobalAdapterMixin.GLOBAL_ACTIVE_ADAPTER = GlobalAdapterMixin.GLOBAL_ACTIVE_ADAPTER, active_adapter
+        try:
+            yield
+        finally:
+            GlobalAdapterMixin.GLOBAL_ACTIVE_ADAPTER = prev
+
+    @property
+    def active_adapter(self):
+        if self.GLOBAL_ACTIVE_ADAPTER == self.ADAPTER_NOT_SET:
+            logger.warning(f"Layer {self} was called without using_global_adapter. This should only be used for debug")
+        return self.GLOBAL_ACTIVE_ADAPTER
+
+    @active_adapter.setter
+    def active_adapter(self, value: Optional[str]):
+        assert value == self.ADAPTER_NOT_SET, "active adapter can only be changed globally, via .using_adapter" ""
+
+
+using_global_adapter = GlobalAdapterMixin.using_global_adapter
+
+
+class GlobalLoraLinear(lora.Linear, GlobalAdapterMixin):
+    """LoRA linear layer that uses globally selected active adapter"""
+
+
+class GlobalLoraLinear8bitLt(lora.Linear8bitLt, GlobalAdapterMixin):
+    """LoRA linear 8-bit with outliers that uses globally selected active adapter"""
+
+
+class GlobalLoraLinear4bit(lora.Linear4bit, GlobalAdapterMixin):
+    """LoRA linear 4-bit that uses globally selected active adapter"""
+
+
 def create_lora_adapter(block, quant_type: QuantType):
     for _, module in block.named_modules():
         for child_name, child in module.named_children():
@@ -130,8 +172,8 @@ def create_lora_adapter(block, quant_type: QuantType):
                     "threshold": 6.0,
                     "bias": hasattr(child, "bias") and child.bias is not None,
                 }
-                lora_wrapped_child = lora.Linear8bitLt(
-                    child_name,
+                lora_wrapped_child = GlobalLoraLinear8bitLt(
+                    GlobalAdapterMixin.ADAPTER_NOT_SET,
                     child.in_features,
                     child.out_features,
                     **kwargs,
@@ -143,22 +185,21 @@ def create_lora_adapter(block, quant_type: QuantType):
                     "blocksize": 64,
                     "bias": hasattr(child, "bias") and child.bias is not None,
                 }
-                lora_wrapped_child = lora.Linear4bit(
-                    child_name,
+                lora_wrapped_child = GlobalLoraLinear4bit(
+                    GlobalAdapterMixin.ADAPTER_NOT_SET,
                     child.in_features,
                     child.out_features,
                     **kwargs,
                 )
             else:
                 bias = hasattr(child, "bias") and child.bias is not None
-                lora_wrapped_child = lora.Linear(
-                    child_name,
+                lora_wrapped_child = GlobalLoraLinear(
+                    GlobalAdapterMixin.ADAPTER_NOT_SET,
                     child.in_features,
                     child.out_features,
                     bias=bias,
                 )
             if lora_wrapped_child:
-                lora_wrapped_child.active_adapter = None
                 lora_wrapped_child.weight = child.weight
                 lora_wrapped_child.bias = child.bias
                 for p in lora_wrapped_child.parameters():
