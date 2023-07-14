@@ -1,10 +1,8 @@
-from __future__ import annotations
-
 import dataclasses
-from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Sequence, Tuple
 
+import pydantic
 from hivemind import PeerID
 from hivemind.moe.expert_uid import ExpertUID
 
@@ -21,13 +19,32 @@ class ServerState(Enum):
     ONLINE = 2
 
 
-@dataclass
+@pydantic.dataclasses.dataclass
 class ServerInfo:
     state: ServerState
-    throughput: float
+    throughput: pydantic.confloat(ge=0, allow_inf_nan=False, strict=True)
+
+    adapters: Sequence[str] = ()
+    version: Optional[str] = None
+    torch_dtype: Optional[str] = None
+    quant_type: Optional[str] = None
+    using_relay: Optional[bool] = None
+    cache_tokens_left: Optional[pydantic.conint(ge=0, strict=True)] = None
+
+    def to_tuple(self) -> Tuple[int, float, dict]:
+        extra_info = dataclasses.asdict(self)
+        del extra_info["state"], extra_info["throughput"]
+        return (self.state.value, self.throughput, extra_info)
+
+    @classmethod
+    def from_tuple(cls, source: tuple):
+        state, throughput = source[:2]
+        extra_info = source[2] if len(source) > 2 else {}
+        # pydantic will validate existing fields and ignore extra ones
+        return cls(state=ServerState(state), throughput=throughput, **extra_info)
 
 
-@dataclass
+@dataclasses.dataclass
 class RemoteModuleInfo:
     """A remote module that is served by one or more servers"""
 
@@ -35,7 +52,7 @@ class RemoteModuleInfo:
     servers: Dict[PeerID, ServerInfo]
 
 
-@dataclass
+@dataclasses.dataclass
 class RemoteSpanInfo:
     """A chain of remote blocks served by one specific remote peer"""
 

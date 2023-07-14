@@ -11,7 +11,7 @@ from hivemind.dht import DHT, DHTNode, DHTValue
 from hivemind.p2p import PeerID
 from hivemind.utils import DHTExpiration, MPFuture, get_dht_time, get_logger
 
-from petals.data_structures import CHAIN_DELIMITER, UID_DELIMITER, ModuleUID, RemoteModuleInfo, ServerInfo, ServerState
+from petals.data_structures import CHAIN_DELIMITER, UID_DELIMITER, ModuleUID, RemoteModuleInfo, ServerInfo
 
 logger = get_logger(__name__)
 
@@ -19,10 +19,8 @@ logger = get_logger(__name__)
 def declare_active_modules(
     dht: DHT,
     uids: Sequence[ModuleUID],
+    server_info: ServerInfo,
     expiration_time: DHTExpiration,
-    state: ServerState,
-    throughput: float,
-    adapters: Optional[Sequence[str]] = None,
     wait: bool = True,
 ) -> Union[Dict[ModuleUID, bool], MPFuture[Dict[ModuleUID, bool]]]:
     """
@@ -42,14 +40,7 @@ def declare_active_modules(
         assert isinstance(uid, ModuleUID) and UID_DELIMITER in uid and CHAIN_DELIMITER not in uid
 
     return dht.run_coroutine(
-        partial(
-            _declare_active_modules,
-            uids=uids,
-            expiration_time=expiration_time,
-            state=state,
-            throughput=throughput,
-            adapters=list(adapters or []),
-        ),
+        partial(_declare_active_modules, uids=uids, server_info=server_info, expiration_time=expiration_time),
         return_future=not wait,
     )
 
@@ -58,16 +49,14 @@ async def _declare_active_modules(
     dht: DHT,
     node: DHTNode,
     uids: List[ModuleUID],
+    server_info: ServerInfo,
     expiration_time: DHTExpiration,
-    state: ServerState,
-    throughput: float,
-    adapters: List[str],
 ) -> Dict[ModuleUID, bool]:
     num_workers = len(uids) if dht.num_workers is None else min(len(uids), dht.num_workers)
     return await node.store_many(
         keys=uids,
         subkeys=[dht.peer_id.to_base58()] * len(uids),
-        values=[(state.value, throughput, dict(adapters=adapters))] * len(uids),
+        values=[server_info.to_tuple()] * len(uids),
         expiration_time=expiration_time,
         num_workers=num_workers,
     )
@@ -115,29 +104,21 @@ async def _get_remote_module_infos(
         metadata = found[uid]
         if metadata is None or not isinstance(metadata.value, dict):
             if metadata is not None:
-                logger.error(f"Incorrect metadata for {uid}: {metadata}")
+                logger.warning(f"Incorrect metadata for {uid}: {metadata}")
             continue
         servers = {}
         for peer_id, server_info in metadata.value.items():
             try:
                 peer_id = PeerID.from_base58(peer_id)
-                state, throughput = server_info.value[:2]
-                extra_info = server_info.value[2] if len(server_info.value) > 2 else {}
-                adapters = extra_info.get("adapters", [])
-                if bool(active_adapter) and active_adapter not in adapters:
+                server_info = ServerInfo.from_tuple(server_info.value)
+
+                if active_adapter and active_adapter not in server_info.adapters:
                     logger.debug(f"Skipped server {peer_id} since it does not have adapter {active_adapter}")
                     continue
 
-                if not (
-                    isinstance(state, int)
-                    and isinstance(throughput, float)
-                    and math.isfinite(throughput)
-                    and throughput >= 0.0
-                ):
-                    raise ValueError(f"Invalid server info: {server_info}")
-                servers[peer_id] = ServerInfo(ServerState(state), throughput)
+                servers[peer_id] = server_info
             except (TypeError, ValueError) as e:
-                logger.error(f"Incorrect peer entry for uid={uid}, peer_id={peer_id}: {e}")
+                logger.warning(f"Incorrect peer entry for uid={uid}, peer_id={peer_id}: {e}")
         if servers:
             modules[i] = RemoteModuleInfo(uid, servers)
     return modules

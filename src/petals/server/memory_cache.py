@@ -48,6 +48,10 @@ class MemoryCache:
         self._current_size.value = value
 
     @property
+    def bytes_left(self) -> int:
+        return self.max_size_bytes - self.current_size_bytes
+
+    @property
     def handle_counter(self) -> int:
         return self._handle_counter.value
 

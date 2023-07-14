@@ -2,7 +2,7 @@
 Tools for converting transformer blocks, applying quantization and/or tensor parallelism
 """
 import re
-from typing import List, Optional, Sequence
+from typing import Optional, Sequence
 
 import tensor_parallel as tp
 import torch
@@ -25,7 +25,7 @@ def convert_block(
     output_device: torch.device,
     quant_type: QuantType,
     freeze: bool = True,
-    adapters: Optional[List[str]] = None,
+    adapters: Optional[Sequence[str]] = None,
     **kwargs,
 ) -> tp.TensorParallel:
     """

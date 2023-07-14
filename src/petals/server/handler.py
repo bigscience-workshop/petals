@@ -562,11 +562,10 @@ class TransformerConnectionHandler(ConnectionHandler):
         """Return metadata about stored block uids and current load"""
 
         backend = self.module_backends[request.uid] if request.uid else next(iter(self.module_backends.values()))
-        cache_bytes_left = max(0, backend.memory_cache.max_size_bytes - backend.memory_cache.current_size_bytes)
         result = {
             "version": petals.__version__,
             "dht_client_mode": self.dht.client_mode,
-            CACHE_TOKENS_AVAILABLE: cache_bytes_left // max(backend.cache_bytes_per_token.values()),
+            CACHE_TOKENS_AVAILABLE: backend.memory_cache.bytes_left // max(backend.cache_bytes_per_token.values()),
         }
 
         if request.uid:
