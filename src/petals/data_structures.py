@@ -3,13 +3,10 @@ from enum import Enum
 from typing import Any, Dict, Optional, Sequence, Tuple
 
 import pydantic
-import torch
 from hivemind import PeerID
 from hivemind.moe.expert_uid import ExpertUID
 
-from petals.constants import DTYPE_MAP
 from petals.server.memory_cache import Handle
-from petals.utils.misc import QuantType
 
 ModuleUID = str
 UID_DELIMITER = "."  # delimits parts of one module uid, e.g. "bloom.transformer.h.4.self_attention"
