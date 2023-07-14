@@ -17,7 +17,6 @@ from petals.data_structures import InferenceMetadata
 from petals.server.memory_cache import MemoryCache
 from petals.server.task_pool import PrioritizedTaskPool
 from petals.utils.misc import is_dummy
-from petals.utils.peft import using_adapter
 
 logger = get_logger(__name__)
 
@@ -25,9 +24,15 @@ logger = get_logger(__name__)
 class TransformerBackend(ModuleBackend):
     """A wrapper for a transformer block that can process requests for forward, backward and inference"""
 
+    _peft_module = None
+
     def __init__(
         self, *args, config: PretrainedConfig, memory_cache: MemoryCache, backend_dtype: torch.dtype, **kwargs
     ):
+        import petals.utils.peft as _peft_module
+
+        self._peft_module = _peft_module
+
         super().__init__(*args, **kwargs)
         assert isinstance(self.module, TensorParallel)
         self.config = config
@@ -83,12 +88,12 @@ class TransformerBackend(ModuleBackend):
 
     def forward(self, *inputs: Union[torch.Tensor, str]) -> Tuple[torch.Tensor, ...]:
         *inputs, active_adapter = inputs
-        with using_adapter(active_adapter):
+        with self._peft_module.using_adapter(active_adapter):
             return super().forward(*inputs)
 
     def backward(self, *inputs: Union[torch.Tensor, str]) -> Tuple[torch.Tensor, ...]:
         *inputs, active_adapter = inputs
-        with using_adapter(active_adapter):
+        with self._peft_module.using_adapter(active_adapter):
             return super().backward(*inputs)
 
     @torch.inference_mode()
@@ -99,9 +104,9 @@ class TransformerBackend(ModuleBackend):
         inference_info: InferenceMetadata,
     ) -> Tuple[torch.Tensor, ...]:
         assert hidden_states.ndim == 3, "expected hidden states to be 3-dimensional: [batch_size, seq_len, hid_size]"
-        with self.memory_cache.use_cache(*inference_info.cache_handles) as cache_tensors, using_adapter(
-            inference_info.active_adapter
-        ):
+        with self.memory_cache.use_cache(
+            *inference_info.cache_handles
+        ) as cache_tensors, self._peft_module.using_adapter(inference_info.active_adapter):
             self._reorder_cache_inplace(cache_tensors, hypo_ids)
             layer_past = self._select_layer_past(cache_tensors, inference_info.prefix_length)
             hidden_states, new_kvs = self.module.forward(hidden_states, layer_past=layer_past, use_cache=True)
