@@ -220,6 +220,8 @@ class Server:
             throughput=throughput,
             adapters=tuple(adapters),
             version=petals.__version__,
+            torch_dtype=str(torch_dtype).lstrip("torch."),
+            quant_type=quant_type.name.lower(),
             using_relay=self.dht.client_mode,
         )
 

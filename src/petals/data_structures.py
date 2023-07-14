@@ -3,10 +3,13 @@ from enum import Enum
 from typing import Any, Dict, Optional, Sequence, Tuple
 
 import pydantic
+import torch
 from hivemind import PeerID
 from hivemind.moe.expert_uid import ExpertUID
 
+from petals.constants import DTYPE_MAP
 from petals.server.memory_cache import Handle
+from petals.utils.misc import QuantType
 
 ModuleUID = str
 UID_DELIMITER = "."  # delimits parts of one module uid, e.g. "bloom.transformer.h.4.self_attention"
@@ -26,6 +29,8 @@ class ServerInfo:
 
     adapters: Sequence[str] = ()
     version: Optional[str] = None
+    torch_dtype: Optional[str] = None
+    quant_type: Optional[str] = None
     using_relay: Optional[bool] = None
     cache_tokens_left: Optional[pydantic.conint(ge=0, strict=True)] = None
 
