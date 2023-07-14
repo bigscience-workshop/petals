@@ -244,17 +244,17 @@ class Server:
         else:
             total_memory = torch.cuda.get_device_properties(self.device).total_memory
 
-        block_size = get_block_size(self.block_config, "memory", dtype=self.torch_dtype, quant_type=self.quant_type)
-
         gib = 1024**3
         # Estimate of GPU memory used in rpc_backward (2 GiB for BLOOM, proportional for other models)
         autograd_memory = 2 * gib * num_devices / 14336 * self.block_config.hidden_size
 
+        block_size = get_block_size(self.block_config, "memory", dtype=self.torch_dtype, quant_type=self.quant_type)
+        total_memory_per_block = block_size + self._cache_bytes_per_block
         if self.adapters:
             # Delay import of petals.utils.peft to avoid unnecessary import of bitsandbytes
             from petals.utils.peft import estimate_adapter_memory_per_block
 
-            adapter_memory_per_block = estimate_adapter_memory_per_block(
+            total_memory_per_block += estimate_adapter_memory_per_block(
                 self.block_config,
                 self.torch_dtype,
                 self.adapters,
@@ -262,7 +262,6 @@ class Server:
                 cache_dir=self.cache_dir,
                 max_disk_space=self.max_disk_space,
             )
-        total_memory_per_block = block_size + adapter_memory_per_block + self._cache_bytes_per_block
 
         num_blocks = math.floor((total_memory - autograd_memory) / total_memory_per_block)
         assert num_blocks >= 1, "Your GPU does not have enough memory to serve at least one block"
