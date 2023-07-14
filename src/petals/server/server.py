@@ -82,7 +82,7 @@ class Server:
         dht_client_mode: Optional[bool] = None,
         use_relay: bool = True,
         use_auto_relay: bool = True,
-        adapters: Optional[List[str]] = None,
+        adapters: Sequence[str] = (),
         **kwargs,
     ):
         """Create a server with one or more bloom blocks. See run_server.py for documentation."""

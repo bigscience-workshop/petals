@@ -9,8 +9,6 @@ from petals.client.lm_head import LMHeadConfig
 from petals.client.ptune import PTuneConfig
 from petals.client.routing.sequence_manager import SequenceManagerConfig
 from petals.models.bloom.block import WrappedBloomBlock
-from petals.utils.auto_config import AutoDistributedConfig
-from petals.utils.version import get_compatible_model_repo
 
 logger = get_logger(__name__)
 

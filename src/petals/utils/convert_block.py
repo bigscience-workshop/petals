@@ -25,7 +25,7 @@ def convert_block(
     output_device: torch.device,
     quant_type: QuantType,
     freeze: bool = True,
-    adapters: Optional[List[str]] = None,
+    adapters: Optional[Sequence[str]] = None,
     **kwargs,
 ) -> tp.TensorParallel:
     """
