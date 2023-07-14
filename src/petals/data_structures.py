@@ -1,12 +1,8 @@
-from __future__ import annotations
-
-import math
-
 import dataclasses
-from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Sequence, Tuple
 
+import pydantic
 from hivemind import PeerID
 from hivemind.moe.expert_uid import ExpertUID
 
@@ -23,15 +19,15 @@ class ServerState(Enum):
     ONLINE = 2
 
 
-@dataclass
+@pydantic.dataclasses.dataclass
 class ServerInfo:
     state: ServerState
-    throughput: float
+    throughput: pydantic.confloat(ge=0, allow_inf_nan=False, strict=True)
 
-    adapters: Tuple[str] = ()
+    adapters: Sequence[str] = ()
     version: Optional[str] = None
     using_relay: Optional[bool] = None
-    cache_tokens_left: Optional[int] = None
+    cache_tokens_left: Optional[pydantic.conint(ge=0, strict=True)] = None
 
     def to_tuple(self) -> Tuple[int, float, dict]:
         extra_info = dataclasses.asdict(self)
@@ -39,20 +35,14 @@ class ServerInfo:
         return (self.state.value, self.throughput, extra_info)
 
     @classmethod
-    def from_tuple(cls, info: tuple):
-        state, throughput = info[:2]
-        extra_info = info[2] if len(info) > 2 else {}
-
-        if not (
-            isinstance(state, int) and isinstance(throughput, float) and math.isfinite(throughput) and throughput >= 0.0
-        ):
-            # FIXME: Use proper validation for all fields with pydantic 1.0
-            raise ValueError(f"Invalid server info: {info}")
-
-        return cls(ServerState(info["state"]), info["throughput"], **extra_info)
+    def from_tuple(cls, source: tuple):
+        state, throughput = source[:2]
+        extra_info = source[2] if len(source) > 2 else {}
+        # pydantic will validate existing fields and ignore extra ones
+        return cls(state=ServerState(state), throughput=throughput, **extra_info)
 
 
-@dataclass
+@dataclasses.dataclass
 class RemoteModuleInfo:
     """A remote module that is served by one or more servers"""
 
@@ -60,7 +50,7 @@ class RemoteModuleInfo:
     servers: Dict[PeerID, ServerInfo]
 
 
-@dataclass
+@dataclasses.dataclass
 class RemoteSpanInfo:
     """A chain of remote blocks served by one specific remote peer"""
 
