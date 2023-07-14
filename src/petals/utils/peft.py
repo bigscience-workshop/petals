@@ -217,7 +217,10 @@ def add_adapter_to_block(block, block_index, adapter_name, peft_config, peft_sta
 
 
 def estimate_adapter_memory_per_block(
-    block_config: transformers.PretrainedConfig, torch_dtype: Optional[torch.dtype], adapters: Sequence[str], **kwargs
+    block_config: transformers.PretrainedConfig,
+    torch_dtype: Optional[torch.dtype],
+    adapters: Sequence[str],
+    **load_peft_kwargs,
 ) -> int:
     """Get the number of extra bytes used to store a set of adapters per given block"""
     with init_empty_weights(include_buffers=True):
@@ -226,7 +229,7 @@ def estimate_adapter_memory_per_block(
         create_lora_adapter(block, quant_type=QuantType.NONE)
 
         for adapter in adapters:
-            peft_config, peft_state_dict = load_peft(adapter, block_idx=0, **kwargs)
+            peft_config, peft_state_dict = load_peft(adapter, block_idx=0, **load_peft_kwargs)
             assert peft_config["peft_type"].upper() == "LORA", "only LoRA adapters are supported for now"
             add_adapter_to_block(
                 block, block_index=0, adapter_name=adapter, peft_config=peft_config, peft_state_dict=peft_state_dict
