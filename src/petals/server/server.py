@@ -30,7 +30,6 @@ from petals.server.throughput import get_dtype_name, get_server_throughput
 from petals.utils.auto_config import AutoDistributedConfig
 from petals.utils.convert_block import QuantType, check_device_balance, convert_block
 from petals.utils.disk_cache import DEFAULT_CACHE_DIR
-from petals.utils.peft import estimate_adapter_memory_per_block
 from petals.utils.version import get_compatible_model_repo
 
 logger = get_logger(__name__)
