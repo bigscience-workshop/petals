@@ -119,45 +119,45 @@ def load_peft(
             time.sleep(delay)
 
 
-class GlobalAdapterMixin:
-    """A mixin that makes LoRA-wrapped linear layers obey a globally set adapter"""
+class AdapterContextMixin:
+    """A mixin that makes LoRA-wrapped linear layers obey an adapter set from context"""
 
     ADAPTER_NOT_SET = "__ADAPTER_NOT_SET"
-    GLOBAL_ACTIVE_ADAPTER = ADAPTER_NOT_SET
+    _context_active_adapter = ADAPTER_NOT_SET
 
     @staticmethod
     @contextlib.contextmanager
-    def using_global_adapter(active_adapter: Optional[str]):
-        prev, GlobalAdapterMixin.GLOBAL_ACTIVE_ADAPTER = GlobalAdapterMixin.GLOBAL_ACTIVE_ADAPTER, active_adapter
+    def using_adapter(active_adapter: Optional[str]):
+        prev, AdapterContextMixin._context_active_adapter = AdapterContextMixin._context_active_adapter, active_adapter
         try:
             yield
         finally:
-            GlobalAdapterMixin.GLOBAL_ACTIVE_ADAPTER = prev
+            AdapterContextMixin._context_active_adapter = prev
 
     @property
     def active_adapter(self):
-        if self.GLOBAL_ACTIVE_ADAPTER == self.ADAPTER_NOT_SET:
-            logger.warning(f"Layer {self} was called without using_global_adapter. This should only be used for debug")
-        return self.GLOBAL_ACTIVE_ADAPTER
+        if self._context_active_adapter == self.ADAPTER_NOT_SET:
+            logger.warning(f"Layer {self} was called without using_adapter. This should only be used for debug")
+        return self._context_active_adapter
 
     @active_adapter.setter
     def active_adapter(self, value: Optional[str]):
-        assert value == self.ADAPTER_NOT_SET, "active adapter can only be changed globally, via .using_adapter" ""
+        assert value == self.ADAPTER_NOT_SET, "active adapter can only be changed via .using_adapter" ""
 
 
-using_global_adapter = GlobalAdapterMixin.using_global_adapter
+using_adapter = AdapterContextMixin.using_adapter
 
 
-class GlobalLoraLinear(lora.Linear, GlobalAdapterMixin):
-    """LoRA linear layer that uses globally selected active adapter"""
+class LoraLinear(lora.Linear, AdapterContextMixin):
+    """LoRA linear layer that uses adapter selected via using_adapter"""
 
 
-class GlobalLoraLinear8bitLt(lora.Linear8bitLt, GlobalAdapterMixin):
-    """LoRA linear 8-bit with outliers that uses globally selected active adapter"""
+class LoraLinear8bitLt(lora.Linear8bitLt, AdapterContextMixin):
+    """LoRA linear 8-bit with outliers that uses adapter selected via using_adapter"""
 
 
-class GlobalLoraLinear4bit(lora.Linear4bit, GlobalAdapterMixin):
-    """LoRA linear 4-bit that uses globally selected active adapter"""
+class LoraLinear4bit(lora.Linear4bit, AdapterContextMixin):
+    """LoRA linear 4-bit that uses adapter selected via using_adapter"""
 
 
 def create_lora_adapter(block, quant_type: QuantType):
@@ -172,8 +172,8 @@ def create_lora_adapter(block, quant_type: QuantType):
                     "threshold": 6.0,
                     "bias": hasattr(child, "bias") and child.bias is not None,
                 }
-                lora_wrapped_child = GlobalLoraLinear8bitLt(
-                    GlobalAdapterMixin.ADAPTER_NOT_SET,
+                lora_wrapped_child = LoraLinear8bitLt(
+                    AdapterContextMixin.ADAPTER_NOT_SET,
                     child.in_features,
                     child.out_features,
                     **kwargs,
@@ -185,16 +185,16 @@ def create_lora_adapter(block, quant_type: QuantType):
                     "blocksize": 64,
                     "bias": hasattr(child, "bias") and child.bias is not None,
                 }
-                lora_wrapped_child = GlobalLoraLinear4bit(
-                    GlobalAdapterMixin.ADAPTER_NOT_SET,
+                lora_wrapped_child = LoraLinear4bit(
+                    AdapterContextMixin.ADAPTER_NOT_SET,
                     child.in_features,
                     child.out_features,
                     **kwargs,
                 )
             else:
                 bias = hasattr(child, "bias") and child.bias is not None
-                lora_wrapped_child = GlobalLoraLinear(
-                    GlobalAdapterMixin.ADAPTER_NOT_SET,
+                lora_wrapped_child = LoraLinear(
+                    AdapterContextMixin.ADAPTER_NOT_SET,
                     child.in_features,
                     child.out_features,
                     bias=bias,
