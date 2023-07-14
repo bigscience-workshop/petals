@@ -30,7 +30,6 @@ from petals.server.reachability import ReachabilityProtocol, check_direct_reacha
 from petals.server.throughput import get_dtype_name, get_server_throughput
 from petals.utils.auto_config import AutoDistributedConfig
 from petals.utils.convert_block import QuantType, check_device_balance, convert_block
-from petals.utils.disk_cache import DEFAULT_CACHE_DIR
 from petals.utils.version import get_compatible_model_repo
 
 logger = get_logger(__name__)
@@ -418,8 +417,8 @@ class ModuleContainer(threading.Thread):
             module_uids,
             dht,
             server_info,
+            block_config=block_config,
             memory_cache=memory_cache,
-            cache_dtype=torch_dtype,
             update_period=update_period,
             expiration=expiration,
             daemon=True,
@@ -504,7 +503,7 @@ class ModuleContainer(threading.Thread):
             dht,
             dht_prefix,
             blocks,
-            torch_dtype=torch_dtype,
+            block_config=block_config,
             memory_cache=memory_cache,
             server_info=server_info,
             update_period=update_period,
@@ -518,7 +517,7 @@ class ModuleContainer(threading.Thread):
         dht_prefix: str,
         module_backends: Dict[str, TransformerBackend],
         *,
-        torch_dtype: torch.dtype,
+        block_config: PretrainedConfig,
         memory_cache: MemoryCache,
         inference_max_length: int,
         num_handlers: int,
@@ -563,8 +562,8 @@ class ModuleContainer(threading.Thread):
             list(self.module_backends.keys()),
             dht,
             self.server_info,
+            block_config=block_config,
             memory_cache=memory_cache,
-            cache_dtype=torch_dtype,
             update_period=update_period,
             expiration=expiration,
             daemon=True,
@@ -664,8 +663,8 @@ class ModuleAnnouncerThread(threading.Thread):
         dht: DHT,
         server_info: ServerInfo,
         *,
+        block_config: PretrainedConfig,
         memory_cache: MemoryCache,
-        cache_dtype: torch.dtype,
         update_period: float = 30,
         expiration: float,
         **kwargs,
@@ -675,7 +674,7 @@ class ModuleAnnouncerThread(threading.Thread):
         self.dht = dht
         self.server_info = server_info
         self.memory_cache = memory_cache
-        self.bytes_per_token = torch.finfo(cache_dtype).bits // 8
+        self.bytes_per_token = block_config.hidden_size * torch.finfo(DTYPE_MAP[server_info.torch_dtype]).bits // 8
         self.update_period = update_period
         self.expiration = expiration
         self.stop = threading.Event()
