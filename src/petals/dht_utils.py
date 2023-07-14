@@ -104,13 +104,13 @@ async def _get_remote_module_infos(
         metadata = found[uid]
         if metadata is None or not isinstance(metadata.value, dict):
             if metadata is not None:
-                logger.error(f"Incorrect metadata for {uid}: {metadata}")
+                logger.warning(f"Incorrect metadata for {uid}: {metadata}")
             continue
         servers = {}
         for peer_id, server_info in metadata.value.items():
             try:
                 peer_id = PeerID.from_base58(peer_id)
-                server_info = ServerInfo.from_tuple(server_info)
+                server_info = ServerInfo.from_tuple(server_info.value)
 
                 if active_adapter and active_adapter not in server_info.adapters:
                     logger.debug(f"Skipped server {peer_id} since it does not have adapter {active_adapter}")
@@ -118,7 +118,7 @@ async def _get_remote_module_infos(
 
                 servers[peer_id] = server_info
             except (TypeError, ValueError) as e:
-                logger.error(f"Incorrect peer entry for uid={uid}, peer_id={peer_id}: {e}")
+                logger.warning(f"Incorrect peer entry for uid={uid}, peer_id={peer_id}: {e}")
         if servers:
             modules[i] = RemoteModuleInfo(uid, servers)
     return modules

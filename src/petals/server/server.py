@@ -182,7 +182,6 @@ class Server:
         # For disk cache
         self.cache_dir = cache_dir
         self.max_disk_space = max_disk_space
-        self.adapters = adapters
 
         assert num_blocks is None or block_indices is None, "Please specify num_blocks or block_indices, not both"
         if num_blocks is None and block_indices is None:
@@ -216,7 +215,13 @@ class Server:
                 force_eval=(throughput == "eval"),
                 cache_dir=cache_dir,
             )
-        self.throughput = throughput
+        self.server_info = ServerInfo(
+            state=ServerState.JOINING,
+            throughput=throughput,
+            adapters=tuple(adapters),
+            version=petals.__version__,
+            using_relay=self.dht.client_mode,
+        )
 
         self.balance_quality = balance_quality
         self.mean_balance_check_period = mean_balance_check_period
@@ -251,14 +256,14 @@ class Server:
 
         block_size = get_block_size(self.block_config, "memory", dtype=self.torch_dtype, quant_type=self.quant_type)
         total_memory_per_block = block_size + self._cache_bytes_per_block
-        if self.adapters:
+        if self.server_info.adapters:
             # Delay import of petals.utils.peft to avoid unnecessary import of bitsandbytes
             from petals.utils.peft import estimate_adapter_memory_per_block
 
             total_memory_per_block += estimate_adapter_memory_per_block(
                 self.block_config,
                 self.torch_dtype,
-                self.adapters,
+                self.server_info.adapters,
                 use_auth_token=self.use_auth_token,
                 cache_dir=self.cache_dir,
                 max_disk_space=self.max_disk_space,
@@ -284,7 +289,7 @@ class Server:
                 block_config=self.block_config,
                 attn_cache_bytes=self.attn_cache_bytes,
                 alloc_timeout=self.alloc_timeout,
-                throughput=self.throughput,
+                server_info=self.server_info,
                 block_indices=block_indices,
                 num_handlers=self.num_handlers,
                 min_batch_size=self.min_batch_size,
@@ -308,7 +313,6 @@ class Server:
                 quant_type=self.quant_type,
                 tensor_parallel_devices=self.tensor_parallel_devices,
                 should_validate_reachability=self.should_validate_reachability,
-                adapters=self.adapters,
                 start=True,
             )
             try:
@@ -386,7 +390,7 @@ class ModuleContainer(threading.Thread):
         block_config: PretrainedConfig,
         attn_cache_bytes: int,
         alloc_timeout: float,
-        throughput: float,
+        server_info: ServerInfo,
         block_indices: List[int],
         min_batch_size: int,
         max_batch_size: int,
@@ -402,21 +406,18 @@ class ModuleContainer(threading.Thread):
         quant_type: QuantType,
         tensor_parallel_devices: Sequence[torch.device],
         should_validate_reachability: bool,
-        adapters: Optional[List[str]] = None,
         **kwargs,
     ) -> ModuleContainer:
         module_uids = [f"{dht_prefix}{UID_DELIMITER}{block_index}" for block_index in block_indices]
-        server_info = ServerInfo(
-            state=ServerState.JOINING,
-            throughput=throughput,
-            adapters=tuple(adapters),
-            version=petals.__version__,
-            using_relay=dht.client_mode,
-        )
+        memory_cache = MemoryCache(attn_cache_bytes, alloc_timeout)
+
+        server_info.state = ServerState.JOINING
         joining_announcer = ModuleAnnouncerThread(
             module_uids,
             dht,
             server_info,
+            memory_cache=memory_cache,
+            cache_dtype=torch_dtype,
             update_period=update_period,
             expiration=expiration,
             daemon=True,
@@ -426,7 +427,6 @@ class ModuleContainer(threading.Thread):
 
         assert len(tensor_parallel_devices) >= 1 and all(isinstance(d, torch.device) for d in tensor_parallel_devices)
 
-        memory_cache = MemoryCache(attn_cache_bytes, alloc_timeout)
         blocks = {}
         try:
             for module_uid, block_index in zip(module_uids, block_indices):
@@ -447,7 +447,7 @@ class ModuleContainer(threading.Thread):
                     tensor_parallel_devices,
                     device,
                     quant_type,
-                    adapters=adapters,
+                    adapters=server_info.adapters,
                     freeze=True,
                     use_auth_token=use_auth_token,
                     cache_dir=cache_dir,
@@ -502,6 +502,8 @@ class ModuleContainer(threading.Thread):
             dht,
             dht_prefix,
             blocks,
+            torch_dtype=torch_dtype,
+            memory_cache=memory_cache,
             server_info=server_info,
             update_period=update_period,
             expiration=expiration,
@@ -514,6 +516,8 @@ class ModuleContainer(threading.Thread):
         dht_prefix: str,
         module_backends: Dict[str, TransformerBackend],
         *,
+        torch_dtype: torch.dtype,
+        memory_cache: MemoryCache,
         inference_max_length: int,
         num_handlers: int,
         server_info: ServerInfo,
@@ -537,7 +541,7 @@ class ModuleContainer(threading.Thread):
             TransformerConnectionHandler(
                 dht,
                 self.module_backends,
-                adapters=adapters,
+                adapters=server_info.adapters,
                 dht_prefix=dht_prefix,
                 push_manager=self.push_manager,
                 session_queues=session_queues,
@@ -557,6 +561,8 @@ class ModuleContainer(threading.Thread):
             list(self.module_backends.keys()),
             dht,
             self.server_info,
+            memory_cache=memory_cache,
+            cache_dtype=torch_dtype,
             update_period=update_period,
             expiration=expiration,
             daemon=True,
@@ -656,6 +662,8 @@ class ModuleAnnouncerThread(threading.Thread):
         dht: DHT,
         server_info: ServerInfo,
         *,
+        memory_cache: MemoryCache,
+        cache_dtype: torch.dtype,
         update_period: float = 30,
         expiration: float,
         **kwargs,
@@ -664,12 +672,15 @@ class ModuleAnnouncerThread(threading.Thread):
         self.module_uids = module_uids
         self.dht = dht
         self.server_info = server_info
+        self.memory_cache = memory_cache
+        self.bytes_per_token = torch.finfo(cache_dtype).bits // 8
         self.update_period = update_period
         self.expiration = expiration
         self.stop = threading.Event()
 
     def run(self) -> None:
         while True:
+            self.server_info.cache_tokens_left = self.memory_cache.bytes_left // self.bytes_per_token
             declare_active_modules(
                 self.dht,
                 self.module_uids,

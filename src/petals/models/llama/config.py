@@ -31,8 +31,7 @@ class DistributedLlamaConfig(LlamaConfig, SequenceManagerConfig, PTuneConfig, LM
         loading_from_repo = model_name_or_path is not None and not os.path.isdir(model_name_or_path)
         if loading_from_repo and dht_prefix is None:
             dht_prefix = str(model_name_or_path)
-            if "/" in dht_prefix:  # If present, strip repository name to merge blocks hosted by different accounts
-                dht_prefix = dht_prefix[dht_prefix.rfind("/") + 1 :]
+            dht_prefix = dht_prefix.split("/")[-1]  # Use only repo name to merge blocks hosted by different accounts
             if not dht_prefix.endswith("-hf"):
                 dht_prefix += "-hf"
             logger.info(f"Using DHT prefix: {dht_prefix}")
