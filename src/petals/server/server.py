@@ -222,7 +222,7 @@ class Server:
             throughput=throughput,
             adapters=tuple(adapters),
             version=petals.__version__,
-            torch_dtype=str(torch_dtype).lstrip("torch."),
+            torch_dtype=str(torch_dtype).replace("torch.", ""),
             quant_type=quant_type.name.lower(),
             using_relay=self.dht.client_mode,
         )
@@ -656,6 +656,8 @@ class ModuleAnnouncerThread(threading.Thread):
 
     def run(self) -> None:
         while True:
+            start_time = time.perf_counter()
+
             self.server_info.cache_tokens_left = self.memory_cache.bytes_left // self.bytes_per_token
             if self.server_info.state != ServerState.OFFLINE:
                 self._ping_next_servers()
@@ -674,7 +676,10 @@ class ModuleAnnouncerThread(threading.Thread):
             if self.server_info.state == ServerState.OFFLINE:
                 break
 
-            self.trigger.wait(self.update_period)
+            delay = self.update_period - (time.perf_counter() - start_time)
+            if delay < 0:
+                logger.warning("Declaring blocs to DHT takes more than --update_period, consider increasing it")
+            self.trigger.wait(max(delay, 0))
             self.trigger.clear()
 
     def announce(self, state: ServerState) -> None:
