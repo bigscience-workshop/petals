@@ -42,7 +42,7 @@ class PingAggregator:
 
     def ping(self, peer_ids: Sequence[hivemind.PeerID], **kwargs):
         current_rtts = self.dht.run_coroutine(partial(ping_parallel, peer_ids, **kwargs))
-        logger.debug(f"Current RTTs: {current_rtts=}")
+        logger.debug(f"Current RTTs: {current_rtts}")
 
         expiration = hivemind.get_dht_time() + self.expiration
         for peer_id, rtt in current_rtts.items():
@@ -54,7 +54,7 @@ class PingAggregator:
     def fastest(self, n_peers: int) -> Dict[hivemind.PeerID, float]:
         with self.ping_emas.freeze():
             smoothed_rtts = {peer_id: rtt.value for peer_id, rtt in self.ping_emas.items()}
-        logger.debug(f"Smothed RTTs: {smoothed_rtts=}")
+        logger.debug(f"Smothed RTTs: {smoothed_rtts}")
 
         fastest_rtts = sorted(smoothed_rtts.items(), key=lambda item: item[1])[:n_peers]
         return dict(fastest_rtts)

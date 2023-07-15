@@ -8,8 +8,8 @@ import threading
 import time
 from typing import Dict, List, Optional, Sequence, Union
 
-import torch
 import hivemind
+import torch
 from hivemind import DHT, MAX_DHT_TIME_DISCREPANCY_SECONDS, BatchTensorDescriptor, get_dht_time
 from hivemind.moe.server.layers import add_custom_models_from_file
 from hivemind.moe.server.runtime import Runtime
