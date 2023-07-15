@@ -634,6 +634,8 @@ class ModuleAnnouncerThread(threading.Thread):
         memory_cache: MemoryCache,
         update_period: float,
         expiration: float,
+        max_pinged: int = 5,
+        max_reported: int = 10,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -646,6 +648,7 @@ class ModuleAnnouncerThread(threading.Thread):
         self.expiration = expiration
         self.trigger = threading.Event()
 
+        self.max_pinged, self.max_reported = max_pinged, max_reported
         last_uid = max(module_uids, key=lambda uid: int(uid.split(UID_DELIMITER)[-1]))
         dht_prefix, block_index = last_uid.split(UID_DELIMITER)
         self.next_uid = f"{dht_prefix}{UID_DELIMITER}{int(block_index) + 1}"
@@ -657,7 +660,7 @@ class ModuleAnnouncerThread(threading.Thread):
             if self.server_info.state != ServerState.OFFLINE:
                 self._ping_next_servers()
                 self.server_info.next_pings = {
-                    peer_id.to_base58(): rtt for peer_id, rtt in self.ping_aggregator.to_dict().items()
+                    peer_id.to_base58(): rtt for peer_id, rtt in self.ping_aggregator.fastest(self.max_reported).items()
                 }
             else:
                 self.server_info.next_pings = None  # No need to ping if we're disconnecting
@@ -680,14 +683,14 @@ class ModuleAnnouncerThread(threading.Thread):
         if state == ServerState.OFFLINE:
             self.join()
 
-    def _ping_next_servers(self, max_servers: int = 5) -> Dict[hivemind.PeerID, float]:
+    def _ping_next_servers(self) -> Dict[hivemind.PeerID, float]:
         [module_info] = get_remote_module_infos(self.dht, [self.next_uid], latest=True)
         if module_info is None:
             return
 
         next_servers = list(module_info.servers)
-        if len(next_servers) > max_servers:
-            next_servers = random.sample(next_servers, max_servers)
+        if len(next_servers) > self.max_pinged:
+            next_servers = random.sample(next_servers, self.max_pinged)
         self.ping_aggregator.ping(next_servers)
 
 
