@@ -654,10 +654,13 @@ class ModuleAnnouncerThread(threading.Thread):
     def run(self) -> None:
         while True:
             self.server_info.cache_tokens_left = self.memory_cache.bytes_left // self.bytes_per_token
-            self._ping_next_servers()
-            self.server_info.next_pings = {
-                peer_id.to_base58(): rtt for peer_id, rtt in self.ping_aggregator.to_dict().items()
-            }
+            if self.server_info.state != ServerState.OFFLINE:
+                self._ping_next_servers()
+                self.server_info.next_pings = {
+                    peer_id.to_base58(): rtt for peer_id, rtt in self.ping_aggregator.to_dict().items()
+                }
+            else:
+                self.server_info.next_pings = None  # No need to ping if we're disconnecting
 
             declare_active_modules(
                 self.dht,
