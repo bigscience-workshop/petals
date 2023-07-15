@@ -6,10 +6,11 @@ import multiprocessing as mp
 import random
 import threading
 import time
+from functools import partial
 from typing import Dict, List, Optional, Sequence, Union
 
 import torch
-from hivemind import DHT, MAX_DHT_TIME_DISCREPANCY_SECONDS, BatchTensorDescriptor, get_dht_time
+from hivemind import DHT, MAX_DHT_TIME_DISCREPANCY_SECONDS, BatchTensorDescriptor, PeerID, get_dht_time
 from hivemind.moe.server.layers import add_custom_models_from_file
 from hivemind.moe.server.runtime import Runtime
 from hivemind.proto.runtime_pb2 import CompressionType
@@ -30,6 +31,7 @@ from petals.server.reachability import ReachabilityProtocol, check_direct_reacha
 from petals.server.throughput import get_dtype_name, get_server_throughput
 from petals.utils.auto_config import AutoDistributedConfig
 from petals.utils.convert_block import QuantType, check_device_balance, convert_block
+from petals.utils.ping import ping_parallel
 from petals.utils.version import get_compatible_model_repo
 
 logger = get_logger(__name__)
@@ -680,9 +682,17 @@ class ModuleAnnouncerThread(threading.Thread):
         self.expiration = expiration
         self.stop = threading.Event()
 
+        last_uid = max(module_uids, key=lambda uid: int(uid.split(UID_DELIMITER)[-1]))
+        dht_prefix, block_index = last_uid.split(UID_DELIMITER)
+        self.next_uid = f"{dht_prefix}{UID_DELIMITER}{int(block_index) + 1}"
+
     def run(self) -> None:
         while True:
             self.server_info.cache_tokens_left = self.memory_cache.bytes_left // self.bytes_per_token
+            next_pings = self._ping_next_servers()
+            self.server_info.next_pings = {peer_id.to_base58(): rtt for peer_id, rtt in next_pings.items()}
+            logger.warning(f"Pings to servers with {self.next_uid}: {self.server_info.next_pings=}")
+
             declare_active_modules(
                 self.dht,
                 self.module_uids,
@@ -691,6 +701,16 @@ class ModuleAnnouncerThread(threading.Thread):
             )
             if self.stop.wait(self.update_period):
                 break
+
+    def _ping_next_servers(self, max_servers: int = 10) -> Dict[PeerID, float]:
+        [module_info] = get_remote_module_infos(self.dht, [self.next_uid], latest=True)
+        if module_info is None:
+            return {}
+
+        next_servers = list(module_info.servers)
+        if len(next_servers) > max_servers:
+            next_servers = random.sample(next_servers, max_servers)
+        return self.dht.run_coroutine(partial(ping_parallel, next_servers))
 
 
 class RuntimeWithDeduplicatedPools(Runtime):

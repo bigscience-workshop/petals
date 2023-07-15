@@ -30,6 +30,7 @@ class ServerInfo:
     quant_type: Optional[str] = None
     using_relay: Optional[bool] = None
     cache_tokens_left: Optional[pydantic.conint(ge=0, strict=True)] = None
+    next_pings: Optional[Dict[str, pydantic.confloat(ge=0, strict=True)]] = None
 
     def to_tuple(self) -> Tuple[int, float, dict]:
         extra_info = dataclasses.asdict(self)
