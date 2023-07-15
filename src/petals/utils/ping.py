@@ -34,7 +34,7 @@ async def ping_parallel(peer_ids: Sequence[hivemind.PeerID], *args, **kwargs) ->
 
 
 class PingAggregator:
-    def __init__(self, dht: hivemind.DHT, *, ema_alpha: float = 0.1, expiration: float = 3600):
+    def __init__(self, dht: hivemind.DHT, *, ema_alpha: float = 0.2, expiration: float = 3600):
         self.dht = dht
         self.ema_alpha = ema_alpha
         self.expiration = expiration
