@@ -24,9 +24,10 @@ def test_bnb_not_imported_when_unnecessary():
 
 
 @pytest.mark.forked
-@pytest.mark.parametrize("tensor_parallel", [False, True])
+@pytest.mark.parametrize("inference", [False, True])
 @pytest.mark.parametrize("n_tokens", [1, 16])
-def test_compute_throughput(tensor_parallel: bool, n_tokens: int):
+@pytest.mark.parametrize("tensor_parallel", [False, True])
+def test_compute_throughput(inference: bool, n_tokens: int, tensor_parallel: bool):
     config = AutoDistributedConfig.from_pretrained(MODEL_NAME)
     tensor_parallel_devices = ("cpu", "cpu") if tensor_parallel else ()
     compute_rps = measure_compute_rps(
@@ -36,6 +37,7 @@ def test_compute_throughput(tensor_parallel: bool, n_tokens: int):
         quant_type=QuantType.NONE,
         tensor_parallel_devices=tensor_parallel_devices,
         n_tokens=n_tokens,
-        n_steps=10,
+        n_steps=5,
+        inference=inference,
     )
     assert isinstance(compute_rps, float) and compute_rps > 0

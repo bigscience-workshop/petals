@@ -124,6 +124,7 @@ def measure_throughput_info(
             tensor_parallel_devices=tensor_parallel_devices,
             n_tokens=1,
             n_steps=100,
+            inference=True,
         ),
         "forward_rps": measure_compute_rps(
             config,
@@ -133,6 +134,7 @@ def measure_throughput_info(
             tensor_parallel_devices=tensor_parallel_devices,
             n_tokens=1024,
             n_steps=10,
+            inference=False,
         ),
     }
     try:
@@ -188,6 +190,7 @@ def measure_compute_rps(
     tensor_parallel_devices: Sequence[torch.device],
     n_tokens: int,
     n_steps: int,
+    inference: bool,
 ) -> float:
     if not tensor_parallel_devices:
         tensor_parallel_devices = (device,)
@@ -201,7 +204,7 @@ def measure_compute_rps(
             dummy_input = torch.randn(n_tokens, 1, config.hidden_size, device=device, dtype=dtype)
 
             start_time = time.perf_counter()
-            _, cache = block.forward(dummy_input, use_cache=True, layer_past=cache)
+            _, cache = block.forward(dummy_input, use_cache=True, layer_past=cache if inference else None)
             if step >= 1:  # Skip the 1st step to exclude the initialization time
                 elapsed += time.perf_counter() - start_time
         device_rps = n_steps * n_tokens / elapsed
@@ -212,7 +215,7 @@ def measure_compute_rps(
         devices_repr = ", ".join(f"{count}x {name}" for name, count in Counter(device_names).most_common())
 
     logger.info(
-        f"{'Inference' if n_tokens == 1 else 'Forward pass'} throughput: {device_rps:.1f} RPS per block "
+        f"{'Inference' if inference else 'Forward pass'} throughput: {device_rps:.1f} RPS per block "
         f"({n_tokens} tokens/batch, {devices_repr}, {get_dtype_name(dtype, quant_type)})"
     )
     return device_rps
