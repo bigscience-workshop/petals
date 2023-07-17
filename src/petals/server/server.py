@@ -206,7 +206,7 @@ class Server:
 
         assert isinstance(throughput, float) or throughput in ["auto", "eval"]
         if throughput in ["auto", "eval"]:
-            throughput = get_server_throughput(
+            throughput_info = get_server_throughput(
                 converted_model_name_or_path,
                 self.block_config,
                 device,
@@ -217,14 +217,16 @@ class Server:
                 force_eval=(throughput == "eval"),
                 cache_dir=cache_dir,
             )
+        else:
+            throughput_info = {"throughput": throughput}
         self.server_info = ServerInfo(
             state=ServerState.JOINING,
-            throughput=throughput,
             adapters=tuple(adapters),
             version=petals.__version__,
             torch_dtype=str(torch_dtype).replace("torch.", ""),
             quant_type=quant_type.name.lower(),
             using_relay=self.dht.client_mode,
+            **throughput_info,
         )
 
         self.balance_quality = balance_quality

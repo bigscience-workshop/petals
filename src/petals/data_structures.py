@@ -19,10 +19,17 @@ class ServerState(Enum):
     ONLINE = 2
 
 
+RPS = pydantic.confloat(ge=0, allow_inf_nan=False, strict=True)
+
+
 @pydantic.dataclasses.dataclass
 class ServerInfo:
     state: ServerState
-    throughput: pydantic.confloat(ge=0, allow_inf_nan=False, strict=True)
+    throughput: RPS
+
+    network_rps: Optional[RPS] = None
+    forward_rps: Optional[RPS] = None
+    inference_rps: Optional[RPS] = None
 
     adapters: Sequence[str] = ()
     version: Optional[str] = None
@@ -60,7 +67,7 @@ class RemoteSpanInfo:
     peer_id: PeerID
     start: int
     end: int
-    throughput: float
+    server_info: ServerInfo
 
     @property
     def length(self):

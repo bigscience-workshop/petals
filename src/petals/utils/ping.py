@@ -16,7 +16,7 @@ async def ping(
     _dht: hivemind.DHT,
     node: hivemind.dht.DHTNode,
     *,
-    wait_timeout: float = 1,
+    wait_timeout: float = 5,
 ) -> float:
     try:
         ping_request = dht_pb2.PingRequest(peer=node.protocol.node_info)
