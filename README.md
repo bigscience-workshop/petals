@@ -1,30 +1,24 @@
 <p align="center">
     <img src="https://i.imgur.com/7eR7Pan.png" width="400"><br>
-    Run 100B+ language models at home, BitTorrent-style.<br>
+    Run large language models at home, BitTorrent-style.<br>
     Fine-tuning and inference <a href="https://github.com/bigscience-workshop/petals#benchmarks">up to 10x faster</a> than offloading<br><br>
     <a href="https://pypi.org/project/petals/"><img src="https://img.shields.io/pypi/v/petals.svg?color=green"></a><br>
 </p>
 
-Generate text using distributed [LLaMA-65B](https://github.com/facebookresearch/llama/blob/main/MODEL_CARD.md), [BLOOM-176B](https://huggingface.co/bigscience/bloom) or [BLOOMZ-176B](https://huggingface.co/bigscience/bloomz) and fine-tune them for your own tasks:
+Generate text with distributed [LLaMA-65B](https://github.com/facebookresearch/llama/blob/main/MODEL_CARD.md), [Guanaco](https://huggingface.co/timdettmers/guanaco-65b), [BLOOM-176B](https://huggingface.co/bigscience/bloom), or [BLOOMZ](https://huggingface.co/bigscience/bloomz) and fine-tune them for your own tasks &mdash; right from your desktop computer or Google Colab:
 
 ```python
+from transformers import AutoTokenizer
 from petals import AutoDistributedModelForCausalLM
 
-model = AutoDistributedModelForCausalLM.from_pretrained("bigscience/bloom", tuning_mode="ptune", pre_seq_len=16)
-# Embeddings & prompts are on your device, BLOOM blocks are distributed across the Internet
+model_name = "bigscience/bloom"  # You can use any Hugging Face hub repo with a supported model
+tokenizer = AutoTokenizer(model_name)
+model = AutoDistributedModelForCausalLM.from_pretrained(model_name)
+# Embeddings & prompts are on your device, transformer blocks are distributed across the Internet
 
 inputs = tokenizer("A cat sat", return_tensors="pt")["input_ids"]
 outputs = model.generate(inputs, max_new_tokens=5)
 print(tokenizer.decode(outputs[0]))  # A cat sat on a mat...
-
-# Fine-tuning (updates only prompts or adapters hosted locally)
-optimizer = torch.optim.AdamW(model.parameters())
-for input_ids, labels in data_loader:
-    outputs = model.forward(input_ids)
-    loss = cross_entropy(outputs.logits, labels)
-    optimizer.zero_grad()
-    loss.backward()
-    optimizer.step()
 ```
 
 <p align="center">
@@ -33,26 +27,28 @@ for input_ids, labels in data_loader:
 
 🔏 Your data will be processed by other people in the public swarm. Learn more about privacy [here](https://github.com/bigscience-workshop/petals/wiki/Security,-privacy,-and-AI-safety). For sensitive data, you can set up a [private swarm](https://github.com/bigscience-workshop/petals/wiki/Launch-your-own-swarm) among people you trust.
 
+📋 Make sure you follow the model's terms of use (see [LLaMA](https://bit.ly/llama-license) and [BLOOM](https://bit.ly/bloom-license) licenses). Note that LLaMA is available for non-commercial purposes only, and you have to file a request [here](https://bit.ly/llama-license) to use it in your own projects.
+
 ### Connect your GPU and increase Petals capacity
 
-Run our [Docker](https://www.docker.com) image (works on Linux, macOS, and Windows with [WSL2](https://learn.microsoft.com/en-us/windows/ai/directml/gpu-cuda-in-wsl)):
+Run these commands in an [Anaconda](https://www.anaconda.com) env (requires Linux and Python 3.7+):
+
+```bash
+conda install pytorch pytorch-cuda=11.7 -c pytorch -c nvidia
+pip install git+https://github.com/bigscience-workshop/petals
+python -m petals.cli.run_server bigscience/bloom
+```
+
+Or run our [Docker](https://www.docker.com) image (works on Linux, macOS, and Windows with [WSL2](https://learn.microsoft.com/en-us/windows/ai/directml/gpu-cuda-in-wsl)):
 
 ```bash
 sudo docker run -p 31330:31330 --ipc host --gpus all --volume petals-cache:/cache --rm \
     learningathome/petals:main python -m petals.cli.run_server bigscience/bloom --port 31330
 ```
 
-Or run these commands in an [Anaconda](https://www.anaconda.com) env (requires Linux and Python 3.7+):
-
-```bash
-conda install pytorch pytorch-cuda=11.7 -c pytorch -c nvidia
-pip install -U petals
-python -m petals.cli.run_server bigscience/bloom
-```
+🔒 Hosting a server does not allow others to run custom code on your computer. Learn more about security [here](https://github.com/bigscience-workshop/petals/wiki/Security,-privacy,-and-AI-safety).
 
 📚 See [FAQ](https://github.com/bigscience-workshop/petals/wiki/FAQ:-Frequently-asked-questions#running-a-server) to learn how to configure the server to use multiple GPUs, address common issues, etc.
-
-🔒 Hosting a server does not allow others to run custom code on your computer. Learn more about security [here](https://github.com/bigscience-workshop/petals/wiki/Security,-privacy,-and-AI-safety).
 
 💬 If you have any issues or feedback, let us know on [our Discord server](https://discord.gg/D9MwApKgWa)!
 
@@ -60,13 +56,13 @@ python -m petals.cli.run_server bigscience/bloom
 
 Basic tutorials:
 
-- Getting started: [tutorial](https://colab.research.google.com/drive/1Ervk6HPNS6AYVr3xVdQnY5a-TjjmLCdQ?usp=sharing)
+- Getting started: [tutorial](https://colab.research.google.com/drive/1uCphNY7gfAUkdDrTx21dZZwCOUDCMPw8?usp=sharing)
+- Prompt-tune LLaMA-65B for text semantic classification: [tutorial](https://colab.research.google.com/github/bigscience-workshop/petals/blob/main/examples/prompt-tuning-sst2.ipynb)
 - Prompt-tune BLOOM to create a personified chatbot: [tutorial](https://colab.research.google.com/github/bigscience-workshop/petals/blob/main/examples/prompt-tuning-personachat.ipynb)
-- Prompt-tune BLOOM for text semantic classification: [tutorial](https://colab.research.google.com/github/bigscience-workshop/petals/blob/main/examples/prompt-tuning-sst2.ipynb)
 
 Useful tools and advanced guides:
 
-- [Chatbot web app](http://chat.petals.ml) (connects to Petals via an HTTP endpoint): [source code](https://github.com/borzunov/chat.petals.ml)
+- [Chatbot web app](http://chat.petals.ml) (connects to Petals via an HTTP/WebSocket endpoint): [source code](https://github.com/borzunov/chat.petals.ml)
 - [Monitor](http://health.petals.ml) for the public swarm: [source code](https://github.com/borzunov/health.petals.ml)
 - Launch your own swarm: [guide](https://github.com/bigscience-workshop/petals/wiki/Launch-your-own-swarm)
 - Run a custom foundation model: [guide](https://github.com/bigscience-workshop/petals/wiki/Run-a-custom-model-with-Petals)
@@ -76,12 +72,10 @@ Learning more:
 - Frequently asked questions: [FAQ](https://github.com/bigscience-workshop/petals/wiki/FAQ:-Frequently-asked-questions)
 - In-depth system description: [paper](https://arxiv.org/abs/2209.01188)
 
-📋 If you build an app running BLOOM with Petals, make sure it follows the BLOOM's [terms of use](https://huggingface.co/bigscience/bloom).
-
 ## How does it work?
 
-- Petals runs large language models like [BLOOM-176B](https://huggingface.co/bigscience/bloom) **collaboratively** — you load a small part of the model, then team up with people serving the other parts to run inference or fine-tuning.
-- Single-batch inference runs at ≈ 1 sec per step (token) — [up to 10x faster](https://github.com/bigscience-workshop/petals#benchmarks) than offloading, enough for [chatbots](http://chat.petals.ml) and other interactive apps. Parallel inference reaches hundreds of tokens/sec.
+- Petals runs large language models like [LLaMA-65B](https://github.com/facebookresearch/llama/blob/main/MODEL_CARD.md) or [BLOOM-176B](https://huggingface.co/bigscience/bloom) **collaboratively** — you load a small part of the model, then team up with people serving the other parts to run inference or fine-tuning.
+- Single-batch inference runs at 3-4 steps/sec for LLaMA-65B and &approx; 1 step/sec for BLOOM-176B — [up to 10x faster](https://github.com/bigscience-workshop/petals#benchmarks) than offloading, enough for [chatbots](http://chat.petals.ml) and other interactive apps. Parallel inference reaches hundreds of tokens/sec.
 - Beyond classic language model APIs — you can employ any fine-tuning and sampling methods, execute custom paths through the model, or see its hidden states. You get the comforts of an API with the flexibility of PyTorch.
 
 <p align="center">
