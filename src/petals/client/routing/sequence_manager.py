@@ -167,7 +167,7 @@ class RemoteSequenceManager:
             raise RuntimeError(f"Unexpected mode {mode}")
 
         route_repr = " => ".join([f"{span.start}:{span.end} via …{str(span.peer_id)[-6:]}" for span in span_sequence])
-        logger.debug(f"Route found: {route_repr}")
+        logger.info(f"Route found: {route_repr}")
         return span_sequence
 
     def _make_sequence_with_min_latency(
