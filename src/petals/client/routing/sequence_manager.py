@@ -151,7 +151,7 @@ class RemoteSequenceManager:
                 raise MissingBlocksError(current_index)
 
             if mode == "max_throughput":
-                span_weights = np.array([span.throughput for span in candidate_spans], dtype=np.float64)
+                span_weights = np.array([span.server_info.throughput for span in candidate_spans], dtype=np.float64)
             elif mode == "min_latency":
                 span_weights = np.array([span.end - current_index for span in candidate_spans], dtype=np.float64)
             else:

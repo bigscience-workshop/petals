@@ -67,7 +67,7 @@ class RemoteSpanInfo:
     peer_id: PeerID
     start: int
     end: int
-    throughput: float
+    server_info: ServerInfo
 
     @property
     def length(self):
