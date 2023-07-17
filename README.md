@@ -27,7 +27,7 @@ print(tokenizer.decode(outputs[0]))  # A cat sat on a mat...
 
 🔏 Your data will be processed by other people in the public swarm. Learn more about privacy [here](https://github.com/bigscience-workshop/petals/wiki/Security,-privacy,-and-AI-safety). For sensitive data, you can set up a [private swarm](https://github.com/bigscience-workshop/petals/wiki/Launch-your-own-swarm) among people you trust.
 
-📋 If you build an app running models with Petals, make sure you follow their terms of use (see the ones for [LLaMA](https://bit.ly/llama-license) and [BLOOM](https://bit.ly/bloom-license)). Note that LLaMA is available for non-commercial purposes only, and you have to file a request [here](https://bit.ly/llama-license) to use it in your own projects.
+📋 Make sure you follow the model's terms of use (see the ones for [LLaMA](https://bit.ly/llama-license) and [BLOOM](https://bit.ly/bloom-license)). Note that LLaMA is available for non-commercial purposes only, and you have to file a request [here](https://bit.ly/llama-license) to use it in your own projects.
 
 ### Connect your GPU and increase Petals capacity
 
