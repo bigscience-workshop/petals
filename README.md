@@ -27,6 +27,8 @@ print(tokenizer.decode(outputs[0]))  # A cat sat on a mat...
 
 🔏 Your data will be processed by other people in the public swarm. Learn more about privacy [here](https://github.com/bigscience-workshop/petals/wiki/Security,-privacy,-and-AI-safety). For sensitive data, you can set up a [private swarm](https://github.com/bigscience-workshop/petals/wiki/Launch-your-own-swarm) among people you trust.
 
+📋 If you build an app running models with Petals, make sure you follow their terms of use (see the ones for [LLaMA](https://bit.ly/llama-license) and [BLOOM](https://bit.ly/bloom-license)). Note that LLaMA is available for non-commercial purposes only, and you have to file a request [here](https://bit.ly/llama-license) to use it in your own projects.
+
 ### Connect your GPU and increase Petals capacity
 
 Run our [Docker](https://www.docker.com) image (works on Linux, macOS, and Windows with [WSL2](https://learn.microsoft.com/en-us/windows/ai/directml/gpu-cuda-in-wsl)):
@@ -44,9 +46,9 @@ pip install git+https://github.com/bigscience-workshop/petals
 python -m petals.cli.run_server bigscience/bloom
 ```
 
-📚 See [FAQ](https://github.com/bigscience-workshop/petals/wiki/FAQ:-Frequently-asked-questions#running-a-server) to learn how to configure the server to use multiple GPUs, address common issues, etc.
-
 🔒 Hosting a server does not allow others to run custom code on your computer. Learn more about security [here](https://github.com/bigscience-workshop/petals/wiki/Security,-privacy,-and-AI-safety).
+
+📚 See [FAQ](https://github.com/bigscience-workshop/petals/wiki/FAQ:-Frequently-asked-questions#running-a-server) to learn how to configure the server to use multiple GPUs, address common issues, etc.
 
 💬 If you have any issues or feedback, let us know on [our Discord server](https://discord.gg/D9MwApKgWa)!
 
@@ -69,8 +71,6 @@ Learning more:
 
 - Frequently asked questions: [FAQ](https://github.com/bigscience-workshop/petals/wiki/FAQ:-Frequently-asked-questions)
 - In-depth system description: [paper](https://arxiv.org/abs/2209.01188)
-
-📋 If you build an app running LLMs with Petals, make sure you follow the [LLaMA's](https://bit.ly/llama-license) and/or [BLOOM's](https://bit.ly/bloom-license) terms of use. Note that LLaMA is available for non-commercial purposes only, and you have to file a request [here](https://bit.ly/llama-license) to use it in your own projects.
 
 ## How does it work?
 
