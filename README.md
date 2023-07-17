@@ -1,16 +1,19 @@
 <p align="center">
     <img src="https://i.imgur.com/7eR7Pan.png" width="400"><br>
-    Run 100B+ language models at home, BitTorrent-style.<br>
+    Run large language models at home, BitTorrent-style.<br>
     Fine-tuning and inference <a href="https://github.com/bigscience-workshop/petals#benchmarks">up to 10x faster</a> than offloading<br><br>
     <a href="https://pypi.org/project/petals/"><img src="https://img.shields.io/pypi/v/petals.svg?color=green"></a><br>
 </p>
 
-Generate text using distributed [LLaMA-65B](https://github.com/facebookresearch/llama/blob/main/MODEL_CARD.md), [BLOOM-176B](https://huggingface.co/bigscience/bloom) or [BLOOMZ-176B](https://huggingface.co/bigscience/bloomz) and fine-tune them for your own tasks:
+Generate text with distributed [LLaMA-65B](https://github.com/facebookresearch/llama/blob/main/MODEL_CARD.md), [Guanaco](https://huggingface.co/timdettmers/guanaco-65b), [BLOOM](https://huggingface.co/bigscience/bloom), or [BLOOMZ](https://huggingface.co/bigscience/bloomz) and fine-tune them for your own tasks &ndash; right from your desktop computer or Google Colab:
 
 ```python
+from transformers import AutoTokenizer
 from petals import AutoDistributedModelForCausalLM
 
-model = AutoDistributedModelForCausalLM.from_pretrained("bigscience/bloom", tuning_mode="ptune", pre_seq_len=16)
+model_name = "bigscience/bloom"  # You can use any Hugging Face hub repo with a supported model
+tokenizer = AutoTokenizer(model_name)
+model = AutoDistributedModelForCausalLM.from_pretrained(model_name, tuning_mode="ptune", pre_seq_len=16)
 # Embeddings & prompts are on your device, BLOOM blocks are distributed across the Internet
 
 inputs = tokenizer("A cat sat", return_tensors="pt")["input_ids"]
@@ -46,7 +49,7 @@ Or run these commands in an [Anaconda](https://www.anaconda.com) env (requires L
 
 ```bash
 conda install pytorch pytorch-cuda=11.7 -c pytorch -c nvidia
-pip install -U petals
+pip install git+https://github.com/bigscience-workshop/petals
 python -m petals.cli.run_server bigscience/bloom
 ```
 
@@ -60,13 +63,13 @@ python -m petals.cli.run_server bigscience/bloom
 
 Basic tutorials:
 
-- Getting started: [tutorial](https://colab.research.google.com/drive/1Ervk6HPNS6AYVr3xVdQnY5a-TjjmLCdQ?usp=sharing)
+- Getting started: [tutorial](https://colab.research.google.com/drive/1uCphNY7gfAUkdDrTx21dZZwCOUDCMPw8?usp=sharing)
+- Prompt-tune LLaMA-65B for text semantic classification: [tutorial](https://colab.research.google.com/github/bigscience-workshop/petals/blob/main/examples/prompt-tuning-sst2.ipynb)
 - Prompt-tune BLOOM to create a personified chatbot: [tutorial](https://colab.research.google.com/github/bigscience-workshop/petals/blob/main/examples/prompt-tuning-personachat.ipynb)
-- Prompt-tune BLOOM for text semantic classification: [tutorial](https://colab.research.google.com/github/bigscience-workshop/petals/blob/main/examples/prompt-tuning-sst2.ipynb)
 
 Useful tools and advanced guides:
 
-- [Chatbot web app](http://chat.petals.ml) (connects to Petals via an HTTP endpoint): [source code](https://github.com/borzunov/chat.petals.ml)
+- [Chatbot web app](http://chat.petals.ml) (connects to Petals via an HTTP/WebSocket endpoint): [source code](https://github.com/borzunov/chat.petals.ml)
 - [Monitor](http://health.petals.ml) for the public swarm: [source code](https://github.com/borzunov/health.petals.ml)
 - Launch your own swarm: [guide](https://github.com/bigscience-workshop/petals/wiki/Launch-your-own-swarm)
 - Run a custom foundation model: [guide](https://github.com/bigscience-workshop/petals/wiki/Run-a-custom-model-with-Petals)
