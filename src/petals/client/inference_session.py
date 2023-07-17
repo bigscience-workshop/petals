@@ -340,7 +340,9 @@ class InferenceSession:
                 f"from block {block_idx} to {update_end} will be regenerated"
             )
 
-        updated_spans = self._sequence_manager.make_sequence(block_idx, update_end, mode="min_latency")
+        updated_spans = self._sequence_manager.make_sequence(
+            block_idx, update_end, mode="min_latency", cache_tokens_needed=self._max_length
+        )
         # make_sequence() could return a longer sequence
         updated_spans[-1].end = min(updated_spans[-1].end, update_end)
         updated_sessions = self._enter_server_sessions(updated_spans)

@@ -32,6 +32,7 @@ from petals.server.throughput import get_dtype_name, get_server_throughput
 from petals.utils.auto_config import AutoDistributedConfig
 from petals.utils.convert_block import QuantType, check_device_balance, convert_block
 from petals.utils.ping import PingAggregator
+from petals.utils.random import sample_up_to
 from petals.utils.version import get_compatible_model_repo
 
 logger = get_logger(__name__)
@@ -637,7 +638,6 @@ class ModuleAnnouncerThread(threading.Thread):
         update_period: float,
         expiration: float,
         max_pinged: int = 5,
-        max_reported: int = 10,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -650,10 +650,11 @@ class ModuleAnnouncerThread(threading.Thread):
         self.expiration = expiration
         self.trigger = threading.Event()
 
-        self.max_pinged, self.max_reported = max_pinged, max_reported
-        last_uid = max(module_uids, key=lambda uid: int(uid.split(UID_DELIMITER)[-1]))
-        dht_prefix, block_index = last_uid.split(UID_DELIMITER)
-        self.next_uid = f"{dht_prefix}{UID_DELIMITER}{int(block_index) + 1}"
+        self.max_pinged = max_pinged
+        dht_prefix = module_uids[0].split(UID_DELIMITER)[0]
+        block_indices = [int(uid.split(UID_DELIMITER)[-1]) for uid in module_uids]
+        start_block, end_block = min(block_indices), max(block_indices) + 1
+        self.next_uids = [f"{dht_prefix}{UID_DELIMITER}{i}" for i in range(start_block + 1, end_block + 1)]
         self.ping_aggregator = PingAggregator(self.dht)
 
     def run(self) -> None:
@@ -664,7 +665,7 @@ class ModuleAnnouncerThread(threading.Thread):
             if self.server_info.state != ServerState.OFFLINE:
                 self._ping_next_servers()
                 self.server_info.next_pings = {
-                    peer_id.to_base58(): rtt for peer_id, rtt in self.ping_aggregator.fastest(self.max_reported).items()
+                    peer_id.to_base58(): rtt for peer_id, rtt in self.ping_aggregator.to_dict().items()
                 }
             else:
                 self.server_info.next_pings = None  # No need to ping if we're disconnecting
@@ -691,14 +692,14 @@ class ModuleAnnouncerThread(threading.Thread):
             self.join()
 
     def _ping_next_servers(self) -> Dict[hivemind.PeerID, float]:
-        [module_info] = get_remote_module_infos(self.dht, [self.next_uid], latest=True)
-        if module_info is None:
-            return
-
-        next_servers = list(module_info.servers)
-        if len(next_servers) > self.max_pinged:
-            next_servers = random.sample(next_servers, self.max_pinged)
-        self.ping_aggregator.ping(next_servers)
+        module_infos = get_remote_module_infos(self.dht, self.next_uids, latest=True)
+        middle_servers = {peer_id for info in module_infos[:-1] if info is not None for peer_id in info.servers}
+        pinged_servers = set(sample_up_to(middle_servers, self.max_pinged))
+        pinged_servers.discard(self.dht.peer_id)
+        if module_infos[-1] is not None:
+            # Sample servers hosting the block after the last one (most likely continuations) separately
+            pinged_servers |= set(sample_up_to(module_infos[-1].servers, self.max_pinged))
+        self.ping_aggregator.ping(list(pinged_servers))
 
 
 class RuntimeWithDeduplicatedPools(Runtime):
