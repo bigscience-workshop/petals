@@ -31,19 +31,19 @@ print(tokenizer.decode(outputs[0]))  # A cat sat on a mat...
 
 ### Connect your GPU and increase Petals capacity
 
-Run our [Docker](https://www.docker.com) image (works on Linux, macOS, and Windows with [WSL2](https://learn.microsoft.com/en-us/windows/ai/directml/gpu-cuda-in-wsl)):
-
-```bash
-sudo docker run -p 31330:31330 --ipc host --gpus all --volume petals-cache:/cache --rm \
-    learningathome/petals:main python -m petals.cli.run_server bigscience/bloom --port 31330
-```
-
-Or run these commands in an [Anaconda](https://www.anaconda.com) env (requires Linux and Python 3.7+):
+Run these commands in an [Anaconda](https://www.anaconda.com) env (requires Linux and Python 3.7+):
 
 ```bash
 conda install pytorch pytorch-cuda=11.7 -c pytorch -c nvidia
 pip install git+https://github.com/bigscience-workshop/petals
 python -m petals.cli.run_server bigscience/bloom
+```
+
+Or run our [Docker](https://www.docker.com) image (works on Linux, macOS, and Windows with [WSL2](https://learn.microsoft.com/en-us/windows/ai/directml/gpu-cuda-in-wsl)):
+
+```bash
+sudo docker run -p 31330:31330 --ipc host --gpus all --volume petals-cache:/cache --rm \
+    learningathome/petals:main python -m petals.cli.run_server bigscience/bloom --port 31330
 ```
 
 🔒 Hosting a server does not allow others to run custom code on your computer. Learn more about security [here](https://github.com/bigscience-workshop/petals/wiki/Security,-privacy,-and-AI-safety).
