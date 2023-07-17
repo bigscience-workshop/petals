@@ -5,7 +5,7 @@
     <a href="https://pypi.org/project/petals/"><img src="https://img.shields.io/pypi/v/petals.svg?color=green"></a><br>
 </p>
 
-Generate text with distributed [LLaMA-65B](https://github.com/facebookresearch/llama/blob/main/MODEL_CARD.md), [Guanaco](https://huggingface.co/timdettmers/guanaco-65b), [BLOOM](https://huggingface.co/bigscience/bloom), or [BLOOMZ](https://huggingface.co/bigscience/bloomz) and fine-tune them for your own tasks &ndash; right from your desktop computer or Google Colab:
+Generate text with distributed [LLaMA-65B](https://github.com/facebookresearch/llama/blob/main/MODEL_CARD.md), [Guanaco](https://huggingface.co/timdettmers/guanaco-65b), [BLOOM-176B](https://huggingface.co/bigscience/bloom), or [BLOOMZ](https://huggingface.co/bigscience/bloomz) and fine-tune them for your own tasks &mdash; right from your desktop computer or Google Colab:
 
 ```python
 from transformers import AutoTokenizer
@@ -14,7 +14,7 @@ from petals import AutoDistributedModelForCausalLM
 model_name = "bigscience/bloom"  # You can use any Hugging Face hub repo with a supported model
 tokenizer = AutoTokenizer(model_name)
 model = AutoDistributedModelForCausalLM.from_pretrained(model_name, tuning_mode="ptune", pre_seq_len=16)
-# Embeddings & prompts are on your device, BLOOM blocks are distributed across the Internet
+# Embeddings & prompts are on your device, transformer blocks are distributed across the Internet
 
 inputs = tokenizer("A cat sat", return_tensors="pt")["input_ids"]
 outputs = model.generate(inputs, max_new_tokens=5)
@@ -79,12 +79,12 @@ Learning more:
 - Frequently asked questions: [FAQ](https://github.com/bigscience-workshop/petals/wiki/FAQ:-Frequently-asked-questions)
 - In-depth system description: [paper](https://arxiv.org/abs/2209.01188)
 
-📋 If you build an app running BLOOM with Petals, make sure it follows the BLOOM's [terms of use](https://huggingface.co/bigscience/bloom).
+📋 If you build an app running LLMs with Petals, make sure you follow the [LLaMA's](https://bit.ly/llama-license) and/or [BLOOM's](https://bit.ly/bloom-license) terms of use. Note that LLaMA is available for non-commercial purposes only, and you have to file a request [here](https://bit.ly/llama-license) to use it in your own projects.
 
 ## How does it work?
 
-- Petals runs large language models like [BLOOM-176B](https://huggingface.co/bigscience/bloom) **collaboratively** — you load a small part of the model, then team up with people serving the other parts to run inference or fine-tuning.
-- Single-batch inference runs at ≈ 1 sec per step (token) — [up to 10x faster](https://github.com/bigscience-workshop/petals#benchmarks) than offloading, enough for [chatbots](http://chat.petals.ml) and other interactive apps. Parallel inference reaches hundreds of tokens/sec.
+- Petals runs large language models like [LLaMA-65B](https://github.com/facebookresearch/llama/blob/main/MODEL_CARD.md) or [BLOOM-176B](https://huggingface.co/bigscience/bloom) **collaboratively** — you load a small part of the model, then team up with people serving the other parts to run inference or fine-tuning.
+- Single-batch inference runs at 3-4 steps/sec for LLaMA-65B and &approx; 1 step/sec for BLOOM-176B — [up to 10x faster](https://github.com/bigscience-workshop/petals#benchmarks) than offloading, enough for [chatbots](http://chat.petals.ml) and other interactive apps. Parallel inference reaches hundreds of tokens/sec.
 - Beyond classic language model APIs — you can employ any fine-tuning and sampling methods, execute custom paths through the model, or see its hidden states. You get the comforts of an API with the flexibility of PyTorch.
 
 <p align="center">
