@@ -31,7 +31,7 @@ print(tokenizer.decode(outputs[0]))  # A cat sat on a mat...
 
 ### Connect your GPU and increase Petals capacity
 
-Run these commands in an [Anaconda](https://www.anaconda.com) env (requires Linux and Python 3.7+):
+Run these commands in an [Anaconda](https://www.anaconda.com) env (requires Linux and Python 3.8+):
 
 ```bash
 conda install pytorch pytorch-cuda=11.7 -c pytorch -c nvidia

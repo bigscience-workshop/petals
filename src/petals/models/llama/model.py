@@ -21,7 +21,7 @@ class DistributedLlamaModel(FromPretrainedMixin, PTuneMixin, LlamaModel):
     """LlamaModel, but all transformer layers are hosted by the swarm"""
 
     _keys_to_ignore_on_load_missing = PTuneMixin._keys_to_ignore_on_load_missing
-    _keys_to_ignore_on_load_unexpected = LlamaModel._keys_to_ignore_on_load_unexpected + [r"^model\.layers\."]
+    _keys_to_ignore_on_load_unexpected = [r"^model\.layers\."]
 
     config_class = DistributedLlamaConfig
 
@@ -129,10 +129,7 @@ class DistributedLlamaForCausalLM(FromPretrainedMixin, RemoteGenerationMixin, Ll
 
 
 class DistributedLlamaForSequenceClassification(FromPretrainedMixin, LlamaForSequenceClassification):
-    _keys_to_ignore_on_load_missing = (
-        LlamaForSequenceClassification._keys_to_ignore_on_load_missing
-        + DistributedLlamaModel._keys_to_ignore_on_load_missing
-    )
+    _keys_to_ignore_on_load_missing = DistributedLlamaModel._keys_to_ignore_on_load_missing
     _keys_to_ignore_on_load_unexpected = DistributedLlamaModel._keys_to_ignore_on_load_unexpected
 
     config_class = DistributedLlamaConfig
