@@ -36,6 +36,7 @@ class SequenceManagerConfig:
     dht_prefix: Optional[str] = None  # a prefix for all dht keys that correspond to this model (default: model name)
     daemon_startup_timeout: int = 60  # timeout for the libp2p daemon connecting to initial peers
 
+    show_route: str = "inference"  # show chosen route through servers. one of ["no", "inference", "always"]
     allowed_servers: Optional[Collection[Union[PeerID, str]]] = None  # if defined, send requests only to these servers
     use_server_to_server: bool = True  # Use direct server-to-server communication
 
@@ -166,8 +167,11 @@ class RemoteSequenceManager:
         else:
             raise RuntimeError(f"Unexpected mode {mode}")
 
-        route_repr = " => ".join([f"{span.start}:{span.end} via …{str(span.peer_id)[-6:]}" for span in span_sequence])
-        logger.info(f"Route found: {route_repr}")
+        if self.config.show_route == "always" or (mode == "min_latency" and self.config.show_route == "inference"):
+            route_repr = " => ".join(
+                [f"{span.start}:{span.end} via …{str(span.peer_id)[-6:]}" for span in span_sequence]
+            )
+            logger.info(f"Route found: {route_repr}")
         return span_sequence
 
     def _make_sequence_with_min_latency(
@@ -193,8 +197,8 @@ class RemoteSequenceManager:
             graph = self._build_inference_graph(start_index, end_index, cache_tokens_needed=cache_tokens_needed)
 
         path = dijkstar.find_path(graph, "start", "end")
-        logger.info(f"Path info: {path}")
-        logger.info(f"Expected speed: {1 / path.total_cost:.1f} steps/sec")
+        logger.debug(f"Path info: {path}")
+        logger.debug(f"Expected speed: {1 / path.total_cost:.1f} steps/sec")
 
         span_sequence = []
         for peer_id, block_idx in path.nodes[1:-1]:
@@ -227,7 +231,6 @@ class RemoteSequenceManager:
             raise MissingBlocksError(missing_blocks)
 
         client_server_rtts = self.ping_aggregator.to_dict()
-        logger.info(f"Client-server RTTs: {client_server_rtts}")
 
         graph = dijkstar.Graph()
 
