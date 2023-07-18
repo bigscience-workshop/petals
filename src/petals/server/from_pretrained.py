@@ -87,7 +87,7 @@ def _load_state_dict_from_repo(
     max_disk_space: Optional[int] = None,
 ) -> StateDict:
     index_file = get_file_from_repo(
-        model_name, filename="pytorch_model.bin.index.json", token=token, cache_dir=cache_dir
+        model_name, filename="pytorch_model.bin.index.json", use_auth_token=token, cache_dir=cache_dir
     )
     if index_file is not None:  # Sharded model
         with open(index_file) as f:
@@ -137,7 +137,7 @@ def _load_state_dict_from_file(
                 model_name,
                 filename,
                 revision=revision,
-                token=token,
+                use_auth_token=token,
                 cache_dir=cache_dir,
                 local_files_only=True,
             )
@@ -161,7 +161,7 @@ def _load_state_dict_from_file(
                     model_name,
                     filename,
                     revision=revision,
-                    token=token,
+                    use_auth_token=token,
                     cache_dir=cache_dir,
                     local_files_only=False,
                 )
