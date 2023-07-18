@@ -11,7 +11,7 @@ Generate text with distributed [LLaMA-65B](https://github.com/facebookresearch/l
 from transformers import AutoTokenizer
 from petals import AutoDistributedModelForCausalLM
 
-model_name = "bigscience/bloom"  # You can use any Hugging Face hub repo with a supported model
+model_name = "enoch/llama-65b-hf"  # You can also use "bigscience/bloom" or "bigscience/bloomz"
 tokenizer = AutoTokenizer(model_name)
 model = AutoDistributedModelForCausalLM.from_pretrained(model_name)
 # Embeddings & prompts are on your device, transformer blocks are distributed across the Internet
@@ -25,9 +25,9 @@ print(tokenizer.decode(outputs[0]))  # A cat sat on a mat...
     🚀 &nbsp;<b><a href="https://colab.research.google.com/drive/1uCphNY7gfAUkdDrTx21dZZwCOUDCMPw8?usp=sharing">Try now in Colab</a></b>
 </p>
 
-🔏 Your data will be processed by other people in the public swarm. Learn more about privacy [here](https://github.com/bigscience-workshop/petals/wiki/Security,-privacy,-and-AI-safety). For sensitive data, you can set up a [private swarm](https://github.com/bigscience-workshop/petals/wiki/Launch-your-own-swarm) among people you trust.
-
 📋 Make sure you follow the model's terms of use (see [LLaMA](https://bit.ly/llama-license) and [BLOOM](https://bit.ly/bloom-license) licenses). Note that LLaMA is available for non-commercial purposes only, and you have to file a request [here](https://bit.ly/llama-license) to use it in your own projects.
+
+🔏 Your data will be processed by other people in the public swarm. Learn more about privacy [here](https://github.com/bigscience-workshop/petals/wiki/Security,-privacy,-and-AI-safety). For sensitive data, you can set up a [private swarm](https://github.com/bigscience-workshop/petals/wiki/Launch-your-own-swarm) among people you trust.
 
 ### Connect your GPU and increase Petals capacity
 
@@ -36,21 +36,21 @@ Run these commands in an [Anaconda](https://www.anaconda.com) env (requires Linu
 ```bash
 conda install pytorch pytorch-cuda=11.7 -c pytorch -c nvidia
 pip install git+https://github.com/bigscience-workshop/petals
-python -m petals.cli.run_server bigscience/bloom
+python -m petals.cli.run_server enoch/llama-65b-hf --adapters timdettmers/guanaco-65b
 ```
 
 Or run our [Docker](https://www.docker.com) image (works on Linux, macOS, and Windows with [WSL2](https://learn.microsoft.com/en-us/windows/ai/directml/gpu-cuda-in-wsl)):
 
 ```bash
-sudo docker run -p 31330:31330 --ipc host --gpus all --volume petals-cache:/cache --rm \
-    learningathome/petals:main python -m petals.cli.run_server bigscience/bloom --port 31330
+sudo docker run -p 31330:31330 --ipc host --gpus all --volume petals-cache:/cache --rm learningathome/petals:main \
+    python -m petals.cli.run_server --port 31330 enoch/llama-65b-hf --adapters timdettmers/guanaco-65b
 ```
+
+This will host a part of LLaMA-65B with optional [Guanaco](https://huggingface.co/timdettmers/guanaco-65b) adapters on your machine. You can also host `bigscience/bloom`, `bigscience/bloomz`, and other compatible models from 🤗 [Model Hub](https://huggingface.co/models), or [add support](https://github.com/bigscience-workshop/petals/wiki/Run-a-custom-model-with-Petals) for new model architectures.
 
 🔒 Hosting a server does not allow others to run custom code on your computer. Learn more about security [here](https://github.com/bigscience-workshop/petals/wiki/Security,-privacy,-and-AI-safety).
 
-📚 See [FAQ](https://github.com/bigscience-workshop/petals/wiki/FAQ:-Frequently-asked-questions#running-a-server) to learn how to configure the server to use multiple GPUs, address common issues, etc.
-
-💬 If you have any issues or feedback, let us know on [our Discord server](https://discord.gg/D9MwApKgWa)!
+💬 See [FAQ](https://github.com/bigscience-workshop/petals/wiki/FAQ:-Frequently-asked-questions#running-a-server) to learn how to use multple GPUs, restart the server on reboot, etc. If you have any issues or feedback, ping us in [our Discord](https://discord.gg/D9MwApKgWa)!
 
 ### Check out tutorials, examples, and more
 
@@ -94,7 +94,7 @@ Here's how to install Petals with [Anaconda](https://www.anaconda.com/products/d
 
 ```bash
 conda install pytorch pytorch-cuda=11.7 -c pytorch -c nvidia
-pip install -U petals
+pip install git+https://github.com/bigscience-workshop/petals
 ```
 
 If you don't use Anaconda, you can install PyTorch in [any other way](https://pytorch.org/get-started/locally/). If you want to run models with 8-bit weights, please install PyTorch with CUDA 11.x or newer for compatility with [bitsandbytes](https://github.com/timDettmers/bitsandbytes).
