@@ -284,8 +284,10 @@ class RemoteSequenceManager:
         if cache_tokens_needed is None or span.server_info.cache_tokens_left is None:
             return True
 
-        # This is a pessimistic estimate that assumes that we'll use all blocks hosted by this server,
-        # which is not always true. This is okay since false positives are more costly than false negatives here.
+        # Here, `span` contains all blocks hosted by a server - but we won't necessarily run all of them through
+        # this particular server in our path. It is difficult to estimate how many blocks we'll use at this stage,
+        # so we assume that we'll use all of them (the worst case for the cache size) and get a pessimistic estimate.
+        # This is okay since false positives are more costly than false negatives here.
         return cache_tokens_needed * 2 * span.length <= span.server_info.cache_tokens_left
 
     def _make_sequence_with_max_throughput(self, start_index: int, end_index: int) -> List[RemoteSpanInfo]:
