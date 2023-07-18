@@ -96,7 +96,7 @@ class _ServerInferenceSession:
         step_id: str,
     ) -> torch.Tensor:
         """
-        Inference step: send a chunk of input tesors and receive a chunk of outputs
+        Inference step: send a chunk of input tensors and receive a chunk of outputs
         :prompts: optional DEEP prompts, added to a prefix of each layer's outputs,
           if specified, deep prompts should have shape [num_layers, batch_size, prefix_len, hid_size]
         """
