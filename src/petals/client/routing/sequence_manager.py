@@ -101,7 +101,7 @@ class RemoteSequenceManager:
             dht = DHT(
                 initial_peers=config.initial_peers,
                 client_mode=True,
-                num_workers=config.num_hidden_layers,
+                num_workers=32,
                 startup_timeout=config.daemon_startup_timeout,
                 start=True,
             )
