@@ -212,6 +212,8 @@ class RemoteSequenceManager:
         end_index: int,
         *,
         cache_tokens_needed: Optional[int],
+        overhead_coeff: float = 1.82,  # Backend overhead (empirically measured)
+        overhead_delay: float = 0.018,  # Serialization overhead (empirically measured)
         default_inference_rps: float = 300,  # If inference RPS unknown
         alloc_delay: float = 60,  # If not enough cache left, we penalize the edge
     ) -> dijkstar.Graph:
@@ -230,6 +232,7 @@ class RemoteSequenceManager:
         # Clent -> server network delays
         for span in self.state.sequence_info.spans_containing_block[start_index]:
             delay = self._rtt_to_delay(client_server_rtts.get(span.peer_id))
+            delay += overhead_delay
             if not self._has_cache_for(span, cache_tokens_needed):
                 delay += alloc_delay
             graph.add_edge("start", (span.peer_id, start_index), delay)
@@ -252,6 +255,7 @@ class RemoteSequenceManager:
                     if cur_span.server_info.next_pings is not None:
                         rtt = cur_span.server_info.next_pings.get(next_span.peer_id.to_base58())
                     delay = self._rtt_to_delay(rtt)
+                    delay += overhead_delay
                     if not self._has_cache_for(next_span, cache_tokens_needed):
                         delay += alloc_delay
                     graph.add_edge((cur_span.peer_id, block_idx), (next_span.peer_id, block_idx), delay)
@@ -262,7 +266,7 @@ class RemoteSequenceManager:
                 inference_rps = span.server_info.inference_rps
                 if inference_rps is None:
                     inference_rps = default_inference_rps
-                graph.add_edge((span.peer_id, block_idx), (span.peer_id, block_idx + 1), 1 / inference_rps)
+                graph.add_edge((span.peer_id, block_idx), (span.peer_id, block_idx + 1), overhead_coeff / inference_rps)
 
         return graph
 
