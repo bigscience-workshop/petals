@@ -84,7 +84,7 @@ def main():
     parser.add_argument('--attn_cache_tokens', type=int, default=8192,
                         help='The number of past attention key/value pairs that will be stored between inference steps. '
                              'Default: 8192 (4 simultaneous sessions of up to 2048 tokens).')
-    parser.add_argument('--alloc_timeout', type=float, default=60,
+    parser.add_argument('--alloc_timeout', type=float, default=5,
                         help='If the cache is full, the server will wait for this number of seconds hoping that some memory will be freed '
                              'before rejecting the request')
     parser.add_argument('--revision', type=str, default=None,
