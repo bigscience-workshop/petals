@@ -65,7 +65,7 @@ def load_peft(
     device: Optional[int] = None,
     *,
     revision: Optional[str] = None,
-    use_auth_token: Optional[str] = None,
+    token: Optional[str] = None,
     cache_dir: str,
     max_disk_space: Optional[int] = None,
     delay: float = 30,
@@ -82,7 +82,7 @@ def load_peft(
                 block_idx,
                 device,
                 revision=revision,
-                use_auth_token=use_auth_token,
+                token=token,
                 cache_dir=cache_dir,
                 local_files_only=False,
             )
@@ -93,9 +93,9 @@ def load_peft(
         try:
             with allow_cache_writes(cache_dir):
                 config_url = hf_hub_url(repo_id, CONFIG_NAME, revision=revision)
-                config_file_size = get_hf_file_metadata(config_url, token=use_auth_token).size
+                config_file_size = get_hf_file_metadata(config_url, token=token).size
                 weight_url = hf_hub_url(repo_id, SAFETENSORS_WEIGHTS_NAME, revision=revision)
-                weight_file_size = get_hf_file_metadata(weight_url, token=use_auth_token).size
+                weight_file_size = get_hf_file_metadata(weight_url, token=token).size
 
                 file_size = config_file_size + weight_file_size
                 if file_size is not None:
@@ -108,7 +108,7 @@ def load_peft(
                     block_idx,
                     device,
                     revision=revision,
-                    use_auth_token=use_auth_token,
+                    token=token,
                     cache_dir=cache_dir,
                     local_files_only=False,
                 )
