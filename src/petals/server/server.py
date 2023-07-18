@@ -62,7 +62,7 @@ class Server:
         cache_dir: Optional[str] = None,
         max_disk_space: Optional[int] = None,
         attn_cache_tokens: int = 8192,
-        alloc_timeout: float = 60,
+        alloc_timeout: float = 5,
         device: Optional[Union[str, torch.device]] = None,
         compression=CompressionType.NONE,
         stats_report_interval: Optional[int] = None,

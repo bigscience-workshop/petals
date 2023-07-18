@@ -215,7 +215,7 @@ class RemoteSequenceManager:
         overhead_coeff: float = 1.82,  # Backend overhead (empirically measured)
         overhead_delay: float = 0.018,  # Serialization overhead (empirically measured)
         default_inference_rps: float = 300,  # If inference RPS unknown
-        alloc_delay: float = 60,  # If not enough cache left, we penalize the edge
+        alloc_delay: float = 10,  # If not enough cache left, we penalize the edge
     ) -> dijkstar.Graph:
         missing_blocks = [
             block_idx
