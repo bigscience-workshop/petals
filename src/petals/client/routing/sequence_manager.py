@@ -123,14 +123,7 @@ class RemoteSequenceManager:
         if state.sequence_info is None:
             state.sequence_info = RemoteSequenceInfo.make_empty(block_uids)
 
-        if state.sequence_info.last_updated_time is None:
-            # Pre-fetch module infos in DHT in parallel with .from_pretrained(), then use cached records
-            # in the first _update() instead of the latest ones. This makes the first .update() faster.
-            petals.dht_utils.get_remote_module_infos(
-                self.dht, self.block_uids, active_adapter=active_adapter, latest=True, return_future=True
-            )
-            self._need_latest_infos = False
-        else:
+        if state.sequence_info.last_updated_time is not None:
             assert block_uids == state.sequence_info.block_uids
             self._thread.ready.set()  # no need to await the first dht fetch
             self._need_latest_infos = True
@@ -328,10 +321,10 @@ class RemoteSequenceManager:
 
     def _update(self):
         """Perform an immediate and synchronous refresh, may take time"""
+
         new_block_infos = petals.dht_utils.get_remote_module_infos(
-            self.dht, self.block_uids, active_adapter=self.config.active_adapter, latest=self._need_latest_infos
+            self.dht, self.block_uids, active_adapter=self.config.active_adapter, latest=True
         )
-        self._need_latest_infos = True  # All future _update() should use latest infos
 
         for block_info in new_block_infos:
             if not block_info:
