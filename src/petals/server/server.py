@@ -418,7 +418,7 @@ class ModuleContainer(threading.Thread):
         module_uids = [f"{dht_prefix}{UID_DELIMITER}{block_index}" for block_index in block_indices]
         memory_cache = MemoryCache(attn_cache_bytes, alloc_timeout)
 
-        assert server_info.state == ServerState.JOINING
+        server_info.state = ServerState.JOINING
         dht_announcer = ModuleAnnouncerThread(
             module_uids,
             dht,
