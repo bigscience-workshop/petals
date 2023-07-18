@@ -203,8 +203,8 @@ class RemoteSequenceManager:
             else:
                 span_sequence[-1].end = block_idx
 
-        # Remove empty spans that can appear if network delays don't follow triangle inequality
-        # (that is, if w(A, B) + w(B, C) < w(A, C) due to measurement errors)
+        # Remove empty spans that can appear if we don't force to go to the end of each server and network delay
+        # don't follow triangle inequality (delay(A, B) + delay(B, C) < delay(A, C)) due to measurement errors
         span_sequence = [span for span in span_sequence if span.length > 0]
 
         return span_sequence
@@ -246,10 +246,12 @@ class RemoteSequenceManager:
         # Server -> server network delays
         for block_idx in range(start_index + 1, end_index):
             for cur_span in self.state.sequence_info.spans_containing_block[block_idx - 1]:
-                for next_span in self.state.sequence_info.spans_containing_block[block_idx]:
-                    if cur_span.peer_id == next_span.peer_id:
-                        continue
+                if cur_span.end != block_idx:
+                    # If we choose a server, we force to go to the end of it before switching to a new one
+                    # to avoid O(N^2) graphs for N servers
+                    continue
 
+                for next_span in self.state.sequence_info.spans_containing_block[block_idx]:
                     rtt = None
                     if cur_span.server_info.next_pings is not None:
                         rtt = cur_span.server_info.next_pings.get(next_span.peer_id.to_base58())
