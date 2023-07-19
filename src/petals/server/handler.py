@@ -90,6 +90,12 @@ class TransformerConnectionHandler(ConnectionHandler):
         self.session_timeout, self.step_timeout = session_timeout, step_timeout
         self._prioritizer = task_prioritizer
 
+    async def add_p2p_handlers(self, *args, **kwargs) -> None:
+        if self._listener_task is None:
+            # Start listening to our own event queue before we accept any requests
+            self._listener_task = asyncio.create_task(self._listen_to_event_queue())
+        await self.add_p2p_handlers(*args, **kwargs)
+
     def shutdown(self):
         if self.is_alive():
             self._outer_pipe.send("_shutdown")
@@ -259,28 +265,26 @@ class TransformerConnectionHandler(ConnectionHandler):
             self._handler_event_queues[handler_index].put_nowait((Event.PUSH, session_id, request))
 
     async def _get_from_session_queue(self, session_id: str) -> Optional[runtime_pb2.ExpertRequest]:
-        if self._listener_task is None:
-            self._listener_task = asyncio.create_task(self._listen_to_own_queue())
         assert self._session_handlers[session_id] == self._handler_index, "session belongs to another handler"
         return await self._session_queues[session_id].get()
 
-    async def _listen_to_own_queue(self):
+    async def _listen_to_event_queue(self):
         loop = asyncio.get_event_loop()
         while True:
             try:
-                code, session_id, payload = await loop.run_in_executor(None, self._own_event_queue.get)
-                if code == Event.SHUTDOWN:
+                event, session_id, payload = await loop.run_in_executor(None, self._own_event_queue.get)
+                if event == Event.SHUTDOWN:
                     break
-                elif code == Event.NEW_SESSION:
+                elif event == Event.NEW_SESSION:
                     self._session_handlers[session_id] = payload  # index of the handler that owns that session
-                elif code == Event.END_SESSION:
+                elif event == Event.END_SESSION:
                     self._session_handlers.pop(session_id, None)
-                elif code == Event.PUSH:
+                elif event == Event.PUSH:
                     maybe_session_queue = self._session_queues.get(session_id)
                     if maybe_session_queue is not None:
                         maybe_session_queue.put_nowait(payload)
                 else:
-                    raise RuntimeError(f"Unexpected code: {code}")
+                    raise RuntimeError(f"Unexpected event: {event}")
             except Exception as e:
                 logger.exception(e)
 
