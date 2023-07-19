@@ -64,6 +64,8 @@ def convert_block(
                 **kwargs,
             )
             add_adapter_to_block(block, block_index, adapter_name, adapter_config, adapter_state_dict)
+    else:
+        print("NO CONVERSION")
 
     return block
 

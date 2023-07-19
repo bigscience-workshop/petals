@@ -436,30 +436,31 @@ class ModuleContainer(threading.Thread):
 
         blocks = {}
         try:
+            module_uid, block_index = module_uids[0], block_indices[0]
+            block = load_pretrained_block(
+                converted_model_name_or_path,
+                block_index,
+                config=block_config,
+                torch_dtype=torch_dtype,
+                revision=revision,
+                token=token,
+                cache_dir=cache_dir,
+                max_disk_space=max_disk_space,
+            )
+            block = convert_block(
+                block,
+                block_index,
+                block_config,
+                tensor_parallel_devices,
+                device,
+                quant_type,
+                adapters=server_info.adapters,
+                freeze=True,
+                token=token,
+                cache_dir=cache_dir,
+                max_disk_space=max_disk_space,
+            )
             for module_uid, block_index in zip(module_uids, block_indices):
-                block = load_pretrained_block(
-                    converted_model_name_or_path,
-                    block_index,
-                    config=block_config,
-                    torch_dtype=torch_dtype,
-                    revision=revision,
-                    token=token,
-                    cache_dir=cache_dir,
-                    max_disk_space=max_disk_space,
-                )
-                block = convert_block(
-                    block,
-                    block_index,
-                    block_config,
-                    tensor_parallel_devices,
-                    device,
-                    quant_type,
-                    adapters=server_info.adapters,
-                    freeze=True,
-                    token=token,
-                    cache_dir=cache_dir,
-                    max_disk_space=max_disk_space,
-                )
                 blocks[module_uid] = TransformerBackend(
                     module_uid,
                     block,
