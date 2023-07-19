@@ -280,11 +280,12 @@ class TransformerConnectionHandler(ConnectionHandler):
                     self._session_handlers[session_id] = payload  # index of the handler that owns that session
                 elif code == Event.END_SESSION:
                     self._session_handlers.pop(session_id, None)
-                else:
-                    assert code == Event.PUSH, f"unexpected code: {code}"
+                elif code == Event.PUSH:
                     maybe_session_queue = self._session_queues.get(session_id)
                     if maybe_session_queue is not None:
                         maybe_session_queue.put_nowait(payload)
+                else:
+                    raise RuntimeError(f"Unexpected code: {code}")
             except Exception as e:
                 logger.exception(e)
 
