@@ -12,7 +12,7 @@ from transformers import AutoTokenizer
 from petals import AutoDistributedModelForCausalLM
 
 model_name = "enoch/llama-65b-hf"  # You can also use "bigscience/bloom" or "bigscience/bloomz"
-tokenizer = AutoTokenizer(model_name)
+tokenizer = AutoTokenizer.from_pretrained(model_name)
 model = AutoDistributedModelForCausalLM.from_pretrained(model_name)
 # Embeddings & prompts are on your device, transformer blocks are distributed across the Internet
 
