@@ -198,6 +198,7 @@ def create_lora_adapter(block, quant_type: QuantType):
                     child.out_features,
                     **kwargs,
                 )
+                lora_wrapped_child.compute_dtype = child.compute_dtype
             else:
                 bias = hasattr(child, "bias") and child.bias is not None
                 lora_wrapped_child = LoraLinear(
