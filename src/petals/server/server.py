@@ -179,6 +179,7 @@ class Server:
 
         # For attention cache in GPU or RAM
         cache_values_per_block = 2 * self.block_config.hidden_size * attn_cache_tokens
+        cache_values_per_block //= self.block_config.num_key_value_groups
         self._cache_bytes_per_block = cache_values_per_block * torch.finfo(self.torch_dtype).bits // 8
 
         # For disk cache
@@ -642,7 +643,10 @@ class ModuleAnnouncerThread(threading.Thread):
         self.dht = dht
         self.server_info = server_info
         self.memory_cache = memory_cache
+
         self.bytes_per_token = block_config.hidden_size * torch.finfo(DTYPE_MAP[server_info.torch_dtype]).bits // 8
+        self.bytes_per_token //= block_config.num_key_value_groups
+
         self.update_period = update_period
         self.expiration = expiration
         self.trigger = threading.Event()

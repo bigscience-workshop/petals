@@ -18,6 +18,10 @@ class DistributedLlamaConfig(LlamaConfig, SequenceManagerConfig, PTuneConfig, LM
     attn_class = LlamaAttention
     block_prefix = "model.layers"
 
+    @property
+    def num_key_value_groups(self):
+        return self.num_attention_heads // self.num_key_value_heads
+
     @classmethod
     def from_pretrained(
         cls, model_name_or_path: Union[str, os.PathLike, None], *args, dht_prefix: Optional[str] = None, **kwargs
