@@ -24,7 +24,11 @@ def main():
     group.add_argument('--converted_model_name_or_path', type=str, default=None,
                        help="path or name of a pretrained model, converted with cli/convert_model.py")
     group.add_argument('model', nargs='?', type=str, help="same as --converted_model_name_or_path")
-    parser.add_argument("--token", type=str, default=None, help="Hugging Face hub auth token for .from_pretrained()")
+
+    group = parser.add_mutually_exclusive_group(required=False)
+    group.add_argument("--token", type=str, default=None, help="Hugging Face hub auth token for .from_pretrained()")
+    group.add_argument("--use_auth_token", action="store_true", dest="token",
+                       help="Read token saved by `huggingface-cli login")
 
     parser.add_argument('--num_blocks', type=int, default=None, help="The number of blocks to serve")
     parser.add_argument('--block_indices', type=str, default=None, help="Specific block indices to serve")
@@ -155,9 +159,6 @@ def main():
     args.pop("config", None)
 
     args["converted_model_name_or_path"] = args.pop("model") or args["converted_model_name_or_path"]
-
-    if args["token"].lower() == "true":
-        args["token"] = True
 
     host_maddrs = args.pop("host_maddrs")
     port = args.pop("port")
