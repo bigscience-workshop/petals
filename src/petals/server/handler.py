@@ -4,6 +4,7 @@ import asyncio
 import contextlib
 import multiprocessing as mp
 import sys
+from enum import Enum
 from itertools import chain
 from typing import Any, AsyncIterator, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 
@@ -43,7 +44,13 @@ sys.modules["runtime_pb2"] = runtime_pb2
 
 
 CACHE_TOKENS_AVAILABLE = "cache_tokens_available"
-NEW_SESSION, END_SESSION, PUSH, SHUTDOWN = "new_session", "end_session", "push", "shutdown"
+
+
+class Event(Enum):
+    NEW_SESSION = 0
+    END_SESSION = 1
+    PUSH = 2
+    SHUTDOWN = 3
 
 
 class TransformerConnectionHandler(ConnectionHandler):
@@ -86,7 +93,7 @@ class TransformerConnectionHandler(ConnectionHandler):
     def shutdown(self):
         if self.is_alive():
             self._outer_pipe.send("_shutdown")
-            self._own_queue.put((SHUTDOWN, None, None))
+            self._own_queue.put((Event.SHUTDOWN, None, None))
             self.join(self.shutdown_timeout)
             if self.is_alive():
                 logger.warning(f"{self.__class__.__name__} failed to shut down gracefully, sending SIGTERM")
@@ -238,14 +245,14 @@ class TransformerConnectionHandler(ConnectionHandler):
             self._session_handlers[session_id] = self._handler_index
             for other_index, other_queue in enumerate(self._handler_queues):
                 if other_index != self._handler_index:
-                    other_queue.put_nowait((NEW_SESSION, session_id, self._handler_index))
+                    other_queue.put_nowait((Event.NEW_SESSION, session_id, self._handler_index))
             yield
         finally:
             await self._session_queues.pop(session_id).put(None)  # put None so that the get task will not hang
             del self._session_handlers[session_id]
             for other_index, other_queue in enumerate(self._handler_queues):
                 if other_index != self._handler_index:
-                    other_queue.put_nowait((END_SESSION, session_id, self._handler_index))
+                    other_queue.put_nowait((Event.END_SESSION, session_id, self._handler_index))
 
     async def _put_into_push_queue(self, session_id: str, request: runtime_pb2.ExpertRequest):
         handler_index = self._session_handlers.get(session_id)
@@ -254,7 +261,7 @@ class TransformerConnectionHandler(ConnectionHandler):
         elif handler_index == self._handler_index:
             await self._session_queues[session_id].put(request)
         else:
-            self._handler_queues[handler_index].put_nowait((PUSH, session_id, request))
+            self._handler_queues[handler_index].put_nowait((Event.PUSH, session_id, request))
 
     async def _get_from_push_queue(self, session_id: str) -> Optional[runtime_pb2.ExpertRequest]:
         if self._listener_task is None:
@@ -267,14 +274,14 @@ class TransformerConnectionHandler(ConnectionHandler):
         while True:
             try:
                 code, session_id, payload = await loop.run_in_executor(None, self._own_queue.get)
-                if code == SHUTDOWN:
+                if code == Event.SHUTDOWN:
                     break
-                elif code == NEW_SESSION:
+                elif code == Event.NEW_SESSION:
                     self._session_handlers[session_id] = payload  # index of the handler that owns that session
-                elif code == END_SESSION:
+                elif code == Event.END_SESSION:
                     self._session_handlers.pop(session_id, None)
                 else:
-                    assert code == PUSH, f"unexpected code: {code}"
+                    assert code == Event.PUSH, f"unexpected code: {code}"
                     maybe_session_queue = self._session_queues.get(session_id)
                     if maybe_session_queue is not None:
                         maybe_session_queue.put_nowait(payload)
