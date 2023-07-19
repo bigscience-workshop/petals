@@ -59,16 +59,22 @@ def main():
 
     parser.add_argument('--num_handlers', type=int, default=8, required=False,
                         help='server will use this many processes to handle incoming requests')
-    parser.add_argument('--min_batch_size', type=int, default=1,
-                        help='Minimum required batch size for all operations (in total tokens)')
-    parser.add_argument('--max_batch_size', type=int, default=2048,
-                        help='The total number of tokens in the same batch will not exceed this value')
     parser.add_argument('--prefetch_batches', type=int, default=1, required=False,
                         help='Pre-form this many subsequent batches while GPU is processing the current one')
     parser.add_argument('--sender_threads', type=int, default=1, required=False,
                         help='Use this many threads to pass results/exceptions from Runtime to Pools')
-    parser.add_argument('--inference_max_length', type=int, default=2048,
-                        help='Maximum total sequence length permitted per inference, defaults to 16384 tokens')
+
+    parser.add_argument('--inference_max_length', type=int, default=None,
+                        help='Maximum total sequence length permitted per inference, defaults to 16384 tokens. '
+                             'Default: 2048 for most models, 8192 for models with multi-query attention (e.g., Llama-2-70b)')
+    parser.add_argument('--min_batch_size', type=int, default=1,
+                        help='Minimum required batch size for all operations (in total tokens)')
+    parser.add_argument('--max_batch_size', type=int, default=None,
+                        help='The total number of tokens in the same batch will not exceed this value. '
+                             'Default: 2048 for most models, 8192 for models with multi-query attention (e.g., Llama-2-70b)')
+    parser.add_argument('--attn_cache_tokens', type=int, default=None,
+                        help='The number of past attention key/value pairs that will be stored between inference steps. '
+                             'Default: 8192 for most models, 32768 for models with multi-query attention (e.g., Llama-2-70b)')
 
     parser.add_argument('--cache_dir', type=str, default=None,
                         help='Path to a directory in which a downloaded pretrained model configuration should be cached if the standard cache should not be used.')
@@ -86,9 +92,6 @@ def main():
     parser.add_argument("--torch_dtype", type=str, choices=DTYPE_MAP.keys(), default="auto",
                         help="Use this dtype to store block weights and do computations. "
                              "By default, respect the dtypes in the pre-trained state dict.")
-    parser.add_argument('--attn_cache_tokens', type=int, default=8192,
-                        help='The number of past attention key/value pairs that will be stored between inference steps. '
-                             'Default: 8192 (4 simultaneous sessions of up to 2048 tokens).')
     parser.add_argument('--alloc_timeout', type=float, default=5,
                         help='If the cache is full, the server will wait for this number of seconds hoping that some memory will be freed '
                              'before rejecting the request')
