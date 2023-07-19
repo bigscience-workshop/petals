@@ -25,7 +25,7 @@ def main():
                        help="path or name of a pretrained model, converted with cli/convert_model.py")
     group.add_argument('model', nargs='?', type=str, help="same as --converted_model_name_or_path")
 
-    group.add_argument("--public_name", type=str, default=None, help="Public name to be reported in the leaderboard")
+    parser.add_argument("--public_name", type=str, default=None, help="Public name to be reported in the leaderboard")
 
     group = parser.add_mutually_exclusive_group(required=False)
     group.add_argument("--token", type=str, default=None, help="Hugging Face hub auth token for .from_pretrained()")
