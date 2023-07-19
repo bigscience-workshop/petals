@@ -212,7 +212,6 @@ class RemoteSequenceManager:
         end_index: int,
         *,
         cache_tokens_needed: Optional[int],
-        overhead_coeff: float = 1.82,  # Backend overhead (empirically measured)
         overhead_delay: float = 0.018,  # Serialization overhead (empirically measured)
         default_inference_rps: float = 300,  # If inference RPS unknown
         alloc_delay: float = 10,  # If not enough cache left, we penalize the edge
@@ -266,7 +265,7 @@ class RemoteSequenceManager:
                 inference_rps = span.server_info.inference_rps
                 if inference_rps is None:
                     inference_rps = default_inference_rps
-                graph.add_edge((span.peer_id, block_idx), (span.peer_id, block_idx + 1), overhead_coeff / inference_rps)
+                graph.add_edge((span.peer_id, block_idx), (span.peer_id, block_idx + 1), 1.0 / inference_rps)
 
         return graph
 
