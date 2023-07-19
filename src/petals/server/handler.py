@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-import sys
 import multiprocessing as mp
+import sys
 from itertools import chain
 from typing import Any, AsyncIterator, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 
@@ -81,7 +81,6 @@ class TransformerConnectionHandler(ConnectionHandler):
         self.request_timeout = request_timeout
         self.session_timeout, self.step_timeout = session_timeout, step_timeout
         self._prioritizer = task_prioritizer
-
 
     def shutdown(self):
         if self.is_alive():
@@ -238,14 +237,14 @@ class TransformerConnectionHandler(ConnectionHandler):
             self._session_handlers[session_id] = self._handler_index
             for other_index, other_queue in enumerate(self._handler_queues):
                 if other_index != self._handler_index:
-                    other_queue.put_nowait(('NEW SESSION', session_id, self._handler_index))  # todo: str -> enum
+                    other_queue.put_nowait(("NEW SESSION", session_id, self._handler_index))  # todo: str -> enum
             yield
         finally:
             await self._session_queues.pop(session_id).put(None)  # put None so that the get task will not hang
             del self._session_handlers[session_id]
             for other_index, other_queue in enumerate(self._handler_queues):
                 if other_index != self._handler_index:
-                    other_queue.put_nowait(('END SESSION', session_id, self._handler_index))
+                    other_queue.put_nowait(("END SESSION", session_id, self._handler_index))
 
     async def _put_into_push_queue(self, session_id: str, request: runtime_pb2.ExpertRequest):
         handler_index = self._session_handlers.get(session_id)
