@@ -94,7 +94,7 @@ class TransformerConnectionHandler(ConnectionHandler):
         if self._listener_task is None:
             # Start listening to our own event queue before we accept any requests
             self._listener_task = asyncio.create_task(self._listen_to_event_queue())
-        await self.add_p2p_handlers(*args, **kwargs)
+        await super().add_p2p_handlers(*args, **kwargs)
 
     def shutdown(self):
         if self.is_alive():
