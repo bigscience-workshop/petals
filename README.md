@@ -38,7 +38,7 @@ Run these commands in an [Anaconda](https://www.anaconda.com) env (requires Linu
 
 ```bash
 conda install pytorch pytorch-cuda=11.7 -c pytorch -c nvidia
-pip install git+https://github.com/bigscience-workshop/petals
+pip install --upgrade petals
 python -m petals.cli.run_server enoch/llama-65b-hf --adapters timdettmers/guanaco-65b
 ```
 
@@ -77,8 +77,8 @@ Learning more:
 
 ## How does it work?
 
-- Petals runs large language models like [LLaMA-65B](https://github.com/facebookresearch/llama/blob/main/MODEL_CARD.md) or [BLOOM-176B](https://huggingface.co/bigscience/bloom) **collaboratively** — you load a small part of the model, then team up with people serving the other parts to run inference or fine-tuning.
-- Single-batch inference runs at 3-4 steps/sec for LLaMA-65B and &approx; 1 step/sec for BLOOM-176B — [up to 10x faster](https://github.com/bigscience-workshop/petals#benchmarks) than offloading, enough for [chatbots](http://chat.petals.ml) and other interactive apps. Parallel inference reaches hundreds of tokens/sec.
+- Petals runs large language models like [LLaMA](https://github.com/facebookresearch/llama/blob/main/MODEL_CARD.md) and [BLOOM](https://huggingface.co/bigscience/bloom) **collaboratively** — you load a small part of the model, then team up with people serving the other parts to run inference or fine-tuning.
+- Single-batch inference runs at up to 6-7 steps/sec for LLaMA 2 (70B) and &approx; 1 step/sec for BLOOM-176B — [up to 10x faster](https://github.com/bigscience-workshop/petals#benchmarks) than offloading, enough for [chatbots](http://chat.petals.ml) and other interactive apps. Parallel inference reaches hundreds of tokens/sec.
 - Beyond classic language model APIs — you can employ any fine-tuning and sampling methods, execute custom paths through the model, or see its hidden states. You get the comforts of an API with the flexibility of PyTorch.
 
 <p align="center">
@@ -97,7 +97,7 @@ Here's how to install Petals with [Anaconda](https://www.anaconda.com/products/d
 
 ```bash
 conda install pytorch pytorch-cuda=11.7 -c pytorch -c nvidia
-pip install git+https://github.com/bigscience-workshop/petals
+pip install --upgrade petals
 ```
 
 If you don't use Anaconda, you can install PyTorch in [any other way](https://pytorch.org/get-started/locally/). If you want to run models with 8-bit weights, please install PyTorch with CUDA 11.x or newer for compatility with [bitsandbytes](https://github.com/timDettmers/bitsandbytes).
