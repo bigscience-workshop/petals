@@ -145,8 +145,7 @@ class ReachabilityProtocol(ServicerBase):
                 async with protocol.serve(common_p2p):
                     await protocol._stop.wait()
             except Exception as e:
-                logger.warning(f"Reachability service failed: {repr(e)}")
-                logger.debug("See detailed traceback below:", exc_info=True)
+                logger.debug("Reachability service failed:", exc_info=True)
 
                 if not ready.done():
                     ready.set_exception(e)
