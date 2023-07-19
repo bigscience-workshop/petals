@@ -248,7 +248,7 @@ class TransformerConnectionHandler(ConnectionHandler):
                     other_queue.put_nowait((Event.NEW_SESSION, session_id, self._handler_index))
             yield
         finally:
-            await self._session_queues.pop(session_id).put(None)  # put None so that the get task will not hang
+            self._session_queues.pop(session_id).put_nowait(None)  # put None so that the get task will not hang
             del self._session_handlers[session_id]
             for other_index, other_queue in enumerate(self._handler_event_queues):
                 if other_index != self._handler_index:
