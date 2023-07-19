@@ -309,6 +309,7 @@ class TransformerConnectionHandler(ConnectionHandler):
                     pushed = metadata.get("pushed")
                     if pushed:
                         n_pushes += 1
+                        self._log_request("rpc_inference.push", requested_uids, context, debug=f"session received push")
 
                     if step_id is None or step_id not in processed_step_ids:
                         yield request, metadata
