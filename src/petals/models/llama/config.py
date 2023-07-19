@@ -39,6 +39,7 @@ class DistributedLlamaConfig(LlamaConfig, SequenceManagerConfig, PTuneConfig, LM
                 dht_prefix += "-hf"
             logger.info(f"Using DHT prefix: {dht_prefix}")
 
-        config = super().from_pretrained(model_name_or_path, *args, dht_prefix=dht_prefix, **kwargs)
+        result = super().from_pretrained(model_name_or_path, *args, dht_prefix=dht_prefix, **kwargs)
+        config = result[0] if isinstance(result, tuple) else result
         config.pretraining_tp = 1  # This may give less accurate results but it doesn't matter if we use quantization
-        return config
+        return result
