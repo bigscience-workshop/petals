@@ -36,6 +36,7 @@ class DistributedLlamaModel(FromPretrainedMixin, PTuneMixin, LlamaModel):
         self.requires_grad_(False)  # Forbid accumulate grads for embeddings and layernorm
         self.init_prompts(config)
 
+    @torch.jit.script_method
     def forward(
         self,
         input_ids: Optional[torch.LongTensor] = None,
@@ -71,9 +72,9 @@ class DistributedLlamaModel(FromPretrainedMixin, PTuneMixin, LlamaModel):
         output_shape = input_shape + (hidden_states.size(-1),)
 
         if self.config.tuning_mode and "ptune" in self.config.tuning_mode:
-            hidden_states = self.layers(hidden_states, prompts=intermediate_prompts)
+            hidden_states = self._forward_tune_mode(hidden_states, intermediate_prompts)
         else:
-            hidden_states = self.layers(hidden_states)
+            hidden_states = self._forward_default_mode(hidden_states)
 
         # Remove prefix
         if self.config.tuning_mode and "ptune" in self.config.tuning_mode:
@@ -89,63 +90,53 @@ class DistributedLlamaModel(FromPretrainedMixin, PTuneMixin, LlamaModel):
             attentions=None,
         )
 
-    @property
-    def word_embeddings(self) -> nn.Embedding:  # For compatibility with RemoteGenerationMixin
-        return self.embed_tokens
+    @torch.jit.script_method
+    def _forward_tune_mode(self, hidden_states: torch.Tensor, intermediate_prompts: torch.Tensor) -> torch.Tensor:
+        return self.layers(hidden_states, prompts=intermediate_prompts)
 
-    @property
-    def word_embeddings_layernorm(self) -> nn.Module:  # For compatibility with RemoteGenerationMixin
-        return nn.Identity()
-
-    @property
-    def h(self) -> RemoteSequential:  # For compatibility with RemoteGenerationMixin
-        return self.layers
-
-    @property
-    def ln_f(self) -> nn.Module:  # For compatibility with RemoteGenerationMixin
-        return self.norm
+    @torch.jit.script_method
+    def _forward_default_mode(self, hidden_states: torch.Tensor) -> torch.Tensor:
+        return self.layers(hidden_states)
 
 
-class DistributedLlamaForCausalLM(FromPretrainedMixin, RemoteGenerationMixin, LlamaForCausalLM):
-    _keys_to_ignore_on_load_missing = DistributedLlamaModel._keys_to_ignore_on_load_missing
-    _keys_to_ignore_on_load_unexpected = DistributedLlamaModel._keys_to_ignore_on_load_unexpected
-
-    config_class = DistributedLlamaConfig
-
-    def __init__(self, config: DistributedLlamaConfig):
-        LlamaPreTrainedModel.__init__(self, config)
-        self.model = DistributedLlamaModel(config)
-        self.pretraining_tp = config.pretraining_tp
-        self.vocab_size = config.vocab_size
-        self.lm_head = LMHead(config)
-
-        # Initialize weights and apply final processing
-        self.post_init()
-
-    def get_output_embeddings(self):
-        return self.lm_head
-
-    @property
-    def transformer(self) -> DistributedLlamaModel:  # For compatibility with RemoteGenerationMixin
-        return self.model
-
-
-class DistributedLlamaForSequenceClassification(FromPretrainedMixin, LlamaForSequenceClassification):
-    _keys_to_ignore_on_load_missing = DistributedLlamaModel._keys_to_ignore_on_load_missing
-    _keys_to_ignore_on_load_unexpected = DistributedLlamaModel._keys_to_ignore_on_load_unexpected
-
-    config_class = DistributedLlamaConfig
-
-    def __init__(self, config):
-        LlamaPreTrainedModel.__init__(self, config)
-        self.num_labels = config.num_labels
-
-        self.model = DistributedLlamaModel(config)
-        self.score = nn.Linear(config.hidden_size, self.num_labels, bias=False)
-
-        # Initialize weights and apply final processing
-        self.post_init()
-
-    @property
-    def transformer(self) -> DistributedLlamaModel:  # For compatibility with RemoteGenerationMixin
+	        return self.embed_tokens	
+    @property	
+    def word_embeddings_layernorm(self) -> nn.Module:  # For compatibility with RemoteGenerationMixin	
+        return nn.Identity()	
+    @property	
+    def h(self) -> RemoteSequential:  # For compatibility with RemoteGenerationMixin	
+        return self.layers	
+    @property	
+    def ln_f(self) -> nn.Module:  # For compatibility with RemoteGenerationMixin	
+        return self.norm	
+class DistributedLlamaForCausalLM(FromPretrainedMixin, RemoteGenerationMixin, LlamaForCausalLM):	
+    _keys_to_ignore_on_load_missing = DistributedLlamaModel._keys_to_ignore_on_load_missing	
+    _keys_to_ignore_on_load_unexpected = DistributedLlamaModel._keys_to_ignore_on_load_unexpected	
+    config_class = DistributedLlamaConfig	
+    def __init__(self, config: DistributedLlamaConfig):	
+        LlamaPreTrainedModel.__init__(self, config)	
+        self.model = DistributedLlamaModel(config)	
+        self.pretraining_tp = config.pretraining_tp	
+        self.vocab_size = config.vocab_size	
+        self.lm_head = LMHead(config)	
+        # Initialize weights and apply final processing	
+        self.post_init()	
+    def get_output_embeddings(self):	
+        return self.lm_head	
+    @property	
+    def transformer(self) -> DistributedLlamaModel:  # For compatibility with RemoteGenerationMixin	
+        return self.model	
+class DistributedLlamaForSequenceClassification(FromPretrainedMixin, LlamaForSequenceClassification):	
+    _keys_to_ignore_on_load_missing = DistributedLlamaModel._keys_to_ignore_on_load_missing	
+    _keys_to_ignore_on_load_unexpected = DistributedLlamaModel._keys_to_ignore_on_load_unexpected	
+    config_class = DistributedLlamaConfig	
+    def __init__(self, config):	
+        LlamaPreTrainedModel.__init__(self, config)	
+        self.num_labels = config.num_labels	
+        self.model = DistributedLlamaModel(config)	
+        self.score = nn.Linear(config.hidden_size, self.num_labels, bias=False)	
+        # Initialize weights and apply final processing	
+        self.post_init()	
+    @property	
+    def transformer(self) -> DistributedLlamaModel:  # For compatibility with RemoteGenerationMixin	
         return self.model
