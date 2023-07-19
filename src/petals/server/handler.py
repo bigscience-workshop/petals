@@ -144,9 +144,6 @@ class TransformerConnectionHandler(ConnectionHandler):
                 active_adapter = self._get_active_adapter(metadata)
                 points = metadata.get("points", 0)
                 session_id = metadata.get("session_id")
-                todo_use_async_with = self._managed_session(session_id)
-                await todo_use_async_with.__aenter__()  # to avoid triggering the reviewer with large diff
-
                 if not requested_uids:
                     raise ValueError("User must specify at least one block for inference, but got none")
                 assert isinstance(
@@ -234,11 +231,9 @@ class TransformerConnectionHandler(ConnectionHandler):
                         prefix_length += length_increment
             finally:
                 self._log_request("rpc_inference.close", requested_uids, context)
-                if todo_use_async_with is not None:
-                    await todo_use_async_with.__aexit__(None, None, None)  # todo: change into async with
 
-    @contextlib.asynccontextmanager
-    async def _managed_session(self, session_id: str):
+    @contextlib.contextmanager
+    def _managed_session(self, session_id: str):
         assert session_id not in self._session_queues, f"session id {session_id} is not unique"
         try:
             self._session_queues[session_id] = asyncio.Queue()
@@ -302,50 +297,51 @@ class TransformerConnectionHandler(ConnectionHandler):
         request = first_request
         anext_task = get_push_task = None
         try:
-            while request.tensors:  # iterate while user is willing to supply tensors
-                metadata = MSGPackSerializer.loads(request.metadata) if request.metadata else {}
-                step_id = metadata.get("step_id")
+            with self._managed_session(session_id) if session_id is not None else contextlib.nullcontext():
+                while request.tensors:  # iterate while user is willing to supply tensors
+                    metadata = MSGPackSerializer.loads(request.metadata) if request.metadata else {}
+                    step_id = metadata.get("step_id")
 
-                pushed = metadata.get("pushed")
-                if pushed:
-                    n_pushes += 1
+                    pushed = metadata.get("pushed")
+                    if pushed:
+                        n_pushes += 1
 
-                if step_id is None or step_id not in processed_step_ids:
-                    yield request, metadata
-                    if step_id is not None:
-                        processed_step_ids.add(step_id)
-                elif pushed:
-                    n_late_pushes += 1
-                    self._log_request(
-                        "rpc_inference.push",
-                        requested_uids,
-                        context,
-                        warning=f"arrived late {n_late_pushes / n_pushes * 100:.1f}% of the time",
+                    if step_id is None or step_id not in processed_step_ids:
+                        yield request, metadata
+                        if step_id is not None:
+                            processed_step_ids.add(step_id)
+                    elif pushed:
+                        n_late_pushes += 1
+                        self._log_request(
+                            "rpc_inference.push",
+                            requested_uids,
+                            context,
+                            warning=f"arrived late {n_late_pushes / n_pushes * 100:.1f}% of the time",
+                        )
+
+                    # Wait for the next request, coming either from the `requests` iterator or `push_queue`
+                    if anext_task is None:
+                        anext_task = asyncio.create_task(anext(requests))
+                    if get_push_task is None:
+                        if session_id is not None:
+                            get_push_task = asyncio.create_task(self._get_from_session_queue(session_id))
+                        else:
+                            get_push_task = asyncio.create_task(asyncio.Event().wait())  # Dummy never-ending task
+                    done, _ = await asyncio.wait(
+                        [anext_task, get_push_task], timeout=self.step_timeout, return_when=asyncio.FIRST_COMPLETED
                     )
 
-                # Wait for the next request, coming either from the `requests` iterator or `push_queue`
-                if anext_task is None:
-                    anext_task = asyncio.create_task(anext(requests))
-                if get_push_task is None:
-                    if session_id is not None:
-                        get_push_task = asyncio.create_task(self._get_from_session_queue(session_id))
+                    if anext_task in done:
+                        request = await anext_task
+                        anext_task = None
+                    elif get_push_task in done:
+                        request = await get_push_task
+                        get_push_task = None
                     else:
-                        get_push_task = asyncio.create_task(asyncio.Event().wait())  # Dummy never-ending task
-                done, _ = await asyncio.wait(
-                    [anext_task, get_push_task], timeout=self.step_timeout, return_when=asyncio.FIRST_COMPLETED
-                )
-
-                if anext_task in done:
-                    request = await anext_task
-                    anext_task = None
-                elif get_push_task in done:
-                    request = await get_push_task
-                    get_push_task = None
-                else:
-                    self._log_request("rpc_inference.step", requested_uids, context, warning="timed out")
-                    anext_task.cancel()
-                    get_push_task.cancel()
-                    return
+                        self._log_request("rpc_inference.step", requested_uids, context, warning="timed out")
+                        anext_task.cancel()
+                        get_push_task.cancel()
+                        return
         except:
             logger.warning("rpc_inference._iterate_inference_steps() exception:", exc_info=True)
             raise
