@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-import multiprocessing.managers
 import sys
-from concurrent.futures import ThreadPoolExecutor
+import multiprocessing as mp
 from itertools import chain
 from typing import Any, AsyncIterator, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 
@@ -42,18 +41,6 @@ logger = get_logger(__name__)
 # Fix pickling protobufs, see https://stackoverflow.com/a/74873028
 sys.modules["runtime_pb2"] = runtime_pb2
 
-# Fix queues in multiprocessing.Manager in Python < 3.9.7, see https://bugs.python.org/issue30256
-
-_OriginalAutoProxy = multiprocessing.managers.AutoProxy
-
-
-def patched_autoproxy(*args, manager_owned=True, **kwargs):
-    # Calling original AutoProxy without the unwanted key argument
-    return _OriginalAutoProxy(*args, **kwargs)
-
-
-multiprocessing.managers.AutoProxy = patched_autoproxy
-
 
 CACHE_TOKENS_AVAILABLE = "cache_tokens_available"
 
@@ -70,8 +57,8 @@ class TransformerConnectionHandler(ConnectionHandler):
         *,
         adapters: Optional[Sequence[str]],
         dht_prefix: str,
-        push_manager: multiprocessing.managers.SyncManager,
-        session_queues: Dict[str, multiprocessing.managers.BaseProxy],  # BaseProxy for queue.Queue
+        handler_queues: Sequence[mp.Queue],
+        handler_index: int,
         inference_max_length: int,
         request_timeout: float,
         session_timeout: float,
@@ -83,18 +70,23 @@ class TransformerConnectionHandler(ConnectionHandler):
             assert isinstance(module_backend, TransformerBackend)
         self.dht_prefix = dht_prefix
         self.adapters = adapters
-        self._push_manager = push_manager
-        self._session_queues = session_queues
-        self._executor = ThreadPoolExecutor(max_workers=float("inf"))  # For waiting on self.session_queues
+        self._handler_queues = handler_queues
+        self._handler_index = handler_index
+        self._own_queue = handler_queues[handler_index]
+        self._listener_task: Optional[asyncio.Task] = None
+        self._session_queues: Dict[str, asyncio.Queue] = dict()
+        self._session_handlers: Dict[str, int] = dict()
 
         self.inference_max_length = inference_max_length
         self.request_timeout = request_timeout
         self.session_timeout, self.step_timeout = session_timeout, step_timeout
         self._prioritizer = task_prioritizer
 
+
     def shutdown(self):
         if self.is_alive():
             self._outer_pipe.send("_shutdown")
+            self._own_queue.put(("SHUTDOWN", None, None))
             self.join(self.shutdown_timeout)
             if self.is_alive():
                 logger.warning(f"{self.__class__.__name__} failed to shut down gracefully, sending SIGTERM")
@@ -129,7 +121,6 @@ class TransformerConnectionHandler(ConnectionHandler):
         context: P2PContext,
     ) -> AsyncIterator[runtime_pb2.ExpertResponse]:
         """Compute a single step of inference using attention cache; update attention cache accordingly."""
-
         async with timeout(self.session_timeout):
             try:
                 request = await asyncio.wait_for(anext(requests), self.step_timeout)
@@ -146,6 +137,8 @@ class TransformerConnectionHandler(ConnectionHandler):
                 active_adapter = self._get_active_adapter(metadata)
                 points = metadata.get("points", 0)
                 session_id = metadata.get("session_id")
+                todo_use_async_with = self._managed_session(session_id)
+                await todo_use_async_with.__aenter__()  # to avoid triggering the reviewer with large diff
 
                 if not requested_uids:
                     raise ValueError("User must specify at least one block for inference, but got none")
@@ -234,6 +227,59 @@ class TransformerConnectionHandler(ConnectionHandler):
                         prefix_length += length_increment
             finally:
                 self._log_request("rpc_inference.close", requested_uids, context)
+                if todo_use_async_with is not None:
+                    await todo_use_async_with.__aexit__(None, None, None)  # todo: change into async with
+
+    @contextlib.asynccontextmanager
+    async def _managed_session(self, session_id: str):
+        assert session_id not in self._session_queues, f"session id {session_id} is not unique"
+        try:
+            self._session_queues[session_id] = asyncio.Queue()
+            self._session_handlers[session_id] = self._handler_index
+            for other_index, other_queue in enumerate(self._handler_queues):
+                if other_index != self._handler_index:
+                    other_queue.put_nowait(('NEW SESSION', session_id, self._handler_index))  # todo: str -> enum
+            yield
+        finally:
+            await self._session_queues.pop(session_id).put(None)  # put None so that the get task will not hang
+            del self._session_handlers[session_id]
+            for other_index, other_queue in enumerate(self._handler_queues):
+                if other_index != self._handler_index:
+                    other_queue.put_nowait(('END SESSION', session_id, self._handler_index))
+
+    async def _put_into_push_queue(self, session_id: str, request: runtime_pb2.ExpertRequest):
+        handler_index = self._session_handlers.get(session_id)
+        if handler_index is None:
+            logger.debug(f"Ignored rpc_push to unknown session ID: {session_id}")
+        elif handler_index == self._handler_index:
+            await self._session_queues[session_id].put(request)
+        else:
+            self._handler_queues[handler_index].put_nowait(("PUSH", self._handler_index, request))
+
+    async def _get_from_push_queue(self, session_id: str) -> Optional[runtime_pb2.ExpertRequest]:
+        if self._listener_task is None:
+            self._listener_task = asyncio.create_task(self._listen_to_own_queue())
+        assert self._session_handlers[session_id] == self._handler_index, "session belongs to another handler"
+        return await self._session_queues[session_id].get()
+
+    async def _listen_to_own_queue(self):
+        loop = asyncio.get_event_loop()
+        while True:
+            try:
+                code, session_id, payload = await loop.run_in_executor(None, self._own_queue.get)
+                if code == "SHUTDOWN":
+                    break  # TODO: not sure this is necessary since we're shutting down the entire process
+                elif code == "NEW SESSION":
+                    self._session_handlers[session_id] = payload  # index of the handler that owns that session
+                elif code == "END SESSION":
+                    self._session_handlers.pop(session_id, None)
+                else:
+                    assert code == "PUSH", f"unexpected code: {code}"
+                    maybe_session_queue = self._session_queues.get(session_id)
+                    if maybe_session_queue is not None:
+                        maybe_session_queue.put_nowait(payload)
+            except Exception as e:
+                logger.exception(e)
 
     async def _iterate_inference_steps(
         self,
@@ -243,11 +289,6 @@ class TransformerConnectionHandler(ConnectionHandler):
         requested_uids: Sequence[str],
         context: P2PContext,
     ) -> AsyncIterator[Tuple[runtime_pb2.ExpertRequest, dict]]:
-        loop = asyncio.get_event_loop()
-        if session_id is not None:
-            push_queue = self._push_manager.Queue()
-            self._session_queues[session_id] = push_queue
-
         processed_step_ids = set()
         n_pushes = n_late_pushes = 0
         request = first_request
@@ -279,7 +320,7 @@ class TransformerConnectionHandler(ConnectionHandler):
                     anext_task = asyncio.create_task(anext(requests))
                 if get_push_task is None:
                     if session_id is not None:
-                        get_push_task = loop.run_in_executor(self._executor, push_queue.get)
+                        get_push_task = asyncio.create_task(self._get_from_push_queue(session_id))
                     else:
                         get_push_task = asyncio.create_task(asyncio.Event().wait())  # Dummy never-ending task
                 done, _ = await asyncio.wait(
@@ -300,10 +341,6 @@ class TransformerConnectionHandler(ConnectionHandler):
         except:
             logger.warning("rpc_inference._iterate_inference_steps() exception:", exc_info=True)
             raise
-        finally:
-            if session_id is not None:
-                push_queue.put(None)  # Stop thread for get_push_task
-                del self._session_queues[session_id]
 
     async def rpc_push(self, request: runtime_pb2.ExpertRequest, context: P2PContext) -> runtime_pb2.ExpertResponse:
         """Directly push activation tensors from one server to another"""
@@ -312,8 +349,7 @@ class TransformerConnectionHandler(ConnectionHandler):
         metadata = MSGPackSerializer.loads(request.metadata)
         session_id = metadata["session_id"]
         self._log_request("rpc_push", requested_uids, context, debug=f"session_id={session_id}")
-
-        self._session_queues[session_id].put(request)
+        await self._put_into_push_queue(session_id, request)
         return runtime_pb2.ExpertResponse()
 
     async def _push_outputs(

@@ -528,23 +528,21 @@ class ModuleContainer(threading.Thread):
         self.dht, self.module_backends = dht, module_backends
         self.server_info, self.update_period, self.expiration = server_info, update_period, expiration
 
-        self.push_manager = mp.Manager()
-        self.push_manager.__enter__()
-        session_queues = self.push_manager.dict()
+        handler_queues = [mp.Queue() for _ in range(num_handlers)]
         self.conn_handlers = [
             TransformerConnectionHandler(
                 dht,
                 self.module_backends,
                 adapters=server_info.adapters,
                 dht_prefix=dht_prefix,
-                push_manager=self.push_manager,
-                session_queues=session_queues,
+                handler_queues=handler_queues,
+                handler_index=i,
                 inference_max_length=inference_max_length,
                 request_timeout=request_timeout,
                 session_timeout=session_timeout,
                 step_timeout=step_timeout,
             )
-            for _ in range(num_handlers)
+            for i in range(num_handlers)
         ]
 
         self.runtime = RuntimeWithDeduplicatedPools(self.module_backends, device=None, **kwargs)
@@ -607,7 +605,6 @@ class ModuleContainer(threading.Thread):
         logger.debug("Shutting down connection handlers")
         for handler in self.conn_handlers:
             handler.shutdown()
-        self.push_manager.__exit__(None, None, None)
 
         logger.debug(f"Shutting down pools")
         for pool in self.runtime.pools:
