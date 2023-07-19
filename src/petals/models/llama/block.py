@@ -73,7 +73,9 @@ class WrappedLlamaBlock(LlamaDecoderLayer):
     ) -> Tuple[torch.Tensor]:
         key_states, value_states = key_value
         key_states = key_states.permute(0, 2, 1)
-        key_states = key_states.view(batch_size, self.self_attn.num_key_value_heads, seq_length, self.self_attn.head_dim)
+        key_states = key_states.view(
+            batch_size, self.self_attn.num_key_value_heads, seq_length, self.self_attn.head_dim
+        )
         value_states = value_states.view(*key_states.shape)
         return (key_states, value_states)
 
@@ -81,7 +83,9 @@ class WrappedLlamaBlock(LlamaDecoderLayer):
         self, key_value: Tuple[torch.Tensor], batch_size: int, seq_length: int
     ) -> Tuple[torch.Tensor]:
         key_states, value_states = key_value
-        value_states = value_states.view(batch_size * self.self_attn.num_key_value_heads, seq_length, self.self_attn.head_dim)
+        value_states = value_states.view(
+            batch_size * self.self_attn.num_key_value_heads, seq_length, self.self_attn.head_dim
+        )
         key_states = key_states.view(*value_states.shape)
         key_states = key_states.permute(0, 2, 1)
         return (key_states, value_states)
