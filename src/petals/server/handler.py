@@ -254,7 +254,7 @@ class TransformerConnectionHandler(ConnectionHandler):
         elif handler_index == self._handler_index:
             await self._session_queues[session_id].put(request)
         else:
-            self._handler_queues[handler_index].put_nowait((PUSH, self._handler_index, request))
+            self._handler_queues[handler_index].put_nowait((PUSH, session_id, request))
 
     async def _get_from_push_queue(self, session_id: str) -> Optional[runtime_pb2.ExpertRequest]:
         if self._listener_task is None:
