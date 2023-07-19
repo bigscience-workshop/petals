@@ -265,7 +265,7 @@ class RemoteSequenceManager:
                 inference_rps = span.server_info.inference_rps
                 if inference_rps is None:
                     inference_rps = default_inference_rps
-                graph.add_edge((span.peer_id, block_idx), (span.peer_id, block_idx + 1), 1. / inference_rps)
+                graph.add_edge((span.peer_id, block_idx), (span.peer_id, block_idx + 1), 1.0 / inference_rps)
 
         return graph
 
