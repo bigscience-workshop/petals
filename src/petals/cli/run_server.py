@@ -132,7 +132,7 @@ def main():
     parser.add_argument("--mean_balance_check_period", type=float, default=60,
                         help="Check the swarm's balance every N seconds (and rebalance it if necessary)")
 
-    parser.add_argument("--use_auth_token", action='store_true', help="auth token for from_pretrained")
+    parser.add_argument("--token", action='store_true', help="Hugging Face hub auth token for .from_pretrained()")
     parser.add_argument('--quant_type', type=str, default=None, choices=[choice.name.lower() for choice in QuantType],
                         help="Quantize blocks to 8-bit (int8 from the LLM.int8() paper) or "
                              "4-bit (nf4 from the QLoRA paper) formats to save GPU memory. "

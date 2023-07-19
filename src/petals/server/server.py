@@ -77,7 +77,7 @@ class Server:
         balance_quality: float = 0.75,
         mean_balance_check_period: float = 120,
         mean_block_selection_delay: float = 2.5,
-        use_auth_token: Optional[str] = None,
+        token: Optional[str] = None,
         quant_type: Optional[QuantType] = None,
         tensor_parallel_devices: Optional[Sequence[torch.device]] = None,
         skip_reachability_check: bool = False,
@@ -98,14 +98,14 @@ class Server:
         self.compression = compression
         self.stats_report_interval, self.update_period = stats_report_interval, update_period
         self.prefetch_batches, self.sender_threads = prefetch_batches, sender_threads
-        self.revision, self.use_auth_token = revision, use_auth_token
+        self.revision, self.token = revision, token
 
         if custom_module_path is not None:
             add_custom_models_from_file(custom_module_path)
 
         self.block_config = AutoDistributedConfig.from_pretrained(
             converted_model_name_or_path,
-            use_auth_token=use_auth_token,
+            token=token,
             revision=revision,
         )
 
@@ -271,7 +271,7 @@ class Server:
                 self.block_config,
                 self.torch_dtype,
                 self.adapters,
-                use_auth_token=self.use_auth_token,
+                token=self.token,
                 cache_dir=self.cache_dir,
                 max_disk_space=self.max_disk_space,
             )
@@ -316,7 +316,7 @@ class Server:
                 prefetch_batches=self.prefetch_batches,
                 sender_threads=self.sender_threads,
                 revision=self.revision,
-                use_auth_token=self.use_auth_token,
+                token=self.token,
                 quant_type=self.quant_type,
                 tensor_parallel_devices=self.tensor_parallel_devices,
                 should_validate_reachability=self.should_validate_reachability,
@@ -409,7 +409,7 @@ class ModuleContainer(threading.Thread):
         update_period: float,
         expiration: Optional[float],
         revision: Optional[str],
-        use_auth_token: Optional[str],
+        token: Optional[str],
         quant_type: QuantType,
         tensor_parallel_devices: Sequence[torch.device],
         should_validate_reachability: bool,
@@ -443,7 +443,7 @@ class ModuleContainer(threading.Thread):
                     config=block_config,
                     torch_dtype=torch_dtype,
                     revision=revision,
-                    use_auth_token=use_auth_token,
+                    token=token,
                     cache_dir=cache_dir,
                     max_disk_space=max_disk_space,
                 )
@@ -456,7 +456,7 @@ class ModuleContainer(threading.Thread):
                     quant_type,
                     adapters=server_info.adapters,
                     freeze=True,
-                    use_auth_token=use_auth_token,
+                    token=token,
                     cache_dir=cache_dir,
                     max_disk_space=max_disk_space,
                 )

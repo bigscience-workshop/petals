@@ -20,9 +20,7 @@ logger = get_logger(__name__)
 class DistributedBloomModel(FromPretrainedMixin, PTuneMixin, BloomModel):
     """BloomModel, but all transformer layers are hosted by the swarm"""
 
-    _keys_to_ignore_on_load_missing = (
-        BloomModel._keys_to_ignore_on_load_missing + PTuneMixin._keys_to_ignore_on_load_missing
-    )
+    _keys_to_ignore_on_load_missing = PTuneMixin._keys_to_ignore_on_load_missing
     _keys_to_ignore_on_load_unexpected = [r"^h\."]
 
     config_class = DistributedBloomConfig
@@ -93,11 +91,8 @@ class DistributedBloomModel(FromPretrainedMixin, PTuneMixin, BloomModel):
 
 
 class DistributedBloomForCausalLM(FromPretrainedMixin, RemoteGenerationMixin, BloomForCausalLM):
-    _keys_to_ignore_on_load_missing = (
-        BloomForCausalLM._keys_to_ignore_on_load_missing
-        + DistributedBloomModel._keys_to_ignore_on_load_missing
-        + [r"^lm_head\."]  # Missing since they are shared with input embeddings
-    )
+    _keys_to_ignore_on_load_missing = DistributedBloomModel._keys_to_ignore_on_load_missing
+    _keys_to_ignore_on_load_missing += [r"^lm_head\."]  # Missing since they are shared with input embeddings
     _keys_to_ignore_on_load_unexpected = DistributedBloomModel._keys_to_ignore_on_load_unexpected
 
     config_class = DistributedBloomConfig
@@ -115,10 +110,7 @@ class DistributedBloomForCausalLM(FromPretrainedMixin, RemoteGenerationMixin, Bl
 
 
 class DistributedBloomForSequenceClassification(FromPretrainedMixin, BloomForSequenceClassification):
-    _keys_to_ignore_on_load_missing = (
-        BloomForSequenceClassification._keys_to_ignore_on_load_missing
-        + DistributedBloomModel._keys_to_ignore_on_load_missing
-    )
+    _keys_to_ignore_on_load_missing = DistributedBloomModel._keys_to_ignore_on_load_missing
     _keys_to_ignore_on_load_unexpected = DistributedBloomModel._keys_to_ignore_on_load_unexpected
 
     config_class = DistributedBloomConfig
