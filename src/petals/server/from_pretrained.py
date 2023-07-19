@@ -23,6 +23,7 @@ from petals.constants import DTYPE_MAP
 from petals.server.block_utils import resolve_block_dtype
 from petals.utils.auto_config import AutoDistributedConfig
 from petals.utils.disk_cache import DEFAULT_CACHE_DIR, allow_cache_reads, allow_cache_writes, free_disk_space_for
+from petals.utils.hf_auth import always_needs_auth
 
 logger = get_logger(__name__)
 
@@ -86,6 +87,9 @@ def _load_state_dict_from_repo(
     cache_dir: str,
     max_disk_space: Optional[int] = None,
 ) -> StateDict:
+    if always_needs_auth(model_name) and token is None:
+        token = True
+
     index_file = get_file_from_repo(
         model_name, filename="pytorch_model.bin.index.json", use_auth_token=token, cache_dir=cache_dir
     )
