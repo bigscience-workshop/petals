@@ -65,7 +65,7 @@ class TransformerConnectionHandler(ConnectionHandler):
         *,
         adapters: Optional[Sequence[str]],
         dht_prefix: str,
-        handler_queues: Sequence[mp.Queue],
+        handler_event_queues: Sequence[mp.Queue],
         handler_index: int,
         inference_max_length: int,
         request_timeout: float,
@@ -78,9 +78,9 @@ class TransformerConnectionHandler(ConnectionHandler):
             assert isinstance(module_backend, TransformerBackend)
         self.dht_prefix = dht_prefix
         self.adapters = adapters
-        self._handler_queues = handler_queues
+        self._handler_event_queues = handler_event_queues
         self._handler_index = handler_index
-        self._own_queue = handler_queues[handler_index]
+        self._own_event_queue = handler_event_queues[handler_index]
         self._listener_task: Optional[asyncio.Task] = None
         self._session_queues: Dict[str, asyncio.Queue] = dict()
         self._session_handlers: Dict[str, int] = dict()
@@ -93,7 +93,7 @@ class TransformerConnectionHandler(ConnectionHandler):
     def shutdown(self):
         if self.is_alive():
             self._outer_pipe.send("_shutdown")
-            self._own_queue.put((Event.SHUTDOWN, None, None))
+            self._own_event_queue.put((Event.SHUTDOWN, None, None))
             self.join(self.shutdown_timeout)
             if self.is_alive():
                 logger.warning(f"{self.__class__.__name__} failed to shut down gracefully, sending SIGTERM")
@@ -243,27 +243,27 @@ class TransformerConnectionHandler(ConnectionHandler):
         try:
             self._session_queues[session_id] = asyncio.Queue()
             self._session_handlers[session_id] = self._handler_index
-            for other_index, other_queue in enumerate(self._handler_queues):
+            for other_index, other_queue in enumerate(self._handler_event_queues):
                 if other_index != self._handler_index:
                     other_queue.put_nowait((Event.NEW_SESSION, session_id, self._handler_index))
             yield
         finally:
             await self._session_queues.pop(session_id).put(None)  # put None so that the get task will not hang
             del self._session_handlers[session_id]
-            for other_index, other_queue in enumerate(self._handler_queues):
+            for other_index, other_queue in enumerate(self._handler_event_queues):
                 if other_index != self._handler_index:
                     other_queue.put_nowait((Event.END_SESSION, session_id, self._handler_index))
 
-    async def _put_into_push_queue(self, session_id: str, request: runtime_pb2.ExpertRequest):
+    async def _put_into_session_queue(self, session_id: str, request: runtime_pb2.ExpertRequest):
         handler_index = self._session_handlers.get(session_id)
         if handler_index is None:
             logger.debug(f"Ignored rpc_push to unknown session ID: {session_id}")
         elif handler_index == self._handler_index:
             await self._session_queues[session_id].put(request)
         else:
-            self._handler_queues[handler_index].put_nowait((Event.PUSH, session_id, request))
+            self._handler_event_queues[handler_index].put_nowait((Event.PUSH, session_id, request))
 
-    async def _get_from_push_queue(self, session_id: str) -> Optional[runtime_pb2.ExpertRequest]:
+    async def _get_from_session_queue(self, session_id: str) -> Optional[runtime_pb2.ExpertRequest]:
         if self._listener_task is None:
             self._listener_task = asyncio.create_task(self._listen_to_own_queue())
         assert self._session_handlers[session_id] == self._handler_index, "session belongs to another handler"
@@ -273,7 +273,7 @@ class TransformerConnectionHandler(ConnectionHandler):
         loop = asyncio.get_event_loop()
         while True:
             try:
-                code, session_id, payload = await loop.run_in_executor(None, self._own_queue.get)
+                code, session_id, payload = await loop.run_in_executor(None, self._own_event_queue.get)
                 if code == Event.SHUTDOWN:
                     break
                 elif code == Event.NEW_SESSION:
@@ -327,7 +327,7 @@ class TransformerConnectionHandler(ConnectionHandler):
                     anext_task = asyncio.create_task(anext(requests))
                 if get_push_task is None:
                     if session_id is not None:
-                        get_push_task = asyncio.create_task(self._get_from_push_queue(session_id))
+                        get_push_task = asyncio.create_task(self._get_from_session_queue(session_id))
                     else:
                         get_push_task = asyncio.create_task(asyncio.Event().wait())  # Dummy never-ending task
                 done, _ = await asyncio.wait(
@@ -356,7 +356,7 @@ class TransformerConnectionHandler(ConnectionHandler):
         metadata = MSGPackSerializer.loads(request.metadata)
         session_id = metadata["session_id"]
         self._log_request("rpc_push", requested_uids, context, debug=f"session_id={session_id}")
-        await self._put_into_push_queue(session_id, request)
+        await self._put_into_session_queue(session_id, request)
         return runtime_pb2.ExpertResponse()
 
     async def _push_outputs(

@@ -528,14 +528,14 @@ class ModuleContainer(threading.Thread):
         self.dht, self.module_backends = dht, module_backends
         self.server_info, self.update_period, self.expiration = server_info, update_period, expiration
 
-        handler_queues = [mp.Queue() for _ in range(num_handlers)]
+        handler_event_queues = [mp.Queue() for _ in range(num_handlers)]
         self.conn_handlers = [
             TransformerConnectionHandler(
                 dht,
                 self.module_backends,
                 adapters=server_info.adapters,
                 dht_prefix=dht_prefix,
-                handler_queues=handler_queues,
+                handler_event_queues=handler_event_queues,
                 handler_index=i,
                 inference_max_length=inference_max_length,
                 request_timeout=request_timeout,
