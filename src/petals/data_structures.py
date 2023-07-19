@@ -27,12 +27,14 @@ class ServerInfo:
     state: ServerState
     throughput: RPS
 
+    public_name: Optional[str] = None
+    version: Optional[str] = None
+
     network_rps: Optional[RPS] = None
     forward_rps: Optional[RPS] = None
     inference_rps: Optional[RPS] = None
 
     adapters: Sequence[str] = ()
-    version: Optional[str] = None
     torch_dtype: Optional[str] = None
     quant_type: Optional[str] = None
     using_relay: Optional[bool] = None

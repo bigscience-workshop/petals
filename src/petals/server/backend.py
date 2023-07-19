@@ -81,6 +81,7 @@ class TransformerBackend(ModuleBackend):
         head_dim = self.config.hidden_size // self.config.num_attention_heads
         cache_tensors = []
         for device, num_heads in zip(self.module.devices, self.shard_num_heads):
+            num_heads //= self.config.num_key_value_groups
             keys = TensorDescriptor((batch_size, num_heads, head_dim, max_length), dtype=self.dtype, device=device)
             values = TensorDescriptor((batch_size, num_heads, max_length, head_dim), dtype=self.dtype, device=device)
             cache_tensors.extend((keys, values))
@@ -123,8 +124,10 @@ class TransformerBackend(ModuleBackend):
         """Extract first {prefix_length} tokens and reshape them such that they can be used as layer_past"""
         key_cache, value_cache = list(cache_tensors[0::2]), list(cache_tensors[1::2])
         for i in range(len(key_cache)):
-            key_cache[i] = key_cache[i].flatten(0, 1)[:, :, :prefix_length]  # [batch * num_heads, head_dim, kv_length]
-            value_cache[i] = value_cache[i].flatten(0, 1)[:, :prefix_length]  # [batch * num_heads, kv_length, head_dim]
+            key_cache[i] = key_cache[i].flatten(0, 1)[:, :, :prefix_length]
+            # shape: [batch * num_kv_heads, head_dim, kv_length]
+            value_cache[i] = value_cache[i].flatten(0, 1)[:, :prefix_length]
+            # shape: [batch * num_kv_heads, kv_length, head_dim]
         layer_past = tuple(chain(*zip(key_cache, value_cache)))
         return PerDeviceTensors(*layer_past) if len(self.module.module_shards) > 1 else layer_past
 
@@ -132,7 +135,7 @@ class TransformerBackend(ModuleBackend):
         self, cache_tensors: Sequence[torch.Tensor], new_kvs: Sequence[torch.Tensor], prefix_length: int
     ):
         """Writes new key/value tensors back into cache, works in-place"""
-        _batch_size_times_num_heads, head_dim, new_length = new_kvs[0].shape
+        _batch_size_times_num_kv_heads, head_dim, new_length = new_kvs[0].shape
         for cache_key, new_key in zip(cache_tensors[0::2], new_kvs[0::2]):
             new_key = new_key.view(*cache_key.shape[:3], new_length)
             cache_key[:, :, :, prefix_length:new_length] = new_key[:, :, :, prefix_length:new_length]
