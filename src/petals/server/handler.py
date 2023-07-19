@@ -82,8 +82,8 @@ class TransformerConnectionHandler(ConnectionHandler):
         self._handler_index = handler_index
         self._own_event_queue = handler_event_queues[handler_index]
         self._listener_task: Optional[asyncio.Task] = None
-        self._session_queues: Dict[str, asyncio.Queue] = dict()
-        self._session_handlers: Dict[str, int] = dict()
+        self._session_queues: Dict[str, asyncio.Queue] = {}
+        self._session_handlers: Dict[str, int] = {}
 
         self.inference_max_length = inference_max_length
         self.request_timeout = request_timeout
@@ -259,7 +259,7 @@ class TransformerConnectionHandler(ConnectionHandler):
         if handler_index is None:
             logger.debug(f"Ignored rpc_push to unknown session ID: {session_id}")
         elif handler_index == self._handler_index:
-            await self._session_queues[session_id].put(request)
+            self._session_queues[session_id].put_nowait(request)
         else:
             self._handler_event_queues[handler_index].put_nowait((Event.PUSH, session_id, request))
 
