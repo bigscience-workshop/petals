@@ -50,6 +50,7 @@ class Server:
         initial_peers: List[str],
         dht_prefix: Optional[str],
         converted_model_name_or_path: str,
+        public_name: Optional[str] = None,
         throughput: Union[float, str],
         num_blocks: Optional[int] = None,
         block_indices: Optional[str] = None,
@@ -231,8 +232,9 @@ class Server:
             throughput_info = {"throughput": throughput}
         self.server_info = ServerInfo(
             state=ServerState.JOINING,
-            adapters=tuple(adapters),
+            public_name=public_name,
             version=petals.__version__,
+            adapters=tuple(adapters),
             torch_dtype=str(torch_dtype).replace("torch.", ""),
             quant_type=quant_type.name.lower(),
             using_relay=self.dht.client_mode,
