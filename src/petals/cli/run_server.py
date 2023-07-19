@@ -24,6 +24,7 @@ def main():
     group.add_argument('--converted_model_name_or_path', type=str, default=None,
                        help="path or name of a pretrained model, converted with cli/convert_model.py")
     group.add_argument('model', nargs='?', type=str, help="same as --converted_model_name_or_path")
+    parser.add_argument("--token", type=str, default=None, help="Hugging Face hub auth token for .from_pretrained()")
 
     parser.add_argument('--num_blocks', type=int, default=None, help="The number of blocks to serve")
     parser.add_argument('--block_indices', type=str, default=None, help="Specific block indices to serve")
@@ -132,7 +133,6 @@ def main():
     parser.add_argument("--mean_balance_check_period", type=float, default=60,
                         help="Check the swarm's balance every N seconds (and rebalance it if necessary)")
 
-    parser.add_argument("--token", action='store_true', help="Hugging Face hub auth token for .from_pretrained()")
     parser.add_argument('--quant_type', type=str, default=None, choices=[choice.name.lower() for choice in QuantType],
                         help="Quantize blocks to 8-bit (int8 from the LLM.int8() paper) or "
                              "4-bit (nf4 from the QLoRA paper) formats to save GPU memory. "
@@ -155,6 +155,9 @@ def main():
     args.pop("config", None)
 
     args["converted_model_name_or_path"] = args.pop("model") or args["converted_model_name_or_path"]
+
+    if args["token"].lower() == "true":
+        args["token"] = True
 
     host_maddrs = args.pop("host_maddrs")
     port = args.pop("port")

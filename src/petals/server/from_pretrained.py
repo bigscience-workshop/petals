@@ -34,7 +34,7 @@ def load_pretrained_block(
     config: Optional[PretrainedConfig] = None,
     torch_dtype: Union[torch.dtype, str] = "auto",
     revision: Optional[str] = None,
-    token: Optional[str] = None,
+    token: Optional[Union[str, bool]] = None,
     cache_dir: Optional[str] = None,
     max_disk_space: Optional[int] = None,
 ) -> nn.Module:
@@ -82,7 +82,7 @@ def _load_state_dict_from_repo(
     block_prefix: str,
     *,
     revision: Optional[str] = None,
-    token: Optional[str] = None,
+    token: Optional[Union[str, bool]] = None,
     cache_dir: str,
     max_disk_space: Optional[int] = None,
 ) -> StateDict:
@@ -125,7 +125,7 @@ def _load_state_dict_from_file(
     filename: str,
     *,
     revision: Optional[str] = None,
-    token: Optional[str] = None,
+    token: Optional[Union[str, bool]] = None,
     cache_dir: str,
     max_disk_space: Optional[int] = None,
     delay: float = 30,
