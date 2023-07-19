@@ -115,6 +115,8 @@ class DistributedLlamaForCausalLM(FromPretrainedMixin, RemoteGenerationMixin, Ll
     def __init__(self, config: DistributedLlamaConfig):
         LlamaPreTrainedModel.__init__(self, config)
         self.model = DistributedLlamaModel(config)
+        self.pretraining_tp = config.pretraining_tp
+        self.vocab_size = config.vocab_size
         self.lm_head = LMHead(config)
 
         # Initialize weights and apply final processing
