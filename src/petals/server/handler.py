@@ -249,7 +249,7 @@ class TransformerConnectionHandler(ConnectionHandler):
                 if other_index != self._handler_index:
                     other_queue.put_nowait((Event.END_SESSION, session_id, self._handler_index))
 
-    async def _put_into_session_queue(self, session_id: str, request: runtime_pb2.ExpertRequest):
+    def _put_into_session_queue(self, session_id: str, request: runtime_pb2.ExpertRequest):
         handler_index = self._session_handlers.get(session_id)
         if handler_index is None:
             logger.debug(f"Ignored rpc_push to unknown session ID: {session_id}")
@@ -353,7 +353,7 @@ class TransformerConnectionHandler(ConnectionHandler):
         metadata = MSGPackSerializer.loads(request.metadata)
         session_id = metadata["session_id"]
         self._log_request("rpc_push", requested_uids, context, debug=f"session_id={session_id}")
-        await self._put_into_session_queue(session_id, request)
+        self._put_into_session_queue(session_id, request)
         return runtime_pb2.ExpertResponse()
 
     async def _push_outputs(
