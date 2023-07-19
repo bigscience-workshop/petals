@@ -1,7 +1,7 @@
 import contextlib
 import re
 import time
-from typing import Optional, Sequence
+from typing import Optional, Sequence, Union
 
 import bitsandbytes as bnb
 import torch
@@ -50,7 +50,7 @@ def get_adapter_from_repo(
     block_idx: Optional[int] = None,
     device: Optional[int] = None,
     *,
-    token: Optional[str] = None,
+    token: Optional[Union[str, bool]] = None,
     **kwargs,
 ):
     config_path = get_file_from_repo(repo_id, CONFIG_NAME, use_auth_token=token, **kwargs)
@@ -72,7 +72,7 @@ def load_peft(
     device: Optional[int] = None,
     *,
     revision: Optional[str] = None,
-    token: Optional[str] = None,
+    token: Optional[Union[str, bool]] = None,
     cache_dir: str,
     max_disk_space: Optional[int] = None,
     delay: float = 30,
