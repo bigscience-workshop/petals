@@ -152,7 +152,7 @@ def main():
                         "weight matrix. See https://huggingface.co/transformers/v4.9.0/parallelism.html#tensor-parallelism")
 
     parser.add_argument("--skip_reachability_check", action='store_true',
-                        help="Skip checking this server's reachability via health.petals.ml "
+                        help="Skip checking this server's reachability via health.petals.dev "
                              "when connecting to the public swarm. If you connect to a private swarm, "
                              "the check is skipped by default. Use this option only if you know what you are doing")
 

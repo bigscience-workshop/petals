@@ -28,7 +28,7 @@ def validate_reachability(peer_id, wait_time: float = 7 * 60, retry_delay: float
             response = r.json()
 
             if response["success"]:
-                logger.info("Server is reachable from the Internet. It will appear at http://health.petals.ml soon")
+                logger.info("Server is reachable from the Internet. It will appear at https://health.petals.dev soon")
                 return
 
             if attempt_no == 0:
@@ -37,7 +37,7 @@ def validate_reachability(peer_id, wait_time: float = 7 * 60, retry_delay: float
                 logger.info("Detected a NAT or a firewall, connecting to libp2p relays. This takes a few minutes")
             time.sleep(retry_delay)
         except Exception as e:
-            logger.warning(f"Skipping reachability check because health.petals.ml is down: {repr(e)}")
+            logger.warning(f"Skipping reachability check because health.petals.dev is down: {repr(e)}")
             return
 
     raise RuntimeError(
