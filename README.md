@@ -65,8 +65,8 @@ Basic tutorials:
 
 Useful tools and advanced guides:
 
-- [Chatbot web app](https://chat.petals.dev) (connects to Petals via an HTTP/WebSocket endpoint): [source code](https://github.com/borzunov/chat.petals.ml)
-- [Monitor](https://health.petals.dev) for the public swarm: [source code](https://github.com/borzunov/health.petals.ml)
+- [Chatbot web app](https://chat.petals.dev) (connects to Petals via an HTTP/WebSocket endpoint): [source code](https://github.com/borzunov/chat.petals.dev)
+- [Monitor](https://health.petals.dev) for the public swarm: [source code](https://github.com/borzunov/health.petals.dev)
 - Launch your own swarm: [guide](https://github.com/bigscience-workshop/petals/wiki/Launch-your-own-swarm)
 - Run a custom foundation model: [guide](https://github.com/bigscience-workshop/petals/wiki/Run-a-custom-model-with-Petals)
 
