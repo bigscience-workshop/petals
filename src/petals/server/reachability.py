@@ -28,7 +28,7 @@ def validate_reachability(peer_id, wait_time: float = 7 * 60, retry_delay: float
             response = r.json()
 
             if response["success"]:
-                logger.info("Server is reachable from the Internet. It will appear at http://health.petals.dev soon")
+                logger.info("Server is reachable from the Internet. It will appear at https://health.petals.dev soon")
                 return
 
             if attempt_no == 0:
