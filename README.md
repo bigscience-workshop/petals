@@ -42,6 +42,12 @@ pip install --upgrade petals
 python -m petals.cli.run_server enoch/llama-65b-hf --adapters timdettmers/guanaco-65b
 ```
 
+You may have issues if your python version is over 3.10.  To use an older version of python:
+```
+conda create -n py38 python=3.8
+conda activate py38
+```
+
 Or run our [Docker](https://www.docker.com) image (works on Linux, macOS, and Windows with [WSL2](https://learn.microsoft.com/en-us/windows/ai/directml/gpu-cuda-in-wsl)):
 
 ```bash
