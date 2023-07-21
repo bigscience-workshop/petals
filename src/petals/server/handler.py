@@ -150,6 +150,7 @@ class TransformerConnectionHandler(ConnectionHandler):
                 active_adapter = self._get_active_adapter(metadata)
                 points = metadata.get("points", 0)
                 session_id = metadata.get("session_id")
+                alloc_timeout = float(metadata.get("alloc_timeout", 0.0))
                 if not requested_uids:
                     raise ValueError("User must specify at least one block for inference, but got none")
                 assert isinstance(
@@ -167,7 +168,7 @@ class TransformerConnectionHandler(ConnectionHandler):
                 batch_size = request.tensors[0].size[0] if request.tensors else 1
                 prefix_length = 0
 
-                async with self._allocate_cache(requested_backends, batch_size, max_length) as cache_handles:
+                async with self._allocate_cache(requested_backends, batch_size, max_length, alloc_timeout) as cache_handles:
                     assert len(cache_handles) == len(requested_backends)
                     first_request = request
                     background_tasks = set()
@@ -567,7 +568,7 @@ class TransformerConnectionHandler(ConnectionHandler):
 
     @contextlib.asynccontextmanager
     async def _allocate_cache(
-        self, backends: Sequence[TransformerBackend], batch_size: int, max_length: int
+        self, backends: Sequence[TransformerBackend], batch_size: int, max_length: int, timeout: Optional[float],
     ) -> Sequence[Sequence[Handle]]:
         """
         Allocate memory cache for all transformer blocks, return cache handle

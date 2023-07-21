@@ -31,6 +31,7 @@ from petals.server.reachability import ReachabilityProtocol, check_direct_reacha
 from petals.server.throughput import get_dtype_name, get_server_throughput
 from petals.utils.auto_config import AutoDistributedConfig
 from petals.utils.convert_block import QuantType, check_device_balance, convert_block
+from petals.utils.misc import get_size_in_bytes
 from petals.utils.ping import PingAggregator
 from petals.utils.random import sample_up_to
 from petals.utils.version import get_compatible_model_repo
@@ -63,7 +64,6 @@ class Server:
         revision: Optional[str] = None,
         cache_dir: Optional[str] = None,
         max_disk_space: Optional[int] = None,
-        alloc_timeout: float = 5,
         device: Optional[Union[str, torch.device]] = None,
         compression=CompressionType.NONE,
         stats_report_interval: Optional[int] = None,
@@ -189,7 +189,7 @@ class Server:
             attn_cache_tokens = 32768 if is_multiquery_attn else 8192
         cache_values_per_block = 2 * self.block_config.hidden_size * attn_cache_tokens
         cache_values_per_block //= self.block_config.num_key_value_groups
-        self._cache_bytes_per_block = cache_values_per_block * torch.finfo(self.torch_dtype).bits // 8
+        self._cache_bytes_per_block = cache_values_per_block * get_size_in_bytes(self.torch_dtype)
 
         # For disk cache
         self.cache_dir = cache_dir
@@ -212,8 +212,6 @@ class Server:
         gib = 1024**3
         self.attn_cache_bytes = self._cache_bytes_per_block * num_blocks
         logger.info(f"Attention cache for all blocks will consume up to {self.attn_cache_bytes / gib:.2f} GiB")
-
-        self.alloc_timeout = alloc_timeout
 
         assert isinstance(throughput, float) or throughput in ["auto", "eval"]
         if throughput in ["auto", "eval"]:
@@ -306,7 +304,6 @@ class Server:
                 converted_model_name_or_path=self.converted_model_name_or_path,
                 block_config=self.block_config,
                 attn_cache_bytes=self.attn_cache_bytes,
-                alloc_timeout=self.alloc_timeout,
                 server_info=self.server_info,
                 block_indices=block_indices,
                 num_handlers=self.num_handlers,
@@ -407,7 +404,6 @@ class ModuleContainer(threading.Thread):
         converted_model_name_or_path: str,
         block_config: PretrainedConfig,
         attn_cache_bytes: int,
-        alloc_timeout: float,
         server_info: ServerInfo,
         block_indices: List[int],
         min_batch_size: int,
@@ -427,7 +423,7 @@ class ModuleContainer(threading.Thread):
         **kwargs,
     ) -> ModuleContainer:
         module_uids = [f"{dht_prefix}{UID_DELIMITER}{block_index}" for block_index in block_indices]
-        memory_cache = MemoryCache(attn_cache_bytes, alloc_timeout)
+        memory_cache = MemoryCache(attn_cache_bytes)
 
         server_info.state = ServerState.JOINING
         dht_announcer = ModuleAnnouncerThread(
