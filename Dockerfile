@@ -1,4 +1,4 @@
-FROM nvcr.io/nvidia/cuda:11.0.3-cudnn8-devel-ubuntu20.04
+FROM nvcr.io/nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
 LABEL maintainer="bigscience-workshop"
 LABEL repository="petals"
 
@@ -20,6 +20,12 @@ ENV PATH="/opt/conda/bin:${PATH}"
 RUN conda install python~=3.10.12 pip && \
     pip install --no-cache-dir "torch>=1.12" && \
     conda clean --all && rm -rf ~/.cache/pip
+
+# If your machine has less than 96GB of RAM and lots of CPU cores,
+# ninja might run too many parallel compilation jobs that could exhaust the amount of RAM.
+# To limit the number of parallel compilation jobs, you can set the environment variable MAX_JOBS=4 or less for ~<25GB.
+# RUN MAX_JOBS=4 pip install flash-attn --no-build-isolation
+RUN pip install flash-attn --no-build-isolation
 
 VOLUME /cache
 ENV PETALS_CACHE=/cache

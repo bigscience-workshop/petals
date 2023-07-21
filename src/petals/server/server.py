@@ -35,6 +35,12 @@ from petals.utils.ping import PingAggregator
 from petals.utils.random import sample_up_to
 from petals.utils.version import get_compatible_model_repo
 
+# import FlashAttention-2 monkeypatch if FlashAttention is installed.
+import importlib.util
+if importlib.util.find_spec("flash_attn") is not None:
+    from petals.models.llama.llama_flash_attn_monkey_patch import replace_llama_attn_with_flash_attn
+    replace_llama_attn_with_flash_attn()
+
 logger = get_logger(__name__)
 
 
