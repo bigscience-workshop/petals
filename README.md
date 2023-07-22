@@ -34,6 +34,8 @@ print(tokenizer.decode(outputs[0]))  # A cat sat on a mat...
 
 ### Connect your GPU and increase Petals capacity
 
+Petals is a community-run system &mdash; we rely on people sharing their GPUs. You can check out available servers on our [swarm monitor](https://health.petals.dev) and connect your GPU to help serving one of the models!
+
 Run these commands in an [Anaconda](https://www.anaconda.com) env (requires Linux and Python 3.8+):
 
 ```bash
@@ -54,6 +56,8 @@ This will host a part of LLaMA-65B with optional [Guanaco](https://huggingface.c
 🔒 Hosting a server does not allow others to run custom code on your computer. Learn more about security [here](https://github.com/bigscience-workshop/petals/wiki/Security,-privacy,-and-AI-safety).
 
 💬 See [FAQ](https://github.com/bigscience-workshop/petals/wiki/FAQ:-Frequently-asked-questions#running-a-server) to learn how to use multple GPUs, restart the server on reboot, etc. If you have any issues or feedback, ping us in [our Discord](https://discord.gg/D9MwApKgWa)!
+
+🏆 If you host 10+ blocks, we show your or your company's name (or link) on the [swarm monitor](https://health.petals.dev) as a way to say thanks! The name can be specified with `--public_name YOUR_NAME`.
 
 ### Check out tutorials, examples, and more
 
