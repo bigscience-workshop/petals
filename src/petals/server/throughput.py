@@ -109,13 +109,10 @@ def measure_throughput_info(
     quant_type: QuantType,
     tensor_parallel_devices: Sequence[torch.device],
 ) -> Dict[str, float]:
-    """Measure network and compute throughput in forward pass tokens per second"""
-
     logger.info(
         "Measuring network and compute throughput. This takes about a minute and will be cached for future runs"
     )
-
-    throughput_info = {
+    return {
         "inference_rps": measure_compute_rps(
             config,
             device,
@@ -136,37 +133,39 @@ def measure_throughput_info(
             n_steps=10,
             inference=False,
         ),
+        "network_rps": measure_network_rps(config),
     }
-    try:
-        throughput_info["network_rps"] = measure_network_rps(config)
-    except Exception as e:
-        logger.info(f"Network throughput is not available: {e}")
-    return throughput_info
 
 
-def measure_network_rps(config: PretrainedConfig, *, timeout: float = 60) -> Optional[float]:
-    pipe_recv, pipe_send = mp.Pipe(duplex=False)
-    process = mp.Process(target=_measure_bits_per_second, args=(pipe_send,))
-    process.start()
-
-    if not pipe_recv.poll(timeout):
-        process.terminate()
-        raise RuntimeError(f"speedtest did not finish in {timeout} seconds")
-    network_info = pipe_recv.recv()
-    if "exception" in network_info:
-        raise RuntimeError(f"speedtest failed: {network_info['exception']}")
-
+def measure_network_rps(
+    config: PretrainedConfig, *, timeout: float = 60, default_speed: float = 25e6
+) -> Optional[float]:
     bits_per_request = config.hidden_size * 16  # Clients usually send 16-bit tensors for forward/backward
-    network_rps = min(network_info["download"], network_info["upload"]) / bits_per_request
-    if network_rps == 0:
-        raise RuntimeError("speedtest has returned network_rps == 0")
+    try:
+        pipe_recv, pipe_send = mp.Pipe(duplex=False)
+        process = mp.Process(target=_measure_bits_per_second, args=(pipe_send,))
+        process.start()
 
-    logger.info(
-        f"Network throughput: {network_rps:.1f} RPS "
-        f"({network_info['download'] / 1e6:.2f} Mbit/s on download, "
-        f"{network_info['upload'] / 1e6:.2f} Mbit/s on upload)"
-    )
-    return network_rps
+        if not pipe_recv.poll(timeout):
+            process.terminate()
+            raise RuntimeError(f"speedtest did not finish in {timeout} seconds")
+        network_info = pipe_recv.recv()
+        if "exception" in network_info:
+            raise RuntimeError(f"speedtest failed: {network_info['exception']}")
+
+        network_rps = min(network_info["download"], network_info["upload"]) / bits_per_request
+        if network_rps == 0:
+            raise RuntimeError("speedtest has returned network_rps == 0")
+
+        logger.info(
+            f"Network throughput: {network_rps:.1f} RPS "
+            f"({network_info['download'] / 1e6:.2f} Mbit/s on download, "
+            f"{network_info['upload'] / 1e6:.2f} Mbit/s on upload)"
+        )
+        return network_rps
+    except RuntimeError as e:
+        logger.info(f"Network throughput is not available: {e}. Using default of {default_speed / 1e6:.2f} Mbit/s")
+        return default_speed / bits_per_request
 
 
 def _measure_bits_per_second(pipe_send: mp.Pipe):
