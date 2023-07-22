@@ -38,7 +38,7 @@ print(tokenizer.decode(outputs[0]))  # A cat sat on a mat...
 
 Petals is a community-run system &mdash; we rely on people sharing their GPUs. You can check out available servers on our [swarm monitor](https://health.petals.dev) and connect your GPU to help serving one of the models!
 
-Run these commands in an [Anaconda](https://www.anaconda.com) env (requires Linux and Python 3.8+):
+🐍 **Linux + Anaconda.** Run these commands:
 
 ```bash
 conda install pytorch pytorch-cuda=11.7 -c pytorch -c nvidia
@@ -46,7 +46,9 @@ pip install git+https://github.com/bigscience-workshop/petals
 python -m petals.cli.run_server enoch/llama-65b-hf --adapters timdettmers/guanaco-65b
 ```
 
-Or run our [Docker](https://www.docker.com) image (works on Linux, macOS, and Windows with [WSL2](https://learn.microsoft.com/en-us/windows/ai/directml/gpu-cuda-in-wsl)):
+🪟 **Windows + WSL.** Follow our guide [here](https://github.com/bigscience-workshop/petals/wiki/Run-Petals-server-on-Windows).
+
+🐋 **Any OS + Docker.** Run our [Docker](https://www.docker.com) image:
 
 ```bash
 sudo docker run -p 31330:31330 --ipc host --gpus all --volume petals-cache:/cache --rm learningathome/petals:main \
