@@ -46,7 +46,7 @@ pip install git+https://github.com/bigscience-workshop/petals
 python -m petals.cli.run_server enoch/llama-65b-hf --adapters timdettmers/guanaco-65b
 ```
 
-🪟 **Windows + WSL.** Follow our guide [here](https://github.com/bigscience-workshop/petals/wiki/Run-Petals-server-on-Windows).
+🪟 **Windows + WSL.** Follow the guide on our [Wiki](https://github.com/bigscience-workshop/petals/wiki/Run-Petals-server-on-Windows).
 
 🐋 **Any OS + Docker.** Run our [Docker](https://www.docker.com) image:
 
@@ -59,9 +59,9 @@ These commands host a part of LLaMA-65B with optional [Guanaco](https://huggingf
 
 🦙 **Want to host LLaMA 2?** Request access to its weights at the ♾️ [Meta AI website](https://ai.meta.com/resources/models-and-libraries/llama-downloads/) and 🤗 [Model Hub](https://huggingface.co/meta-llama/Llama-2-70b-hf), generate an 🔑 [access token](https://huggingface.co/settings/tokens), then add the `--token YOUR_TOKEN` argument to the commands above.
 
-🔒 **Security.** Hosting a server does not allow others to run custom code on your computer ([learn more](https://github.com/bigscience-workshop/petals/wiki/Security,-privacy,-and-AI-safety)).
-
 💬 **FAQ.** Check out our [Wiki](https://github.com/bigscience-workshop/petals/wiki/FAQ:-Frequently-asked-questions#running-a-server) to learn how to use multple GPUs, restart the server on reboot, etc. If you have any issues or feedback, ping us in [our Discord](https://discord.gg/D9MwApKgWa)!
+
+🔒 **Security.** Hosting a server does not allow others to run custom code on your computer ([learn more](https://github.com/bigscience-workshop/petals/wiki/Security,-privacy,-and-AI-safety)).
 
 🏆 **Thank you!** Once you load and host 10+ blocks, we can show your name or link on the [swarm monitor](https://health.petals.dev) as a way to say thanks. You can specify them with `--public_name YOUR_NAME`.
 
