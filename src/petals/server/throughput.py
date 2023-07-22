@@ -138,7 +138,7 @@ def measure_throughput_info(
 
 
 def measure_network_rps(
-    config: PretrainedConfig, *, timeout: float = 60, default_speed: float = 25e6
+    config: PretrainedConfig, *, timeout: float = 60, default_speed: float = 100e6  # 100 Mbit/s
 ) -> Optional[float]:
     bits_per_request = config.hidden_size * 16  # Clients usually send 16-bit tensors for forward/backward
     try:
