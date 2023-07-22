@@ -58,7 +58,7 @@ class Server:
         inference_max_length: Optional[int] = None,
         min_batch_size: int = 1,
         max_batch_size: Optional[int] = None,
-        max_chunk_size_bytes: int = 512 * 1024 * 1024,
+        max_chunk_size_bytes: int = 256 * 1024 * 1024,
         attn_cache_tokens: Optional[int] = None,
         torch_dtype: str = "auto",
         revision: Optional[str] = None,

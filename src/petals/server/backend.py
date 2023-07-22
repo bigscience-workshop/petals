@@ -115,13 +115,16 @@ class TransformerBackend(ModuleBackend):
     ) -> Tuple[torch.Tensor, ...]:
         assert hidden_states.ndim == 3, "expected hidden states to be 3-dimensional: [batch_size, seq_len, hid_size]"
         seq_len = hidden_states.shape[1]
-        max_chunk_length = self._estimate_max_chunk_length(hidden_states, inference_info)
 
         with self.memory_cache.use_cache(
             *inference_info.cache_handles
         ) as cache_tensors, self._peft_module.using_adapter(inference_info.active_adapter):
             self._reorder_cache_inplace(cache_tensors, hypo_ids)
 
+            # We chunk the inputs so that peak memory for long sequences fits into `autograd_memory`
+            # reserved in `Server._choose_num_blocks()`. This saves us from OOMs if `max_chunk_size_bytes`
+            # is at least 4-6x less than `autograd_memory`.
+            max_chunk_length = self._estimate_max_chunk_length(hidden_states, inference_info)
             output_hidden_states = torch.empty_like(hidden_states) if seq_len > max_chunk_length else None
             layer_past = self._select_layer_past(cache_tensors, inference_info.prefix_length)
             for offset in range(0, seq_len, max_chunk_length):
@@ -139,6 +142,8 @@ class TransformerBackend(ModuleBackend):
             return (output_hidden_states,)
 
     def _estimate_max_chunk_length(self, hidden_states: torch.Tensor, inference_info: InferenceMetadata) -> int:
+        # We assume that attention logit matrices are the main thing that consumes memory, given that
+        # the model uses multi-query attention
         batch_size, seq_length, hidden_size = hidden_states.shape
         worst_case_length = inference_info.prefix_length + seq_length
         attn_bytes_per_token = max(self.shard_num_heads) * batch_size * self.dtype_bytes * worst_case_length
