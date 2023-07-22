@@ -31,8 +31,12 @@ class _AutoDistributedBase:
 
     @classmethod
     def from_pretrained(cls, model_name_or_path: Union[str, os.PathLike, None], *args, **kwargs) -> PretrainedConfig:
-        if always_needs_auth(model_name_or_path) and "token" not in kwargs and "use_auth_token" not in kwargs:
-            kwargs["token"] = True
+        if (
+            always_needs_auth(model_name_or_path)
+            and kwargs.get("token") is None
+            and kwargs.get("use_auth_token") is None
+        ):
+            kwargs["use_auth_token"] = True
 
         config = AutoConfig.from_pretrained(model_name_or_path, *args, **kwargs)
         if config.model_type not in _CLASS_MAPPING:

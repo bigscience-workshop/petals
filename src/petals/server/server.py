@@ -104,7 +104,7 @@ class Server:
 
         self.block_config = AutoDistributedConfig.from_pretrained(
             converted_model_name_or_path,
-            token=token,
+            use_auth_token=token,
             revision=revision,
         )
 
