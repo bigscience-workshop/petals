@@ -35,7 +35,12 @@ async def test_cache_usage():
     descr_d = TensorDescriptor.from_tensor(torch.empty((0, ), dtype=torch.int64))       # 0 bytes
     descr_e = TensorDescriptor.from_tensor(torch.empty((96, 8), dtype=torch.bfloat16))  # 1536 bytes
     descr_f = TensorDescriptor.from_tensor(torch.empty((1792,), dtype=torch.uint8))     # 1792 bytes
-    descr_g = TensorDescriptor.from_tensor(torch.empty((1793,), dtype=torch.uint8))  # 1792 bytes
+
+    # TODO test:
+    # - max_alloc_timeout in __init__
+    # - ensure that alloc_timeout 0 never waits
+    # - check that canceling before alloc does not trigger that alloc eventually
+    # - ensure that alloc_timeout 0 always allocates if free memory
 
     async def _allocate_and_wait(dealloc_event, *descrs, timeout=None):
         loop = asyncio.get_event_loop()
@@ -45,25 +50,15 @@ async def test_cache_usage():
 
     async def _allocate_af():
         alloc_event.wait()
-        print("BEGAN AF")
-        try:
-            async with cache.allocate_cache(descr_g):
-                allocate_f_task = asyncio.create_task(_allocate_and_wait(mp.Event(), descr_f))  # klogs the cache
-                print("CANCELLED")
-                raise asyncio.CancelledError()
-        except asyncio.CancelledError:
-            pass
-        allocate_f_task.cancel()  # unklog the cache
-
         allocate_a_task = asyncio.create_task(_allocate_and_wait(dealloc_a_event, descr_a))
         await allocate_a_task
+        allocate_f_task = asyncio.create_task(_allocate_and_wait(mp.Event(), descr_f))  # klogs the cache
 
     alloc_process1 = mp.Process(target=lambda: asyncio.run(_allocate_af()), daemon=True)
     alloc_process1.start()
 
     async def _allocate_bcde():
         await asyncio.sleep(0.2)  # ensure that the other tensor is always allocated (and sent through pipe) first
-        print("BEGAN BCDE")
         allocate_bcd_task = asyncio.create_task(_allocate_and_wait(dealloc_bcd_event, descr_b, descr_c, descr_d))
         allocate_e_task = asyncio.create_task(_allocate_and_wait(dealloc_e_event, descr_e))  # doesn't fit
         await asyncio.wait({allocate_e_task, allocate_bcd_task}, return_when=asyncio.ALL_COMPLETED)

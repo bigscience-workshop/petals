@@ -27,8 +27,9 @@ Handle = int
 class MemoryCache:
     """A shared cache for storing tensors that persist across calls. Main use case: storing past attention KVs"""
 
-    def __init__(self, max_size_bytes: Optional[int]):
+    def __init__(self, max_size_bytes: Optional[int], max_alloc_timeout: Optional[float] = None):
         self.max_size_bytes = max_size_bytes if max_size_bytes is not None else (2**64 - 1)
+        self.max_alloc_timeout = max_alloc_timeout
         self._lock_metadata = mp.Lock()
         self._current_size = mp.Value(ctypes.c_int64, 0, lock=False)
         self._handle_counter = mp.Value(ctypes.c_int64, 0, lock=False)
@@ -75,9 +76,11 @@ class MemoryCache:
         """
         assert os.getpid() != self.runtime_pid, "must be called by a ConnectionHandler, not runtime"
         assert all(descr.device is not None for descr in descriptors), "please specify allocated devices"
+        if self.max_alloc_timeout is not None:
+            timeout = min(timeout, self.max_alloc_timeout) if timeout is not None else self.max_alloc_timeout
         max_alloc_size = self.get_allocation_size(*descriptors)
 
-        gib = 1
+        gib = 1024**3
         cur_size, max_size = self.current_size_bytes, self.max_size_bytes
         friendly_max_size = f"{max_size / gib:.2f}" if max_size != 2**64 - 1 else "inf"
         logger.info(
