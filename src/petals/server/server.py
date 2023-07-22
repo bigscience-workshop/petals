@@ -58,6 +58,7 @@ class Server:
         inference_max_length: Optional[int] = None,
         min_batch_size: int = 1,
         max_batch_size: Optional[int] = None,
+        max_chunk_size_bytes: int = 1024,
         attn_cache_tokens: Optional[int] = None,
         torch_dtype: str = "auto",
         revision: Optional[str] = None,
@@ -183,6 +184,7 @@ class Server:
             inference_max_length = 8192 if is_multiquery_attn else 2048
         self.min_batch_size, self.max_batch_size = min_batch_size, max_batch_size
         self.inference_max_length = inference_max_length
+        self.max_chunk_size_bytes = max_chunk_size_bytes
 
         # For attention cache in GPU or RAM
         if attn_cache_tokens is None:
@@ -312,6 +314,7 @@ class Server:
                 num_handlers=self.num_handlers,
                 min_batch_size=self.min_batch_size,
                 max_batch_size=self.max_batch_size,
+                max_chunk_size_bytes=self.max_chunk_size_bytes,
                 inference_max_length=self.inference_max_length,
                 torch_dtype=self.torch_dtype,
                 cache_dir=self.cache_dir,
@@ -412,6 +415,7 @@ class ModuleContainer(threading.Thread):
         block_indices: List[int],
         min_batch_size: int,
         max_batch_size: int,
+        max_chunk_size_bytes: int,
         torch_dtype: torch.dtype,
         cache_dir: str,
         max_disk_space: int,
@@ -477,6 +481,7 @@ class ModuleContainer(threading.Thread):
                     config=block_config,
                     memory_cache=memory_cache,
                     backend_dtype=torch_dtype,
+                    max_chunk_size_bytes=max_chunk_size_bytes,
                     args_schema=(
                         BatchTensorDescriptor(
                             1, 2048, block_config.hidden_size, dtype=torch_dtype, compression=compression
