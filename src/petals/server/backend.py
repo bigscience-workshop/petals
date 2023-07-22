@@ -126,10 +126,14 @@ class TransformerBackend(ModuleBackend):
 
             layer_past = self._select_layer_past(cache_tensors, inference_info.prefix_length)
             for chunk_i in range(num_chunks):
-                hidden_states_chunk = hidden_states[:, chunk_i * max_chunk_length: (chunk_i + 1) * max_chunk_length, :]
-                output_hidden_states_chunk, new_kvs = self.module.forward(hidden_states_chunk, layer_past=layer_past, use_cache=True)
+                hidden_states_chunk = hidden_states[:, chunk_i * max_chunk_length : (chunk_i + 1) * max_chunk_length, :]
+                output_hidden_states_chunk, new_kvs = self.module.forward(
+                    hidden_states_chunk, layer_past=layer_past, use_cache=True
+                )
                 if num_chunks > 1:
-                    output_hidden_states[:, chunk_i * max_chunk_length: (chunk_i + 1) * max_chunk_length, :] = output_hidden_states_chunk
+                    output_hidden_states[
+                        :, chunk_i * max_chunk_length : (chunk_i + 1) * max_chunk_length, :
+                    ] = output_hidden_states_chunk
                 else:
                     output_hidden_states = output_hidden_states_chunk  # saves one memcopy
                 layer_past = new_kvs
