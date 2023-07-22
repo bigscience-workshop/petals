@@ -104,7 +104,7 @@ class Server:
 
         self.block_config = AutoDistributedConfig.from_pretrained(
             converted_model_name_or_path,
-            token=token,
+            use_auth_token=token,
             revision=revision,
         )
 
@@ -117,7 +117,7 @@ class Server:
         self.dht_prefix = dht_prefix
 
         if expiration is None:
-            expiration = max(2 * update_period, MAX_DHT_TIME_DISCREPANCY_SECONDS)
+            expiration = max(3 * update_period, MAX_DHT_TIME_DISCREPANCY_SECONDS)
         self.expiration = expiration
 
         self.request_timeout = request_timeout
