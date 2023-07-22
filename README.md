@@ -40,7 +40,7 @@ Run these commands in an [Anaconda](https://www.anaconda.com) env (requires Linu
 
 ```bash
 conda install pytorch pytorch-cuda=11.7 -c pytorch -c nvidia
-pip install --upgrade petals
+pip install git+https://github.com/bigscience-workshop/petals
 python -m petals.cli.run_server enoch/llama-65b-hf --adapters timdettmers/guanaco-65b
 ```
 
@@ -101,7 +101,7 @@ Here's how to install Petals with [Anaconda](https://www.anaconda.com/products/d
 
 ```bash
 conda install pytorch pytorch-cuda=11.7 -c pytorch -c nvidia
-pip install --upgrade petals
+pip install git+https://github.com/bigscience-workshop/petals
 ```
 
 If you don't use Anaconda, you can install PyTorch in [any other way](https://pytorch.org/get-started/locally/). If you want to run models with 8-bit weights, please install PyTorch with CUDA 11.x or newer for compatility with [bitsandbytes](https://github.com/timDettmers/bitsandbytes).
