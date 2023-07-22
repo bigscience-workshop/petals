@@ -96,7 +96,7 @@ def get_server_throughput(
     throughput = throughput_info["forward_rps"] / average_blocks_used
     throughput = min(throughput, throughput_info.get("network_rps", math.inf))
     throughput_info["throughput"] = throughput
-    logger.info(f"Reporting throughput: {throughput:.1f} RPS for {num_blocks} blocks")
+    logger.info(f"Reporting throughput: {throughput:.1f} tokens/sec for {num_blocks} blocks")
 
     return throughput_info
 
@@ -158,7 +158,7 @@ def measure_network_rps(
             raise RuntimeError("speedtest has returned network_rps == 0")
 
         logger.info(
-            f"Network throughput: {network_rps:.1f} RPS "
+            f"Network throughput: {network_rps:.1f} tokens/sec "
             f"({network_info['download'] / 1e6:.2f} Mbit/s on download, "
             f"{network_info['upload'] / 1e6:.2f} Mbit/s on upload)"
         )
@@ -214,7 +214,7 @@ def measure_compute_rps(
         devices_repr = ", ".join(f"{count}x {name}" for name, count in Counter(device_names).most_common())
 
     logger.info(
-        f"{'Inference' if inference else 'Forward pass'} throughput: {device_rps:.1f} RPS per block "
+        f"{'Inference' if inference else 'Forward pass'} throughput: {device_rps:.1f} tokens/sec per block "
         f"({n_tokens} tokens/batch, {devices_repr}, {get_dtype_name(dtype, quant_type)})"
     )
     return device_rps
