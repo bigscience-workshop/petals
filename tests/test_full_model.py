@@ -44,11 +44,11 @@ def test_full_model_exact_match(use_peft: bool, pass_empty_tensors: bool, atol_f
 
             for t in range(embs.shape[1]):
                 if t == 4:
-                    recurrent_outputs.append(sess.step(embs[:, 4: 9, :]))
+                    recurrent_outputs.append(sess.step(embs[:, 4:9, :]))
                 elif 4 < t < 9:
                     continue
                 else:
-                    recurrent_outputs.append(sess.step(embs[:, t: t + 1, :]))
+                    recurrent_outputs.append(sess.step(embs[:, t : t + 1, :]))
 
                 if t == 2 and pass_empty_tensors:
                     recurrent_outputs.append(sess.step(torch.empty(1, 0, config.hidden_size)))
