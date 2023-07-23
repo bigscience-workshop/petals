@@ -118,7 +118,7 @@ class Server:
         self.dht_prefix = dht_prefix
 
         if expiration is None:
-            expiration = max(3 * update_period, MAX_DHT_TIME_DISCREPANCY_SECONDS)
+            expiration = max(2 * update_period, MAX_DHT_TIME_DISCREPANCY_SECONDS)
         self.expiration = expiration
 
         self.request_timeout = request_timeout
