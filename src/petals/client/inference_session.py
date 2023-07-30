@@ -75,7 +75,7 @@ class _ServerInferenceSession:
         inputs_queue = asyncio.Queue()
         outputs_stream = await asyncio.wait_for(
             stub.rpc_inference(cls._read_inputs_from_queue(inputs_queue)),
-            config.request_timeout,
+            config.connect_timeout,
         )
         return cls(config, span, uid, rpc_info, inputs_queue, outputs_stream, **metadata)
 
