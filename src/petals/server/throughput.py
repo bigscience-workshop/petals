@@ -42,7 +42,7 @@ def get_server_throughput(
     quant_type: QuantType,
     tensor_parallel_devices: Sequence[torch.device],
     reachable_via_relay: bool,
-    relay_penalty: float = 0.1,
+    relay_penalty: float = 0.2,
     force_eval: bool = False,
     cache_dir: Optional[str] = None,
 ) -> Dict[str, float]:
