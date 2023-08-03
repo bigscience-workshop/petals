@@ -41,6 +41,8 @@ def get_server_throughput(
     num_blocks: int,
     quant_type: QuantType,
     tensor_parallel_devices: Sequence[torch.device],
+    reachable_via_relay: bool,
+    relay_penalty: float = 0.2,
     force_eval: bool = False,
     cache_dir: Optional[str] = None,
 ) -> Dict[str, float]:
@@ -94,7 +96,10 @@ def get_server_throughput(
     # E[Uniform{1, 2, ..., num_blocks}] = (num_blocks + 1) / 2
     average_blocks_used = (num_blocks + 1) / 2
     throughput = throughput_info["forward_rps"] / average_blocks_used
-    throughput = min(throughput, throughput_info.get("network_rps", math.inf))
+
+    network_rps = throughput_info["network_rps"] * (relay_penalty if reachable_via_relay else 1)
+    throughput = min(throughput, network_rps)
+
     throughput_info["throughput"] = throughput
     logger.info(f"Reporting throughput: {throughput:.1f} tokens/sec for {num_blocks} blocks")
 

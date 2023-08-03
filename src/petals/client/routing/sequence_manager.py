@@ -292,9 +292,7 @@ class RemoteSequenceManager:
         # This is okay since false positives are more costly than false negatives here.
         return cache_tokens_needed * 2 * span.length <= span.server_info.cache_tokens_left
 
-    def _make_sequence_with_max_throughput(
-        self, start_index: int, end_index: int, *, relay_penalty: float = 0.5
-    ) -> List[RemoteSpanInfo]:
+    def _make_sequence_with_max_throughput(self, start_index: int, end_index: int) -> List[RemoteSpanInfo]:
         span_sequence = []
         current_index = start_index
         while current_index < end_index:
@@ -302,13 +300,7 @@ class RemoteSequenceManager:
             if not candidate_spans:
                 raise MissingBlocksError(current_index)
 
-            span_weights = np.array(
-                [
-                    span.server_info.throughput * (1 if not span.server_info.using_relay else relay_penalty)
-                    for span in candidate_spans
-                ],
-                dtype=np.float64,
-            )
+            span_weights = np.array([span.server_info.throughput for span in candidate_spans], dtype=np.float64)
             chosen_span = np.random.choice(candidate_spans, p=span_weights / span_weights.sum())
 
             assert chosen_span.start <= current_index < chosen_span.end
