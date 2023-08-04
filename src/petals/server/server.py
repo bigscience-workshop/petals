@@ -660,7 +660,7 @@ class ModuleAnnouncerThread(threading.Thread):
         self.server_info = server_info
         self.memory_cache = memory_cache
 
-        self.bytes_per_token = block_config.hidden_size * torch.finfo(DTYPE_MAP[server_info.torch_dtype]).bits // 8
+        self.bytes_per_token = block_config.hidden_size * get_size_in_bytes(DTYPE_MAP[server_info.torch_dtype])
         self.bytes_per_token //= block_config.num_key_value_groups
 
         self.update_period = update_period

@@ -63,7 +63,7 @@ class TransformerBackend(ModuleBackend):
         )
 
         self.dtype = backend_dtype
-        self.dtype_bytes = torch.finfo(self.dtype).bits // 8
+        self.dtype_bytes = get_size_in_bytes(self.dtype)
         self.shard_num_heads = []
         for shard in self.module.module_shards:
             for submodule in shard.modules():
