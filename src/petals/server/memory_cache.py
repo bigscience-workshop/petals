@@ -82,7 +82,7 @@ class MemoryCache:
             timeout = min(timeout, self.max_alloc_timeout) if timeout is not None else self.max_alloc_timeout
         max_alloc_size = self.get_allocation_size(*descriptors)
 
-        gib = 1024**3
+        gib = 1#024**3
         cur_size, max_size = self.current_size_bytes, self.max_size_bytes
         friendly_max_size = f"{max_size / gib:.2f}" if max_size != 2**64 - 1 else "inf"
         logger.info(
@@ -96,7 +96,7 @@ class MemoryCache:
             logger.info(f"rpc_inference.alloc-done(size={max_alloc_size / gib:.2f} GiB)")
             yield handles
         finally:
-            self._free(max_alloc_size, alloc_task)
+            await shield_and_wait(self._schedule_free(max_alloc_size, alloc_task))
 
     @staticmethod
     def get_allocation_size(*descriptors: TensorDescriptor) -> int:

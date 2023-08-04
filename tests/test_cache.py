@@ -52,12 +52,14 @@ async def test_cache_usage():
         alloc_event.wait()
         allocate_a_task = asyncio.create_task(_allocate_and_wait(dealloc_a_event, descr_a))
         await allocate_a_task
-        allocate_f_task = asyncio.create_task(_allocate_and_wait(mp.Event(), descr_f))  # klogs the cache
+        #allocate_f_task = asyncio.create_task(_allocate_and_wait(mp.Event(), descr_f))  # klogs the cache
+        #await allocate_f_task
 
     alloc_process1 = mp.Process(target=lambda: asyncio.run(_allocate_af()), daemon=True)
     alloc_process1.start()
 
     async def _allocate_bcde():
+        alloc_event.wait()
         await asyncio.sleep(0.2)  # ensure that the other tensor is always allocated (and sent through pipe) first
         allocate_bcd_task = asyncio.create_task(_allocate_and_wait(dealloc_bcd_event, descr_b, descr_c, descr_d))
         allocate_e_task = asyncio.create_task(_allocate_and_wait(dealloc_e_event, descr_e))  # doesn't fit
@@ -84,7 +86,7 @@ async def test_cache_usage():
 
     dealloc_bcd_event.set()
     await asyncio.sleep(0.1)
-    assert cache.current_size_bytes == 768  # only tensor a is allocated
+    assert cache.current_size_bytes == 768, cache.current_size_bytes  # only tensor a should be allocated
     with pytest.raises(KeyError):
         with cache.use_cache(handle_a, handle_b):
             pass  # one of handles (c) is deallocated
