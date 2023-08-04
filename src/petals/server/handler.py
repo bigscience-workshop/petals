@@ -168,7 +168,9 @@ class TransformerConnectionHandler(ConnectionHandler):
                 batch_size = request.tensors[0].size[0] if request.tensors else 1
                 prefix_length = 0
 
-                async with self._allocate_cache(requested_backends, batch_size, max_length, alloc_timeout) as cache_handles:
+                async with self._allocate_cache(
+                    requested_backends, batch_size, max_length, alloc_timeout
+                ) as cache_handles:
                     assert len(cache_handles) == len(requested_backends)
                     first_request = request
                     background_tasks = set()
@@ -568,7 +570,11 @@ class TransformerConnectionHandler(ConnectionHandler):
 
     @contextlib.asynccontextmanager
     async def _allocate_cache(
-        self, backends: Sequence[TransformerBackend], batch_size: int, max_length: int, timeout: Optional[float],
+        self,
+        backends: Sequence[TransformerBackend],
+        batch_size: int,
+        max_length: int,
+        timeout: Optional[float],
     ) -> Sequence[Sequence[Handle]]:
         """
         Allocate memory cache for all transformer blocks, return cache handle

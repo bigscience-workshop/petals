@@ -29,12 +29,12 @@ async def test_cache_usage():
         async with cache.allocate_cache(_make_tensor_descriptor(123)):
             pass  # fails because cache must be allocated from another process
 
-    descr_a = TensorDescriptor.from_tensor(torch.empty(768, dtype=torch.uint8))         # 768 bytes
-    descr_b = TensorDescriptor.from_tensor(torch.empty((), dtype=torch.float64))        # 8 bytes
-    descr_c = TensorDescriptor.from_tensor(torch.empty((33, ), dtype=torch.bool))       # 33 bytes
-    descr_d = TensorDescriptor.from_tensor(torch.empty((0, ), dtype=torch.int64))       # 0 bytes
+    descr_a = TensorDescriptor.from_tensor(torch.empty(768, dtype=torch.uint8))  # 768 bytes
+    descr_b = TensorDescriptor.from_tensor(torch.empty((), dtype=torch.float64))  # 8 bytes
+    descr_c = TensorDescriptor.from_tensor(torch.empty((33,), dtype=torch.bool))  # 33 bytes
+    descr_d = TensorDescriptor.from_tensor(torch.empty((0,), dtype=torch.int64))  # 0 bytes
     descr_e = TensorDescriptor.from_tensor(torch.empty((96, 8), dtype=torch.bfloat16))  # 1536 bytes
-    descr_f = TensorDescriptor.from_tensor(torch.empty((1792,), dtype=torch.uint8))     # 1792 bytes
+    descr_f = TensorDescriptor.from_tensor(torch.empty((1792,), dtype=torch.uint8))  # 1792 bytes
 
     # TODO test:
     # - max_alloc_timeout in __init__
@@ -67,7 +67,7 @@ async def test_cache_usage():
     alloc_process2.start()
     assert cache.current_size_bytes == 0
     alloc_event.set()
-    handle_a, = pipe_receiver.recv()
+    (handle_a,) = pipe_receiver.recv()
 
     handle_b, handle_c, handle_d = pipe_receiver.recv()
 
@@ -95,7 +95,7 @@ async def test_cache_usage():
         assert tuple(tensor_a[2:5]) == (43, 44, 45)
 
     dealloc_a_event.set()
-    handle_e, = pipe_receiver.recv()  # e can finally be allocated
+    (handle_e,) = pipe_receiver.recv()  # e can finally be allocated
     assert cache.current_size_bytes == 1536  # tensor e should finally be able to allocate
 
     with pytest.raises(KeyError):

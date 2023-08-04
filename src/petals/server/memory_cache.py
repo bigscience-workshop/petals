@@ -61,7 +61,9 @@ class MemoryCache:
         self._handle_counter.value = value
 
     @contextlib.asynccontextmanager
-    async def allocate_cache(self, *descriptors: TensorDescriptor, timeout: Optional[float] = None) -> AsyncContextManager[Sequence[Handle]]:
+    async def allocate_cache(
+        self, *descriptors: TensorDescriptor, timeout: Optional[float] = None
+    ) -> AsyncContextManager[Sequence[Handle]]:
         """
         Create a handle that is associated with buffers on unique device. If cache full, raises AllocationFailed.
 
@@ -105,7 +107,9 @@ class MemoryCache:
             alloc_size_by_device[descr.device] = alloc_size_by_device.get(descr.device, 0) + tensor_size
         return max(alloc_size_by_device.values())
 
-    async def _schedule_alloc(self, alloc_size: int, *descriptors: TensorDescriptor, timeout: Optional[float]) -> Sequence[Handle]:
+    async def _schedule_alloc(
+        self, alloc_size: int, *descriptors: TensorDescriptor, timeout: Optional[float]
+    ) -> Sequence[Handle]:
         """
         This method should be called inside asyncio.shield() because:
             - hivemind.utils.enter_asynchronously() does not always release the lock on cancellation
