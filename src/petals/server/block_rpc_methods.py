@@ -19,7 +19,7 @@ from petals.server.task_prioritizer import TaskPrioritizerBase
 from petals.utils.misc import DUMMY, is_dummy
 
 
-async def rpc_forward(
+async def run_rpc_forward(
     *flat_tensors: torch.Tensor,
     requested_backends: Sequence[TransformerBackend],
     active_adapter: str = "",
@@ -66,7 +66,7 @@ async def rpc_forward(
     return hidden_states
 
 
-async def rpc_backward(
+async def run_rpc_backward(
     *flat_tensors: torch.Tensor,
     requested_backends: Sequence[TransformerBackend],
     active_adapter: str = "",

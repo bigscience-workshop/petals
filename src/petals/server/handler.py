@@ -31,7 +31,7 @@ from hivemind.utils.streaming import split_for_streaming
 import petals
 from petals.data_structures import CHAIN_DELIMITER, UID_DELIMITER, ModuleUID
 from petals.server.backend import TransformerBackend
-from petals.server.block_methods import iterate_rpc_inference, rpc_backward, rpc_forward
+from petals.server.block_rpc_methods import iterate_rpc_inference, run_rpc_backward, run_rpc_forward
 from petals.server.memory_cache import Handle
 from petals.server.task_prioritizer import DummyTaskPrioritizer, TaskPrioritizerBase
 
@@ -356,7 +356,7 @@ class TransformerConnectionHandler(ConnectionHandler):
                 points, (float, int)
             ), f"rpc_forward should have number of points as number or None, got {points}"
 
-            hidden_states = await rpc_forward(
+            hidden_states = await run_rpc_forward(
                 *flat_inputs,
                 requested_backends=requested_backends,
                 prioritizer=self._prioritizer,
@@ -383,7 +383,7 @@ class TransformerConnectionHandler(ConnectionHandler):
                 points, (float, int)
             ), f"rpc_forward_stream should have number of points as number or None, got {points}"
 
-            hidden_states = await rpc_forward(
+            hidden_states = await run_rpc_forward(
                 *flat_inputs,
                 requested_backends=requested_backends,
                 prioritizer=self._prioritizer,
@@ -434,7 +434,7 @@ class TransformerConnectionHandler(ConnectionHandler):
                 points, (float, int)
             ), f"rpc_backward should have number of points as number or None, got {points}"
 
-            grads = await rpc_backward(
+            grads = await run_rpc_backward(
                 *flat_tensors,
                 requested_backends=requested_backends,
                 prioritizer=self._prioritizer,
@@ -459,7 +459,7 @@ class TransformerConnectionHandler(ConnectionHandler):
                 points, (float, int)
             ), f"rpc_backward_stream should have number of points as number or None, got {points}"
 
-            grads = await rpc_backward(
+            grads = await run_rpc_backward(
                 *flat_tensors,
                 requested_backends=requested_backends,
                 prioritizer=self._prioritizer,
