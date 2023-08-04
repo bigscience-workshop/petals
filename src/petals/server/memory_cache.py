@@ -114,14 +114,16 @@ class MemoryCache:
         This method should be called inside asyncio.shield() because:
             - hivemind.utils.enter_asynchronously() does not always release the lock on cancellation
         """
-        async with self._wait_for_free_memory(alloc_size, timeout):
-            async with enter_asynchronously(self._lock_metadata):
-                handles = tuple(int(self.handle_counter) + i for i in range(len(descriptors)))
-                self.current_size_bytes += alloc_size
-                self.handle_counter += len(handles)  # note: this will eventually overflow and it is okay
-                self._pipe_send.send((handles, descriptors))
-                return handles
-
+        try:
+            async with self._wait_for_free_memory(alloc_size, timeout):
+                async with enter_asynchronously(self._lock_metadata):
+                    handles = tuple(int(self.handle_counter) + i for i in range(len(descriptors)))
+                    self.current_size_bytes += alloc_size
+                    self.handle_counter += len(handles)  # note: this will eventually overflow and it is okay
+                    self._pipe_send.send((handles, descriptors))
+                    return handles
+        except TimeoutError:
+            raise AllocationFailed(f"Could not allocate {alloc_size} (timeout={timeout})")
     @contextlib.asynccontextmanager
     async def _wait_for_free_memory(self, alloc_size: int, timeout: Optional[float]):
         start_time = time.perf_counter()

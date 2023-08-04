@@ -53,7 +53,7 @@ async def test_cache_timeout():
             large_alloc_task = asyncio.create_task(_klog_the_cache())
 
             t_start = time.perf_counter()
-            await asyncio.sleep(0.1)  # wait for large alloc to enqueue
+            await asyncio.sleep(0.05)  # wait for large alloc to enqueue
             async with cache.allocate_cache(_make_tensor_descriptor(128)):  # exceeds max timeout
                 pass  # this memory should allocate once the background task clears the queue
             assert 0.2 < time.perf_counter() - t_start < 0.3, "memory should be allocated after background task clears"
@@ -63,7 +63,7 @@ async def test_cache_timeout():
             # test that zero-timeout allocation fails instantaneously even if someone else is awaiting alloc
             large_alloc_task = asyncio.create_task(_klog_the_cache())
             t_start = time.perf_counter()
-            await asyncio.sleep(0.1)  # wait for large alloc to enqueue
+            await asyncio.sleep(0.05)  # wait for large alloc to enqueue
             with pytest.raises(AllocationFailed):
                 async with cache.allocate_cache(_make_tensor_descriptor(512), timeout=0):
                     pass  # this memory should allocate once the background task clears the queue
