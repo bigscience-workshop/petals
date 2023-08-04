@@ -16,7 +16,7 @@ from transformers import PretrainedConfig
 from petals.data_structures import InferenceMetadata
 from petals.server.memory_cache import MemoryCache
 from petals.server.task_pool import PrioritizedTaskPool
-from petals.utils.misc import is_dummy, get_size_in_bytes
+from petals.utils.misc import get_size_in_bytes, is_dummy
 
 logger = get_logger(__name__)
 
