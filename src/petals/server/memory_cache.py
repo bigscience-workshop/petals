@@ -12,7 +12,6 @@ import os
 import time
 from typing import AsyncContextManager, Dict, Optional, Sequence, Coroutine
 
-import hivemind
 import torch
 from hivemind.utils import TensorDescriptor, get_logger, anext, enter_asynchronously
 
@@ -136,7 +135,8 @@ class MemoryCache:
             if self.current_size_bytes + alloc_size > self.max_size_bytes:
                 try:
                     self._cache_overfull_event.set()
-                    remaining_timeout = max(0.0, time.perf_counter() - start_time) if timeout is not None else 0.0
+                    elapsed_time = time.perf_counter() - start_time
+                    remaining_timeout = max(0.0, timeout - elapsed_time) if timeout is not None else None
                     await loop.run_in_executor(None, self._wait_until_available, alloc_size, remaining_timeout)
                 finally:
                     self._cache_overfull_event.clear()
