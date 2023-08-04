@@ -60,6 +60,7 @@ class Server:
         min_batch_size: int = 1,
         max_batch_size: Optional[int] = None,
         max_chunk_size_bytes: int = 256 * 1024 * 1024,
+        max_alloc_timeout: float = 600,
         attn_cache_tokens: Optional[int] = None,
         torch_dtype: str = "auto",
         revision: Optional[str] = None,
@@ -185,6 +186,7 @@ class Server:
         self.min_batch_size, self.max_batch_size = min_batch_size, max_batch_size
         self.inference_max_length = inference_max_length
         self.max_chunk_size_bytes = max_chunk_size_bytes
+        self.max_alloc_timeout = max_alloc_timeout
 
         # For attention cache in GPU or RAM
         if attn_cache_tokens is None:
@@ -313,6 +315,7 @@ class Server:
                 min_batch_size=self.min_batch_size,
                 max_batch_size=self.max_batch_size,
                 max_chunk_size_bytes=self.max_chunk_size_bytes,
+                max_alloc_timeout=self.max_alloc_timeout,
                 inference_max_length=self.inference_max_length,
                 torch_dtype=self.torch_dtype,
                 cache_dir=self.cache_dir,
@@ -413,6 +416,7 @@ class ModuleContainer(threading.Thread):
         min_batch_size: int,
         max_batch_size: int,
         max_chunk_size_bytes: int,
+        max_alloc_timeout: float,
         torch_dtype: torch.dtype,
         cache_dir: str,
         max_disk_space: int,
@@ -428,7 +432,7 @@ class ModuleContainer(threading.Thread):
         **kwargs,
     ) -> ModuleContainer:
         module_uids = [f"{dht_prefix}{UID_DELIMITER}{block_index}" for block_index in block_indices]
-        memory_cache = MemoryCache(attn_cache_bytes)
+        memory_cache = MemoryCache(attn_cache_bytes, max_alloc_timeout)
 
         server_info.state = ServerState.JOINING
         dht_announcer = ModuleAnnouncerThread(
