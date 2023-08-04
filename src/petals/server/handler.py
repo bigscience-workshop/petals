@@ -29,12 +29,11 @@ from hivemind.utils.logging import get_logger
 from hivemind.utils.streaming import split_for_streaming
 
 import petals
-from petals.data_structures import CHAIN_DELIMITER, UID_DELIMITER, InferenceMetadata, ModuleUID
+from petals.data_structures import CHAIN_DELIMITER, UID_DELIMITER, ModuleUID
 from petals.server.backend import TransformerBackend
 from petals.server.block_methods import iterate_rpc_inference, rpc_backward, rpc_forward
 from petals.server.memory_cache import Handle
 from petals.server.task_prioritizer import DummyTaskPrioritizer, TaskPrioritizerBase
-from petals.utils.misc import is_dummy
 
 logger = get_logger(__name__)
 
@@ -147,7 +146,6 @@ class TransformerConnectionHandler(ConnectionHandler):
                 metadata = MSGPackSerializer.loads(request.metadata) if request.metadata else {}
                 requested_backends = tuple(self.module_backends[uid] for uid in requested_uids)
                 max_length = metadata.get("max_length")
-                active_adapter = self._get_active_adapter(metadata)
                 points = metadata.get("points", 0)
                 session_id = metadata.get("session_id")
                 if not requested_uids:
@@ -167,19 +165,17 @@ class TransformerConnectionHandler(ConnectionHandler):
                 background_tasks = set()
 
                 async with self._allocate_cache(requested_backends, batch_size, max_length) as cache_handles:
-                    assert len(cache_handles) == len(requested_backends)
-
                     async for output_tensors, can_push in iterate_rpc_inference(
-                        requested_uids,
-                        requested_backends,
-                        active_adapter,
+                        requested_uids=requested_uids,
+                        requested_backends=requested_backends,
+                        active_adapter=self._get_active_adapter(metadata),
                         input_iterator=self._iterate_inference_steps(
                             request, requests, session_id, requested_uids, context
                         ),
                         cache_handles=cache_handles,
+                        max_length=max_length,
                         prioritizer=self._prioritizer,
                         points=points,
-                        max_length=max_length,
                     ):
                         if can_push:
                             task = asyncio.create_task(self._push_outputs(request, output_tensors[0], metadata))
@@ -247,7 +243,7 @@ class TransformerConnectionHandler(ConnectionHandler):
         session_id: Optional[str],
         requested_uids: Sequence[str],
         context: P2PContext,
-    ) -> AsyncIterator[Tuple[Sequence[torch.Tensor], dict]]:
+    ) -> AsyncIterator[Tuple[runtime_pb2.ExpertRequest, dict]]:
         processed_step_ids = set()
         n_pushes = n_late_pushes = 0
         request = first_request
@@ -264,7 +260,7 @@ class TransformerConnectionHandler(ConnectionHandler):
                         self._log_request("rpc_inference.push", requested_uids, context, debug=f"session received push")
 
                     if step_id is None or step_id not in processed_step_ids:
-                        yield tuple(map(deserialize_torch_tensor, request.tensors)), metadata
+                        yield request, metadata
                         if step_id is not None:
                             processed_step_ids.add(step_id)
                     elif pushed:

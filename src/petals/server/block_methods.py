@@ -127,15 +127,17 @@ async def iterate_rpc_inference(
     active_adapter: Optional[str],
     input_iterator: AsyncIterator[Tuple[runtime_pb2.ExpertRequest, dict]],
     cache_handles: Sequence[Sequence[Handle]],
+    max_length: int,
     prioritizer: TaskPrioritizerBase,
     points: int,
-    max_length: int,
-) -> AsyncIterator[Tuple[Sequence[torch.Tensor], bool]]:
+) -> AsyncIterator[Tuple[Sequence[runtime_pb2.Tensor], bool]]:
+    assert len(cache_handles) == len(requested_backends)
+
     prefix_length = 0
     point_per_piece = points / max_length if max_length > 0 else 0.0
 
-    async for request_tensors, step_metadata in input_iterator:
-        hidden_states, prompts, hypo_ids = request_tensors
+    async for request, step_metadata in input_iterator:
+        hidden_states, prompts, hypo_ids = map(deserialize_torch_tensor, request.tensors)
 
         # Cast inputs to backend dtype
         hidden_states = hidden_states.to(requested_backends[0].dtype)
