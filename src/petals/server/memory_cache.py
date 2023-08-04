@@ -10,11 +10,11 @@ import ctypes
 import multiprocessing as mp
 import os
 import time
-from typing import AsyncContextManager, Dict, Optional, Sequence
+from typing import AsyncContextManager, Dict, Optional, Sequence, Coroutine
 
 import hivemind
 import torch
-from hivemind.utils import TensorDescriptor, get_logger
+from hivemind.utils import TensorDescriptor, get_logger, anext, enter_asynchronously
 
 from petals.utils.asyncio import shield_and_wait
 from petals.utils.misc import get_size_in_bytes
@@ -39,6 +39,7 @@ class MemoryCache:
         self._pipe_recv, self._pipe_send = mp.Pipe(duplex=False)  # any ConnectionHandler -> runtime
         self._lock_acquire_memory = mp.Lock()
         self._memory_freed_event = mp.Event()
+        self._cache_overfull_event = mp.Event()
 
     @property
     def current_size_bytes(self) -> int:
@@ -82,7 +83,7 @@ class MemoryCache:
             timeout = min(timeout, self.max_alloc_timeout) if timeout is not None else self.max_alloc_timeout
         max_alloc_size = self.get_allocation_size(*descriptors)
 
-        gib = 1#024**3
+        gib = 1024**3
         cur_size, max_size = self.current_size_bytes, self.max_size_bytes
         friendly_max_size = f"{max_size / gib:.2f}" if max_size != 2**64 - 1 else "inf"
         logger.info(
@@ -114,17 +115,32 @@ class MemoryCache:
         This method should be called inside asyncio.shield() because:
             - hivemind.utils.enter_asynchronously() does not always release the lock on cancellation
         """
-
-        loop = asyncio.get_event_loop()
-        async with hivemind.utils.enter_asynchronously(self._lock_acquire_memory):
-            if self.current_size_bytes + alloc_size > self.max_size_bytes:
-                await loop.run_in_executor(None, self._wait_until_available, alloc_size, timeout)
-            async with hivemind.utils.enter_asynchronously(self._lock_metadata):
+        async with self._wait_for_free_memory(alloc_size, timeout):
+            async with enter_asynchronously(self._lock_metadata):
                 handles = tuple(int(self.handle_counter) + i for i in range(len(descriptors)))
                 self.current_size_bytes += alloc_size
                 self.handle_counter += len(handles)  # note: this will eventually overflow and it is okay
                 self._pipe_send.send((handles, descriptors))
                 return handles
+
+    @contextlib.asynccontextmanager
+    async def _wait_for_free_memory(self, alloc_size: int, timeout: Optional[float]):
+        start_time = time.perf_counter()
+        loop = asyncio.get_event_loop()
+        if timeout == 0:  # if waiting is not allowed, fail when you or anyone else begins waiting
+            stop_when_completes = loop.run_in_executor(None, self._cache_overfull_event.wait)
+        else:  # otherwise, only fail if timeout expires
+            stop_when_completes = asyncio.sleep(timeout if timeout is not None else float('inf'))
+
+        async with wait_for_aenter(enter_asynchronously(self._lock_acquire_memory), stop_when_completes):
+            if self.current_size_bytes + alloc_size > self.max_size_bytes:
+                try:
+                    self._cache_overfull_event.set()
+                    remaining_timeout = max(0.0, time.perf_counter() - start_time) if timeout is not None else 0.0
+                    await loop.run_in_executor(None, self._wait_until_available, alloc_size, remaining_timeout)
+                finally:
+                    self._cache_overfull_event.clear()
+            yield
 
     async def _schedule_free(self, alloc_size: int, alloc_task: asyncio.Task):
         """
@@ -183,6 +199,32 @@ class MemoryCache:
                         )
                     self._allocated_tensors.pop(handle, None)
         yield tuple(self._allocated_tensors[handle] for handle in handles)
+
+
+@contextlib.asynccontextmanager
+async def wait_for_aenter(context: contextlib.AbstractAsyncContextManager, stop_when_completes: Coroutine):
+    """Try to enter asynchronous context in time before stop_after task completes (e.g. timeout)"""
+
+    async def _enter_and_exit():
+        async with context:
+            yield
+        yield
+    async def _wait_for_deadline():
+        await stop_when_completes
+
+    aenter_and_aexit = _enter_and_exit()
+    aenter_task = asyncio.create_task(anext(aenter_and_aexit))
+    stop_task = asyncio.create_task(_wait_for_deadline())
+    try:
+        await asyncio.wait({aenter_task, stop_task}, return_when=asyncio.FIRST_COMPLETED)
+        if stop_task.done():
+            raise TimeoutError("Did not enter context in time")
+        yield aenter_task.result()
+    finally:
+        if aenter_task.done():
+            await anext(aenter_and_aexit)  # exit normally
+        stop_task.cancel()
+        aenter_task.cancel()
 
 
 class AllocationFailed(Exception):

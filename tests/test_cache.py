@@ -1,6 +1,7 @@
 import asyncio
 import multiprocessing as mp
 import random
+import time
 from typing import Optional
 
 import pytest
@@ -18,6 +19,57 @@ def _make_tensor_descriptor(num_bytes: int, dtype: Optional[torch.dtype] = None)
     elem_size_bytes = get_size_in_bytes(dtype)
     descr = TensorDescriptor.from_tensor(torch.empty((num_bytes // elem_size_bytes,), dtype=dtype))
     return descr
+
+
+@pytest.mark.asyncio
+async def test_cache_timeout():
+    cache = MemoryCache(max_size_bytes=1024, max_alloc_timeout=0.5)
+    cache.runtime_pid += 1  # pretend we're another process
+    async with cache.allocate_cache(_make_tensor_descriptor(768)):
+        pass
+
+    async with cache.allocate_cache(_make_tensor_descriptor(100)):
+        async with cache.allocate_cache(_make_tensor_descriptor(512), timeout=0):
+            async with cache.allocate_cache(_make_tensor_descriptor(128), _make_tensor_descriptor(32)):
+                t_start = time.perf_counter()
+                with pytest.raises(AllocationFailed):
+                    async with cache.allocate_cache(_make_tensor_descriptor(768), timeout=0.1):
+                        pass
+                assert 0.1 < time.perf_counter() - t_start < 0.2, "wait time exceeds alloc timeout"
+                async with cache.allocate_cache(_make_tensor_descriptor(128)):
+                    pass
+
+                t_start = time.perf_counter()
+                with pytest.raises(AllocationFailed):
+                    async with cache.allocate_cache(_make_tensor_descriptor(384), timeout=1.0):  # exceeds max timeout
+                        pass
+                assert 0.5 < time.perf_counter() - t_start < 0.6, "wait time exceeds max alloc timeout"
+
+            # test memory allocation when another task frees the memory
+            async def _klog_the_cache():
+                async with cache.allocate_cache(_make_tensor_descriptor(512), timeout=0.2):
+                    pass
+
+            large_alloc_task = asyncio.create_task(_klog_the_cache())
+
+            t_start = time.perf_counter()
+            await asyncio.sleep(0.1)  # wait for large alloc to enqueue
+            async with cache.allocate_cache(_make_tensor_descriptor(128)):  # exceeds max timeout
+                pass  # this memory should allocate once the background task clears the queue
+            assert 0.2 < time.perf_counter() - t_start < 0.3, "memory should be allocated after background task clears"
+            with pytest.raises(AllocationFailed):
+                await large_alloc_task
+
+            # test that zero-timeout allocation fails instantaneously even if someone else is awaiting alloc
+            large_alloc_task = asyncio.create_task(_klog_the_cache())
+            t_start = time.perf_counter()
+            await asyncio.sleep(0.1)  # wait for large alloc to enqueue
+            with pytest.raises(AllocationFailed):
+                async with cache.allocate_cache(_make_tensor_descriptor(512), timeout=0):
+                    pass  # this memory should allocate once the background task clears the queue
+            assert time.perf_counter() - t_start < 0.1, "zero-timeout task should fail (or succeed) instantaneously"
+            with pytest.raises(AllocationFailed):
+                await large_alloc_task
 
 
 @pytest.mark.asyncio
@@ -60,7 +112,7 @@ async def test_cache_usage():
 
     async def _allocate_bcde():
         alloc_event.wait()
-        await asyncio.sleep(0.2)  # ensure that the other tensor is always allocated (and sent through pipe) first
+        await asyncio.sleep(0.1)  # ensure that the other tensor is always allocated (and sent through pipe) first
         allocate_bcd_task = asyncio.create_task(_allocate_and_wait(dealloc_bcd_event, descr_b, descr_c, descr_d))
         allocate_e_task = asyncio.create_task(_allocate_and_wait(dealloc_e_event, descr_e))  # doesn't fit
         await asyncio.wait({allocate_e_task, allocate_bcd_task}, return_when=asyncio.ALL_COMPLETED)
@@ -92,7 +144,7 @@ async def test_cache_usage():
             pass  # one of handles (c) is deallocated
     with pytest.raises(KeyError):
         with cache.use_cache(handle_d):
-            pass  # handle_e is deallocated, even though it is never used
+            pass  # handle_d is deallocated correctly, even though it is never used
     with cache.use_cache(handle_a) as (tensor_a,):
         assert tuple(tensor_a[2:5]) == (43, 44, 45)
 
@@ -118,18 +170,3 @@ async def test_cache_usage():
     assert cache.current_size_bytes == 0
     assert alloc_process1.exitcode == 0, "allocation process 1 failed or did not finish, see stderr for details"
     assert alloc_process2.exitcode == 0, "allocation process 2 failed or did not finish, see stderr for details"
-
-    # cache.runtime_pid += 1  # pretend we're another process
-    # async with cache.allocate_cache(_make_tensor_descriptor(768)) as a:
-    #     pass
-    #
-    #
-    # async with cache.allocate_cache(_make_tensor_descriptor(768)):
-    #     async with cache.allocate_cache(_make_tensor_descriptor(1024)):
-    #         async with cache.allocate_cache(_make_tensor_descriptor(512), _make_tensor_descriptor(64)):
-    #             async with cache.allocate_cache(_make_tensor_descriptor(1536)):
-    #                 with pytest.raises(TimeoutError):
-    #                     async with cache.allocate_cache(_make_tensor_descriptor(256), ):
-    #                         pass
-    #                 async with cache.allocate_cache(_make_tensor_descriptor(192)):
-    #                     pass
