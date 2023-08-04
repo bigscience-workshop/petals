@@ -23,7 +23,7 @@ def _make_tensor_descriptor(num_bytes: int, dtype: Optional[torch.dtype] = None)
 @pytest.mark.asyncio
 async def test_cache_usage():
     cache = MemoryCache(max_size_bytes=2048)
-    alloc_event, dealloc_e_event, dealloc_bcd_event, dealloc_a_event = mp.Event(), mp.Event(), mp.Event(), mp.Event()
+    alloc_event, dealloc_a_event, dealloc_bcd_event, dealloc_e_event, dealloc_f_event = (mp.Event() for _ in range(5))
     pipe_receiver, pipe_sender = mp.Pipe(duplex=False)
     with pytest.raises(AssertionError):
         async with cache.allocate_cache(_make_tensor_descriptor(123)):
@@ -52,8 +52,8 @@ async def test_cache_usage():
         alloc_event.wait()
         allocate_a_task = asyncio.create_task(_allocate_and_wait(dealloc_a_event, descr_a))
         await allocate_a_task
-        #allocate_f_task = asyncio.create_task(_allocate_and_wait(mp.Event(), descr_f))  # klogs the cache
-        #await allocate_f_task
+        allocate_f_task = asyncio.create_task(_allocate_and_wait(dealloc_f_event, descr_f))  # klogs the cache
+        await allocate_f_task
 
     alloc_process1 = mp.Process(target=lambda: asyncio.run(_allocate_af()), daemon=True)
     alloc_process1.start()
@@ -86,7 +86,7 @@ async def test_cache_usage():
 
     dealloc_bcd_event.set()
     await asyncio.sleep(0.1)
-    assert cache.current_size_bytes == 768, cache.current_size_bytes  # only tensor a should be allocated
+    assert cache.current_size_bytes == 768  # only tensor a should be allocated
     with pytest.raises(KeyError):
         with cache.use_cache(handle_a, handle_b):
             pass  # one of handles (c) is deallocated
@@ -107,8 +107,14 @@ async def test_cache_usage():
         assert tensor_e.dtype == torch.bfloat16 and tensor_e.shape == (96, 8)
 
     dealloc_e_event.set()
-    alloc_process1.join(1)
-    alloc_process2.join(1)
+    await asyncio.sleep(0.1)
+    assert cache.current_size_bytes == 1792  # only tensor f is still allocated
+    dealloc_f_event.set()
+
+    alloc_process1.join()
+    alloc_process2.join()
+    await asyncio.sleep(0.1)
+    assert cache.current_size_bytes == 0
     assert cache.current_size_bytes == 0
     assert alloc_process1.exitcode == 0, "allocation process 1 failed or did not finish, see stderr for details"
     assert alloc_process2.exitcode == 0, "allocation process 2 failed or did not finish, see stderr for details"
