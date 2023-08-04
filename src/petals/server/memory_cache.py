@@ -10,10 +10,10 @@ import ctypes
 import multiprocessing as mp
 import os
 import time
-from typing import AsyncContextManager, Dict, Optional, Sequence, Coroutine
+from typing import AsyncContextManager, Coroutine, Dict, Optional, Sequence
 
 import torch
-from hivemind.utils import TensorDescriptor, get_logger, anext, enter_asynchronously
+from hivemind.utils import TensorDescriptor, anext, enter_asynchronously, get_logger
 
 from petals.utils.asyncio import shield_and_wait
 from petals.utils.misc import get_size_in_bytes
@@ -124,6 +124,7 @@ class MemoryCache:
                     return handles
         except TimeoutError:
             raise AllocationFailed(f"Could not allocate {alloc_size} (timeout={timeout})")
+
     @contextlib.asynccontextmanager
     async def _wait_for_free_memory(self, alloc_size: int, timeout: Optional[float]):
         start_time = time.perf_counter()
@@ -131,7 +132,7 @@ class MemoryCache:
         if timeout == 0:  # if waiting is not allowed, fail when you or anyone else begins waiting
             stop_when_completes = loop.run_in_executor(None, self._cache_overfull_event.wait)
         else:  # otherwise, only fail if timeout expires
-            stop_when_completes = asyncio.sleep(timeout if timeout is not None else float('inf'))
+            stop_when_completes = asyncio.sleep(timeout if timeout is not None else float("inf"))
 
         async with wait_for_aenter(enter_asynchronously(self._lock_acquire_memory), stop_when_completes):
             if self.current_size_bytes + alloc_size > self.max_size_bytes:
@@ -211,6 +212,7 @@ async def wait_for_aenter(context: contextlib.AbstractAsyncContextManager, stop_
         async with context:
             yield
         yield
+
     async def _wait_for_deadline():
         await stop_when_completes
 
