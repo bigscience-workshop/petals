@@ -348,7 +348,7 @@ class TransformerConnectionHandler(ConnectionHandler):
                         anext_task.cancel()
                         get_push_task.cancel()
                         return
-        except:
+        except Exception:
             logger.warning("rpc_inference._iterate_inference_steps() exception:", exc_info=True)
             raise
 

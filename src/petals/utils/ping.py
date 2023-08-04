@@ -24,7 +24,10 @@ async def ping(
         start_time = time.perf_counter()
         await node.protocol.get_stub(peer_id).rpc_ping(ping_request, timeout=wait_timeout)
         return time.perf_counter() - start_time
-    except Exception:
+    except Exception as e:
+        if str(e) == "protocol not supported":  # Happens on servers with client-mode DHT (e.g., reachable via relays)
+            return time.perf_counter() - start_time
+
         logger.debug(f"Failed to ping {peer_id}:", exc_info=True)
         return math.inf
 
