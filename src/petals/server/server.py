@@ -278,17 +278,7 @@ class Server:
         block_size = get_block_size(self.block_config, "memory", dtype=self.torch_dtype, quant_type=self.quant_type)
         total_memory_per_block = block_size + self._cache_bytes_per_block
         if self.adapters:
-            # Delay import of petals.utils.peft to avoid unnecessary import of bitsandbytes
-            from petals.utils.peft import estimate_adapter_memory_per_block
-
-            total_memory_per_block += estimate_adapter_memory_per_block(
-                self.block_config,
-                self.torch_dtype,
-                self.adapters,
-                token=self.token,
-                cache_dir=self.cache_dir,
-                max_disk_space=self.max_disk_space,
-            )
+            raise RuntimeError("LoRA adapters are not supported on AMD GPUs")
 
         num_blocks = math.floor((total_memory - autograd_memory) / total_memory_per_block)
         assert num_blocks >= 1, "Your GPU does not have enough memory to serve at least one block"
