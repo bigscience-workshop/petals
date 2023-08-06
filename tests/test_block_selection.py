@@ -1,6 +1,9 @@
 import unittest
+import codecs
 
 from petals.server import block_selection
+from petals.server.block_selection import Span
+from hivemind.p2p import PeerID
 from petals.data_structures import ServerInfo, RemoteModuleInfo, RPS, ServerState
 from dataclasses import dataclass
 from typing import Optional, List
@@ -12,24 +15,46 @@ from rich.pretty import pprint
 
 class TestBlockSelection(unittest.TestCase):
 
+    def test_choose_best_start(self):
+        
+        throughputs = np.ones(24)
+        throughputs[15:] = 0
+        # throughputs looks like this:
+        # [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0.]
+        # print(throughputs)
+        # num_blocks_local_server is the number of blocks the local server runs:
+        num_blocks_local_server = 2
+        start = block_selection._choose_best_start(throughputs, num_blocks_local_server)
+        self.assertEqual(start, 15)
+
+
     def test_should_choose_other_blocks(self):
         num_total_blocks = 24;
         num_blocks = 16;
         module_infos: List[Optional[RemoteModuleInfo]] = [None] * num_total_blocks
 
         server1_id = "12D3"
+        server1_id_bytes = codecs.encode(server1_id, 'utf-8')
+        server1_PeerID = PeerID(server1_id_bytes)
+        
+        server2_id = "43WB"
+        server2_id_bytes = codecs.encode(server2_id, 'utf-8')
+        server2_PeerID = PeerID(server2_id_bytes)
 
         for i in range(num_blocks):
             uid = f"bigscience/bloom-560m-petals.{i}"
 
+            # Dict[PeerID, ServerInfo]
             servers = {
-                    "<libp2p.peer.id.ID (12D3)>": ServerInfo(
-                    # libp2p.peer.id.ID=server1_id,
-                    # offline = 0, joining = 1, online = 2
+                server1_PeerID: ServerInfo(
                     state=ServerState.ONLINE,
-                    throughput=RPS(0),
+                    throughput=RPS(1),
+                ),
 
-                )
+                server2_PeerID: ServerInfo(
+                    state=ServerState.ONLINE,
+                    throughput=RPS(1),
+                ),
             }
 
             module_info = RemoteModuleInfo(
@@ -39,28 +64,31 @@ class TestBlockSelection(unittest.TestCase):
 
             module_infos[i] = module_info
 
-        # pprint(module_infos)
 
-        # figure out how to test this later;
-# def get_remote_module_infos(
-#     dht: DHT,
-#     uids: Sequence[ModuleUID],
-#     expiration_time: Optional[DHTExpiration] = None,
-#     active_adapter: Optional[str] = None,
-#     *,
-#     latest: bool = False,
-#     return_future: bool = False,
-# ) -> Union[List[Optional[RemoteModuleInfo]], MPFuture]:
-        # mod = get_remote_module_infos(server1_id, module_info)
         # pprint(module_infos)
+        spans, throughputs = block_selection.compute_spans(module_infos)
+
+        throughputs_t = np.ones(24)
+        throughputs_t[:16] = 2
+        throughputs_t[16:] = 0
+        
+        np.testing.assert_array_equal(throughputs, throughputs_t)
+
+        eps = 1e-3
+        local_span = spans[server1_PeerID]
+        throughputs[local_span.start : local_span.end] -= local_span.throughput * (1 + eps)
+        new_start = block_selection._choose_best_start(throughputs, local_span.length)
+        # there are 24 blocks and the local server can serve 16, so should start at 8: 
+        self.assertEqual(8, new_start) 
         
         r = block_selection.should_choose_other_blocks(
-                server1_id,
+                server1_PeerID, #local_peer_id 
                 module_infos,
-                75
+                .75
                 )
 
-        pprint(r)
+        # pprint(r)
+        self.assertTrue(r)
 
 
         
@@ -103,17 +131,6 @@ class TestBlockSelection(unittest.TestCase):
    #    "next_pings=None)"
    # }")",
 
-    def test_choose_best_start(self):
-        
-        throughputs = np.ones(24)
-        throughputs[15:] = 0
-        # throughputs looks like this:
-        # [1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0.]
-        print(throughputs)
-        # this is the number of blocks the local server runs
-        num_blocks_local_server = 2
-        start = block_selection._choose_best_start(throughputs, num_blocks_local_server)
-        self.assertEqual(start, 15)
         
 
          
