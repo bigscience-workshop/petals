@@ -46,7 +46,7 @@ Petals is a community-run system &mdash; we rely on people sharing their GPUs. Y
 🐍 **Linux + Anaconda.** Run these commands:
 
 ```bash
-conda install pytorch pytorch-cuda=11.7 -c pytorch -c nvidia
+conda install pytorch pytorch-cuda=11.8 -c pytorch -c nvidia
 pip install git+https://github.com/bigscience-workshop/petals
 python -m petals.cli.run_server stabilityai/StableBeluga2 --torch_dtype float16
 ```
@@ -115,7 +115,7 @@ Learning more:
 Here's how to install Petals with [Anaconda](https://www.anaconda.com/products/distribution) on Linux:
 
 ```bash
-conda install pytorch pytorch-cuda=11.7 -c pytorch -c nvidia
+conda install pytorch pytorch-cuda=11.8 -c pytorch -c nvidia
 pip install git+https://github.com/bigscience-workshop/petals
 ```
 
