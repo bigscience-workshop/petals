@@ -238,7 +238,7 @@ class Server:
         self.server_info = ServerInfo(
             state=ServerState.JOINING,
             public_name=public_name,
-            version=petals.__version__,
+            version=petals.__version__ + ".amd",
             adapters=tuple(adapters),
             torch_dtype=str(torch_dtype).replace("torch.", ""),
             quant_type=quant_type.name.lower(),

@@ -608,7 +608,7 @@ class TransformerConnectionHandler(ConnectionHandler):
 
         backend = self.module_backends[request.uid] if request.uid else next(iter(self.module_backends.values()))
         result = {
-            "version": petals.__version__,
+            "version": petals.__version__ + ".amd",
             "dht_client_mode": self.dht.client_mode,
             CACHE_TOKENS_AVAILABLE: backend.memory_cache.bytes_left // max(backend.cache_bytes_per_token.values()),
         }
