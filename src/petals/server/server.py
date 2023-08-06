@@ -698,7 +698,9 @@ class ModuleAnnouncerThread(threading.Thread):
 
             delay = self.update_period - (time.perf_counter() - start_time)
             if delay < 0:
-                logger.warning(f"Declaring blocks to DHT takes more than --update_period, consider increasing it (currently {self.update_period})")
+                logger.warning(
+                    f"Declaring blocks to DHT takes more than --update_period, consider increasing it (currently {self.update_period})"
+                )
             self.trigger.wait(max(delay, 0))
             self.trigger.clear()
 
