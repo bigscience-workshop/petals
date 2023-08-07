@@ -41,15 +41,17 @@ def get_server_throughput(
     num_blocks: int,
     quant_type: QuantType,
     tensor_parallel_devices: Sequence[torch.device],
+    reachable_via_relay: bool,
+    relay_penalty: float = 0.2,
     force_eval: bool = False,
     cache_dir: Optional[str] = None,
-) -> float:
+) -> Dict[str, float]:
     dtype = resolve_block_dtype(config, dtype)
 
     if cache_dir is None:
         cache_dir = DEFAULT_CACHE_DIR
     lock_path = Path(cache_dir, "throughput.lock")
-    cache_path = Path(cache_dir, "throughput_v3.json")
+    cache_path = Path(cache_dir, "throughput_v4.json")
 
     # We use the system-wide lock since only one process at a time can measure the host throughput
     os.makedirs(lock_path.parent, exist_ok=True)
@@ -93,10 +95,15 @@ def get_server_throughput(
     # Assuming the start block index is distributed uniformly, the average number of blocks used per request is
     # E[Uniform{1, 2, ..., num_blocks}] = (num_blocks + 1) / 2
     average_blocks_used = (num_blocks + 1) / 2
-    throughput = throughput_info["compute_rps"] / average_blocks_used
-    throughput = min(throughput, throughput_info.get("network_rps", math.inf))
-    logger.info(f"Reporting throughput: {throughput:.1f} RPS for {num_blocks} blocks")
-    return throughput
+    throughput = throughput_info["forward_rps"] / average_blocks_used
+
+    network_rps = throughput_info["network_rps"] * (relay_penalty if reachable_via_relay else 1)
+    throughput = min(throughput, network_rps)
+
+    throughput_info["throughput"] = throughput
+    logger.info(f"Reporting throughput: {throughput:.1f} tokens/sec for {num_blocks} blocks")
+
+    return throughput_info
 
 
 def measure_throughput_info(
@@ -107,55 +114,75 @@ def measure_throughput_info(
     quant_type: QuantType,
     tensor_parallel_devices: Sequence[torch.device],
 ) -> Dict[str, float]:
-    """Measure network and compute throughput in forward pass tokens per second"""
-
     logger.info(
         "Measuring network and compute throughput. This takes about a minute and will be cached for future runs"
     )
-
-    throughput_info = {
-        "compute_rps": measure_compute_rps(
-            config, device, dtype, quant_type=quant_type, tensor_parallel_devices=tensor_parallel_devices
-        )
+    return {
+        "inference_rps": measure_compute_rps(
+            config,
+            device,
+            dtype,
+            quant_type=quant_type,
+            tensor_parallel_devices=tensor_parallel_devices,
+            n_tokens=1,
+            n_steps=100,
+            inference=True,
+        ),
+        "forward_rps": measure_compute_rps(
+            config,
+            device,
+            dtype,
+            quant_type=quant_type,
+            tensor_parallel_devices=tensor_parallel_devices,
+            n_tokens=1024,
+            n_steps=10,
+            inference=False,
+        ),
+        "network_rps": measure_network_rps(config),
     }
-    try:
-        throughput_info["network_rps"] = measure_network_rps(config)
-    except Exception as e:
-        logger.warning(f"Failed to measure network throughput: {repr(e)}")
-        logger.warning("Proceeding with the compute throughput only")
-    return throughput_info
 
 
-def measure_network_rps(config: PretrainedConfig, *, timeout: float = 60) -> Optional[float]:
-    pipe_recv, pipe_send = mp.Pipe(duplex=False)
-    process = mp.Process(target=_measure_bits_per_second, args=(pipe_send,))
-    process.start()
-
-    if not pipe_recv.poll(timeout):
-        process.terminate()
-        raise RuntimeError(f"speedtest did not finish in {timeout} seconds")
-    network_info = pipe_recv.recv()
-
+def measure_network_rps(
+    config: PretrainedConfig, *, timeout: float = 60, default_speed: float = 100e6  # 100 Mbit/s
+) -> Optional[float]:
     bits_per_request = config.hidden_size * 16  # Clients usually send 16-bit tensors for forward/backward
-    network_rps = min(network_info["download"], network_info["upload"]) / bits_per_request
-    if network_rps == 0:
-        raise RuntimeError("speedtest has returned network_rps == 0")
+    try:
+        pipe_recv, pipe_send = mp.Pipe(duplex=False)
+        process = mp.Process(target=_measure_bits_per_second, args=(pipe_send,))
+        process.start()
 
-    logger.info(
-        f"Network throughput: {network_rps:.1f} RPS "
-        f"({network_info['download'] / 1e6:.2f} Mbit/s on download, "
-        f"{network_info['upload'] / 1e6:.2f} Mbit/s on upload)"
-    )
-    return network_rps
+        if not pipe_recv.poll(timeout):
+            process.terminate()
+            raise RuntimeError(f"speedtest did not finish in {timeout} seconds")
+        network_info = pipe_recv.recv()
+        if "exception" in network_info:
+            raise RuntimeError(f"speedtest failed: {network_info['exception']}")
+
+        network_rps = min(network_info["download"], network_info["upload"]) / bits_per_request
+        if network_rps == 0:
+            raise RuntimeError("speedtest has returned network_rps == 0")
+
+        logger.info(
+            f"Network throughput: {network_rps:.1f} tokens/sec "
+            f"({network_info['download'] / 1e6:.2f} Mbit/s on download, "
+            f"{network_info['upload'] / 1e6:.2f} Mbit/s on upload)"
+        )
+        return network_rps
+    except RuntimeError as e:
+        logger.info(f"Network throughput is not available: {e}. Using default of {default_speed / 1e6:.2f} Mbit/s")
+        return default_speed / bits_per_request
 
 
 def _measure_bits_per_second(pipe_send: mp.Pipe):
-    s = speedtest.Speedtest()
-    s.get_servers()
-    s.get_best_server()
-    s.download()
-    s.upload()
-    pipe_send.send(s.results.dict())
+    try:
+        s = speedtest.Speedtest()
+        s.get_servers()
+        s.get_best_server()
+        s.download()
+        s.upload()
+        pipe_send.send(s.results.dict())
+    except Exception as e:
+        pipe_send.send({"exception": repr(e)})
 
 
 def measure_compute_rps(
@@ -165,14 +192,15 @@ def measure_compute_rps(
     *,
     quant_type: QuantType,
     tensor_parallel_devices: Sequence[torch.device],
-    n_tokens: int = 16,
-    n_steps: int = 500,
+    n_tokens: int,
+    n_steps: int,
+    inference: bool,
 ) -> float:
     if not tensor_parallel_devices:
         tensor_parallel_devices = (device,)
     with torch.inference_mode():
         block = config.block_class(config).to(dtype)
-        block = convert_block(block, config, tensor_parallel_devices, device, quant_type=quant_type, freeze=True)
+        block = convert_block(block, 0, config, tensor_parallel_devices, device, quant_type=quant_type, freeze=True)
 
         cache = None
         elapsed = 0
@@ -180,7 +208,7 @@ def measure_compute_rps(
             dummy_input = torch.randn(n_tokens, 1, config.hidden_size, device=device, dtype=dtype)
 
             start_time = time.perf_counter()
-            _, cache = block.forward(dummy_input, use_cache=True, layer_past=cache)
+            _, cache = block.forward(dummy_input, use_cache=True, layer_past=cache if inference else None)
             if step >= 1:  # Skip the 1st step to exclude the initialization time
                 elapsed += time.perf_counter() - start_time
         device_rps = n_steps * n_tokens / elapsed
@@ -191,8 +219,8 @@ def measure_compute_rps(
         devices_repr = ", ".join(f"{count}x {name}" for name, count in Counter(device_names).most_common())
 
     logger.info(
-        f"Forward pass throughput: {device_rps:.1f} RPS per block "
-        f"({devices_repr}, {get_dtype_name(dtype, quant_type)})"
+        f"{'Inference' if inference else 'Forward pass'} throughput: {device_rps:.1f} tokens/sec per block "
+        f"({n_tokens} tokens/batch, {devices_repr}, {get_dtype_name(dtype, quant_type)})"
     )
     return device_rps
 
@@ -202,7 +230,7 @@ def get_device_name(device: torch.device) -> str:
 
 
 def get_dtype_name(dtype: torch.dtype, quant_type: QuantType) -> str:
-    name = str(dtype)
+    name = str(dtype).replace("torch.", "")
     if quant_type != QuantType.NONE:
         name += f", quantized to {quant_type.name.lower()}"
     return name

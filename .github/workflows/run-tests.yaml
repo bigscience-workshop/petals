@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [ '3.7', '3.8', '3.9', '3.10' ]
+        python-version: [ '3.8', '3.9', '3.10', '3.11' ]
       fail-fast: false
     timeout-minutes: 15
     steps:
@@ -33,10 +33,12 @@ jobs:
         run: |
           export MODEL_NAME=bigscience/bloom-560m
           export REF_NAME=bigscience/bloom-560m
+          export ADAPTER_NAME=artek0chumak/bloom-560m-safe-peft
 
           python -m petals.cli.run_server --converted_model_name_or_path $MODEL_NAME --block_indices 0:12 \
             --new_swarm --identity tests/test.id --host_maddrs /ip4/127.0.0.1/tcp/31337 --throughput 1 \
-            --torch_dtype float32 --compression NONE --attn_cache_tokens 2048 &> server1.log &
+            --torch_dtype float32 --compression NONE --attn_cache_tokens 2048 --max_chunk_size_bytes 1024 \
+            --adapters $ADAPTER_NAME &> server1.log &
           SERVER1_PID=$!
 
           sleep 5  # wait for the first server to initialize DHT
@@ -45,17 +47,17 @@ jobs:
           # ^-- server 1 multiaddr is determined by --identity and --host_maddrs
 
           python -m petals.cli.run_server --converted_model_name_or_path $MODEL_NAME --block_indices 12:22 \
-            --initial_peers $INITIAL_PEERS --throughput 1 --torch_dtype float32 &> server2.log &
+            --initial_peers $INITIAL_PEERS --throughput 1 --torch_dtype float32 --adapters $ADAPTER_NAME &> server2.log &
           SERVER2_PID=$!
 
           sleep 10 # wait for initial servers to declare blocks, then let server decide which blocks to serve
 
-          python -m petals.cli.run_server --converted_model_name_or_path $MODEL_NAME --block_indices 0:5 \
-            --initial_peers $INITIAL_PEERS --throughput 1 --torch_dtype float32 &> server3.log &
+          python -m petals.cli.run_server --converted_model_name_or_path $MODEL_NAME --block_indices 12:15 \
+            --initial_peers $INITIAL_PEERS --throughput 1 --torch_dtype float32 --tensor_parallel_devices cpu cpu &> server3.log &
           SERVER3_PID=$!
 
           python -m petals.cli.run_server --converted_model_name_or_path $MODEL_NAME --num_blocks 3 \
-            --initial_peers $INITIAL_PEERS --throughput 1 --torch_dtype float32 --tensor_parallel_devices cpu cpu &> server4.log &
+            --initial_peers $INITIAL_PEERS --throughput 1 --torch_dtype float32 --adapters $ADAPTER_NAME &> server4.log &
           SERVER4_PID=$!
 
           tail -n 100 -f server*.log &

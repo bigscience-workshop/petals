@@ -1,7 +1,11 @@
+import os
+import re
 from dataclasses import dataclass
-from typing import Optional, Type
+from typing import Optional, Type, Union
 
 from transformers import AutoConfig, PretrainedConfig, PreTrainedModel
+
+from petals.utils.hf_auth import always_needs_auth
 
 
 @dataclass
@@ -26,8 +30,15 @@ class _AutoDistributedBase:
     _mapping_field = None  # Should be defined in child classes
 
     @classmethod
-    def from_pretrained(cls, *args, **kwargs) -> PretrainedConfig:
-        config = AutoConfig.from_pretrained(*args, **kwargs)
+    def from_pretrained(cls, model_name_or_path: Union[str, os.PathLike, None], *args, **kwargs) -> PretrainedConfig:
+        if (
+            always_needs_auth(model_name_or_path)
+            and kwargs.get("token") is None
+            and kwargs.get("use_auth_token") is None
+        ):
+            kwargs["use_auth_token"] = True
+
+        config = AutoConfig.from_pretrained(model_name_or_path, *args, **kwargs)
         if config.model_type not in _CLASS_MAPPING:
             raise ValueError(f"Petals does not support model type {config.model_type}")
 
@@ -35,7 +46,7 @@ class _AutoDistributedBase:
         if proper_cls is None:
             raise ValueError(f"Petals does not have {cls.__name__} for model type {config.model_type}")
 
-        return proper_cls.from_pretrained(*args, **kwargs)
+        return proper_cls.from_pretrained(model_name_or_path, *args, **kwargs)
 
 
 class AutoDistributedConfig(_AutoDistributedBase):

@@ -9,8 +9,6 @@ from petals.client.lm_head import LMHeadConfig
 from petals.client.ptune import PTuneConfig
 from petals.client.routing.sequence_manager import SequenceManagerConfig
 from petals.models.bloom.block import WrappedBloomBlock
-from petals.utils.auto_config import AutoDistributedConfig
-from petals.utils.version import get_compatible_model_repo
 
 logger = get_logger(__name__)
 
@@ -19,6 +17,8 @@ class DistributedBloomConfig(BloomConfig, SequenceManagerConfig, PTuneConfig, LM
     block_class = WrappedBloomBlock
     attn_class = BloomAttention
     block_prefix = "h"
+
+    num_key_value_groups = 1
 
     @classmethod
     def from_pretrained(

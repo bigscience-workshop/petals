@@ -28,6 +28,7 @@ class RemoteSequential(nn.Module):
         dht: Optional[DHT] = None,
         start_block: Optional[int] = None,
         end_block: Optional[int] = None,
+        **kwargs,
     ):
         super().__init__()
         self.config = config
@@ -41,7 +42,7 @@ class RemoteSequential(nn.Module):
             if end_block is None:
                 end_block = self.config.num_hidden_layers
             block_uids = tuple(f"{config.dht_prefix}{UID_DELIMITER}{i}" for i in range(start_block, end_block))
-            sequence_manager = RemoteSequenceManager(config, block_uids, dht=dht)
+            sequence_manager = RemoteSequenceManager(config, block_uids, dht=dht, **kwargs)
         self.sequence_manager = sequence_manager
 
     def forward(self, inputs: torch.Tensor, prompts: torch.Tensor = DUMMY):

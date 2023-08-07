@@ -25,10 +25,16 @@ def main():
                        help="path or name of a pretrained model, converted with cli/convert_model.py")
     group.add_argument('model', nargs='?', type=str, help="same as --converted_model_name_or_path")
 
+    parser.add_argument("--public_name", type=str, default=None, help="Public name to be reported in the leaderboard")
+
+    group = parser.add_mutually_exclusive_group(required=False)
+    group.add_argument("--token", type=str, default=None, help="Hugging Face hub auth token for .from_pretrained()")
+    group.add_argument("--use_auth_token", action="store_true", dest="token",
+                       help="Read token saved by `huggingface-cli login")
+
     parser.add_argument('--num_blocks', type=int, default=None, help="The number of blocks to serve")
     parser.add_argument('--block_indices', type=str, default=None, help="Specific block indices to serve")
-    parser.add_argument('--prefix', type=str, default=None, help="Announce all blocks with this prefix. By default,"
-                                                                 "use the same name as in the converted model.")
+    parser.add_argument('--dht_prefix', type=str, default=None, help="Announce all blocks with this DHT prefix")
 
     parser.add_argument('--port', type=int, required=False,
                         help='Port this server listens to. '
@@ -55,16 +61,24 @@ def main():
 
     parser.add_argument('--num_handlers', type=int, default=8, required=False,
                         help='server will use this many processes to handle incoming requests')
-    parser.add_argument('--min_batch_size', type=int, default=1,
-                        help='Minimum required batch size for all operations (in total tokens)')
-    parser.add_argument('--max_batch_size', type=int, default=2048,
-                        help='The total number of tokens in the same batch will not exceed this value')
     parser.add_argument('--prefetch_batches', type=int, default=1, required=False,
                         help='Pre-form this many subsequent batches while GPU is processing the current one')
     parser.add_argument('--sender_threads', type=int, default=1, required=False,
                         help='Use this many threads to pass results/exceptions from Runtime to Pools')
-    parser.add_argument('--inference_max_length', type=int, default=2048,
-                        help='Maximum total sequence length permitted per inference, defaults to 16384 tokens')
+
+    parser.add_argument('--inference_max_length', type=int, default=None,
+                        help='Maximum total sequence length permitted per inference, defaults to 16384 tokens. '
+                             'Default: 2048 for most models, 8192 for models with multi-query attention (e.g., Llama-2-70b)')
+    parser.add_argument('--min_batch_size', type=int, default=1,
+                        help='Minimum required batch size for all operations (in total tokens)')
+    parser.add_argument('--max_batch_size', type=int, default=None,
+                        help='The total number of tokens in the same batch will not exceed this value. '
+                             'Default: 2048 for most models, 8192 for models with multi-query attention (e.g., Llama-2-70b)')
+    parser.add_argument('--max_chunk_size_bytes', type=int, default=256 * 1024 * 1024,
+                        help='Maximum size of activation tensor processed in one go; larger tensors are split into chunks')
+    parser.add_argument('--attn_cache_tokens', type=int, default=None,
+                        help='The number of past attention key/value pairs that will be stored between inference steps. '
+                             'Default: 8192 for most models, 32768 for models with multi-query attention (e.g., Llama-2-70b)')
 
     parser.add_argument('--cache_dir', type=str, default=None,
                         help='Path to a directory in which a downloaded pretrained model configuration should be cached if the standard cache should not be used.')
@@ -82,10 +96,7 @@ def main():
     parser.add_argument("--torch_dtype", type=str, choices=DTYPE_MAP.keys(), default="auto",
                         help="Use this dtype to store block weights and do computations. "
                              "By default, respect the dtypes in the pre-trained state dict.")
-    parser.add_argument('--attn_cache_tokens', type=int, default=8192,
-                        help='The number of past attention key/value pairs that will be stored between inference steps. '
-                             'Default: 8192 (4 simultaneous sessions of up to 2048 tokens).')
-    parser.add_argument('--alloc_timeout', type=float, default=60,
+    parser.add_argument('--alloc_timeout', type=float, default=1,
                         help='If the cache is full, the server will wait for this number of seconds hoping that some memory will be freed '
                              'before rejecting the request')
     parser.add_argument('--revision', type=str, default=None,
@@ -99,7 +110,7 @@ def main():
                              'If set to "auto" (default), the script evaluates network and compute throughput '
                              'on the first run and uses these estimates for future runs. '
                              'If set to "eval", the script re-evaluates the throughput and overrides the cache.')
-    parser.add_argument('--update_period', type=float, required=False, default=150,
+    parser.add_argument('--update_period', type=float, required=False, default=120,
                         help='Server will report blocks to DHT once in this many seconds')
     parser.add_argument('--expiration', type=float, required=False, default=None,
                         help='DHT entries will expire after this many seconds')
@@ -133,7 +144,6 @@ def main():
     parser.add_argument("--mean_balance_check_period", type=float, default=60,
                         help="Check the swarm's balance every N seconds (and rebalance it if necessary)")
 
-    parser.add_argument("--use_auth_token", action='store_true', help="auth token for from_pretrained")
     parser.add_argument('--quant_type', type=str, default=None, choices=[choice.name.lower() for choice in QuantType],
                         help="Quantize blocks to 8-bit (int8 from the LLM.int8() paper) or "
                              "4-bit (nf4 from the QLoRA paper) formats to save GPU memory. "
@@ -144,9 +154,12 @@ def main():
                         "weight matrix. See https://huggingface.co/transformers/v4.9.0/parallelism.html#tensor-parallelism")
 
     parser.add_argument("--skip_reachability_check", action='store_true',
-                        help="Skip checking this server's reachability via health.petals.ml "
+                        help="Skip checking this server's reachability via health.petals.dev "
                              "when connecting to the public swarm. If you connect to a private swarm, "
                              "the check is skipped by default. Use this option only if you know what you are doing")
+
+    parser.add_argument("--adapters", nargs='+', default=(),
+                        help="List of pre-loaded LoRA adapters that can be used for inference or training")
 
     # fmt:on
     args = vars(parser.parse_args())

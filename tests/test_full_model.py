@@ -1,3 +1,4 @@
+import peft
 import pytest
 import torch
 import transformers
@@ -12,17 +13,22 @@ logger = get_logger(__name__)
 
 
 @pytest.mark.forked
+@pytest.mark.parametrize("use_peft", (True, False) if ADAPTER_NAME else (False,))
 @pytest.mark.parametrize("pass_empty_tensors", (True, False))
-def test_full_model_exact_match(pass_empty_tensors: bool, atol_forward=1e-3, atol_inference=1e-3):
+def test_full_model_exact_match(use_peft: bool, pass_empty_tensors: bool, atol_forward=1e-3, atol_inference=1e-3):
     tokenizer = transformers.BloomTokenizerFast.from_pretrained(MODEL_NAME)
     model = DistributedBloomForCausalLM.from_pretrained(
-        MODEL_NAME, initial_peers=INITIAL_PEERS, low_cpu_mem_usage=True, torch_dtype=torch.float32
+        MODEL_NAME,
+        initial_peers=INITIAL_PEERS,
+        low_cpu_mem_usage=True,
+        torch_dtype=torch.float32,
+        active_adapter=ADAPTER_NAME if use_peft else None,
     )
     config = model.config
     assert isinstance(model, DistributedBloomForCausalLM)
     assert len(model.transformer.h) == model.config.num_hidden_layers
 
-    test_inputs = tokenizer("A cat sat on a mat", return_tensors="pt")["input_ids"]
+    test_inputs = tokenizer("A quick brown fox was minding its own buisness", return_tensors="pt")["input_ids"]
 
     with torch.inference_mode():
         parallel_outputs = model.forward(test_inputs).logits
@@ -37,8 +43,14 @@ def test_full_model_exact_match(pass_empty_tensors: bool, atol_forward=1e-3, ato
                 recurrent_outputs.append(sess.step(torch.empty(1, 0, config.hidden_size)))
 
             for t in range(embs.shape[1]):
-                recurrent_outputs.append(sess.step(embs[:, t : t + 1, :]))
-                if t == int(embs.shape[1] // 2) and pass_empty_tensors:
+                if t == 4:
+                    recurrent_outputs.append(sess.step(embs[:, 4:9, :]))
+                elif 4 < t < 9:
+                    continue
+                else:
+                    recurrent_outputs.append(sess.step(embs[:, t : t + 1, :]))
+
+                if t == 2 and pass_empty_tensors:
                     recurrent_outputs.append(sess.step(torch.empty(1, 0, config.hidden_size)))
                     recurrent_outputs.append(sess.step(torch.empty(1, 0, config.hidden_size)))
 
@@ -54,6 +66,9 @@ def test_full_model_exact_match(pass_empty_tensors: bool, atol_forward=1e-3, ato
             ref_model = transformers.BloomForCausalLM.from_pretrained(
                 REF_NAME, low_cpu_mem_usage=True, torch_dtype=torch.float32
             )
+            if use_peft:
+                ref_model = peft.PeftModel.from_pretrained(ref_model, ADAPTER_NAME)
+                ref_model.train(False)
             if config.vocab_size < ref_model.config.vocab_size:
                 ref_model.resize_token_embeddings(config.vocab_size)
                 logger.warning(f"Resized the reference model embeddings, new total = {ref_model.config.vocab_size}")

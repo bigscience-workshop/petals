@@ -1,10 +1,9 @@
 """
 Tools for converting transformer blocks, applying quantization and/or tensor parallelism
 """
-import os
 import re
 from enum import Enum
-from typing import Sequence
+from typing import Optional, Sequence
 
 import tensor_parallel as tp
 import torch
@@ -25,11 +24,14 @@ class QuantType(Enum):
 
 def convert_block(
     block: nn.Module,
+    block_index: int,
     config: PretrainedConfig,
     tensor_parallel_devices: Sequence[torch.device],
     output_device: torch.device,
     quant_type: QuantType,
     freeze: bool = True,
+    adapters: Optional[Sequence[str]] = None,
+    **kwargs,
 ) -> tp.TensorParallel:
     """
     Optimize a transformer block for use in a Petals server, apply tensor parallelism and/or LLM.8bit quantization
@@ -56,12 +58,23 @@ def convert_block(
     for shard, device in zip(block.module_shards, block.devices):
         shard.to(device)
 
+    if adapters:
+        from petals.utils.peft import add_adapter_to_block, create_lora_adapter, load_peft
+
+        create_lora_adapter(block, quant_type=quant_type)
+        for adapter_name in adapters:
+            adapter_config, adapter_state_dict = load_peft(
+                adapter_name,
+                block_idx=block_index,
+                **kwargs,
+            )
+            add_adapter_to_block(block, block_index, adapter_name, adapter_config, adapter_state_dict)
+
     return block
 
 
 def quantize_module(model: nn.Module, *, quant_type: QuantType) -> nn.Module:
     # Import bitsandbytes only when necessary, so Petals runs on platforms not supported by bitsandbytes
-    os.environ["BITSANDBYTES_NOWELCOME"] = "1"
     import bitsandbytes as bnb
 
     for n, module in model.named_children():
