@@ -3,7 +3,7 @@ This module implements server-side computations on served blocks: forward, backw
 """
 from __future__ import annotations
 
-from typing import AsyncIterator, Optional, Sequence, Tuple, Union
+from typing import AsyncIterator, List, Optional, Sequence, Tuple, Union
 
 import torch
 from hivemind.compression.serialization import deserialize_torch_tensor, serialize_torch_tensor
@@ -32,6 +32,7 @@ async def run_rpc_forward(
     active_adapter: str = "",
     prioritizer: TaskPrioritizerBase,
     points: int = 0,
+    tensor_names: Optional[List[str]] = None,
 ) -> torch.Tensor:
     """
     Run forward pass on deserialized inputs and prompts, used by rpc_forward and rpc_forward_stream
@@ -41,7 +42,14 @@ async def run_rpc_forward(
     :param requested_backends: a sequence of transformer blocks in the same order as they appear in forward pass
     :returns: hidden states after the last layer [batch_size, seq_length, hid_size]
     """
-    hidden_states, prompts = flat_tensors
+    if tensor_names is not None:
+        tensors = {n: t for n, t in zip(tensor_names, flat_tensors)}
+        hidden_states = tensors["hidden_states"]
+        prompts = tensors["prompts"]
+    else:
+        # backward compatibility
+        hidden_states, prompts = flat_tensors
+
     dtype = requested_backends[0].dtype
     # check parse input tensors and cast dtypes
     hidden_states = hidden_states.to(dtype)
@@ -79,8 +87,17 @@ async def run_rpc_backward(
     active_adapter: str = "",
     prioritizer: TaskPrioritizerBase,
     points: int = 0,
+    tensor_names: Optional[List[str]] = None,
 ) -> Union[torch.Tensor, Sequence[torch.Tensor]]:
-    inputs, grad_outputs, prompts = flat_tensors
+    if tensor_names is not None:
+        tensors = {n: t for n, t in zip(tensor_names, flat_tensors)}
+        inputs = tensors["inputs"]
+        grad_outputs = tensors["grad_outputs"]
+        prompts = tensors["prompts"]
+    else:
+        # backward compatibility
+        inputs, grad_outputs, prompts = flat_tensors
+
     # Cast inputs & grad outputs to backend dtype
     inputs = inputs.to(requested_backends[0].dtype)
     grad_outputs = grad_outputs.to(requested_backends[-1].dtype)
@@ -139,6 +156,7 @@ async def iterate_rpc_inference(
     prioritizer: TaskPrioritizerBase,
     points: int,
     quant_type: QuantType,
+    tensor_names: Optional[List[str]] = None,
 ) -> AsyncIterator[Tuple[Sequence[runtime_pb2.Tensor], bool]]:
     assert len(cache_handles) == len(requested_backends)
 
@@ -146,7 +164,16 @@ async def iterate_rpc_inference(
     point_per_piece = points / max_length if max_length > 0 else 0.0
 
     async for request, step_metadata in input_iterator:
-        hidden_states, prompts, hypo_ids = map(deserialize_torch_tensor, request.tensors)
+        flat_tensors = map(deserialize_torch_tensor, request.tensors)
+        if tensor_names is not None:
+            tensors = {n: t for n, t in zip(tensor_names, flat_tensors)}
+            hidden_states = tensors["hidden_states"]
+            prompts = tensors["prompts"]
+            hypo_ids = tensors["hypo_ids"]
+        else:
+            # backward compatibility
+            hidden_states, prompts, hypo_ids = flat_tensors
+            
         batch_size, length_increment, _ = hidden_states.shape
 
         # Cast inputs to backend dtype
