@@ -164,7 +164,6 @@ class TransformerConnectionHandler(ConnectionHandler):
 
                 batch_size = request.tensors[0].size[0] if request.tensors else 1
 
-
                 async with self._allocate_cache(
                     requested_backends, batch_size, max_length, alloc_timeout
                 ) as cache_handles:
