@@ -31,7 +31,7 @@ from hivemind.utils.streaming import split_for_streaming
 import petals
 from petals.data_structures import CHAIN_DELIMITER, UID_DELIMITER, ModuleUID
 from petals.server.backend import TransformerBackend
-from petals.server.block_rpc_methods import iterate_rpc_inference, run_rpc_backward, run_rpc_forward
+from petals.server.block_functions import iterate_rpc_inference, run_rpc_backward, run_rpc_forward
 from petals.server.memory_cache import Handle
 from petals.server.task_prioritizer import DummyTaskPrioritizer, TaskPrioritizerBase
 
