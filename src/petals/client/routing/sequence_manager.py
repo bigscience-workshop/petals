@@ -461,10 +461,23 @@ class RemoteSequenceManager:
         :param kwargs: additional request context, such as remote peer ID
         :returns: msgpack-serialized metadata dict that will be passed alongside a given request
         """
-        return dict(points=self.policy.get_points(protocol, *args, **kwargs), active_adapter=self.config.active_adapter)
+        return dict(
+            points=self.policy.get_points(protocol, *args, **kwargs),
+            active_adapter=self.config.active_adapter,
+            tensor_names=self.get_tensor_names(protocol),
+        )
 
     def shutdown(self):
         self._thread.shutdown()
+        
+    def get_tensor_names(self, protocol):
+        if protocol == "rpc_forward":
+            return ["hidden_states", "prompts"]
+        if protocol == "rpc_backward":
+            return ["inputs", "grad_outputs", "prompts"]
+        if protocol == "rpc_inference":
+            return ["hidden_states", "prompts", "hypo_ids"]
+        raise ValueError(f"Protocol {protocol} doesn't have known tensor names")
 
 
 class _SequenceManagerUpdateThread(threading.Thread):
