@@ -167,6 +167,7 @@ class TransformerConnectionHandler(ConnectionHandler):
                 async with self._allocate_cache(
                     requested_backends, batch_size, max_length, alloc_timeout
                 ) as cache_handles:
+                    background_tasks = set()
                     async for output_tensors, can_push in iterate_rpc_inference(
                         requested_uids=requested_uids,
                         requested_backends=requested_backends,
