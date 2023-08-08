@@ -15,7 +15,7 @@ logger = get_logger()
 
 
 def main():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("--model", type=str, default="bigscience/bloom")
     parser.add_argument("--initial_peers", type=str, nargs="+", default=PUBLIC_INITIAL_PEERS)
     parser.add_argument("--torch_dtype", type=str, default="bfloat16")

@@ -15,7 +15,7 @@ logger = get_logger()
 
 
 def main():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("--model", type=str, default="bigscience/bloom")
     parser.add_argument("--device", type=str, default="cpu")
     parser.add_argument("--task", type=str, default="cls")
