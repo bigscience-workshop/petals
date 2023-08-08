@@ -59,7 +59,7 @@ jobs:
           sleep 10  # wait for the 1st server to choose blocks
 
           python -m petals.cli.run_server $MODEL_NAME --adapters $ADAPTER_NAME --torch_dtype float32 --block_indices 0:7 \
-            --attn_cache_tokens 2048 --max_chunk_size_bytes 1024 --identity_path server2.id \
+            --attn_cache_tokens 2048 --max_chunk_size_bytes 1024 --identity_path tests/server2.id \
             --initial_peers $INITIAL_PEERS --throughput 1 &> server2.log &
           SERVER2_PID=$!
 
@@ -67,22 +67,26 @@ jobs:
             --initial_peers $INITIAL_PEERS --throughput auto &> server3.log &
           SERVER3_PID=$!
 
-          python -m petals.cli.run_server $MODEL_NAME --adapters $ADAPTER_NAME --torch_dtype float32 --num_blocks 5 \
-            $TENSOR_PARALLEL_ARGS \
-            --initial_peers $INITIAL_PEERS --throughput eval &> server4.log &
+          python -m petals.cli.run_server $MODEL_NAME --adapters $ADAPTER_NAME --torch_dtype float32 --num_blocks 4 \
+            --initial_peers $INITIAL_PEERS --throughput auto &> server4.log &
           SERVER4_PID=$!
 
-          sleep 5  # wait for the logs to appear
+          python -m petals.cli.run_server $MODEL_NAME $TENSOR_PARALLEL_ARGS --torch_dtype float32 --block_indices 0:2 \
+            --initial_peers $INITIAL_PEERS --throughput auto &> server5.log &
+          SERVER5_PID=$!
+          # ^-- tensor parallelism is not compatible with adapters yet + we test a server without adapters in the swarm
+
+          sleep 5  # wait for the log files to appear
 
           tail -n 100 -f bootstrap.log server*.log &
           LOGGER_PID=$!
 
           sleep 30  # wait for servers to eval throughput, download layers, and rebalance
-          kill -0 $BOOTSTRAP_PID $SERVER1_PID $SERVER2_PID $SERVER3_PID $SERVER4_PID  # ensure all peers survived init
+          kill -0 $BOOTSTRAP_PID $SERVER1_PID $SERVER2_PID $SERVER3_PID $SERVER4_PID $SERVER5_PID  # ensure all peers survived init
 
           pytest tests --durations=0 --durations-min=1.0 -v
 
-          kill -0 $BOOTSTRAP_PID $SERVER1_PID $SERVER2_PID $SERVER3_PID $SERVER4_PID  # ensure all peers survived tests
+          kill -0 $BOOTSTRAP_PID $SERVER1_PID $SERVER2_PID $SERVER3_PID $SERVER4_PID $SERVER5_PID  # ensure all peers survived tests
 
-          kill -s SIGINT $BOOTSTRAP_PID $SERVER1_PID $SERVER2_PID $SERVER3_PID $SERVER4_PID $LOGGER_PID
+          kill -s SIGINT $BOOTSTRAP_PID $SERVER1_PID $SERVER2_PID $SERVER3_PID $SERVER4_PID $SERVER5_PID $LOGGER_PID
           echo "Done!"
