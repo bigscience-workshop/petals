@@ -20,6 +20,10 @@ jobs:
       fail-fast: false
     timeout-minutes: 15
     steps:
+      - name: Increase swap space
+          uses: pierotofy/set-swap-space@master
+          with:
+            swap-size-gb: 10
       - name: Checkout
         uses: actions/checkout@v3
       - name: Set up Python
@@ -50,7 +54,7 @@ jobs:
           # [Step 2] Set up a tiny test swarm (see https://github.com/bigscience-workshop/petals/wiki/Launch-your-own-swarm)
 
           python -m petals.cli.run_dht \
-            --identity_path tests/bootstrap.id --host_maddrs /ip4/127.0.0.1/tcp/31337 --no_relay &> bootstrap.log &
+            --identity_path tests/bootstrap.id --host_maddrs /ip4/127.0.0.1/tcp/31337 &> bootstrap.log &
           BOOTSTRAP_PID=$!
 
           export INITIAL_PEERS=/ip4/127.0.0.1/tcp/31337/p2p/QmS9KwZptnVdB9FFV7uGgaTq4sEKBwcYeKZDfSpyKDUd1g
