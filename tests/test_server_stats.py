@@ -10,7 +10,7 @@ from test_utils import *
 
 
 @pytest.mark.forked
-def test_server_info(block_from: int = 22, block_to: int = 24, max_length: int = 100, max_length2: int = 50):
+def test_server_info(block_from: int = 6, block_to: int = 8, max_length: int = 100, max_length2: int = 50):
     config = AutoDistributedConfig.from_pretrained(MODEL_NAME)
     dht = hivemind.DHT(initial_peers=INITIAL_PEERS, client_mode=True, start=True)
     blocks1 = RemoteSequential(config, dht=dht, start_block=block_from, end_block=block_to)

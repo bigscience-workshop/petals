@@ -40,6 +40,7 @@ jobs:
           export MODEL_NAME=${{ matrix.model }}
           export REF_NAME=${{ matrix.model }}
           export ADAPTER_NAME=${{ matrix.model == 'bigscience/bloom-560m' && 'artek0chumak/bloom-560m-safe-peft' || '' }}
+          export TENSOR_PARALLEL_ARGS=${{ matrix.model == 'bigscience/bloom-560m' && '--tensor_parallel_devices cpu cpu' || '' }}
 
           python -m petals.cli.run_dht --identity tests/test.id --host_maddrs /ip4/127.0.0.1/tcp/31337 &> bootstrap.log &
           BOOTSTRAP_PID=$!
@@ -66,8 +67,8 @@ jobs:
             --initial_peers $INITIAL_PEERS --throughput 1 &> server3.log &
           SERVER3_PID=$!
 
-          python -m petals.cli.run_server $MODEL_NAME --num_blocks 5 --torch_dtype float32 \
-            --tensor_parallel_devices cpu cpu \
+          python -m petals.cli.run_server $MODEL_NAME --adapters $ADAPTER_NAME --torch_dtype float32 --num_blocks 5 \
+            $TENSOR_PARALLEL_ARGS \
             --initial_peers $INITIAL_PEERS --throughput eval &> server4.log &
           SERVER4_PID=$!
 
