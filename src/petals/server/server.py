@@ -78,7 +78,7 @@ class Server:
         sender_threads: int = 1,
         balance_quality: float = 0.75,
         mean_balance_check_period: float = 120,
-        mean_block_selection_delay: float = 2.5,
+        mean_block_selection_delay: float = 5,
         token: Optional[Union[str, bool]] = None,
         quant_type: Optional[QuantType] = None,
         tensor_parallel_devices: Optional[Sequence[torch.device]] = None,
