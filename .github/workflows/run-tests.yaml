@@ -35,41 +35,44 @@ jobs:
           export REF_NAME=bigscience/bloom-560m
           export ADAPTER_NAME=artek0chumak/bloom-560m-safe-peft
 
-          python -m petals.cli.run_dht --identity tests/test.id --host_maddrs /ip4/127.0.0.1/tcp/31337
+          python -m petals.cli.run_dht --identity tests/test.id --host_maddrs /ip4/127.0.0.1/tcp/31337 &> bootstrap.log &
+          BOOTSTRAP_PID=$!
 
           export INITIAL_PEERS=/ip4/127.0.0.1/tcp/31337/p2p/QmS9KwZptnVdB9FFV7uGgaTq4sEKBwcYeKZDfSpyKDUd1g
           # ^-- multiaddr in INITIAL_PEERS is determined by --identity and --host_maddrs
 
           sleep 5  # wait for DHT init
 
+          python -m petals.cli.run_server --converted_model_name_or_path $MODEL_NAME --num_blocks 3 \
+            --initial_peers $INITIAL_PEERS --throughput 1 --torch_dtype float32 --adapters $ADAPTER_NAME \
+            --mean_balance_check_period 10 &> server1.log &
+          SERVER1_PID=$!
+          # ^-- this server should choose blocks 0:3, then see that blocks 22:24 are not covered and move to 21:24
+
+          sleep 5  # wait for the 1st server to choose blocks
+
           python -m petals.cli.run_server --converted_model_name_or_path $MODEL_NAME --block_indices 0:12 \
             --initial_peers $INITIAL_PEERS --throughput 1 --torch_dtype float32 --adapters $ADAPTER_NAME \
-            --attn_cache_tokens 2048 --max_chunk_size_bytes 1024 &> server1.log &
-          SERVER1_PID=$!
-
-          python -m petals.cli.run_server --converted_model_name_or_path $MODEL_NAME --block_indices 12:22 \
-            --initial_peers $INITIAL_PEERS --throughput 1 --torch_dtype float32 --adapters $ADAPTER_NAME &> server2.log &
+            --attn_cache_tokens 2048 --max_chunk_size_bytes 1024 &> server2.log &
           SERVER2_PID=$!
 
-          python -m petals.cli.run_server --converted_model_name_or_path $MODEL_NAME --block_indices 12:15 \
-            --initial_peers $INITIAL_PEERS --throughput 1 --torch_dtype float32 --tensor_parallel_devices cpu cpu &> server3.log &
+          python -m petals.cli.run_server --converted_model_name_or_path $MODEL_NAME --block_indices 12:22 \
+            --initial_peers $INITIAL_PEERS --throughput 1 --torch_dtype float32 --adapters $ADAPTER_NAME &> server3.log &
           SERVER3_PID=$!
 
-          sleep 10 # wait for initial servers to declare blocks, then let server decide which blocks to serve
-
-          python -m petals.cli.run_server --converted_model_name_or_path $MODEL_NAME --num_blocks 3 \
-            --initial_peers $INITIAL_PEERS --throughput 1 --torch_dtype float32 --adapters $ADAPTER_NAME &> server4.log &
+          python -m petals.cli.run_server --converted_model_name_or_path $MODEL_NAME --block_indices 12:15 \
+            --initial_peers $INITIAL_PEERS --throughput 1 --torch_dtype float32 --tensor_parallel_devices cpu cpu &> server4.log &
           SERVER4_PID=$!
 
-          tail -n 100 -f server*.log &
+          tail -n 100 -f bootstrap.log server*.log &
           LOGGER_PID=$!
-          sleep 30  # wait for servers to download layers
+          sleep 30  # wait for servers to download layers and rebalance
 
-          kill -0 $SERVER1_PID $SERVER2_PID $SERVER3_PID $SERVER4_PID # ensure all servers survived init
+          kill -0 $BOOTSTRAP_PID $SERVER1_PID $SERVER2_PID $SERVER3_PID $SERVER4_PID  # ensure all peers survived init
 
           pytest tests --durations=0 --durations-min=1.0 -v
 
-          kill -0 $SERVER1_PID $SERVER2_PID $SERVER3_PID $SERVER4_PID # ensure all servers survived tests
+          kill -0 BOOTSTRAP_PID $SERVER1_PID $SERVER2_PID $SERVER3_PID $SERVER4_PID  # ensure all peers survived tests
 
-          kill -s SIGINT $SERVER1_PID $SERVER2_PID $SERVER3_PID $SERVER4_PID $LOGGER_PID
+          kill -s SIGINT $BOOTSTRAP_PID $SERVER1_PID $SERVER2_PID $SERVER3_PID $SERVER4_PID $LOGGER_PID
           echo "Done!"
