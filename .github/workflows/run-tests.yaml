@@ -61,12 +61,12 @@ jobs:
           SERVER3_PID=$!
 
           python -m petals.cli.run_server --converted_model_name_or_path $MODEL_NAME --block_indices 11:13 \
-            --initial_peers $INITIAL_PEERS --throughput 1 --torch_dtype float32 --tensor_parallel_devices cpu cpu &> server4.log &
+            --initial_peers $INITIAL_PEERS --throughput eval --torch_dtype float32 --tensor_parallel_devices cpu cpu &> server4.log &
           SERVER4_PID=$!
 
           tail -n 100 -f bootstrap.log server*.log &
           LOGGER_PID=$!
-          sleep 30  # wait for servers to download layers and rebalance
+          sleep 30  # wait for servers to eval throughput, download layers, and rebalance
 
           kill -0 $BOOTSTRAP_PID $SERVER1_PID $SERVER2_PID $SERVER3_PID $SERVER4_PID  # ensure all peers survived init
 
