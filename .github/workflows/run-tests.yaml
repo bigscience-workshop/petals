@@ -49,7 +49,8 @@ jobs:
 
           # [Step 2] Set up a tiny test swarm (see https://github.com/bigscience-workshop/petals/wiki/Launch-your-own-swarm)
 
-          python -m petals.cli.run_dht --identity_path tests/bootstrap.id --host_maddrs /ip4/127.0.0.1/tcp/31337 &> bootstrap.log &
+          python -m petals.cli.run_dht \
+            --identity_path tests/bootstrap.id --host_maddrs /ip4/127.0.0.1/tcp/31337 --no_relay &> bootstrap.log &
           BOOTSTRAP_PID=$!
 
           export INITIAL_PEERS=/ip4/127.0.0.1/tcp/31337/p2p/QmS9KwZptnVdB9FFV7uGgaTq4sEKBwcYeKZDfSpyKDUd1g
