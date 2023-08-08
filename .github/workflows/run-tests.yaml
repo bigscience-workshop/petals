@@ -47,7 +47,7 @@ jobs:
 
           sleep 5  # wait for DHT init
 
-          python -m petals.cli.run_server --converted_model_name_or_path $MODEL_NAME --num_blocks 3 \
+          python -m petals.cli.run_server --converted_model_name_or_path $MODEL_NAME --num_blocks 7 \
             --initial_peers $INITIAL_PEERS --throughput 1 --torch_dtype float32 --adapters $ADAPTER_NAME \
             --mean_balance_check_period 10 &> server1.log &
           SERVER1_PID=$!
@@ -55,16 +55,16 @@ jobs:
 
           sleep 10  # wait for the 1st server to choose blocks
 
-          python -m petals.cli.run_server --converted_model_name_or_path $MODEL_NAME --block_indices 0:12 \
+          python -m petals.cli.run_server --converted_model_name_or_path $MODEL_NAME --block_indices 0:7 \
             --initial_peers $INITIAL_PEERS --throughput 1 --torch_dtype float32 --adapters $ADAPTER_NAME \
             --attn_cache_tokens 2048 --max_chunk_size_bytes 1024 &> server2.log &
           SERVER2_PID=$!
 
-          python -m petals.cli.run_server --converted_model_name_or_path $MODEL_NAME --block_indices 12:22 \
+          python -m petals.cli.run_server --converted_model_name_or_path $MODEL_NAME --num_blocks 7 \
             --initial_peers $INITIAL_PEERS --throughput 1 --torch_dtype float32 --adapters $ADAPTER_NAME &> server3.log &
           SERVER3_PID=$!
 
-          python -m petals.cli.run_server --converted_model_name_or_path $MODEL_NAME --block_indices 11:13 \
+          python -m petals.cli.run_server --converted_model_name_or_path $MODEL_NAME --num_blocks 5 \
             --initial_peers $INITIAL_PEERS --throughput eval --torch_dtype float32 --tensor_parallel_devices cpu cpu &> server4.log &
           SERVER4_PID=$!
 
