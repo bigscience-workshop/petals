@@ -16,7 +16,7 @@ logger = get_logger()
 
 def main():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("--model", type=str, default="bigscience/bloom", help="Model")
+    parser.add_argument("--model", type=str, required=True, help="Model")
     parser.add_argument("--initial_peers", type=str, nargs="+", default=PUBLIC_INITIAL_PEERS, help="Initial peers")
     parser.add_argument("--torch_dtype", type=str, default="bfloat16", help="Torch dtype")
     parser.add_argument("--n_processes", type=str, default=1, help="Number of concurrent processes")
