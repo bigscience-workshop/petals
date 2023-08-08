@@ -21,9 +21,9 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Increase swap space
-          uses: pierotofy/set-swap-space@master
-          with:
-            swap-size-gb: 10
+        uses: pierotofy/set-swap-space@master
+        with:
+          swap-size-gb: 10
       - name: Checkout
         uses: actions/checkout@v3
       - name: Set up Python
