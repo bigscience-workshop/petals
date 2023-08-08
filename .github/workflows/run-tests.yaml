@@ -42,8 +42,12 @@ jobs:
           export ADAPTER_NAME="${{ matrix.model == 'bigscience/bloom-560m' && 'artek0chumak/bloom-560m-safe-peft' || '' }}"
           export TENSOR_PARALLEL_ARGS="${{ matrix.model == 'bigscience/bloom-560m' && '--tensor_parallel_devices cpu cpu' || '' }}"
 
+          # [Step 1] Watch free RAM (lack of RAM is a common issue in CI)
+
           bash -c 'while true; do free -h && sleep 10s; done' &
           RAM_WATCH_PID=$!
+
+          # [Step 2] Set up a tiny test swarm (see https://github.com/bigscience-workshop/petals/wiki/Launch-your-own-swarm)
 
           python -m petals.cli.run_dht --identity_path tests/bootstrap.id --host_maddrs /ip4/127.0.0.1/tcp/31337 &> bootstrap.log &
           BOOTSTRAP_PID=$!
@@ -53,7 +57,7 @@ jobs:
 
           sleep 5  # wait for DHT init
 
-          python -m petals.cli.run_server $MODEL_NAME --adapters $ADAPTER_NAME --torch_dtype float32 --num_blocks 7 \
+          python -m petals.cli.run_server $MODEL_NAME --adapters $ADAPTER_NAME --torch_dtype float32 --num_blocks 8 \
             --mean_balance_check_period 10 \
             --initial_peers $INITIAL_PEERS --throughput 1 &> server1.log &
           SERVER1_PID=$!
@@ -61,22 +65,18 @@ jobs:
 
           sleep 10  # wait for the 1st server to choose blocks
 
-          python -m petals.cli.run_server $MODEL_NAME --adapters $ADAPTER_NAME --torch_dtype float32 --block_indices 0:7 \
+          python -m petals.cli.run_server $MODEL_NAME --adapters $ADAPTER_NAME --torch_dtype float32 --block_indices 0:8 \
             --attn_cache_tokens 2048 --max_chunk_size_bytes 1024 --identity_path tests/server2.id \
             --initial_peers $INITIAL_PEERS --throughput 1 &> server2.log &
           SERVER2_PID=$!
 
-          python -m petals.cli.run_server $MODEL_NAME --adapters $ADAPTER_NAME --torch_dtype float32 --num_blocks 7 \
+          python -m petals.cli.run_server $MODEL_NAME --adapters $ADAPTER_NAME --torch_dtype float32 --num_blocks 8 \
             --initial_peers $INITIAL_PEERS --throughput auto &> server3.log &
           SERVER3_PID=$!
 
-          python -m petals.cli.run_server $MODEL_NAME --adapters $ADAPTER_NAME --torch_dtype float32 --num_blocks 3 \
+          python -m petals.cli.run_server $MODEL_NAME $TENSOR_PARALLEL_ARGS --torch_dtype float32 --block_indices 0:2 \
             --initial_peers $INITIAL_PEERS --throughput auto &> server4.log &
           SERVER4_PID=$!
-
-          python -m petals.cli.run_server $MODEL_NAME $TENSOR_PARALLEL_ARGS --torch_dtype float32 --block_indices 0:2 \
-            --initial_peers $INITIAL_PEERS --throughput auto &> server5.log &
-          SERVER5_PID=$!
           # ^-- tensor parallelism is not compatible with adapters yet + we test a server without adapters in the swarm
 
           sleep 5  # wait for the log files to appear
@@ -85,12 +85,14 @@ jobs:
           LOGGER_PID=$!
 
           sleep 30  # wait for servers to eval throughput, download layers, and rebalance
-          kill -0 $BOOTSTRAP_PID $SERVER1_PID $SERVER2_PID $SERVER3_PID $SERVER4_PID $SERVER5_PID  # ensure all peers survived init
+          kill -0 $BOOTSTRAP_PID $SERVER1_PID $SERVER2_PID $SERVER3_PID $SERVER4_PID  # ensure all peers survived init
 
-          # run standard tests
+          # [Step 3] Run PyTest
+
           pytest tests --durations=0 --durations-min=1.0 -v
 
-          # check if benchmarks run (the numbers won't show anything due to small models, CPU servers, and low --n_steps)
+          # [Step 4] Check if benchmarks work (their results here are meaningless since it's a tiny swarm of CPU servers)
+
           python benchmarks/benchmark_inference.py --model $MODEL_NAME --initial_peers $INITIAL_PEERS --torch_dtype float32 \
             --seq_len 3
           python benchmarks/benchmark_forward.py --model $MODEL_NAME --initial_peers $INITIAL_PEERS --torch_dtype float32 \
@@ -100,7 +102,9 @@ jobs:
           python benchmarks/benchmark_training.py --model $MODEL_NAME --initial_peers $INITIAL_PEERS --torch_dtype float32 \
             --seq_len 3 --pre_seq_len 3 --n_steps 3 --batch_size 3 --task causal_lm
 
-          kill -0 $BOOTSTRAP_PID $SERVER1_PID $SERVER2_PID $SERVER3_PID $SERVER4_PID $SERVER5_PID  # ensure all peers survived tests
+          # [Step 5] Clean up
 
-          kill -s SIGINT $BOOTSTRAP_PID $SERVER1_PID $SERVER2_PID $SERVER3_PID $SERVER4_PID $SERVER5_PID $LOGGER_PID $RAM_WATCH_PID
+          kill -0 $BOOTSTRAP_PID $SERVER1_PID $SERVER2_PID $SERVER3_PID $SERVER4_PID  # ensure all peers survived tests
+
+          kill -s SIGINT $BOOTSTRAP_PID $SERVER1_PID $SERVER2_PID $SERVER3_PID $SERVER4_PID $LOGGER_PID $RAM_WATCH_PID
           echo "Done!"
