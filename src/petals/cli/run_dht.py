@@ -7,8 +7,8 @@ This script may be used for launching lightweight CPU machines serving as bootst
 This may be eventually merged to the hivemind upstream.
 """
 
+import argparse
 import time
-from argparse import ArgumentParser
 from secrets import token_hex
 
 from hivemind.dht import DHT, DHTNode
@@ -35,7 +35,7 @@ async def report_status(dht: DHT, node: DHTNode):
 
 
 def main():
-    parser = ArgumentParser()
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
         "--initial_peers",
         nargs="*",
@@ -73,7 +73,9 @@ def main():
         help="Disable circuit relay functionality in libp2p (see https://docs.libp2p.io/concepts/nat/circuit-relay/)",
     )
     parser.add_argument(
-        "--use_auto_relay", action="store_true", help="Look for libp2p relays to reach peers behind NATs/firewalls"
+        "--use_auto_relay",
+        action="store_true",
+        help="Look for libp2p relays to become reachable if we are behind NAT/firewall",
     )
     parser.add_argument(
         "--refresh_period", type=int, default=30, help="Period (in seconds) for fetching the keys from DHT"
