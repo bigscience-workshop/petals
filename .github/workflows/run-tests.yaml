@@ -11,11 +11,13 @@ jobs:
     strategy:
       matrix:
         include:
-          - {python-version: '3.8', model: 'bigscience/bloom-560m', adapter: 'artek0chumak/bloom-560m-safe-peft'}
-          - {python-version: '3.9', model: 'bigscience/bloom-560m', adapter: 'artek0chumak/bloom-560m-safe-peft'}
-          - {python-version: '3.10', model: 'bigscience/bloom-560m', adapter: 'artek0chumak/bloom-560m-safe-peft'}
-          - {python-version: '3.11', model: 'bigscience/bloom-560m', adapter: 'artek0chumak/bloom-560m-safe-peft'}
-      fail-fast: true
+          - { model: 'bigscience/bloom-560m', python-version: '3.8' }
+          - { model: 'bigscience/bloom-560m', python-version: '3.9' }
+          - { model: 'bigscience/bloom-560m', python-version: '3.10' }
+          - { model: 'bigscience/bloom-560m', python-version: '3.11' }
+          - { model: 'Maykeye/TinyLLama-v0', python-version: '3.8' }
+          - { model: 'Maykeye/TinyLLama-v0', python-version: '3.11' }
+      fail-fast: false
     timeout-minutes: 15
     steps:
       - name: Checkout
@@ -37,7 +39,7 @@ jobs:
         run: |
           export MODEL_NAME=${{ matrix.model }}
           export REF_NAME=${{ matrix.model }}
-          export ADAPTER_NAME=${{ matrix.adapter }}
+          export ADAPTER_NAME=${{ matrix.model == 'bigscience/bloom-560m' && 'artek0chumak/bloom-560m-safe-peft' || '' }}
 
           python -m petals.cli.run_dht --identity tests/test.id --host_maddrs /ip4/127.0.0.1/tcp/31337 &> bootstrap.log &
           BOOTSTRAP_PID=$!
@@ -47,31 +49,34 @@ jobs:
 
           sleep 5  # wait for DHT init
 
-          python -m petals.cli.run_server --converted_model_name_or_path $MODEL_NAME --num_blocks 7 \
-            --initial_peers $INITIAL_PEERS --throughput 1 --torch_dtype float32 --adapters $ADAPTER_NAME \
-            --mean_balance_check_period 10 &> server1.log &
+          python -m petals.cli.run_server $MODEL_NAME --adapters $ADAPTER_NAME --torch_dtype float32 --num_blocks 7 \
+            --mean_balance_check_period 10 \
+            --initial_peers $INITIAL_PEERS --throughput 1 &> server1.log &
           SERVER1_PID=$!
           # ^-- this server should choose blocks 0:3, then see that blocks 22:24 are not covered and move to 21:24
 
           sleep 10  # wait for the 1st server to choose blocks
 
-          python -m petals.cli.run_server --converted_model_name_or_path $MODEL_NAME --block_indices 0:7 \
-            --initial_peers $INITIAL_PEERS --throughput 1 --torch_dtype float32 --adapters $ADAPTER_NAME \
-            --attn_cache_tokens 2048 --max_chunk_size_bytes 1024 &> server2.log &
+          python -m petals.cli.run_server $MODEL_NAME --adapters $ADAPTER_NAME --torch_dtype float32 --block_indices 0:7 \
+            --attn_cache_tokens 2048 --max_chunk_size_bytes 1024 \
+            --initial_peers $INITIAL_PEERS --throughput 1 &> server2.log &
           SERVER2_PID=$!
 
-          python -m petals.cli.run_server --converted_model_name_or_path $MODEL_NAME --num_blocks 7 \
-            --initial_peers $INITIAL_PEERS --throughput 1 --torch_dtype float32 --adapters $ADAPTER_NAME &> server3.log &
+          python -m petals.cli.run_server $MODEL_NAME --adapters $ADAPTER_NAME --torch_dtype float32 --num_blocks 7 \
+            --initial_peers $INITIAL_PEERS --throughput 1 &> server3.log &
           SERVER3_PID=$!
 
-          python -m petals.cli.run_server --converted_model_name_or_path $MODEL_NAME --num_blocks 5 \
-            --initial_peers $INITIAL_PEERS --throughput eval --torch_dtype float32 --tensor_parallel_devices cpu cpu &> server4.log &
+          python -m petals.cli.run_server $MODEL_NAME --num_blocks 5 --torch_dtype float32 \
+            --tensor_parallel_devices cpu cpu \
+            --initial_peers $INITIAL_PEERS --throughput eval &> server4.log &
           SERVER4_PID=$!
+
+          sleep 5  # wait for the logs to appear
 
           tail -n 100 -f bootstrap.log server*.log &
           LOGGER_PID=$!
-          sleep 30  # wait for servers to eval throughput, download layers, and rebalance
 
+          sleep 30  # wait for servers to eval throughput, download layers, and rebalance
           kill -0 $BOOTSTRAP_PID $SERVER1_PID $SERVER2_PID $SERVER3_PID $SERVER4_PID  # ensure all peers survived init
 
           pytest tests --durations=0 --durations-min=1.0 -v
