@@ -158,7 +158,7 @@ def main():
                              "when connecting to the public swarm. If you connect to a private swarm, "
                              "the check is skipped by default. Use this option only if you know what you are doing")
 
-    parser.add_argument("--adapters", nargs='+', default=(),
+    parser.add_argument("--adapters", nargs='*', default=(),
                         help="List of pre-loaded LoRA adapters that can be used for inference or training")
 
     # fmt:on

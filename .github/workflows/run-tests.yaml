@@ -10,8 +10,13 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
+        model:
+          - base: bigscience/bloom-560m
+            adapter: artek0chumak/bloom-560m-safe-peft
+          - base: Maykeye/TinyLLama-v0
+            adapter: ~
         python-version: [ '3.8', '3.9', '3.10', '3.11' ]
-      fail-fast: false
+      fail-fast: true
     timeout-minutes: 15
     steps:
       - name: Checkout
@@ -31,9 +36,9 @@ jobs:
           pip install .[dev]
       - name: Test
         run: |
-          export MODEL_NAME=bigscience/bloom-560m
-          export REF_NAME=bigscience/bloom-560m
-          export ADAPTER_NAME=artek0chumak/bloom-560m-safe-peft
+          export MODEL_NAME=${{ matrix.model.base }}
+          export REF_NAME=${{ matrix.model.base }}
+          export ADAPTER_NAME=${{ matrix.model.adapter }}
 
           python -m petals.cli.run_dht --identity tests/test.id --host_maddrs /ip4/127.0.0.1/tcp/31337 &> bootstrap.log &
           BOOTSTRAP_PID=$!
