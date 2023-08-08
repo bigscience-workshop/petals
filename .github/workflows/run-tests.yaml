@@ -67,7 +67,7 @@ jobs:
             --initial_peers $INITIAL_PEERS --throughput auto &> server3.log &
           SERVER3_PID=$!
 
-          python -m petals.cli.run_server $MODEL_NAME --adapters $ADAPTER_NAME --torch_dtype float32 --num_blocks 4 \
+          python -m petals.cli.run_server $MODEL_NAME --adapters $ADAPTER_NAME --torch_dtype float32 --num_blocks 3 \
             --initial_peers $INITIAL_PEERS --throughput auto &> server4.log &
           SERVER4_PID=$!
 
