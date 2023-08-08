@@ -84,7 +84,18 @@ jobs:
           sleep 30  # wait for servers to eval throughput, download layers, and rebalance
           kill -0 $BOOTSTRAP_PID $SERVER1_PID $SERVER2_PID $SERVER3_PID $SERVER4_PID $SERVER5_PID  # ensure all peers survived init
 
+          # run standard tests
           pytest tests --durations=0 --durations-min=1.0 -v
+
+          # check if benchmarks run (the numbers won't show anything due to small models, CPU servers, and low --n_steps)
+          python benchmarks/benchmark_inference.py --model $MODEL_NAME --initial_peers $INITIAL_PEERS --torch_dtype float32 \
+            --seq_len 3
+          python benchmarks/benchmark_forward.py --model $MODEL_NAME --initial_peers $INITIAL_PEERS --torch_dtype float32 \
+            --seq_len 3 --n_steps 3 --batch_size 3
+          python benchmarks/benchmark_training.py --model $MODEL_NAME --initial_peers $INITIAL_PEERS --torch_dtype float32 \
+            --seq_len 3 --pre_seq_len 3 --n_steps 3 --batch_size 3 --task cls
+          python benchmarks/benchmark_training.py --model $MODEL_NAME --initial_peers $INITIAL_PEERS --torch_dtype float32 \
+            --seq_len 3 --pre_seq_len 3 --n_steps 3 --batch_size 3 --task causal_lm
 
           kill -0 $BOOTSTRAP_PID $SERVER1_PID $SERVER2_PID $SERVER3_PID $SERVER4_PID $SERVER5_PID  # ensure all peers survived tests
 
