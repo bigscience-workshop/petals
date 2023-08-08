@@ -100,9 +100,12 @@ def test_greedy_generation(tokenizer, max_new_tokens=4):
     hf_outputs = HfGenerationMixin.greedy_search(model, input_ids=inputs, max_length=inputs.size(1) + max_new_tokens)
     assert torch.allclose(remote_outputs, hf_outputs), "Greedy search results are not identical to HF"
 
+    if tokenizer.pad_token_id is None:
+        tokenizer.pad_token_id = tokenizer.eos_token_id
     inputs_batch = tokenizer(["A cat sat on a mat", "A dog sat on a mat"], return_tensors="pt", padding=True)[
         "input_ids"
     ]
+
     remote_outputs_batch = model.generate(
         inputs_batch,
         max_new_tokens=max_new_tokens,
