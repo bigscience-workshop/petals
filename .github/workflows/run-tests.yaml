@@ -44,7 +44,7 @@ jobs:
 
           # [Step 1] Watch free RAM (lack of RAM is a common issue in CI)
 
-          bash -c 'while true; do free -h && sleep 10s; done' &
+          bash -c 'while true; do free -h && sleep 30s; done' &
           RAM_WATCH_PID=$!
 
           # [Step 2] Set up a tiny test swarm (see https://github.com/bigscience-workshop/petals/wiki/Launch-your-own-swarm)
@@ -57,27 +57,29 @@ jobs:
 
           sleep 5  # wait for DHT init
 
-          python -m petals.cli.run_server $MODEL_NAME --adapters $ADAPTER_NAME --torch_dtype float32 --num_blocks 8 \
+          python -m petals.cli.run_server $MODEL_NAME --adapters $ADAPTER_NAME --torch_dtype float32 --num_blocks 5 \
             --mean_balance_check_period 10 \
             --initial_peers $INITIAL_PEERS --throughput 1 &> server1.log &
           SERVER1_PID=$!
-          # ^-- this server should choose blocks 0:3, then see that blocks 22:24 are not covered and move to 21:24
+          # ^-- rebalacing test: this server chooses blocks 0:5, then sees a gap in the swarm and moves there
 
           sleep 10  # wait for the 1st server to choose blocks
 
-          python -m petals.cli.run_server $MODEL_NAME --adapters $ADAPTER_NAME --torch_dtype float32 --block_indices 0:8 \
-            --attn_cache_tokens 2048 --max_chunk_size_bytes 1024 --identity_path tests/server2.id \
+          python -m petals.cli.run_server $MODEL_NAME --adapters $ADAPTER_NAME --torch_dtype float32 --block_indices 0:5 \
+            --identity_path tests/server2.id \
             --initial_peers $INITIAL_PEERS --throughput 1 &> server2.log &
           SERVER2_PID=$!
 
-          python -m petals.cli.run_server $MODEL_NAME --adapters $ADAPTER_NAME --torch_dtype float32 --num_blocks 8 \
+          python -m petals.cli.run_server $MODEL_NAME --adapters $ADAPTER_NAME --torch_dtype float32 --num_blocks 14 \
+            --attn_cache_tokens 2048 --max_chunk_size_bytes 1024 \
             --initial_peers $INITIAL_PEERS --throughput auto &> server3.log &
           SERVER3_PID=$!
+          # ^-- chunking test
 
           python -m petals.cli.run_server $MODEL_NAME $TENSOR_PARALLEL_ARGS --torch_dtype float32 --block_indices 0:2 \
             --initial_peers $INITIAL_PEERS --throughput auto &> server4.log &
           SERVER4_PID=$!
-          # ^-- tensor parallelism is not compatible with adapters yet + we test a server without adapters in the swarm
+          # ^-- tensor parallelism test (not compatible with adapters yet)
 
           sleep 5  # wait for the log files to appear
 

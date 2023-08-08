@@ -201,6 +201,8 @@ class Server:
         assert num_blocks is None or block_indices is None, "Please specify num_blocks or block_indices, not both"
         if num_blocks is None and block_indices is None:
             num_blocks = self._choose_num_blocks()
+        if num_blocks is not None:
+            num_blocks = min(num_blocks, self.block_config.num_hidden_layers)
         if block_indices is not None:
             try:
                 first_block_index, last_block_index = block_indices.split(":")
@@ -295,7 +297,7 @@ class Server:
 
         num_blocks = min(num_blocks, self.block_config.num_hidden_layers)
         logger.info(
-            f"Server will fill all your GPU memory with {num_blocks} transformer blocks. "
+            f"Server will fill your GPU memory with {num_blocks} transformer blocks. "
             f"If you want to leave some free GPU memory, please specify a lesser --num_blocks manually"
         )
         return num_blocks
