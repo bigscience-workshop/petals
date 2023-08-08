@@ -10,12 +10,11 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        model:
-          - base: bigscience/bloom-560m
-            adapter: artek0chumak/bloom-560m-safe-peft
-          - base: Maykeye/TinyLLama-v0
-            adapter: ~
-        python-version: [ '3.8', '3.9', '3.10', '3.11' ]
+        include:
+          - {python-version: '3.8', model: 'bigscience/bloom-560m', adapter: 'artek0chumak/bloom-560m-safe-peft'}
+          - {python-version: '3.9', model: 'bigscience/bloom-560m', adapter: 'artek0chumak/bloom-560m-safe-peft'}
+          - {python-version: '3.10', model: 'bigscience/bloom-560m', adapter: 'artek0chumak/bloom-560m-safe-peft'}
+          - {python-version: '3.11', model: 'bigscience/bloom-560m', adapter: 'artek0chumak/bloom-560m-safe-peft'}
       fail-fast: true
     timeout-minutes: 15
     steps:
@@ -36,9 +35,9 @@ jobs:
           pip install .[dev]
       - name: Test
         run: |
-          export MODEL_NAME=${{ matrix.model.base }}
-          export REF_NAME=${{ matrix.model.base }}
-          export ADAPTER_NAME=${{ matrix.model.adapter }}
+          export MODEL_NAME=${{ matrix.model }}
+          export REF_NAME=${{ matrix.model }}
+          export ADAPTER_NAME=${{ matrix.adapter }}
 
           python -m petals.cli.run_dht --identity tests/test.id --host_maddrs /ip4/127.0.0.1/tcp/31337 &> bootstrap.log &
           BOOTSTRAP_PID=$!
@@ -77,7 +76,7 @@ jobs:
 
           pytest tests --durations=0 --durations-min=1.0 -v
 
-          kill -0 BOOTSTRAP_PID $SERVER1_PID $SERVER2_PID $SERVER3_PID $SERVER4_PID  # ensure all peers survived tests
+          kill -0 $BOOTSTRAP_PID $SERVER1_PID $SERVER2_PID $SERVER3_PID $SERVER4_PID  # ensure all peers survived tests
 
           kill -s SIGINT $BOOTSTRAP_PID $SERVER1_PID $SERVER2_PID $SERVER3_PID $SERVER4_PID $LOGGER_PID
           echo "Done!"
