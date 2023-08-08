@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from hivemind import DHT, BatchTensorDescriptor, get_logger
 from hivemind.proto import runtime_pb2
 
-from petals import DistributedBloomConfig
+from petals import AutoDistributedConfig
 from petals.client import RemoteSequenceManager, RemoteSequential
 from petals.data_structures import UID_DELIMITER
 from petals.server.from_pretrained import load_pretrained_block
@@ -15,7 +15,7 @@ logger = get_logger(__name__)
 
 @pytest.mark.forked
 def test_remote_sequential():
-    config = DistributedBloomConfig.from_pretrained(MODEL_NAME, initial_peers=INITIAL_PEERS)
+    config = AutoDistributedConfig.from_pretrained(MODEL_NAME, initial_peers=INITIAL_PEERS)
     dht = DHT(initial_peers=config.initial_peers, client_mode=True, start=True)
     test_inputs = torch.randn(1, 5, config.hidden_size, requires_grad=True)
     grad_proj = torch.randn(1, 5, config.hidden_size)
@@ -87,7 +87,7 @@ class DummyCustomSequenceManager(RemoteSequenceManager):
 
 @pytest.mark.forked
 def test_remote_sequential_prompts(batch_size=2, seq_len=5, pre_seq_len=3):
-    config = DistributedBloomConfig.from_pretrained(MODEL_NAME, initial_peers=INITIAL_PEERS)
+    config = AutoDistributedConfig.from_pretrained(MODEL_NAME, initial_peers=INITIAL_PEERS)
     remote_sequential = RemoteSequential(config)
 
     inputs = F.normalize(torch.randn(batch_size, seq_len, config.hidden_size), dim=-1)
