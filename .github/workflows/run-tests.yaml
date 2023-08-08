@@ -49,7 +49,7 @@ jobs:
           SERVER1_PID=$!
           # ^-- this server should choose blocks 0:3, then see that blocks 22:24 are not covered and move to 21:24
 
-          sleep 5  # wait for the 1st server to choose blocks
+          sleep 10  # wait for the 1st server to choose blocks
 
           python -m petals.cli.run_server --converted_model_name_or_path $MODEL_NAME --block_indices 0:12 \
             --initial_peers $INITIAL_PEERS --throughput 1 --torch_dtype float32 --adapters $ADAPTER_NAME \
