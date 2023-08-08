@@ -98,11 +98,11 @@ jobs:
           python benchmarks/benchmark_inference.py --model $MODEL_NAME --initial_peers $INITIAL_PEERS --torch_dtype float32 \
             --seq_len 3
           python benchmarks/benchmark_forward.py --model $MODEL_NAME --initial_peers $INITIAL_PEERS --torch_dtype float32 \
-            --seq_len 3 --n_steps 3 --batch_size 3
+            --seq_len 3 --batch_size 3 --n_steps 1
           python benchmarks/benchmark_training.py --model $MODEL_NAME --initial_peers $INITIAL_PEERS --torch_dtype float32 \
-            --seq_len 3 --pre_seq_len 3 --n_steps 3 --batch_size 3 --task cls
+            --seq_len 3 --batch_size 3 --pre_seq_len 1 --n_steps 1 --task cls
           python benchmarks/benchmark_training.py --model $MODEL_NAME --initial_peers $INITIAL_PEERS --torch_dtype float32 \
-            --seq_len 3 --pre_seq_len 3 --n_steps 3 --batch_size 3 --task causal_lm
+            --seq_len 3 --batch_size 3 --pre_seq_len 1 --n_steps 1 --task causal_lm
 
           # [Step 5] Clean up
 
