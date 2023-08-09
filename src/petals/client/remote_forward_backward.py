@@ -85,33 +85,22 @@ async def run_remote_forward(
     kwargs = {key: kwargs[key] for key in rpc_info["keyword_names"]}
 
     # Note: we put keyword arguments in the same order as on a server to prevent f(a=1, b=2) != f(b=2, a=1) errors
-    forward_inputs = (inputs, kwargs)
-
-    # Modify forward_schema to support prompts
+    forward_inputs = nested_flatten(inputs, kwargs)
     args_schema, kwargs_schema = rpc_info["forward_schema"]
-    # TODO: rm this assert when support arbitrary number of input tensors
-    assert len(args_schema) == 1 and len(inputs) >= 2
-    # TODO: Figure out how to share server schema on the client side
-    if len(inputs) > 2:
-        compression = args_schema[0].compression
-        kwargs_schema = tuple(
-            BatchTensorDescriptor.from_tensor(arg, compression)
-            for arg in inputs[2:]
-        )
-    forward_schema_with_prompts = (tuple(args_schema * len(inputs)), kwargs_schema)
-
-    if not nested_compare(forward_inputs, forward_schema_with_prompts):
-        raise TypeError(f"Inputs do not match expert input schema. Did you pass the right number of parameters?")
-
-    forward_inputs = nested_flatten(forward_inputs)
+    compression = args_schema[0].compression
+    forward_schema = tuple(
+        BatchTensorDescriptor.from_tensor(arg, compression)
+        for arg in forward_inputs
+    )
     inputs = tuple(tensor.cpu().detach() for tensor in forward_inputs)
+    assert len(inputs) >= len(args_schema) + 1, "Inputs and prompt tensors are necesseary for a forward step"
 
     # Asynchronous serialization
     loop = asyncio.get_running_loop()
     serialized_tensors = await asyncio.gather(
         *(
             loop.run_in_executor(None, serialize_torch_tensor, tensor.to(proto.dtype), proto.compression)
-            for tensor, proto in zip(inputs, nested_flatten(forward_schema_with_prompts))
+            for tensor, proto in zip(inputs, nested_flatten(forward_schema))
         )
     )
 
@@ -127,9 +116,7 @@ async def run_remote_backward(
     uid: ModuleUID,
     stub: StubBase,
     rpc_info: RPCInfo,
-    inputs: torch.Tensor,
-    grad_outputs: List[torch.Tensor],
-    *extra_tensors: torch.Tensor,
+    *inputs_and_grad_outputs: torch.Tensor,
     config: SequenceManagerConfig,
     metadata: Optional[bytes] = None,
     **kwargs,
@@ -139,23 +126,14 @@ async def run_remote_backward(
     Mostly adapted from https://github.com/learning-at-home/hivemind/blob/7a7c93aefffc9494c39e7b170c07cb06d8c09c4c/hivemind/moe/client/expert.py#L221
     but without RemoteExpertWorker.run_coroutine() call that leads to deadlock here.
     """
-
-    grad_outputs_cpu = tuple(tensor.cpu() for tensor in grad_outputs)
-    inputs_and_grad_outputs = tuple(nested_flatten((inputs, grad_outputs_cpu, *extra_tensors)))
-
-    # Modify forward_schema to support prompts
     args_schema, kwargs_schema = rpc_info["forward_schema"]
-    assert len(args_schema) == 1 and isinstance(inputs, torch.Tensor)
-    # TODO generalize this
-    prompts_schema = next(iter(args_schema))
-    # TODO: Figure out how to share server schema on the client side
-    if len(extra_tensors) > 1:
-        compression = args_schema[0].compression
-        kwargs_schema = tuple(
-            BatchTensorDescriptor.from_tensor(arg, compression)
-            for arg in extra_tensors[1:]
-        )
-    backward_schema = tuple(nested_flatten((rpc_info["forward_schema"], rpc_info["outputs_schema"], prompts_schema, kwargs_schema)))
+    outputs_schema = rpc_info["outputs_schema"]
+    compression = args_schema[0].compression
+    backward_schema = tuple(
+        BatchTensorDescriptor.from_tensor(arg, compression)
+        for arg in inputs_and_grad_outputs
+    )
+    assert len(inputs_and_grad_outputs) >= len(args_schema) + len(outputs_schema) + 1, "Inputs, grad_outputs and prompt tensors are necesseary for a backward step"
 
     # Asynchronous serialization
     loop = asyncio.get_running_loop()

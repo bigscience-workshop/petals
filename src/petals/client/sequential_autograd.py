@@ -149,8 +149,9 @@ async def sequential_backward(
                     forward_sequences.extend(backup_sequences)
                     inputs = intermediate_inputs.pop()
                     span = forward_sequences.pop()
-                    
-                flat_tensors, structure = pack_args_kwargs(*inputs, *grad_outputs, prompts[span.start : span.end])
+
+                grad_outputs_cpu = [grad.cpu() for grad in grad_outputs]
+                flat_tensors, structure = pack_args_kwargs(*inputs, *grad_outputs_cpu, prompts[span.start : span.end])
 
                 span_uids = CHAIN_DELIMITER.join(sequence_manager.block_uids[span.start : span.end])
                 stub = TransformerConnectionHandler.get_stub(sequence_manager.state.p2p, span.peer_id)
