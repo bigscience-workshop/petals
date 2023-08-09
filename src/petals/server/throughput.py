@@ -196,6 +196,7 @@ def measure_compute_rps(
     n_steps: int,
     inference: bool,
 ) -> float:
+    device = torch.device(device)
     if not tensor_parallel_devices:
         tensor_parallel_devices = (device,)
     with torch.inference_mode():
@@ -206,12 +207,14 @@ def measure_compute_rps(
         elapsed = 0
         dummy_input = torch.randn(1, n_tokens, config.hidden_size, device=device, dtype=dtype)
         _, cache = block.forward(dummy_input, use_cache=True)  # Skip the 1st step to exclude the initialization time
-        torch.cuda.synchronize(device)
+        if device.type == "cuda":
+            torch.cuda.synchronize(device)
 
         start_time = time.perf_counter()
         for step in range(n_steps):
             _, cache = block.forward(dummy_input, use_cache=True, layer_past=cache if inference else None)
-        torch.cuda.synchronize(device)
+        if device.type == "cuda":
+            torch.cuda.synchronize(device)
         elapsed = time.perf_counter() - start_time
         device_rps = n_steps * n_tokens / elapsed
 
