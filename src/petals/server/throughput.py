@@ -205,7 +205,7 @@ def measure_compute_rps(
         cache = None
         elapsed = 0
         dummy_input = torch.randn(1, n_tokens, config.hidden_size, device=device, dtype=dtype)
-        _, cache = block.forward(dummy_input, use_cache=True)   # Skip the 1st step to exclude the initialization time
+        _, cache = block.forward(dummy_input, use_cache=True)  # Skip the 1st step to exclude the initialization time
         torch.cuda.synchronize(device)
 
         start_time = time.perf_counter()
