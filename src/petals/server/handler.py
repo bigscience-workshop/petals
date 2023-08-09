@@ -148,7 +148,7 @@ class TransformerConnectionHandler(ConnectionHandler):
                 max_length = metadata.get("max_length")
                 points = metadata.get("points", 0)
                 session_id = metadata.get("session_id")
-                tensor_names = metadata.get("tensor_names", None)
+                structure = metadata.get("structure")
                 if not requested_uids:
                     raise ValueError("User must specify at least one block for inference, but got none")
                 assert isinstance(
@@ -177,7 +177,7 @@ class TransformerConnectionHandler(ConnectionHandler):
                         max_length=max_length,
                         prioritizer=self._prioritizer,
                         points=points,
-                        tensor_names=tensor_names,
+                        structure=structure,
                     ):
                         if can_push:
                             task = asyncio.create_task(self._push_outputs(request, output_tensors[0], metadata))
@@ -354,7 +354,7 @@ class TransformerConnectionHandler(ConnectionHandler):
             metadata = MSGPackSerializer.loads(request.metadata) if request.metadata else {}
             active_adapter = self._get_active_adapter(metadata)
             points = metadata.get("points", 0)
-            tensor_names = metadata.get("tensor_names", None)
+            structure = metadata.get("structure")
             assert isinstance(
                 points, (float, int)
             ), f"rpc_forward should have number of points as number or None, got {points}"
@@ -365,7 +365,7 @@ class TransformerConnectionHandler(ConnectionHandler):
                 prioritizer=self._prioritizer,
                 active_adapter=active_adapter,
                 points=points,
-                tensor_names=tensor_names,
+                structure=structure,
             )
             return runtime_pb2.ExpertResponse(
                 tensors=self._serialize_outputs(hidden_states, requested_backends, metadata)
@@ -383,7 +383,7 @@ class TransformerConnectionHandler(ConnectionHandler):
             requested_backends = tuple(self.module_backends[uid] for uid in requested_uids)
             active_adapter = self._get_active_adapter(metadata)
             points = metadata.get("points", 0)
-            tensor_names = metadata.get("tensor_names", None)
+            structure = metadata.get("structure")
             assert isinstance(
                 points, (float, int)
             ), f"rpc_forward_stream should have number of points as number or None, got {points}"
@@ -394,7 +394,7 @@ class TransformerConnectionHandler(ConnectionHandler):
                 prioritizer=self._prioritizer,
                 active_adapter=active_adapter,
                 points=points,
-                tensor_names=tensor_names,
+                structure=structure,
             )
 
             # Split the serialized_output for streaming and respond to client
@@ -436,7 +436,7 @@ class TransformerConnectionHandler(ConnectionHandler):
             metadata = MSGPackSerializer.loads(request.metadata) if request.metadata else {}
             active_adapter = self._get_active_adapter(metadata)
             points = metadata.get("points", 0)
-            tensor_names = metadata.get("tensor_names", None)
+            structure = metadata.get("structure")
             assert isinstance(
                 points, (float, int)
             ), f"rpc_backward should have number of points as number or None, got {points}"
@@ -447,7 +447,7 @@ class TransformerConnectionHandler(ConnectionHandler):
                 prioritizer=self._prioritizer,
                 active_adapter=active_adapter,
                 points=points,
-                tensor_names=tensor_names,
+                structure=structure,
             )
 
             return runtime_pb2.ExpertResponse(tensors=self._serialize_grads(grads, requested_backends, metadata))
@@ -463,7 +463,7 @@ class TransformerConnectionHandler(ConnectionHandler):
             requested_backends = tuple(self.module_backends[uid] for uid in requested_uids)
             active_adapter = self._get_active_adapter(metadata)
             points = metadata.get("points", 0)
-            tensor_names = metadata.get("tensor_names", None)
+            structure = metadata.get("structure")
             assert isinstance(
                 points, (float, int)
             ), f"rpc_backward_stream should have number of points as number or None, got {points}"
@@ -474,7 +474,7 @@ class TransformerConnectionHandler(ConnectionHandler):
                 prioritizer=self._prioritizer,
                 active_adapter=active_adapter,
                 points=points,
-                tensor_names=tensor_names,
+                structure=structure,
             )
             # Split the serialized_grad_inputs for streaming and respond
             for tensor in self._serialize_grads(grads, requested_backends, metadata):

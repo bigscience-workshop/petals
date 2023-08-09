@@ -11,6 +11,7 @@ from hivemind.p2p import StubBase
 from hivemind.p2p.p2p_daemon_bindings.control import DEFAULT_MAX_MSG_SIZE, MAX_UNARY_PAYLOAD_SIZE
 from hivemind.proto import runtime_pb2
 from hivemind.utils.asyncio import aiter_with_timeout, iter_as_aiter
+from hivemind.utils.tensor_descr import BatchTensorDescriptor
 from hivemind.utils.streaming import split_for_streaming
 
 from petals.client.routing.sequence_manager import SequenceManagerConfig
@@ -89,7 +90,14 @@ async def run_remote_forward(
     # Modify forward_schema to support prompts
     args_schema, kwargs_schema = rpc_info["forward_schema"]
     # TODO: rm this assert when support arbitrary number of input tensors
-    assert len(args_schema) == 1 and len(inputs) == 2
+    assert len(args_schema) == 1 and len(inputs) >= 2
+    # TODO: Figure out how to share server schema on the client side
+    if len(inputs) > 2:
+        compression = args_schema[0].compression
+        kwargs_schema = tuple(
+            BatchTensorDescriptor.from_tensor(arg, compression)
+            for arg in inputs[2:]
+        )
     forward_schema_with_prompts = (tuple(args_schema * len(inputs)), kwargs_schema)
 
     if not nested_compare(forward_inputs, forward_schema_with_prompts):
@@ -140,7 +148,14 @@ async def run_remote_backward(
     assert len(args_schema) == 1 and isinstance(inputs, torch.Tensor)
     # TODO generalize this
     prompts_schema = next(iter(args_schema))
-    backward_schema = tuple(nested_flatten((rpc_info["forward_schema"], rpc_info["outputs_schema"], prompts_schema)))
+    # TODO: Figure out how to share server schema on the client side
+    if len(extra_tensors) > 1:
+        compression = args_schema[0].compression
+        kwargs_schema = tuple(
+            BatchTensorDescriptor.from_tensor(arg, compression)
+            for arg in extra_tensors[1:]
+        )
+    backward_schema = tuple(nested_flatten((rpc_info["forward_schema"], rpc_info["outputs_schema"], prompts_schema, kwargs_schema)))
 
     # Asynchronous serialization
     loop = asyncio.get_running_loop()

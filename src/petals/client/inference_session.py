@@ -18,10 +18,12 @@ from hivemind import (
 from hivemind.moe.client.remote_expert_worker import RemoteExpertWorker
 from hivemind.p2p import P2P
 from hivemind.proto import runtime_pb2
+from hivemind.utils.tensor_descr import BatchTensorDescriptor
 
 from petals.client.routing.sequence_manager import RemoteSequenceManager, SequenceManagerConfig, maybe_log_traceback
 from petals.data_structures import CHAIN_DELIMITER, ModuleUID, RemoteSpanInfo, RPCInfo
 from petals.server.handler import TransformerConnectionHandler
+from petals.utils.packaging import pack_args_kwargs
 from petals.utils.misc import DUMMY, is_dummy
 
 logger = get_logger(__name__)
@@ -134,7 +136,7 @@ class _ServerInferenceSession:
             assert hypo_ids.dtype == torch.int64
 
         # serialize inputs and put them into the queue
-        input_tensors = (inputs, prompts, hypo_ids)
+        input_tensors, structure = pack_args_kwargs(inputs, prompts, hypo_ids)
 
         request_metadata = dict(session_id=self.session_id, step_id=step_id)
         if not self.stepped:
@@ -143,6 +145,18 @@ class _ServerInferenceSession:
             next_servers = self._collect_next_servers()
             if next_servers:
                 request_metadata["next_servers"] = next_servers
+                
+        request_metadata["structure"] = structure
+
+        # TODO: Figure out how to share server schema on the client side
+        inference_schema = nested_flatten(self.rpc_info["inference_schema"])
+        if len(input_tensors) > 3:
+            compression = inference_schema[0].compression
+            kwargs_schema = tuple(
+                BatchTensorDescriptor.from_tensor(arg, compression)
+                for arg in input_tensors[3:]
+            )
+            inference_schema = nested_flatten((nested_flatten, kwargs_schema))
 
         outputs_serialized = RemoteExpertWorker.run_coroutine(
             self._step(
@@ -150,7 +164,7 @@ class _ServerInferenceSession:
                     uid=self.uid,
                     tensors=[
                         serialize_torch_tensor(tensor.to(proto.dtype), proto.compression)
-                        for tensor, proto in zip(input_tensors, nested_flatten(self.rpc_info["inference_schema"]))
+                        for tensor, proto in zip(input_tensors, inference_schema)
                     ],
                     metadata=MSGPackSerializer.dumps(request_metadata),
                 )
@@ -237,7 +251,8 @@ class InferenceSession:
         try:
             for span in chosen_spans:
                 span_uids = CHAIN_DELIMITER.join(self._sequence_manager.block_uids[span.start : span.end])
-                metadata = self._sequence_manager.get_request_metadata("rpc_inference", span_uids, peer_id=span.peer_id)
+                structure = dict()
+                metadata = self._sequence_manager.get_request_metadata("rpc_inference", span_uids, structure, peer_id=span.peer_id)
                 session = RemoteExpertWorker.run_coroutine(
                     _ServerInferenceSession.create(
                         self._sequence_manager.config,
