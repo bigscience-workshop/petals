@@ -3,14 +3,14 @@ import random
 import pytest
 import torch
 
-from petals import DistributedBloomConfig, RemoteSequential
+from petals import AutoDistributedConfig, RemoteSequential
 from petals.server.from_pretrained import load_pretrained_block
 from test_utils import *
 
 
 @pytest.mark.forked
 def test_remote_block_exact_match(atol_forward=1e-4, atol_inference=1e-3):
-    config = DistributedBloomConfig.from_pretrained(MODEL_NAME, initial_peers=INITIAL_PEERS)
+    config = AutoDistributedConfig.from_pretrained(MODEL_NAME, initial_peers=INITIAL_PEERS)
     remote_sequential = RemoteSequential(config)
 
     for block_index in random.sample(range(config.num_hidden_layers), 3):

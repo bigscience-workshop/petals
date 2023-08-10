@@ -5,7 +5,7 @@ import pytest
 import torch
 from hivemind import DHT, get_logger
 
-from petals import DistributedBloomConfig
+from petals import AutoDistributedConfig
 from petals.client import RemoteSequenceManager, RemoteSequential
 from petals.data_structures import UID_DELIMITER
 from test_utils import *
@@ -16,7 +16,7 @@ logger = get_logger(__name__)
 @pytest.mark.forked
 @pytest.mark.parametrize("mode", ["max_throughput", "min_latency"])
 def test_sequence_manager_basics(mode: str):
-    config = DistributedBloomConfig.from_pretrained(MODEL_NAME, initial_peers=INITIAL_PEERS)
+    config = AutoDistributedConfig.from_pretrained(MODEL_NAME, initial_peers=INITIAL_PEERS)
     dht = DHT(initial_peers=config.initial_peers, client_mode=True, start=True)
     sequential = RemoteSequential(config, dht=dht)
     shutdown_evt = threading.Event()

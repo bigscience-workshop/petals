@@ -74,6 +74,8 @@ def main():
     parser.add_argument('--max_batch_size', type=int, default=None,
                         help='The total number of tokens in the same batch will not exceed this value. '
                              'Default: 2048 for most models, 8192 for models with multi-query attention (e.g., Llama-2-70b)')
+    parser.add_argument('--max_chunk_size_bytes', type=int, default=256 * 1024 * 1024,
+                        help='Maximum size of activation tensor processed in one go; larger tensors are split into chunks')
     parser.add_argument('--attn_cache_tokens', type=int, default=None,
                         help='The number of past attention key/value pairs that will be stored between inference steps. '
                              'Default: 8192 for most models, 32768 for models with multi-query attention (e.g., Llama-2-70b)')
@@ -108,7 +110,7 @@ def main():
                              'If set to "auto" (default), the script evaluates network and compute throughput '
                              'on the first run and uses these estimates for future runs. '
                              'If set to "eval", the script re-evaluates the throughput and overrides the cache.')
-    parser.add_argument('--update_period', type=float, required=False, default=60,
+    parser.add_argument('--update_period', type=float, required=False, default=120,
                         help='Server will report blocks to DHT once in this many seconds')
     parser.add_argument('--expiration', type=float, required=False, default=None,
                         help='DHT entries will expire after this many seconds')
@@ -120,7 +122,7 @@ def main():
                         help="Timeout (in seconds) for waiting the next step's inputs inside an inference session")
 
     group = parser.add_mutually_exclusive_group()
-    group.add_argument('--initial_peers', type=str, nargs='*', required=False, default=PUBLIC_INITIAL_PEERS,
+    group.add_argument('--initial_peers', type=str, nargs='+', required=False, default=PUBLIC_INITIAL_PEERS,
                        help='Multiaddrs of one or more DHT peers from the target swarm. Default: connects to the public swarm')
     group.add_argument('--new_swarm', action='store_true',
                        help='Start a new private swarm (i.e., do not connect to any initial peers)')
@@ -156,7 +158,7 @@ def main():
                              "when connecting to the public swarm. If you connect to a private swarm, "
                              "the check is skipped by default. Use this option only if you know what you are doing")
 
-    parser.add_argument("--adapters", nargs='+', default=(),
+    parser.add_argument("--adapters", nargs='*', default=(),
                         help="List of pre-loaded LoRA adapters that can be used for inference or training")
 
     # fmt:on
