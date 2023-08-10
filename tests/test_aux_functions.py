@@ -29,6 +29,9 @@ def test_bnb_not_imported_when_unnecessary():
 @pytest.mark.parametrize("tensor_parallel", [False, True])
 def test_compute_throughput(inference: bool, n_tokens: int, tensor_parallel: bool):
     config = AutoDistributedConfig.from_pretrained(MODEL_NAME)
+    if tensor_parallel and config.model_type != "bloom":
+        pytest.skip("Tensor parallelism is implemented only for BLOOM for now")
+
     tensor_parallel_devices = ("cpu", "cpu") if tensor_parallel else ()
     compute_rps = measure_compute_rps(
         config,
