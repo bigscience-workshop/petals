@@ -23,6 +23,7 @@ from hivemind.utils.tensor_descr import BatchTensorDescriptor
 from petals.client.routing.sequence_manager import RemoteSequenceManager, SequenceManagerConfig, maybe_log_traceback
 from petals.data_structures import CHAIN_DELIMITER, ModuleUID, RemoteSpanInfo, RPCInfo
 from petals.server.handler import TransformerConnectionHandler
+from petals.utils.packaging import pack_args_kwargs
 from petals.utils.misc import DUMMY, is_dummy
 from petals.utils.packaging import pack_args_kwargs
 
@@ -145,6 +146,17 @@ class _ServerInferenceSession:
             next_servers = self._collect_next_servers()
             if next_servers:
                 request_metadata["next_servers"] = next_servers
+                
+        request_metadata["structure"] = structure
+
+        server_side_inference_schema = self.rpc_info["inference_schema"]
+        compression = server_side_inference_schema[0].compression
+        inference_schema = tuple(
+            BatchTensorDescriptor.from_tensor(arg, compression)
+            for arg in input_tensors
+        )
+
+        assert len(input_tensors) >= len(server_side_inference_schema), "Hidden_state, prompts and hypo_ids tensors are necesseary for an inference step"
 
         request_metadata["structure"] = structure
 
