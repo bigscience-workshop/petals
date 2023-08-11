@@ -7,13 +7,7 @@ import uuid
 from typing import AsyncIterator, List, Optional, Tuple
 
 import torch
-from hivemind import (
-    MSGPackSerializer,
-    anext,
-    deserialize_torch_tensor,
-    get_logger,
-    serialize_torch_tensor,
-)
+from hivemind import MSGPackSerializer, anext, deserialize_torch_tensor, get_logger, serialize_torch_tensor
 from hivemind.moe.client.remote_expert_worker import RemoteExpertWorker
 from hivemind.p2p import P2P
 from hivemind.proto import runtime_pb2
@@ -249,9 +243,7 @@ class InferenceSession:
         try:
             for span in chosen_spans:
                 span_uids = CHAIN_DELIMITER.join(self._sequence_manager.block_uids[span.start : span.end])
-                metadata = self._sequence_manager.get_request_metadata(
-                    "rpc_inference", span_uids, peer_id=span.peer_id
-                )
+                metadata = self._sequence_manager.get_request_metadata("rpc_inference", span_uids, peer_id=span.peer_id)
                 session = RemoteExpertWorker.run_coroutine(
                     _ServerInferenceSession.create(
                         self._sequence_manager.config,
