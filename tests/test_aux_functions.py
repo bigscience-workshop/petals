@@ -56,12 +56,12 @@ def test_pack_inputs():
     args = (x, None, (y, y))
     kwargs = dict(foo=torch.zeros(1, 1), bar={"l": "i", "g": "h", "t": ("y", "e", "a", "r", torch.rand(1), x, y)})
 
-    flat_tensors, metadata = pack_args_kwargs(*args, **kwargs)
+    flat_tensors, structure = pack_args_kwargs(*args, **kwargs)
 
     assert len(flat_tensors) == 4
     assert all(isinstance(t, torch.Tensor) for t in flat_tensors)
 
-    restored_args, restored_kwargs = unpack_args_kwargs(flat_tensors, metadata)
+    restored_args, restored_kwargs = unpack_args_kwargs(flat_tensors, structure)
 
     assert len(restored_args) == 3
     assert torch.all(restored_args[0] == x).item() and restored_args[1] is None

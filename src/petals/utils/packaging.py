@@ -29,14 +29,14 @@ def pack_args_kwargs(*args, **kwargs):
             masked_flat_values.append(mark_masked_tensor(tensor_index))
         else:
             masked_flat_values.append(value)
-    return flat_tensors, dict(structure=nested_pack(masked_flat_values, (args, kwargs)))
+    return flat_tensors, nested_pack(masked_flat_values, (args, kwargs))
 
 
-def unpack_args_kwargs(flat_tensors, metadata):
+def unpack_args_kwargs(flat_tensors, structure):
     return nested_pack(
         (
             value if not is_masked_tensor(value) else flat_tensors[get_tensor_index(value)]
-            for value in nested_flatten(metadata["structure"])
+            for value in nested_flatten(structure)
         ),
-        metadata["structure"],
+        structure,
     )
