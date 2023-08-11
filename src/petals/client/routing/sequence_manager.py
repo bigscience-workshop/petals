@@ -466,7 +466,9 @@ class RemoteSequenceManager:
             return 0
         return min(self.config.min_backoff * 2 ** (attempt_no - 1), self.config.max_backoff)
 
-    def get_request_metadata(self, protocol: str, structure: Dict[str, Any], *args, **kwargs) -> Optional[Dict[str, Any]]:
+    def get_request_metadata(
+        self, protocol: str, tensor_structure: Dict[str, Any], *args, **kwargs
+    ) -> Optional[Dict[str, Any]]:
         """
         :param protocol: one of "rpc_forward", "rpc_backward" or "rpc_inference"
         :param args: request-specific inputs, typically block uids and input tensors
@@ -476,7 +478,7 @@ class RemoteSequenceManager:
         return dict(
             points=self.policy.get_points(protocol, *args, **kwargs),
             active_adapter=self.config.active_adapter,
-            structure=structure,
+            tensor_structure=tensor_structure,
         )
 
     def shutdown(self):

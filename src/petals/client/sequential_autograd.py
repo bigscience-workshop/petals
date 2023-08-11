@@ -15,7 +15,6 @@ from petals.client.remote_forward_backward import run_remote_backward, run_remot
 from petals.client.routing.sequence_manager import RemoteSequenceManager, maybe_log_traceback
 from petals.data_structures import CHAIN_DELIMITER, RemoteSpanInfo
 from petals.server.handler import TransformerConnectionHandler
-from petals.utils.packaging import pack_args_kwargs
 from petals.utils.misc import DUMMY, is_dummy
 from petals.utils.packaging import pack_args_kwargs
 
@@ -69,10 +68,12 @@ async def sequential_forward(
                 span = sequences.popleft()
 
                 stub = TransformerConnectionHandler.get_stub(sequence_manager.state.p2p, span.peer_id)
-                flat_tensors, structure = pack_args_kwargs(inputs, prompts[span.start : span.end])
+                flat_tensors, tensor_structure = pack_args_kwargs(inputs, prompts[span.start : span.end])
 
                 span_uids = CHAIN_DELIMITER.join(sequence_manager.block_uids[span.start : span.end])
-                metadata = sequence_manager.get_request_metadata("rpc_forward", span_uids, structure, *flat_tensors)
+                metadata = sequence_manager.get_request_metadata(
+                    "rpc_forward", tensor_structure, span_uids, *flat_tensors
+                )
                 (outputs,) = await run_remote_forward(
                     span_uids,
                     stub,
@@ -152,12 +153,14 @@ async def sequential_backward(
                     span = forward_sequences.pop()
 
                 grad_outputs_cpu = [grad.cpu() for grad in grad_outputs]
-                flat_tensors, structure = pack_args_kwargs(*inputs, *grad_outputs_cpu, prompts[span.start : span.end])
+                flat_tensors, tensor_structure = pack_args_kwargs(
+                    *inputs, *grad_outputs_cpu, prompts[span.start : span.end]
+                )
 
                 span_uids = CHAIN_DELIMITER.join(sequence_manager.block_uids[span.start : span.end])
                 stub = TransformerConnectionHandler.get_stub(sequence_manager.state.p2p, span.peer_id)
                 metadata = sequence_manager.get_request_metadata(
-                    "rpc_backward", span_uids, structure, *flat_tensors, peer_id=span.peer_id
+                    "rpc_backward", tensor_structure, span_uids, *flat_tensors, peer_id=span.peer_id
                 )
                 grad_outputs, *span_grad_prompts = await run_remote_backward(
                     span_uids,

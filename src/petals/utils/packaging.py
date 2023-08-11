@@ -32,11 +32,11 @@ def pack_args_kwargs(*args, **kwargs):
     return flat_tensors, nested_pack(masked_flat_values, (args, kwargs))
 
 
-def unpack_args_kwargs(flat_tensors, structure):
+def unpack_args_kwargs(flat_tensors, tensor_structure):
     return nested_pack(
         (
             value if not is_masked_tensor(value) else flat_tensors[get_tensor_index(value)]
-            for value in nested_flatten(structure)
+            for value in nested_flatten(tensor_structure)
         ),
-        structure,
+        tensor_structure,
     )

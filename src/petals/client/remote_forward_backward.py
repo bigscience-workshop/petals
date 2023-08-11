@@ -11,7 +11,6 @@ from hivemind.p2p import StubBase
 from hivemind.p2p.p2p_daemon_bindings.control import DEFAULT_MAX_MSG_SIZE, MAX_UNARY_PAYLOAD_SIZE
 from hivemind.proto import runtime_pb2
 from hivemind.utils.asyncio import aiter_with_timeout, iter_as_aiter
-from hivemind.utils.tensor_descr import BatchTensorDescriptor
 from hivemind.utils.streaming import split_for_streaming
 from hivemind.utils.tensor_descr import BatchTensorDescriptor
 
@@ -86,13 +85,10 @@ async def run_remote_forward(
     kwargs = {key: kwargs[key] for key in rpc_info["keyword_names"]}
 
     # Note: we put keyword arguments in the same order as on a server to prevent f(a=1, b=2) != f(b=2, a=1) errors
-    forward_inputs = nested_flatten(inputs, kwargs)
+    forward_inputs = tuple(nested_flatten((inputs, kwargs)))
     args_schema, kwargs_schema = rpc_info["forward_schema"]
     compression = args_schema[0].compression
-    forward_schema = tuple(
-        BatchTensorDescriptor.from_tensor(arg, compression)
-        for arg in forward_inputs
-    )
+    forward_schema = tuple(BatchTensorDescriptor.from_tensor(arg, compression) for arg in forward_inputs)
     inputs = tuple(tensor.cpu().detach() for tensor in forward_inputs)
     assert len(inputs) >= len(args_schema) + 1, "Inputs and prompt tensors are necessary for a forward step"
 
@@ -130,11 +126,10 @@ async def run_remote_backward(
     args_schema, kwargs_schema = rpc_info["forward_schema"]
     outputs_schema = rpc_info["outputs_schema"]
     compression = args_schema[0].compression
-    backward_schema = tuple(
-        BatchTensorDescriptor.from_tensor(arg, compression)
-        for arg in inputs_and_grad_outputs
-    )
-    assert len(inputs_and_grad_outputs) >= len(args_schema) + len(outputs_schema) + 1, "Inputs, grad_outputs and prompt tensors are necessary for a backward step"
+    backward_schema = tuple(BatchTensorDescriptor.from_tensor(arg, compression) for arg in inputs_and_grad_outputs)
+    assert (
+        len(inputs_and_grad_outputs) >= len(args_schema) + len(outputs_schema) + 1
+    ), "Inputs, grad_outputs and prompt tensors are necessary for a backward step"
 
     # Asynchronous serialization
     loop = asyncio.get_running_loop()
