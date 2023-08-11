@@ -4,9 +4,12 @@ import sys
 import pytest
 import torch
 
+from hivemind import nested_flatten, nested_compare
+
 from petals import AutoDistributedConfig
 from petals.server.throughput import measure_compute_rps
 from petals.utils.convert_block import QuantType
+from petals.utils.packaging import pack_args_kwargs, unpack_args_kwargs
 from test_utils import MODEL_NAME
 
 
@@ -44,3 +47,30 @@ def test_compute_throughput(inference: bool, n_tokens: int, tensor_parallel: boo
         inference=inference,
     )
     assert isinstance(compute_rps, float) and compute_rps > 0
+
+
+@pytest.mark.forked
+def test_pack_inputs():
+    x = torch.ones(3)
+    y = torch.arange(5)
+    
+    args = (x, None, (y, y))
+    kwargs =  dict(
+        foo=torch.zeros(1, 1), bar={'l':'i', 'g':'h', 't': ('y', 'e', 'a', 'r', torch.rand(1), x, y)})
+
+    flat_tensors, metadata = pack_args_kwargs(*args, **kwargs)
+    
+    assert len(flat_tensors) == 4
+    assert all(isinstance(t, torch.Tensor) for t in flat_tensors)
+    
+    restored_args, restored_kwargs = unpack_args_kwargs(flat_tensors, metadata)
+    
+    assert len(restored_args) == 3
+    assert torch.all(restored_args[0] == x).item() and restored_args[1] is None
+    assert nested_compare((args, kwargs), (restored_args, restored_kwargs))
+    for original, restored in zip(nested_flatten((args, kwargs)),
+                                  nested_flatten((restored_args, restored_kwargs))):
+        if isinstance(original, torch.Tensor):
+            assert torch.all(original == restored)
+        else:
+            assert original == restored
