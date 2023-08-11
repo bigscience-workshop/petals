@@ -19,6 +19,12 @@ from petals.server.task_prioritizer import TaskPrioritizerBase
 from petals.utils.convert_block import QuantType
 from petals.utils.misc import DUMMY, is_dummy
 
+# We prioritize short inference requests and make them use a *merged* inference pool,
+# so they are processed without interruptions and extra overheads
+# TODO: Increase the NF4 threshold once bitsandbytes ships efficient NF4 kernel for parallel forward
+MAX_SHORT_INFERENCE_TOKENS = 128
+MAX_NF4_SHORT_INFERENCE_TOKENS = 1
+
 
 async def run_rpc_forward(
     *flat_tensors: torch.Tensor,
@@ -164,10 +170,8 @@ async def iterate_rpc_inference(
                 f" exceeds pre-allocated maximum {max_length}"
             )
 
-        # We prioritize short inference requests since they can use MergedInferencePool
-        # TODO: Increase the NF4 threshold once bitsandbytes ships efficient NF4 kernel for parallel forward
-        short_threshold = 1 if quant_type == QuantType.NF4 else 128
-        can_merge_pools = batch_size * length_increment < short_threshold
+        merge_max_tokens = MAX_NF4_SHORT_INFERENCE_TOKENS if quant_type == QuantType.NF4 else MAX_SHORT_INFERENCE_TOKENS
+        can_merge_pools = batch_size * length_increment <= merge_max_tokens
         priority = prioritizer.prioritize(
             hidden_states,
             hypo_ids,
