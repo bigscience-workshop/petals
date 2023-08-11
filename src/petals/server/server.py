@@ -560,6 +560,7 @@ class ModuleContainer(threading.Thread):
                 request_timeout=request_timeout,
                 session_timeout=session_timeout,
                 step_timeout=step_timeout,
+                quant_type=QuantType[server_info.quant_type.upper()],
             )
             for i in range(num_handlers)
         ]
