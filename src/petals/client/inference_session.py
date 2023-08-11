@@ -156,17 +156,7 @@ class _ServerInferenceSession:
             for arg in input_tensors
         )
 
-        assert len(input_tensors) >= len(server_side_inference_schema), "Hidden_state, prompts and hypo_ids tensors are necesseary for an inference step"
-
-        request_metadata["structure"] = structure
-
-        server_side_inference_schema = self.rpc_info["inference_schema"]
-        compression = server_side_inference_schema[0].compression
-        inference_schema = tuple(BatchTensorDescriptor.from_tensor(arg, compression) for arg in input_tensors)
-
-        assert len(input_tensors) >= len(
-            server_side_inference_schema
-        ), "Hidden_state, prompts and hypo_ids tensors are necesseary for an inference step"
+        assert len(input_tensors) >= len(server_side_inference_schema), "Hidden_state, prompts and hypo_ids tensors are necessary for an inference step"
 
         outputs_serialized = RemoteExpertWorker.run_coroutine(
             self._step(

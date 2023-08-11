@@ -45,6 +45,7 @@ async def run_rpc_forward(
     :returns: hidden states after the last layer [batch_size, seq_length, hid_size]
     """
     if structure is not None:
+        # TODO: kwargs currently is unused, it can be used later for peft-like adaptation
         flat_tensors, kwargs = unpack_args_kwargs(flat_tensors, structure)
     hidden_states, prompts, *_ = flat_tensors
 
@@ -88,6 +89,7 @@ async def run_rpc_backward(
     structure: Optional[Dict[str, Any]] = None,
 ) -> Union[torch.Tensor, Sequence[torch.Tensor]]:
     if structure is not None:
+        # TODO: kwargs currently is unused, it can be used later for peft-like adaptation
         flat_tensors, kwargs = unpack_args_kwargs(flat_tensors, structure)
     inputs, grad_outputs, prompts, *_ = flat_tensors
 
@@ -159,6 +161,7 @@ async def iterate_rpc_inference(
     async for request, step_metadata in input_iterator:
         flat_tensors = map(deserialize_torch_tensor, request.tensors)
         if structure is not None:
+            # TODO: kwargs currently is unused, it can be used later for peft-like adaptation
             flat_tensors, kwargs = unpack_args_kwargs(flat_tensors, structure)
 
         hidden_states, prompts, hypo_ids, *_ = flat_tensors
