@@ -7,7 +7,7 @@
 import pytest
 import torch
 
-from petals import DistributedBloomConfig
+from petals import AutoDistributedConfig
 from petals.client.remote_sequential import RemoteSequential
 from petals.server.from_pretrained import load_pretrained_block
 from test_utils import *
@@ -15,7 +15,7 @@ from test_utils import *
 
 @pytest.mark.forked
 def test_forward_backward_exact_match(atol_forward=1e-4, atol_backward=1e-4, seq_length=1):
-    config = DistributedBloomConfig.from_pretrained(MODEL_NAME, initial_peers=INITIAL_PEERS)
+    config = AutoDistributedConfig.from_pretrained(MODEL_NAME, initial_peers=INITIAL_PEERS)
     remote_blocks = RemoteSequential(config, start_block=3, end_block=6)
     assert isinstance(remote_blocks, RemoteSequential)
 
@@ -43,7 +43,7 @@ def test_forward_backward_exact_match(atol_forward=1e-4, atol_backward=1e-4, seq
 
 @pytest.mark.forked
 def test_chained_inference_exact_match(atol_inference=1e-4):
-    config = DistributedBloomConfig.from_pretrained(MODEL_NAME, initial_peers=INITIAL_PEERS)
+    config = AutoDistributedConfig.from_pretrained(MODEL_NAME, initial_peers=INITIAL_PEERS)
     remote_blocks = RemoteSequential(config, start_block=3, end_block=5)
 
     inputs = torch.randn(1, 8, config.hidden_size)

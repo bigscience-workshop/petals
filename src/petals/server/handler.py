@@ -34,6 +34,7 @@ from petals.server.backend import TransformerBackend
 from petals.server.block_functions import iterate_rpc_inference, run_rpc_backward, run_rpc_forward
 from petals.server.memory_cache import Handle
 from petals.server.task_prioritizer import DummyTaskPrioritizer, TaskPrioritizerBase
+from petals.utils.convert_block import QuantType
 
 logger = get_logger(__name__)
 
@@ -71,6 +72,7 @@ class TransformerConnectionHandler(ConnectionHandler):
         session_timeout: float,
         step_timeout: float,
         task_prioritizer: TaskPrioritizerBase = DummyTaskPrioritizer(),
+        quant_type: QuantType,
     ):
         super().__init__(dht, module_backends)
         for module_backend in self.module_backends.values():
@@ -88,6 +90,7 @@ class TransformerConnectionHandler(ConnectionHandler):
         self.request_timeout = request_timeout
         self.session_timeout, self.step_timeout = session_timeout, step_timeout
         self._prioritizer = task_prioritizer
+        self.quant_type = quant_type
 
     async def add_p2p_handlers(self, *args, **kwargs) -> None:
         if self._listener_task is None:
@@ -176,6 +179,7 @@ class TransformerConnectionHandler(ConnectionHandler):
                         max_length=max_length,
                         prioritizer=self._prioritizer,
                         points=points,
+                        quant_type=self.quant_type,
                     ):
                         if can_push:
                             task = asyncio.create_task(self._push_outputs(request, output_tensors[0], metadata))
