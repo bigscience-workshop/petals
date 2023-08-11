@@ -60,7 +60,7 @@ def test_pack_inputs():
 
     flat_tensors, tensor_structure = pack_args_kwargs(*args, **kwargs)
 
-    assert len(flat_tensors) == len(args)
+    assert len(flat_tensors) == 5
     assert all(isinstance(t, torch.Tensor) for t in flat_tensors)
 
     restored_args, restored_kwargs = unpack_args_kwargs(flat_tensors, tensor_structure)
