@@ -154,7 +154,7 @@ async def sequential_backward(
 
                 grad_outputs_cpu = [grad.cpu() for grad in grad_outputs]
                 flat_tensors, tensor_structure = pack_args_kwargs(
-                    *inputs, *grad_outputs_cpu, prompts[span.start : span.end]
+                    inputs, *grad_outputs_cpu, prompts[span.start : span.end]
                 )
 
                 span_uids = CHAIN_DELIMITER.join(sequence_manager.block_uids[span.start : span.end])

@@ -90,6 +90,7 @@ async def run_remote_forward(
     compression = args_schema[0].compression
     forward_schema = tuple(BatchTensorDescriptor.from_tensor(arg, compression) for arg in forward_inputs)
     inputs = tuple(tensor.cpu().detach() for tensor in forward_inputs)
+    # TODO: create more explicit way to check servers schema and client's structure
     assert len(inputs) >= len(args_schema) + 1, "Inputs and prompt tensors are necessary for a forward step"
 
     # Asynchronous serialization
@@ -127,6 +128,7 @@ async def run_remote_backward(
     outputs_schema = rpc_info["outputs_schema"]
     compression = args_schema[0].compression
     backward_schema = tuple(BatchTensorDescriptor.from_tensor(arg, compression) for arg in inputs_and_grad_outputs)
+    # TODO: create more explicit way to check servers schema and client's structure
     assert (
         len(inputs_and_grad_outputs) >= len(args_schema) + len(outputs_schema) + 1
     ), "Inputs, grad_outputs and prompt tensors are necessary for a backward step"

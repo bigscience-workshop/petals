@@ -467,10 +467,11 @@ class RemoteSequenceManager:
         return min(self.config.min_backoff * 2 ** (attempt_no - 1), self.config.max_backoff)
 
     def get_request_metadata(
-        self, protocol: str, tensor_structure: Dict[str, Any], *args, **kwargs
+        self, protocol: str, tensor_structure: Optional[Dict[str, Any]] = None, *args, **kwargs
     ) -> Optional[Dict[str, Any]]:
         """
         :param protocol: one of "rpc_forward", "rpc_backward" or "rpc_inference"
+        :param tensor_structure: the structure of flattened tensors from pack_args_kwargs in petals.utils.packaging
         :param args: request-specific inputs, typically block uids and input tensors
         :param kwargs: additional request context, such as remote peer ID
         :returns: msgpack-serialized metadata dict that will be passed alongside a given request

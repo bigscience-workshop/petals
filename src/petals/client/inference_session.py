@@ -12,7 +12,6 @@ from hivemind import (
     anext,
     deserialize_torch_tensor,
     get_logger,
-    nested_flatten,
     serialize_torch_tensor,
 )
 from hivemind.moe.client.remote_expert_worker import RemoteExpertWorker
@@ -152,6 +151,7 @@ class _ServerInferenceSession:
         compression = server_side_inference_schema[0].compression
         inference_schema = tuple(BatchTensorDescriptor.from_tensor(arg, compression) for arg in input_tensors)
 
+        # TODO: create more explicit way to check servers schema and client's structure
         assert len(input_tensors) + (is_dummy(hypo_ids) and is_dummy(prompts)) >= len(
             server_side_inference_schema
         ), "Hidden_state, prompts and hypo_ids tensors are necessary for an inference step"
@@ -249,9 +249,8 @@ class InferenceSession:
         try:
             for span in chosen_spans:
                 span_uids = CHAIN_DELIMITER.join(self._sequence_manager.block_uids[span.start : span.end])
-                tensor_structure = dict()
                 metadata = self._sequence_manager.get_request_metadata(
-                    "rpc_inference", span_uids, tensor_structure, peer_id=span.peer_id
+                    "rpc_inference", span_uids, peer_id=span.peer_id
                 )
                 session = RemoteExpertWorker.run_coroutine(
                     _ServerInferenceSession.create(
