@@ -23,8 +23,8 @@ from hivemind.utils.tensor_descr import BatchTensorDescriptor
 from petals.client.routing.sequence_manager import RemoteSequenceManager, SequenceManagerConfig, maybe_log_traceback
 from petals.data_structures import CHAIN_DELIMITER, ModuleUID, RemoteSpanInfo, RPCInfo
 from petals.server.handler import TransformerConnectionHandler
-from petals.utils.packaging import pack_args_kwargs
 from petals.utils.misc import DUMMY, is_dummy
+from petals.utils.packaging import pack_args_kwargs
 
 logger = get_logger(__name__)
 
@@ -145,17 +145,16 @@ class _ServerInferenceSession:
             next_servers = self._collect_next_servers()
             if next_servers:
                 request_metadata["next_servers"] = next_servers
-                
+
         request_metadata["structure"] = structure
 
         server_side_inference_schema = self.rpc_info["inference_schema"]
         compression = server_side_inference_schema[0].compression
-        inference_schema = tuple(
-            BatchTensorDescriptor.from_tensor(arg, compression)
-            for arg in input_tensors
-        )
+        inference_schema = tuple(BatchTensorDescriptor.from_tensor(arg, compression) for arg in input_tensors)
 
-        assert len(input_tensors) >= len(server_side_inference_schema), "Hidden_state, prompts and hypo_ids tensors are necesseary for an inference step"
+        assert len(input_tensors) >= len(
+            server_side_inference_schema
+        ), "Hidden_state, prompts and hypo_ids tensors are necesseary for an inference step"
 
         outputs_serialized = RemoteExpertWorker.run_coroutine(
             self._step(
@@ -251,7 +250,9 @@ class InferenceSession:
             for span in chosen_spans:
                 span_uids = CHAIN_DELIMITER.join(self._sequence_manager.block_uids[span.start : span.end])
                 structure = dict()
-                metadata = self._sequence_manager.get_request_metadata("rpc_inference", span_uids, structure, peer_id=span.peer_id)
+                metadata = self._sequence_manager.get_request_metadata(
+                    "rpc_inference", span_uids, structure, peer_id=span.peer_id
+                )
                 session = RemoteExpertWorker.run_coroutine(
                     _ServerInferenceSession.create(
                         self._sequence_manager.config,

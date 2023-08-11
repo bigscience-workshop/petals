@@ -19,6 +19,7 @@ from petals.server.task_prioritizer import TaskPrioritizerBase
 from petals.utils.convert_block import QuantType
 from petals.utils.packaging import unpack_args_kwargs
 from petals.utils.misc import DUMMY, is_dummy
+from petals.utils.packaging import unpack_args_kwargs
 
 # We prioritize short inference requests and make them use a *merged* inference pool,
 # so they are processed without interruptions and extra overheads

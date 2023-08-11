@@ -8,10 +8,12 @@ from hivemind import nested_flatten, nested_pack
 
 
 def mark_masked_tensor(index: int):
-    return b'__T' + str(index).encode()
+    return b"__T" + str(index).encode()
+
 
 def is_masked_tensor(item: Any):
-    return isinstance(item, bytes) and re.match(b'^__T\d+$', item) is not None
+    return isinstance(item, bytes) and re.match(b"^__T\d+$", item) is not None
+
 
 def get_tensor_index(item: bytes):
     return int(item[3:])
@@ -29,8 +31,12 @@ def pack_args_kwargs(*args, **kwargs):
             masked_flat_values.append(value)
     return flat_tensors, dict(structure=nested_pack(masked_flat_values, (args, kwargs)))
 
+
 def unpack_args_kwargs(flat_tensors, metadata):
-    return nested_pack((
-        value if not is_masked_tensor(value) else flat_tensors[get_tensor_index(value)]
-        for value in nested_flatten(metadata['structure'])
-    ), metadata['structure'])
+    return nested_pack(
+        (
+            value if not is_masked_tensor(value) else flat_tensors[get_tensor_index(value)]
+            for value in nested_flatten(metadata["structure"])
+        ),
+        metadata["structure"],
+    )

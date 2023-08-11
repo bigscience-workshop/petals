@@ -15,8 +15,8 @@ from petals.client.remote_forward_backward import run_remote_backward, run_remot
 from petals.client.routing.sequence_manager import RemoteSequenceManager, maybe_log_traceback
 from petals.data_structures import CHAIN_DELIMITER, RemoteSpanInfo
 from petals.server.handler import TransformerConnectionHandler
-from petals.utils.packaging import pack_args_kwargs
 from petals.utils.misc import DUMMY, is_dummy
+from petals.utils.packaging import pack_args_kwargs
 
 logger = get_logger(__name__)
 
