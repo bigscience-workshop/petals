@@ -88,7 +88,6 @@ async def test_cache_usage():
     descr_e = TensorDescriptor.from_tensor(torch.empty((96, 8), dtype=torch.bfloat16))  # 1536 bytes
     descr_f = TensorDescriptor.from_tensor(torch.empty((1792,), dtype=torch.uint8))  # 1792 bytes
 
-
     async def _allocate_and_wait(dealloc_event, *descrs, timeout=None):
         loop = asyncio.get_event_loop()
         async with cache.allocate_cache(*descrs, timeout=timeout) as handles:
