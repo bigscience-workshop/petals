@@ -16,7 +16,7 @@ from petals.utils.generation_algorithms import (
 )
 from petals.utils.generation_constraints import ABCBloomConstraint, EosConstraint
 
-logger = get_logger(__file__)
+logger = get_logger(__name__)
 
 
 class RemoteGenerationMixin:
@@ -41,10 +41,11 @@ class RemoteGenerationMixin:
 
         return self.transformer.h.inference_session(**kwargs)
 
-    @torch.no_grad()
+    @torch.inference_mode()
     def generate(
         self,
         inputs: Optional[torch.Tensor] = None,
+        *,
         do_sample: Optional[bool] = None,
         temperature: float = 1.0,
         top_k: Optional[int] = None,
@@ -59,9 +60,7 @@ class RemoteGenerationMixin:
         decoding_algorithm: Optional[DecodingAlgorithm] = None,
         provided_constraints: List[ABCBloomConstraint] = [],
         num_return_sequences: Optional[int] = None,
-        *,
         session: Optional[InferenceSession] = None,
-        **model_kwargs,
     ) -> torch.LongTensor:
         """
         Generates sequences of token ids for models with a language modeling head.
@@ -80,19 +79,9 @@ class RemoteGenerationMixin:
         :param max_new_tokens: The maximum number of tokens to generate.
         :param decoding_algorithm: The decoding algorithm to use.
         :param provided_constraints: A list of constraints to use.
-        :param model_kwargs: Additional arguments to pass to the model.
         :param num_return_sequences: How many hypothesis from the beam will be in output.
         """
 
-        assert (
-            model_kwargs.get("logits_processor", None) is None
-        ), "For RemoteGenerationMixin models use BloomConstraints instead of logits_processor"
-        assert (
-            model_kwargs.get("logits_wrapper", None) is None
-        ), "For RemoveGenerationMixin models use DecodingAlgorithm instead of logits_wrapper"
-        assert (
-            model_kwargs.get("stopping_criteria", None) is None
-        ), "For RemoteGenerationMixin models use BloomConstraints instead of stopping_criteria"
         prefix_length = 0 if inputs is None else inputs.size(1)
         prefix_length += self.config.pre_seq_len
 
@@ -107,17 +96,18 @@ class RemoteGenerationMixin:
         elif max_length is None and max_new_tokens is not None:
             max_length = prefix_length + max_new_tokens
 
-        if num_beams > 1 and session is not None:
+        resuming_session = session is not None and session.token_ids
+        if num_beams > 1 and resuming_session:
             raise NotImplementedError(
-                "Reusing inference session in .generate() along with beam search is not supported yet"
+                "Resuming inference session in .generate() along with beam search is not supported yet"
             )
 
         if inputs is not None:
             assert isinstance(inputs, torch.Tensor) and inputs.ndim == 2, "inputs must be a 2d tensor [batch, length]"
-            if session is not None and session.token_ids:
+            if resuming_session:
                 inputs = torch.cat([session.token_ids[-1], inputs], dim=1)
         else:
-            if session is not None and session.token_ids:
+            if resuming_session:
                 inputs = session.token_ids[-1]
             else:
                 assert bos_token_id is not None, "You have to provide a bos_token_id if you do not provide inputs"
@@ -131,9 +121,7 @@ class RemoteGenerationMixin:
                 decoding_algorithm = BeamSearchAlgorithm(num_beams, batch_size=batch_size)
             else:
                 if top_k is not None or top_p is not None or repetition_penalty is not None:
-                    logger.warning(
-                        "You passed top_k, top_p, or repetition_penalty but did pass do_sample=True. Running greedy sampling"
-                    )
+                    raise ValueError("Passing top_k, top_p, or repetition_penalty requires passing do_sample=True")
                 decoding_algorithm = GreedyAlgorithm()
 
         if num_beams > 1:
@@ -182,19 +170,25 @@ class RemoteGenerationMixin:
             seq_idx = outputs[0].size(1)
             hypo_ids = torch.arange(outputs[0].size(0))
             while True:
-                embs = self.transformer.word_embeddings(outputs[-1])
+                hidden_state = self.transformer.word_embeddings(outputs[-1])
                 intermediate_prompts = None
                 if self.config.pre_seq_len > 0 and len(outputs) == 1:
-                    prompts, intermediate_prompts = self.transformer.get_prompt(embs.size(0))
-                    embs = torch.cat([prompts, embs], dim=1)
-                embs = self.transformer.word_embeddings_layernorm(embs)
-                hidden_state = session.step(embs, prompts=intermediate_prompts, hypo_ids=hypo_ids)[:, -1]
+                    prompts, intermediate_prompts = self.transformer.get_prompt(hidden_state.size(0))
+                    hidden_state = torch.cat([prompts, hidden_state], dim=1)
+                hidden_state = self.transformer.word_embeddings_layernorm(hidden_state)
+
+                hidden_state = session.step(hidden_state, prompts=intermediate_prompts, hypo_ids=hypo_ids)[:, -1]
+
                 hidden_state = self.transformer.ln_f(hidden_state)
                 lm_logits = self.lm_head(hidden_state)
 
                 for constraint in constraints:
                     lm_logits = constraint(last_token_id, lm_logits, hypo_ids)
-                token_ids = torch.cat(session.token_ids, dim=1) if session.token_ids else torch.empty(batch_size, 0, dtype=torch.int64)
+                token_ids = (
+                    torch.cat(session.token_ids, dim=1)
+                    if session.token_ids
+                    else torch.empty(batch_size, 0, dtype=torch.int64)
+                )
                 last_token_id, hypo_ids = decoding_algorithm(token_ids, lm_logits)
 
                 # If some samples were padded, change only these samples
@@ -217,6 +211,8 @@ class RemoteGenerationMixin:
 
         outputs = torch.cat(outputs, dim=-1)
 
+        if resuming_session:
+            outputs = outputs[:, 1:]
         if num_beams > 1:
             pre_return_idx = [
                 torch.arange(idx, num_return_sequences * batch_size, batch_size) for idx in range(batch_size)
@@ -233,7 +229,6 @@ class RemoteGenerationMixin:
         pad_token_id: Optional[int] = None,
         eos_token_id: Optional[int] = None,
         provided_constraints: List[ABCBloomConstraint] = [],
-        **model_kwargs,
     ) -> torch.LongTensor:
         """
         Generates sequences of token ids for models with a language modeling head. Uses greedy search.
@@ -251,7 +246,6 @@ class RemoteGenerationMixin:
             eos_token_id=eos_token_id,
             decoding_algorithm=GreedyAlgorithm(),
             provided_constraints=provided_constraints,
-            **model_kwargs,
         )
 
     def sample(
@@ -264,7 +258,6 @@ class RemoteGenerationMixin:
         pad_token_id: Optional[int] = None,
         eos_token_id: Optional[int] = None,
         provided_constraints: List[ABCBloomConstraint] = [],
-        **model_kwargs,
     ) -> torch.LongTensor:
         """
         Generates sequences of token ids for models with a language modeling head. Uses multinomial sampling.
@@ -278,7 +271,6 @@ class RemoteGenerationMixin:
         :param: pad_token_id: The id of the padding token.
         :param: eos_token_id: The id of the end of sentence token.
         :param: provided_constraints: A list of constraints to use.
-        :param: model_kwargs: Additional kwargs to pass to the model.
         """
 
         return self.generate(
@@ -288,7 +280,6 @@ class RemoteGenerationMixin:
             eos_token_id=eos_token_id,
             decoding_algorithm=self._choose_sample_algorithm(temperature, top_k, top_p),
             provided_constraints=provided_constraints,
-            **model_kwargs,
         )
 
     def beam_search(
@@ -299,7 +290,6 @@ class RemoteGenerationMixin:
         pad_token_id: Optional[int] = None,
         eos_token_id: Optional[int] = None,
         provided_constraints: List[ABCBloomConstraint] = [],
-        **model_kwargs,
     ) -> torch.LongTensor:
         """
         Generates sequences of token ids for models with a language modeling head. Uses beam search.
@@ -310,7 +300,6 @@ class RemoteGenerationMixin:
         :param pad_token_id: The id of the padding token.
         :param eos_token_id: The id of the end of sentence token.
         :param provided_constraints: A list of constraints to use.
-        :param: model_kwargs: Additional kwargs to pass to the model.
         """
         decoding_algorithm = BeamSearchAlgorithm(
             num_beams=num_beams,
@@ -324,7 +313,6 @@ class RemoteGenerationMixin:
             eos_token_id=eos_token_id,
             decoding_algorithm=decoding_algorithm,
             provided_constraints=provided_constraints,
-            **model_kwargs,
         )
 
     def beam_sample(
@@ -334,7 +322,6 @@ class RemoteGenerationMixin:
         pad_token_id: Optional[int] = None,
         eos_token_id: Optional[int] = None,
         provided_constraints: List[ABCBloomConstraint] = [],
-        **model_kwargs,
     ) -> torch.LongTensor:
         raise NotImplementedError
 
@@ -345,7 +332,6 @@ class RemoteGenerationMixin:
         pad_token_id: Optional[int] = None,
         eos_token_id: Optional[int] = None,
         provided_constraints: List[ABCBloomConstraint] = [],
-        **model_kwargs,
     ) -> torch.LongTensor:
         raise NotImplementedError
 

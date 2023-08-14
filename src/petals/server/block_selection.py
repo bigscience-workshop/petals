@@ -8,7 +8,7 @@ from petals.data_structures import RemoteModuleInfo, ServerState
 
 __all__ = ["choose_best_blocks", "should_choose_other_blocks"]
 
-logger = get_logger(__file__)
+logger = get_logger(__name__)
 
 
 @dataclass
@@ -16,6 +16,7 @@ class Span:
     start: int
     end: int
     throughput: float
+    state: ServerState
 
     @property
     def length(self):
@@ -43,7 +44,7 @@ def compute_spans(module_infos: List[Optional[RemoteModuleInfo]]) -> Tuple[Dict[
                 spans[peer_id].start = min(spans[peer_id].start, block)
                 spans[peer_id].end = max(spans[peer_id].start, block + 1)
             else:
-                spans[peer_id] = Span(start=block, end=block + 1, throughput=server.throughput)
+                spans[peer_id] = Span(start=block, end=block + 1, throughput=server.throughput, state=server.state)
 
             throughputs[block] += server.throughput
 
@@ -78,6 +79,9 @@ def should_choose_other_blocks(
     # due to the floating point error, which would cause excess block replacements.
     # Also, subtracting local_span.throughput * (1 + eps) makes _choose_best_start() prefer
     # the previous server position in case of other things being almost equal.
+
+    if initial_throughput > eps and throughputs.min() <= 0:
+        return False  # Switching blocks would make the swarm disjoint
 
     new_start = _choose_best_start(throughputs, local_span.length)
     if local_span.start == new_start:

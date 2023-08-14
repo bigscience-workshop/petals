@@ -8,22 +8,19 @@ from functools import partial
 from typing import Dict, List, Optional, Sequence, Union
 
 from hivemind.dht import DHT, DHTNode, DHTValue
-from hivemind.moe.client.remote_expert_worker import RemoteExpertWorker
 from hivemind.p2p import PeerID
 from hivemind.utils import DHTExpiration, MPFuture, get_dht_time, get_logger
 
-import petals.client
-from petals.data_structures import CHAIN_DELIMITER, UID_DELIMITER, ModuleUID, RemoteModuleInfo, ServerInfo, ServerState
+from petals.data_structures import CHAIN_DELIMITER, UID_DELIMITER, ModuleUID, RemoteModuleInfo, ServerInfo
 
-logger = get_logger(__file__)
+logger = get_logger(__name__)
 
 
 def declare_active_modules(
     dht: DHT,
     uids: Sequence[ModuleUID],
+    server_info: ServerInfo,
     expiration_time: DHTExpiration,
-    state: ServerState,
-    throughput: float,
     wait: bool = True,
 ) -> Union[Dict[ModuleUID, bool], MPFuture[Dict[ModuleUID, bool]]]:
     """
@@ -41,14 +38,9 @@ def declare_active_modules(
         uids = list(uids)
     for uid in uids:
         assert isinstance(uid, ModuleUID) and UID_DELIMITER in uid and CHAIN_DELIMITER not in uid
+
     return dht.run_coroutine(
-        partial(
-            _declare_active_modules,
-            uids=uids,
-            expiration_time=expiration_time,
-            state=state,
-            throughput=throughput,
-        ),
+        partial(_declare_active_modules, uids=uids, server_info=server_info, expiration_time=expiration_time),
         return_future=not wait,
     )
 
@@ -57,97 +49,52 @@ async def _declare_active_modules(
     dht: DHT,
     node: DHTNode,
     uids: List[ModuleUID],
+    server_info: ServerInfo,
     expiration_time: DHTExpiration,
-    state: ServerState,
-    throughput: float,
 ) -> Dict[ModuleUID, bool]:
     num_workers = len(uids) if dht.num_workers is None else min(len(uids), dht.num_workers)
     return await node.store_many(
         keys=uids,
         subkeys=[dht.peer_id.to_base58()] * len(uids),
-        values=[(state.value, throughput)] * len(uids),
+        values=[server_info.to_tuple()] * len(uids),
         expiration_time=expiration_time,
         num_workers=num_workers,
     )
 
 
-def get_remote_sequence(
-    dht: DHT,
-    start: int,
-    stop: int,
-    config: petals.client.DistributedBloomConfig,
-    dht_prefix: Optional[str] = None,
-    return_future: bool = False,
-) -> Union[petals.client.RemoteSequential, MPFuture]:
-    return RemoteExpertWorker.run_coroutine(
-        _get_remote_sequence(dht, start, stop, config, dht_prefix), return_future=return_future
-    )
-
-
-async def _get_remote_sequence(
-    dht: DHT,
-    start: int,
-    stop: int,
-    config: petals.client.DistributedBloomConfig,
-    dht_prefix: Optional[str] = None,
-) -> petals.client.RemoteSequential:
-    uids = [f"{config.dht_prefix}{UID_DELIMITER}{i}" for i in range(start, stop)]
-    p2p = await dht.replicate_p2p()
-    manager = petals.client.RemoteSequenceManager(dht, uids, p2p, start=True)
-    return petals.client.RemoteSequential(config, dht, dht_prefix, p2p, manager)
-
-
-def get_remote_module(
-    dht: DHT,
-    uid_or_uids: Union[ModuleUID, List[ModuleUID]],
-    config: petals.client.DistributedBloomConfig,
-    dht_prefix: Optional[str] = None,
-    return_future: bool = False,
-) -> Union[Union[petals.client.RemoteTransformerBlock, List[petals.client.RemoteTransformerBlock]], MPFuture]:
-    """
-    :param uid_or_uids: find one or more modules with these ids from across the DHT
-    :param config: model config, usually taken by .from_pretrained(MODEL_NAME)
-    :param return_future: if False (default), return when finished. Otherwise return MPFuture and run in background.
-    :returns: a list of [RemoteTransformerBlock]
-    """
-    return RemoteExpertWorker.run_coroutine(
-        _get_remote_module(dht, uid_or_uids, config, dht_prefix), return_future=return_future
-    )
-
-
-async def _get_remote_module(
-    dht: DHT,
-    uid_or_uids: Union[ModuleUID, List[ModuleUID]],
-    config: petals.client.DistributedBloomConfig,
-    dht_prefix: Optional[str] = None,
-) -> Union[petals.client.RemoteTransformerBlock, List[petals.client.RemoteTransformerBlock]]:
-    single_uid = isinstance(uid_or_uids, ModuleUID)
-    uids = [uid_or_uids] if single_uid else uid_or_uids
-    p2p = await dht.replicate_p2p()
-    managers = (petals.client.RemoteSequenceManager(dht, [uid], p2p, start=True) for uid in uids)
-    modules = [
-        petals.client.RemoteTransformerBlock(config, dht, dht_prefix=dht_prefix, p2p=p2p, sequence_manager=m)
-        for m in managers
-    ]
-    return modules[0] if single_uid else modules
-
-
 def get_remote_module_infos(
-    dht: DHT, uid_or_uids: Union[ModuleUID, Sequence[ModuleUID]], expiration_time: Optional[DHTExpiration] = None
-) -> List[Optional[RemoteModuleInfo]]:
-    single_uid = isinstance(uid_or_uids, ModuleUID)
-    uids = [uid_or_uids] if single_uid else uid_or_uids
-    infos = dht.run_coroutine(
-        partial(_get_remote_module_infos, uids=uids, expiration_time=expiration_time),
-        return_future=False,
+    dht: DHT,
+    uids: Sequence[ModuleUID],
+    expiration_time: Optional[DHTExpiration] = None,
+    active_adapter: Optional[str] = None,
+    *,
+    latest: bool = False,
+    return_future: bool = False,
+) -> Union[List[Optional[RemoteModuleInfo]], MPFuture]:
+    return dht.run_coroutine(
+        partial(
+            _get_remote_module_infos,
+            uids=uids,
+            active_adapter=active_adapter,
+            expiration_time=expiration_time,
+            latest=latest,
+        ),
+        return_future=return_future,
     )
-    return infos[0] if single_uid else infos
 
 
 async def _get_remote_module_infos(
-    dht: DHT, node: DHTNode, uids: List[ModuleUID], expiration_time: Optional[DHTExpiration]
+    dht: DHT,
+    node: DHTNode,
+    uids: List[ModuleUID],
+    active_adapter: Optional[str],
+    expiration_time: Optional[DHTExpiration],
+    latest: bool,
 ) -> List[Optional[RemoteModuleInfo]]:
-    if expiration_time is None:
+    if latest:
+        assert expiration_time is None, "You should define either `expiration_time` or `latest`, not both"
+        expiration_time = math.inf
+    elif expiration_time is None:
         expiration_time = get_dht_time()
     num_workers = len(uids) if dht.num_workers is None else min(len(uids), dht.num_workers)
     found: Dict[ModuleUID, DHTValue] = await node.get_many(uids, expiration_time, num_workers=num_workers)
@@ -157,23 +104,21 @@ async def _get_remote_module_infos(
         metadata = found[uid]
         if metadata is None or not isinstance(metadata.value, dict):
             if metadata is not None:
-                logger.error(f"Incorrect metadata for {uid}: {metadata}")
+                logger.warning(f"Incorrect metadata for {uid}: {metadata}")
             continue
         servers = {}
         for peer_id, server_info in metadata.value.items():
             try:
                 peer_id = PeerID.from_base58(peer_id)
-                state, throughput = server_info.value
-                if not (
-                    isinstance(state, int)
-                    and isinstance(throughput, float)
-                    and math.isfinite(throughput)
-                    and throughput >= 0.0
-                ):
-                    raise ValueError(f"Invalid server info: {server_info}")
-                servers[peer_id] = ServerInfo(ServerState(state), throughput)
+                server_info = ServerInfo.from_tuple(server_info.value)
+
+                if active_adapter and active_adapter not in server_info.adapters:
+                    logger.debug(f"Skipped server {peer_id} since it does not have adapter {active_adapter}")
+                    continue
+
+                servers[peer_id] = server_info
             except (TypeError, ValueError) as e:
-                logger.error(f"Incorrect peer entry for uid={uid}, peer_id={peer_id}: {e}")
+                logger.warning(f"Incorrect peer entry for uid={uid}, peer_id={peer_id}: {e}")
         if servers:
             modules[i] = RemoteModuleInfo(uid, servers)
     return modules

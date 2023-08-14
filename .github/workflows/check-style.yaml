@@ -9,7 +9,7 @@ jobs:
   black:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: psf/black@stable
         with:
           options: "--check --diff"
@@ -17,8 +17,8 @@ jobs:
   isort:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v3
         with:
           python-version: 3.8
       - uses: isort/isort-action@master

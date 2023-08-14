@@ -3,14 +3,12 @@ A PyTorch autograd function that runs forward/backward on a sequence of remote s
 """
 import asyncio
 import itertools
-import logging
 from collections import deque
 from typing import List, Optional, Sequence, Tuple
 
 import torch
 from hivemind import MSGPackSerializer
 from hivemind.moe.client.remote_expert_worker import RemoteExpertWorker
-from hivemind.p2p import P2PHandlerError
 from hivemind.utils.logging import get_logger
 
 from petals.client.remote_forward_backward import run_remote_backward, run_remote_forward
@@ -19,7 +17,7 @@ from petals.data_structures import CHAIN_DELIMITER, RemoteSpanInfo
 from petals.server.handler import TransformerConnectionHandler
 from petals.utils.misc import DUMMY, is_dummy
 
-logger = get_logger(__file__)
+logger = get_logger(__name__)
 
 MAX_TOKENS_IN_BATCH = 1024
 
@@ -61,14 +59,14 @@ async def sequential_forward(
             span = None
             try:
                 if not sequences or attempt_no >= 1:
-                    sequences = deque(sequence_manager.make_sequence(block_idx, end_index))
+                    sequences = deque(sequence_manager.make_sequence(block_idx, end_index, mode="max_throughput"))
                     # make_sequence() could return a longer sequence
                     sequences[-1].end = min(sequences[-1].end, end_index)
                     logger.debug(f"Found path from block {block_idx} to {end_index} via {len(sequences)} servers")
 
                 span = sequences.popleft()
 
-                stub = TransformerConnectionHandler.get_stub(sequence_manager.p2p, span.peer_id)
+                stub = TransformerConnectionHandler.get_stub(sequence_manager.state.p2p, span.peer_id)
                 inputs_and_prompts = [inputs, prompts[span.start : span.end]]
 
                 span_uids = CHAIN_DELIMITER.join(sequence_manager.block_uids[span.start : span.end])
@@ -78,7 +76,7 @@ async def sequential_forward(
                     stub,
                     sequence_manager.rpc_info,
                     *inputs_and_prompts,
-                    timeout=sequence_manager.request_timeout,
+                    config=sequence_manager.config,
                     metadata=MSGPackSerializer.dumps(metadata),
                 )
 
@@ -94,12 +92,12 @@ async def sequential_forward(
                 sequence_manager.on_request_success(span.peer_id)
                 break
             except Exception as e:
-                if span is not None and not isinstance(e, P2PHandlerError):
-                    sequence_manager.on_request_failure(span.peer_id)
+                sequence_manager.on_request_failure(span.peer_id if span is not None else None)
+                if attempt_no + 1 == sequence_manager.config.max_retries:
+                    raise
                 delay = sequence_manager.get_retry_delay(attempt_no)
                 logger.warning(
-                    f"Caught exception when running forward from block {block_idx} "
-                    f"(retry in {delay:.0f} sec): {repr(e)}"
+                    f"Caught exception when running forward via {span} (retry in {delay:.0f} sec): {repr(e)}"
                 )
                 maybe_log_traceback(e)
                 await asyncio.sleep(delay)
@@ -152,7 +150,7 @@ async def sequential_backward(
                     span = forward_sequences.pop()
 
                 span_uids = CHAIN_DELIMITER.join(sequence_manager.block_uids[span.start : span.end])
-                stub = TransformerConnectionHandler.get_stub(sequence_manager.p2p, span.peer_id)
+                stub = TransformerConnectionHandler.get_stub(sequence_manager.state.p2p, span.peer_id)
                 metadata = sequence_manager.get_request_metadata(
                     "rpc_backward", span_uids, *inputs, *grad_outputs, peer_id=span.peer_id
                 )
@@ -163,7 +161,7 @@ async def sequential_backward(
                     inputs,
                     grad_outputs,
                     prompts[span.start : span.end],
-                    timeout=sequence_manager.request_timeout,
+                    config=sequence_manager.config,
                     metadata=MSGPackSerializer.dumps(metadata),
                 )
                 grad_outputs = [grad_outputs]
@@ -171,12 +169,12 @@ async def sequential_backward(
                 sequence_manager.on_request_success(span.peer_id)
                 break
             except Exception as e:
-                if span is not None and not isinstance(e, P2PHandlerError):
-                    sequence_manager.on_request_failure(span.peer_id)
+                sequence_manager.on_request_failure(span.peer_id if span is not None else None)
+                if attempt_no + 1 == sequence_manager.config.max_retries:
+                    raise
                 delay = sequence_manager.get_retry_delay(attempt_no)
                 logger.warning(
-                    f"Caught exception when running backward between blocks {span.start}-{span.end} "
-                    f"(retry in {delay:.0f} sec): {repr(e)}"
+                    f"Caught exception when running backward via {span} (retry in {delay:.0f} sec): {repr(e)}"
                 )
                 maybe_log_traceback(e)
                 await asyncio.sleep(delay)

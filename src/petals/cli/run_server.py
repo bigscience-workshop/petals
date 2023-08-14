@@ -6,10 +6,12 @@ from hivemind.utils.limits import increase_file_limit
 from hivemind.utils.logging import get_logger
 from humanfriendly import parse_size
 
-from petals.constants import PUBLIC_INITIAL_PEERS
+from petals.constants import DTYPE_MAP, PUBLIC_INITIAL_PEERS
 from petals.server.server import Server
+from petals.utils.convert_block import QuantType
+from petals.utils.version import validate_version
 
-logger = get_logger(__file__)
+logger = get_logger(__name__)
 
 
 def main():
@@ -23,10 +25,16 @@ def main():
                        help="path or name of a pretrained model, converted with cli/convert_model.py")
     group.add_argument('model', nargs='?', type=str, help="same as --converted_model_name_or_path")
 
+    parser.add_argument("--public_name", type=str, default=None, help="Public name to be reported in the leaderboard")
+
+    group = parser.add_mutually_exclusive_group(required=False)
+    group.add_argument("--token", type=str, default=None, help="Hugging Face hub auth token for .from_pretrained()")
+    group.add_argument("--use_auth_token", action="store_true", dest="token",
+                       help="Read token saved by `huggingface-cli login")
+
     parser.add_argument('--num_blocks', type=int, default=None, help="The number of blocks to serve")
     parser.add_argument('--block_indices', type=str, default=None, help="Specific block indices to serve")
-    parser.add_argument('--prefix', type=str, default=None, help="Announce all blocks with this prefix. By default,"
-                                                                 "use the same name as in the converted model.")
+    parser.add_argument('--dht_prefix', type=str, default=None, help="Announce all blocks with this DHT prefix")
 
     parser.add_argument('--port', type=int, required=False,
                         help='Port this server listens to. '
@@ -38,25 +46,39 @@ def main():
                              'This is a simplified way to set the --announce_maddrs option (see below).'
                              'Default: server announces IPv4/IPv6 addresses of your network interfaces')
 
+    parser.add_argument("--no_auto_relay", action="store_false", dest="use_auto_relay",
+                        help="Do not look for libp2p relays to become reachable if we are behind NAT/firewall")
+
     parser.add_argument('--host_maddrs', nargs='+', required=False,
                         help='Multiaddrs to listen for external connections from other peers')
     parser.add_argument('--announce_maddrs', nargs='+', required=False,
                         help='Visible multiaddrs the host announces for external connections from other peers')
 
+    parser.add_argument('--daemon_startup_timeout', type=float, default=60,
+                        help='Timeout for the libp2p daemon connecting to initial peers')
+
     parser.add_argument('--compression', type=str, default='NONE', required=False, help='Tensor compression communication')
 
     parser.add_argument('--num_handlers', type=int, default=8, required=False,
                         help='server will use this many processes to handle incoming requests')
-    parser.add_argument('--min_batch_size', type=int, default=1,
-                        help='Minimum required batch size for all operations (in total tokens)')
-    parser.add_argument('--max_batch_size', type=int, default=2048,
-                        help='The total number of tokens in the same batch will not exceed this value')
     parser.add_argument('--prefetch_batches', type=int, default=1, required=False,
                         help='Pre-form this many subsequent batches while GPU is processing the current one')
     parser.add_argument('--sender_threads', type=int, default=1, required=False,
                         help='Use this many threads to pass results/exceptions from Runtime to Pools')
-    parser.add_argument('--inference_max_length', type=int, default=2048,
-                        help='Maximum total sequence length permitted per inference, defaults to 16384 tokens')
+
+    parser.add_argument('--inference_max_length', type=int, default=None,
+                        help='Maximum total sequence length permitted per inference, defaults to 16384 tokens. '
+                             'Default: 2048 for most models, 8192 for models with multi-query attention (e.g., Llama-2-70b)')
+    parser.add_argument('--min_batch_size', type=int, default=1,
+                        help='Minimum required batch size for all operations (in total tokens)')
+    parser.add_argument('--max_batch_size', type=int, default=None,
+                        help='The total number of tokens in the same batch will not exceed this value. '
+                             'Default: 2048 for most models, 8192 for models with multi-query attention (e.g., Llama-2-70b)')
+    parser.add_argument('--max_chunk_size_bytes', type=int, default=256 * 1024 * 1024,
+                        help='Maximum size of activation tensor processed in one go; larger tensors are split into chunks')
+    parser.add_argument('--attn_cache_tokens', type=int, default=None,
+                        help='The number of past attention key/value pairs that will be stored between inference steps. '
+                             'Default: 8192 for most models, 32768 for models with multi-query attention (e.g., Llama-2-70b)')
 
     parser.add_argument('--cache_dir', type=str, default=None,
                         help='Path to a directory in which a downloaded pretrained model configuration should be cached if the standard cache should not be used.')
@@ -71,18 +93,13 @@ def main():
 
     parser.add_argument('--device', type=str, default=None, required=False,
                         help='all blocks will use this device in torch notation; default: cuda if available else cpu')
-    parser.add_argument("--torch_dtype", type=str, default="auto",
+    parser.add_argument("--torch_dtype", type=str, choices=DTYPE_MAP.keys(), default="auto",
                         help="Use this dtype to store block weights and do computations. "
                              "By default, respect the dtypes in the pre-trained state dict.")
-    parser.add_argument('--attn_cache_size', type=str, default=None,
-                        help='The size of GPU memory allocated for storing past attention keys/values between inference steps. '
-                             'Examples: 500MB, 1.2GB, 1073741824 (bytes). Note that 1KB != 1KiB here. '
-                             'Default: 0.5GiB * num_blocks * hidden_size / 14336. '
-                             'The latter is the hidden size of the bigscience/bloom-petals model.')
-    parser.add_argument('--alloc_timeout', type=float, default=60,
+    parser.add_argument('--alloc_timeout', type=float, default=1,
                         help='If the cache is full, the server will wait for this number of seconds hoping that some memory will be freed '
                              'before rejecting the request')
-    parser.add_argument('--revision', type=str, default='main',
+    parser.add_argument('--revision', type=str, default=None,
                         help="The specific model version to use. It can be a branch name, a tag name, or a commit id, since we use a git-based system for storing models"
                              "and other artifacts on huggingface.co, so `revision` can be any identifier allowed by git.")
 
@@ -93,7 +110,7 @@ def main():
                              'If set to "auto" (default), the script evaluates network and compute throughput '
                              'on the first run and uses these estimates for future runs. '
                              'If set to "eval", the script re-evaluates the throughput and overrides the cache.')
-    parser.add_argument('--update_period', type=float, required=False, default=150,
+    parser.add_argument('--update_period', type=float, required=False, default=120,
                         help='Server will report blocks to DHT once in this many seconds')
     parser.add_argument('--expiration', type=float, required=False, default=None,
                         help='DHT entries will expire after this many seconds')
@@ -105,7 +122,7 @@ def main():
                         help="Timeout (in seconds) for waiting the next step's inputs inside an inference session")
 
     group = parser.add_mutually_exclusive_group()
-    group.add_argument('--initial_peers', type=str, nargs='*', required=False, default=PUBLIC_INITIAL_PEERS,
+    group.add_argument('--initial_peers', type=str, nargs='+', required=False, default=PUBLIC_INITIAL_PEERS,
                        help='Multiaddrs of one or more DHT peers from the target swarm. Default: connects to the public swarm')
     group.add_argument('--new_swarm', action='store_true',
                        help='Start a new private swarm (i.e., do not connect to any initial peers)')
@@ -127,15 +144,22 @@ def main():
     parser.add_argument("--mean_balance_check_period", type=float, default=60,
                         help="Check the swarm's balance every N seconds (and rebalance it if necessary)")
 
-    parser.add_argument("--use_auth_token", action='store_true', help="auth token for from_pretrained")
-    parser.add_argument('--load_in_8bit', type=str, default=None,
-                        help="Convert the loaded model into mixed-8bit quantized model. "
-                             "Default: True if GPU is available. Use `--load_in_8bit False` to disable this")
+    parser.add_argument('--quant_type', type=str, default=None, choices=[choice.name.lower() for choice in QuantType],
+                        help="Quantize blocks to 8-bit (int8 from the LLM.int8() paper) or "
+                             "4-bit (nf4 from the QLoRA paper) formats to save GPU memory. "
+                             "Default: 'int8' if GPU is available, 'none' otherwise")
+    parser.add_argument("--tensor_parallel_devices", nargs='+', default=None,
+                        help=
+                        "Split each block between the specified GPUs such that each device holds a portion of every "
+                        "weight matrix. See https://huggingface.co/transformers/v4.9.0/parallelism.html#tensor-parallelism")
 
     parser.add_argument("--skip_reachability_check", action='store_true',
-                        help="Skip checking this server's reachability via health.petals.ml "
+                        help="Skip checking this server's reachability via health.petals.dev "
                              "when connecting to the public swarm. If you connect to a private swarm, "
                              "the check is skipped by default. Use this option only if you know what you are doing")
+
+    parser.add_argument("--adapters", nargs='*', default=(),
+                        help="List of pre-loaded LoRA adapters that can be used for inference or training")
 
     # fmt:on
     args = vars(parser.parse_args())
@@ -159,18 +183,13 @@ def main():
         assert port != 0, "Please specify a fixed non-zero --port when you use --public_ip (e.g., --port 31337)"
         announce_maddrs = [f"/ip4/{public_ip}/tcp/{port}"]
 
+    args["startup_timeout"] = args.pop("daemon_startup_timeout")
+
     if args.pop("increase_file_limit"):
         increase_file_limit()
 
     compression_type = args.pop("compression").upper()
     compression = getattr(CompressionType, compression_type)
-
-    attn_cache_size = args.pop("attn_cache_size")
-    if attn_cache_size is not None:
-        attn_cache_size = parse_size(attn_cache_size)
-    assert isinstance(
-        attn_cache_size, (int, type(None))
-    ), "Unrecognized value for --attn_cache_size. Correct examples: 1.5GB or 1500MB or 1572864000 (bytes)"
 
     max_disk_space = args.pop("max_disk_space")
     if max_disk_space is not None:
@@ -182,9 +201,11 @@ def main():
     if args.pop("new_swarm"):
         args["initial_peers"] = []
 
-    load_in_8bit = args.pop("load_in_8bit")
-    if load_in_8bit is not None:
-        args["load_in_8bit"] = load_in_8bit.lower() in ["true", "1"]
+    quant_type = args.pop("quant_type")
+    if quant_type is not None:
+        args["quant_type"] = QuantType[quant_type.upper()]
+
+    validate_version()
 
     server = Server(
         **args,
@@ -192,7 +213,6 @@ def main():
         announce_maddrs=announce_maddrs,
         compression=compression,
         max_disk_space=max_disk_space,
-        attn_cache_size=attn_cache_size,
     )
     try:
         server.run()

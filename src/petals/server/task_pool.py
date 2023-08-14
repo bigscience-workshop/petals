@@ -5,14 +5,14 @@ import time
 from concurrent.futures._base import PENDING
 from dataclasses import dataclass, field
 from queue import PriorityQueue
-from typing import Any, List, Optional, Sequence, Tuple
+from typing import Any, List, Optional, Sequence, Tuple, Union
 
 import torch
 from hivemind import get_logger
 from hivemind.moe.server.task_pool import TaskPoolBase
 from hivemind.utils.mpfuture import ALL_STATES, MPFuture
 
-logger = get_logger(__file__)
+logger = get_logger(__name__)
 
 
 @dataclass(order=True, frozen=True)
@@ -43,6 +43,7 @@ class PrioritizedTaskPool(TaskPoolBase):
 
     :param name: pool name, used for logging
     :param min_batch_size: process at least this many inputs in a batch, otherwise wait for more
+    :param device: if specified, input tensors will be moved to that device by default
     :param start: if True, start automatically at the end of __init__
     """
 
@@ -52,11 +53,13 @@ class PrioritizedTaskPool(TaskPoolBase):
         max_batch_size: int,
         name: str,
         min_batch_size=1,
+        device: Optional[torch.device] = None,
         daemon=True,
         start=False,
     ):
         super().__init__(process_func, daemon=daemon, name=name)
         self.min_batch_size, self.max_batch_size = min_batch_size, max_batch_size
+        self.device = device
 
         self.submitted_tasks = mp.SimpleQueue()  # interaction with ConnectionHandlers
         self._ordered_tasks = PriorityQueue()  # interaction with Runtime - only valid inside Runtime
@@ -101,7 +104,7 @@ class PrioritizedTaskPool(TaskPoolBase):
             logger.warning(f"{self.__class__.__name__} failed to shut down gracefully, sending SIGTERM")
             self.terminate()
 
-    def submit_task(self, *args: torch.Tensor, priority: float = 0.0) -> MPFuture:
+    def submit_task(self, *args: Any, priority: float = 0.0) -> MPFuture:
         """Add task to this pool's queue, return Future for its output"""
         future = MPFuture()
         # Remove shmem from MPFuture. This disables the .cancel() feature but
@@ -129,10 +132,9 @@ class PrioritizedTaskPool(TaskPoolBase):
         self, timeout: Optional[float] = None, device: Optional[torch.device] = None
     ) -> Tuple[Any, List[torch.Tensor]]:
         """receive next batch of arrays"""
+        device = device if device is not None else self.device
         task = self._ordered_tasks.get(block=True, timeout=timeout)
-        batch_inputs = [
-            tensor.detach().to(device, non_blocking=True).requires_grad_(tensor.requires_grad) for tensor in task.args
-        ]
+        batch_inputs = [_move_to_device_if_tensor(arg, device, share_memory=False) for arg in task.args]
         self._dispatched_tasks[task.uid] = task
         self.batch_receiver.recv()  # reduce the number of active batches
         if not self._ordered_tasks.empty():
@@ -142,11 +144,7 @@ class PrioritizedTaskPool(TaskPoolBase):
 
     def send_outputs_from_runtime(self, uid: int, batch_outputs: List[torch.Tensor]):
         """send results for a processed batch, previously loaded through load_batch_to_runtime"""
-        batch_outputs = [
-            tensor.to(device="cpu").share_memory_().detach().requires_grad_(tensor.requires_grad)
-            for tensor in batch_outputs
-        ]
-
+        batch_outputs = [_move_to_device_if_tensor(output, device="cpu", share_memory=True) for output in batch_outputs]
         task = self._dispatched_tasks.pop(uid, None)
         if task is None:
             logger.error(
@@ -182,3 +180,13 @@ class PrioritizedTaskPool(TaskPoolBase):
         assert len(item) == 2
         self._priority.value = float(item[0])
         self._oldest_undispatched_timestamp.value = float(item[1])
+
+
+def _move_to_device_if_tensor(arg: Any, device: Union[torch.device, str], share_memory: bool = False):
+    if isinstance(arg, torch.Tensor):
+        arg = arg.detach().to(device, non_blocking=not share_memory).requires_grad_(arg.requires_grad)
+        # note: it is important that non_blocking is disabled if share_memory=True; using share_memory on a tensor
+        # produced by a non-blocking copy will result in undefined behavior (depending on your gpu speed)
+        if share_memory:
+            arg = arg.share_memory_()
+    return arg

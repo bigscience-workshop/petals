@@ -10,7 +10,7 @@ import ctypes
 import multiprocessing as mp
 import os
 import time
-from typing import AsyncContextManager, Dict, Optional, Union
+from typing import AsyncContextManager, Dict, Optional, Sequence
 
 import hivemind
 import torch
@@ -18,7 +18,7 @@ from hivemind.utils import TensorDescriptor, get_logger
 
 from petals.utils.asyncio import shield_and_wait
 
-logger = get_logger(__file__)
+logger = get_logger(__name__)
 
 Handle = int
 
@@ -26,11 +26,10 @@ Handle = int
 class MemoryCache:
     """A shared cache for storing tensors that persist across calls. Main use case: storing past attention KVs"""
 
-    def __init__(self, device: Union[str, torch.device], max_size_bytes: Optional[int], alloc_timeout: float):
+    def __init__(self, max_size_bytes: Optional[int], alloc_timeout: float):
         self.max_size_bytes = max_size_bytes if max_size_bytes is not None else (2**64 - 1)
         self.alloc_timeout = alloc_timeout
-        self.device = device
-        self._lock_metadata, self.size_decreased_event = mp.Lock(), mp.Event()
+        self._lock_metadata = mp.Lock()
         self._current_size = mp.Value(ctypes.c_int64, 0, lock=False)
         self._handle_counter = mp.Value(ctypes.c_int64, 0, lock=False)
         self._allocated_tensors: Dict[Handle, torch.Tensor] = {}
@@ -49,6 +48,10 @@ class MemoryCache:
         self._current_size.value = value
 
     @property
+    def bytes_left(self) -> int:
+        return self.max_size_bytes - self.current_size_bytes
+
+    @property
     def handle_counter(self) -> int:
         return self._handle_counter.value
 
@@ -57,26 +60,48 @@ class MemoryCache:
         self._handle_counter.value = value
 
     @contextlib.asynccontextmanager
-    async def allocate_cache(self, descr: TensorDescriptor) -> AsyncContextManager[Handle]:
+    async def allocate_cache(self, *descriptors: TensorDescriptor) -> AsyncContextManager[Sequence[Handle]]:
         """
         Create a handle that is associated with buffers on unique device. If cache full, raises AllocationFailed.
 
-        :param descr: allocate a tensor of this size, dtype, etc
+        :param descriptors: one or more tensors tensor of this size, dtype, etc
+
+        :note: if descriptors reside on different devices, it is expected that they are approximately balanced across devices;
+          if not, it will count maximum tensor allocation across devices for the purposes of size limit
 
         :note: This function should be called by connection handlers, it can be called concurrently from multiple processes.
         Furthermore, it can be called concurrently with at most one use_cache call in runtime.
         """
         assert os.getpid() != self.runtime_pid, "must be called by a ConnectionHandler, not runtime"
-        assert descr.device is None and descr
+        assert all(descr.device is not None for descr in descriptors), "please specify allocated devices"
+        max_alloc_size = self.get_allocation_size(*descriptors)
 
-        alloc_size = descr.numel() * torch.finfo(descr.dtype).bits // 8
-        alloc_task = asyncio.create_task(self._schedule_alloc(alloc_size, descr))
+        gib = 1024**3
+        cur_size, max_size = self.current_size_bytes, self.max_size_bytes
+        friendly_max_size = f"{max_size / gib:.2f}" if max_size != 2**64 - 1 else "inf"
+        logger.info(
+            f"rpc_inference.wait_for_alloc(size={max_alloc_size / gib:.2f} GiB), "
+            f"already used {cur_size / gib:.2f}/{friendly_max_size} GiB ({cur_size / max_size * 100:.1f}%)"
+        )
+
+        alloc_task = asyncio.create_task(self._schedule_alloc(max_alloc_size, *descriptors))
         try:
-            yield await shield_and_wait(alloc_task)
+            handles = await shield_and_wait(alloc_task)
+            logger.info(f"rpc_inference.alloc(size={max_alloc_size / gib:.2f} GiB)")
+            yield handles
         finally:
-            await shield_and_wait(self._schedule_free(alloc_size, alloc_task))
+            self._free(max_alloc_size, alloc_task)
 
-    async def _schedule_alloc(self, alloc_size: int, descr: TensorDescriptor) -> Handle:
+    @staticmethod
+    def get_allocation_size(*descriptors: TensorDescriptor) -> int:
+        """Return the memory size (bytes) to be allocated on a device. If there are many devices, return maximum"""
+        alloc_size_by_device = {}
+        for descr in descriptors:
+            tensor_size = descr.numel() * torch.finfo(descr.dtype).bits // 8
+            alloc_size_by_device[descr.device] = alloc_size_by_device.get(descr.device, 0) + tensor_size
+        return max(alloc_size_by_device.values())
+
+    async def _schedule_alloc(self, alloc_size: int, *descriptors: TensorDescriptor) -> Sequence[Handle]:
         """
         This method should be called inside asyncio.shield() because:
             - hivemind.utils.enter_asynchronously() does not always release the lock on cancellation
@@ -86,26 +111,20 @@ class MemoryCache:
         async with hivemind.utils.enter_asynchronously(self._lock_acquire_memory):
             if self.current_size_bytes + alloc_size > self.max_size_bytes:
                 await loop.run_in_executor(None, self._wait_until_available, alloc_size, self.alloc_timeout)
-            async with hivemind.utils.enter_asynchronously(self._lock_metadata):
-                handle = int(self.handle_counter)
+            with self._lock_metadata:
+                handles = tuple(int(self.handle_counter) + i for i in range(len(descriptors)))
                 self.current_size_bytes += alloc_size
-                self.handle_counter += 1  # note: this will eventually overflow and it is okay
-                self._pipe_send.send((handle, descr))
-                return handle
+                self.handle_counter += len(handles)  # note: this will eventually overflow and it is okay
+                self._pipe_send.send((handles, descriptors))
+                return handles
 
-    async def _schedule_free(self, alloc_size: int, alloc_task: asyncio.Task):
-        """
-        This method should be called inside asyncio.shield() because:
-            - hivemind.utils.enter_asynchronously() does not always release the lock on cancellation
-            - _schedule_free() must finish freeing memory even in case of cancellation
-        """
-
+    def _free(self, alloc_size: int, alloc_task: asyncio.Task) -> None:
         if alloc_task.exception() is not None:
             return
-        handle = alloc_task.result()
+        handles = alloc_task.result()
 
-        async with hivemind.utils.enter_asynchronously(self._lock_metadata):
-            self._pipe_send.send((handle, None))  # signal runtime to free that handle
+        with self._lock_metadata:
+            self._pipe_send.send((handles, None))  # signal runtime to free these handles
             self.current_size_bytes -= alloc_size
         self._memory_freed_event.set()
 
@@ -125,33 +144,32 @@ class MemoryCache:
             self._memory_freed_event.clear()
 
     @contextlib.contextmanager
-    def use_cache(self, handle: Handle) -> torch.Tensor:
+    def use_cache(self, *handles: Handle) -> Sequence[torch.Tensor]:
         """
-        Return a tensor that was previously allocated with try_allocate_cache,
+        Return one or more tensors previously allocated with allocate_cache,
 
-        :note: This method is called by ExpertBackend in runtime: a single process with NO process parallelism.
+        :note: This method is called by ModuleBackend in runtime: a single process with NO process parallelism.
         However, runtime may call use_cache concurrently with one or more connection handlers calling allocate_cache
         """
         assert os.getpid() == self.runtime_pid
         # note: this specific function is not concurrent, so you can safely allocate/offload/defragment data here
 
-        with self._lock_metadata:
-            # read creation/deletion requests from connection handlers
-            while self._pipe_recv.poll():
-                recv_handle, recv_data = self._pipe_recv.recv()
-                if isinstance(recv_data, TensorDescriptor):
-                    self._allocated_tensors[recv_handle] = recv_data.make_zeros(device=self.device)
-                elif recv_data is None:
-                    if recv_handle not in self._allocated_tensors:
+        # read creation/deletion requests from connection handlers
+        while self._pipe_recv.poll():
+            recv_handles, recv_data = self._pipe_recv.recv()
+            if recv_data is not None:  # create new tensors
+                assert len(recv_handles) == len(recv_data)
+                for handle, descr in zip(recv_handles, recv_data):
+                    self._allocated_tensors[handle] = descr.make_zeros()
+                    assert handle in self._allocated_tensors, f"Sanity check failed: no such handle ({handle})"
+            else:  # delete tensors by handle
+                for handle in recv_handles:
+                    if handle not in self._allocated_tensors:
                         logger.warning(
-                            f"Sanity check failed: asked to delete handle {recv_handle}, but there is no such handle"
+                            f"Sanity check failed: asked to delete handle {handle}, but there is no such handle"
                         )
-                    self._allocated_tensors.pop(recv_handle, None)
-                else:
-                    logger.error(f"MemoryCache pipe received unexpected message: {recv_data}")
-
-        assert handle in self._allocated_tensors, f"Sanity check failed: no such handle ({handle})"
-        yield self._allocated_tensors[handle]
+                    self._allocated_tensors.pop(handle, None)
+        yield tuple(self._allocated_tensors[handle] for handle in handles)
 
 
 class AllocationFailed(Exception):

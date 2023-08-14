@@ -4,31 +4,31 @@ import time
 import pytest
 import torch
 from hivemind import DHT, get_logger
+
+from petals import AutoDistributedConfig
+from petals.client import RemoteSequenceManager, RemoteSequential
+from petals.data_structures import UID_DELIMITER
 from test_utils import *
 
-from petals.client import RemoteSequenceManager, RemoteSequential
-from petals.client.remote_model import DistributedBloomConfig
-from petals.data_structures import UID_DELIMITER
-
-logger = get_logger(__file__)
+logger = get_logger(__name__)
 
 
 @pytest.mark.forked
-def test_sequence_manager_shutdown():
-    config = DistributedBloomConfig.from_pretrained(MODEL_NAME, initial_peers=INITIAL_PEERS)
+@pytest.mark.parametrize("mode", ["max_throughput", "min_latency"])
+def test_sequence_manager_basics(mode: str):
+    config = AutoDistributedConfig.from_pretrained(MODEL_NAME, initial_peers=INITIAL_PEERS)
     dht = DHT(initial_peers=config.initial_peers, client_mode=True, start=True)
-    sequential = RemoteSequential(config, dht)
+    sequential = RemoteSequential(config, dht=dht)
     shutdown_evt = threading.Event()
 
     # test RemoteSequential with lossy compression
-    block_uids = [f"{config.dht_prefix}{UID_DELIMITER}{i}" for i in range(config.n_layer)]
+    block_uids = [f"{config.dht_prefix}{UID_DELIMITER}{i}" for i in range(config.num_hidden_layers)]
     sequential = RemoteSequential(
         config,
-        dht,
-        sequence_manager=TestSequenceManager(dht, block_uids, sequential.p2p, _was_shut_down=shutdown_evt, start=True),
+        sequence_manager=RemoteSequenceManagerWithChecks(config, block_uids, dht=dht, _was_shut_down=shutdown_evt),
     )
 
-    sequence = sequential.sequence_manager.make_sequence()
+    sequence = sequential.sequence_manager.make_sequence(mode=mode)
     assert all(sequence[i].peer_id != sequence[i + 1].peer_id for i in range(len(sequence) - 1))
 
     assert sequential.sequence_manager.is_alive()
@@ -43,7 +43,7 @@ def test_sequence_manager_shutdown():
     assert shutdown_evt.is_set()
 
 
-class TestSequenceManager(RemoteSequenceManager):
+class RemoteSequenceManagerWithChecks(RemoteSequenceManager):
     """A sequence manager that signals if it was shut down"""
 
     def __init__(self, *args, _was_shut_down: threading.Event, **kwargs):
