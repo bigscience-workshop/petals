@@ -1,7 +1,7 @@
 import warnings
 
 warnings.warn(
-    "petals.dht_utils has been moved to petals.utils.dht. The old name will be removed in Petals 2.1.0+",
+    "petals.dht_utils has been moved to petals.utils.dht. This alias will be removed in Petals 2.2.0+",
     DeprecationWarning,
     stacklevel=2,
 )

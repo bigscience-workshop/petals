@@ -35,7 +35,7 @@ class SequenceManagerConfig(ClientConfig):
     def __init__(self, *args, **kwargs):
         warnings.warn(
             "petals.client.routing.SequenceManagerConfig has been moved to petals.ClientConfig. "
-            "The old name will be removed in Petals 2.1.0+",
+            "This alias will be removed in Petals 2.2.0+",
             DeprecationWarning,
             stacklevel=2,
         )
