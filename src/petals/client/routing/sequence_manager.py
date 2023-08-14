@@ -19,12 +19,12 @@ from hivemind.moe.client.remote_expert_worker import RemoteExpertWorker
 from hivemind.proto import runtime_pb2
 from hivemind.utils.logging import get_logger
 
-import petals.dht_utils
 from petals.client.config import ClientConfig
 from petals.client.routing.sequence_info import RemoteSequenceInfo
 from petals.client.routing.spending_policy import NoSpendingPolicy
 from petals.data_structures import ModuleUID, RemoteSpanInfo, ServerState
 from petals.server.handler import TransformerConnectionHandler
+from petals.utils.dht import get_remote_module_infos
 from petals.utils.ping import PingAggregator
 from petals.utils.random import sample_up_to
 
@@ -34,8 +34,8 @@ logger = get_logger(__name__)
 class SequenceManagerConfig(ClientConfig):
     def __init__(self, *args, **kwargs):
         warnings.warn(
-            "petals.client.routing.SequenceManagerConfig has been deprecated in favor of petals.ClientConfig "
-            "and will be removed in Petals 2.1.0+",
+            "petals.client.routing.SequenceManagerConfig has been moved to petals.ClientConfig. "
+            "The old name will be removed in Petals 2.1.0+",
             DeprecationWarning,
             stacklevel=2,
         )
@@ -341,7 +341,7 @@ class RemoteSequenceManager:
     def _update(self):
         """Perform an immediate and synchronous refresh, may take time"""
 
-        new_block_infos = petals.dht_utils.get_remote_module_infos(
+        new_block_infos = get_remote_module_infos(
             self.dht, self.block_uids, active_adapter=self.config.active_adapter, latest=True
         )
 
