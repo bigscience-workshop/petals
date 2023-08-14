@@ -13,7 +13,8 @@ from hivemind.p2p import P2P
 from hivemind.proto import runtime_pb2
 from hivemind.utils.tensor_descr import BatchTensorDescriptor
 
-from petals.client.routing.sequence_manager import RemoteSequenceManager, SequenceManagerConfig, maybe_log_traceback
+from petals.client.config import ClientConfig
+from petals.client.routing import RemoteSequenceManager, maybe_log_traceback
 from petals.data_structures import CHAIN_DELIMITER, ModuleUID, RemoteSpanInfo, RPCInfo
 from petals.server.handler import TransformerConnectionHandler
 from petals.utils.misc import DUMMY, DUMMY_INT64, is_dummy
@@ -31,7 +32,7 @@ class _ServerInferenceSession:
 
     def __init__(
         self,
-        config: SequenceManagerConfig,
+        config: ClientConfig,
         span: RemoteSpanInfo,
         uid: ModuleUID,
         rpc_info: RPCInfo,
@@ -58,7 +59,7 @@ class _ServerInferenceSession:
     @classmethod
     async def create(
         cls,
-        config: SequenceManagerConfig,
+        config: ClientConfig,
         p2p: P2P,
         span: RemoteSpanInfo,
         uid: ModuleUID,
