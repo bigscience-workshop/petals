@@ -87,7 +87,7 @@ class _ServerInferenceSession:
         self,
         inputs: torch.Tensor,
         prompts: Optional[torch.Tensor] = None,
-        hypo_ids: Optional[torch.Tensor] = None,
+        hypo_ids: Optional[torch.LongTensor] = None,
         *,
         step_id: str,
     ) -> torch.Tensor:

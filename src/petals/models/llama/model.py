@@ -1,5 +1,4 @@
-import contextlib
-from typing import Optional
+from typing import Any, Dict, Optional
 
 import hivemind
 import torch
@@ -9,10 +8,10 @@ from transformers.modeling_outputs import BaseModelOutputWithPast
 from transformers.models.llama import LlamaForCausalLM, LlamaForSequenceClassification, LlamaModel, LlamaPreTrainedModel
 
 from petals.client.from_pretrained import FromPretrainedMixin
+from petals.client.inference_session import InferenceSession
 from petals.client.lm_head import LMHead
 from petals.client.ptune import PTuneMixin
-from petals.client.inference_session import InferenceSession
-from petals.client.remote_generation import RemoteGenerationMixin
+from petals.client.remote_generation import RemoteGenerationMixin, RemotePastKeyValues
 from petals.client.remote_sequential import RemoteSequential
 from petals.models.llama.config import DistributedLlamaConfig
 
@@ -43,6 +42,7 @@ class DistributedLlamaModel(FromPretrainedMixin, PTuneMixin, LlamaModel):
         input_ids: Optional[torch.LongTensor] = None,
         inputs_embeds: Optional[torch.Tensor] = None,
         attention_mask: Optional[torch.Tensor] = None,
+        past_key_values: Optional[RemotePastKeyValues] = None,
         session: Optional[InferenceSession] = None,
         **kwargs,
     ) -> BaseModelOutputWithPast:
@@ -67,7 +67,11 @@ class DistributedLlamaModel(FromPretrainedMixin, PTuneMixin, LlamaModel):
         if inputs_embeds is None:
             inputs_embeds = self.embed_tokens(input_ids)
 
-        if self.config.tuning_mode and "ptune" in self.config.tuning_mode and (session is None or session.position == 0):
+        if (
+            self.config.tuning_mode
+            and "ptune" in self.config.tuning_mode
+            and (session is None or session.position == 0)
+        ):
             batch_size = inputs_embeds.shape[0]
             prompts, intermediate_prompts = self.get_prompt(batch_size)
             inputs_embeds = torch.cat([prompts, inputs_embeds], dim=1)
@@ -78,7 +82,11 @@ class DistributedLlamaModel(FromPretrainedMixin, PTuneMixin, LlamaModel):
         output_shape = input_shape + (hidden_states.size(-1),)
 
         if session is not None:
-            hidden_states = session.step(hidden_states, prompts=intermediate_prompts)
+            hidden_states = session.step(
+                hidden_states,
+                prompts=intermediate_prompts,
+                hypo_ids=past_key_values.hypo_ids if past_key_values is not None else None,
+            )
         else:
             hidden_states = self.layers(hidden_states, prompts=intermediate_prompts)
 
@@ -91,8 +99,7 @@ class DistributedLlamaModel(FromPretrainedMixin, PTuneMixin, LlamaModel):
         hidden_states = hidden_states.view(output_shape)
         return BaseModelOutputWithPast(
             last_hidden_state=hidden_states,
-            # past_key_values are hosted remotely, providing a non-None value for .generate()
-            past_key_values=True,
+            past_key_values=RemotePastKeyValues(),
             hidden_states=None,
             attentions=None,
         )
@@ -141,7 +148,13 @@ class DistributedLlamaForCausalLM(FromPretrainedMixin, RemoteGenerationMixin, Ll
         self, input_ids, past_key_values=None, attention_mask=None, inputs_embeds=None, session=None, **kwargs
     ):
         # `session` is intentionally skipped
-        return super().prepare_inputs_for_generation(input_ids, past_key_values=past_key_values, attention_mask=attention_mask, inputs_embeds=inputs_embeds, **kwargs)
+        return super().prepare_inputs_for_generation(
+            input_ids,
+            past_key_values=past_key_values,
+            attention_mask=attention_mask,
+            inputs_embeds=inputs_embeds,
+            **kwargs,
+        )
 
 
 class DistributedLlamaForSequenceClassification(FromPretrainedMixin, LlamaForSequenceClassification):

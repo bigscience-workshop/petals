@@ -1,11 +1,18 @@
 import contextlib
+import dataclasses
 from typing import Optional
 
+import torch
 from hivemind.utils.logging import get_logger
 
 from petals.client.inference_session import InferenceSession
 
 logger = get_logger(__name__)
+
+
+@dataclasses.dataclass(frozen=True)
+class RemotePastKeyValues:
+    hypo_ids: Optional[torch.LongTensor] = None
 
 
 class RemoteGenerationMixin:
@@ -37,3 +44,7 @@ class RemoteGenerationMixin:
             context_manager = contextlib.nullcontext(session)  # Doesn't actually enter session or exit from it
         with context_manager as session:
             return super().generate(*args, session=session, **kwargs)
+
+    @staticmethod
+    def _reorder_cache(past_key_values: RemotePastKeyValues, beam_idx: torch.LongTensor) -> RemotePastKeyValues:
+        return dataclasses.replace(past_key_values, hypo_ids=beam_idx)
