@@ -3,7 +3,6 @@ import pytest
 import torch
 import transformers
 from hivemind import get_logger
-from transformers.generation import BeamSearchScorer, GenerationMixin as HfGenerationMixin
 
 from petals import AutoDistributedModelForCausalLM
 from test_utils import *
@@ -59,46 +58,41 @@ def test_full_model_exact_match(tokenizer, use_peft, pass_empty_tensors, atol_fo
         recurrent_outputs = torch.cat(recurrent_outputs, dim=1)
         recurrent_outputs = model.transformer.ln_f(recurrent_outputs)
         recurrent_outputs = model.lm_head(recurrent_outputs)
-        assert torch.allclose(recurrent_outputs, parallel_outputs, rtol=0, atol=atol_inference)
-        logger.info("Inference is consistent with forward")
+        assert torch.allclose(
+            recurrent_outputs, parallel_outputs, rtol=0, atol=atol_inference
+        ), "Inference differs from forward pass"
 
         del model, embs, recurrent_outputs
 
-        if REF_NAME:
-            ref_model = transformers.AutoModelForCausalLM.from_pretrained(
-                REF_NAME, low_cpu_mem_usage=True, torch_dtype=torch.float32
-            )
-            if use_peft:
-                ref_model = peft.PeftModel.from_pretrained(ref_model, ADAPTER_NAME)
-                ref_model.train(False)
-            if config.vocab_size < ref_model.config.vocab_size:
-                ref_model.resize_token_embeddings(config.vocab_size)
-                logger.warning(f"Resized the reference model embeddings, new total = {ref_model.config.vocab_size}")
+        ref_model = transformers.AutoModelForCausalLM.from_pretrained(
+            REF_NAME, low_cpu_mem_usage=True, torch_dtype=torch.float32
+        )
+        if use_peft:
+            ref_model = peft.PeftModel.from_pretrained(ref_model, ADAPTER_NAME)
+            ref_model.train(False)
+        ref_outputs = ref_model.forward(test_inputs).logits.float()
+        assert torch.allclose(
+            ref_outputs, parallel_outputs, rtol=0, atol=atol_forward
+        ), "Outputs are not identical to HF"
 
-            dummy_mask = torch.ones_like(test_inputs, dtype=torch.bool)
-            # note: this creates a dummy mask to make the test compatible with older transformer versions
-            # prior to https://github.com/huggingface/transformers/pull/17837
-            ref_outputs = ref_model.forward(test_inputs, attention_mask=dummy_mask).logits.float()
-            assert torch.allclose(ref_outputs, parallel_outputs, rtol=0, atol=atol_forward)
-            logger.warning(f"Distributed forward is consistent with {type(ref_model)}.forward")
-            del ref_model, ref_outputs, dummy_mask
-        else:
-            logger.warning("Did not test exact match with local model: REF_NAME environment variable is not set")
-            assert False
+
+@pytest.fixture
+def model():
+    return AutoDistributedModelForCausalLM.from_pretrained(
+        MODEL_NAME, initial_peers=INITIAL_PEERS, torch_dtype=torch.float32
+    )
+
+
+@pytest.fixture
+def ref_model():
+    return transformers.AutoModelForCausalLM.from_pretrained(
+        REF_NAME, low_cpu_mem_usage=True, torch_dtype=torch.float32
+    )
 
 
 @pytest.mark.forked
-def test_greedy_generation(tokenizer, max_new_tokens=4):
-    model = AutoDistributedModelForCausalLM.from_pretrained(
-        MODEL_NAME, initial_peers=INITIAL_PEERS, torch_dtype=torch.float32
-    )
-    inputs = tokenizer("A cat sat on a mat", return_tensors="pt")["input_ids"]
-    remote_outputs = model.generate(
-        inputs,
-        max_new_tokens=max_new_tokens,
-    )
-    hf_outputs = HfGenerationMixin.greedy_search(model, input_ids=inputs, max_length=inputs.size(1) + max_new_tokens)
-    assert torch.allclose(remote_outputs, hf_outputs), "Greedy search results are not identical to HF"
+def test_greedy_generation(tokenizer, model, ref_model, max_new_tokens=4):
+    inputs_single = tokenizer("A cat sat on a mat", return_tensors="pt")["input_ids"]
 
     if tokenizer.pad_token_id is None:
         tokenizer.pad_token_id = tokenizer.eos_token_id
@@ -106,84 +100,47 @@ def test_greedy_generation(tokenizer, max_new_tokens=4):
         "input_ids"
     ]
 
-    remote_outputs_batch = model.generate(
-        inputs_batch,
-        max_new_tokens=max_new_tokens,
-    )
-    hf_outputs_batch = HfGenerationMixin.greedy_search(
-        model, input_ids=inputs_batch, max_length=inputs_batch.size(1) + max_new_tokens
-    )
-    assert torch.allclose(
-        remote_outputs_batch, hf_outputs_batch
-    ), "Greedy search results are not identical to HF in multibatch mode"
+    for inputs in [inputs_single, inputs_batch]:
+        outputs = model.generate(inputs, max_new_tokens=max_new_tokens)
+        ref_outputs = ref_model.generate(inputs, max_new_tokens=max_new_tokens)
+        assert torch.allclose(outputs, ref_outputs), f"Greedy search is not identical to HF with {inputs.shape=}"
 
 
 @pytest.mark.forked
-@pytest.mark.parametrize("sampling_options", [dict(), dict(temperature=100.0), dict(top_k=5), dict(top_p=0.9)])
-def test_sampling(tokenizer, sampling_options, max_new_tokens=4):
+@pytest.mark.parametrize(
+    "sampling_options",
+    [
+        dict(do_sample=True),
+        dict(do_sample=True, temperature=100.0),
+        dict(do_sample=True, top_k=5),
+        dict(do_sample=True, top_p=0.9),
+    ],
+)
+def test_sampling(tokenizer, model, ref_model, sampling_options, max_new_tokens=4):
     torch.manual_seed(0)
 
-    model = AutoDistributedModelForCausalLM.from_pretrained(
-        MODEL_NAME, initial_peers=INITIAL_PEERS, torch_dtype=torch.float32
-    )
-    logits_warper = HfGenerationMixin._get_logits_warper(model, num_beams=1, **sampling_options)
-    inputs = tokenizer("A cat sat on a mat", return_tensors="pt")["input_ids"]
-    with torch.random.fork_rng():
-        remote_outputs = model.generate(
-            inputs,
-            max_new_tokens=max_new_tokens,
-            do_sample=True,
-            **sampling_options,
-        )
-    with torch.random.fork_rng():
-        hf_outputs = HfGenerationMixin.sample(
-            model, input_ids=inputs, max_length=inputs.size(1) + max_new_tokens, logits_warper=logits_warper
-        )
-    assert torch.allclose(remote_outputs, hf_outputs), "Sampling results are not identical to HF"
+    inputs_single = tokenizer("A cat sat on a mat", return_tensors="pt")["input_ids"]
 
+    if tokenizer.pad_token_id is None:
+        tokenizer.pad_token_id = tokenizer.eos_token_id
     inputs_batch = tokenizer(["A cat sat on a mat", "A dog sat on a mat"], return_tensors="pt", padding=True)[
         "input_ids"
     ]
-    with torch.random.fork_rng():
-        remote_outputs_batch = model.generate(
-            inputs_batch,
-            max_new_tokens=max_new_tokens,
-            do_sample=True,
-            **sampling_options,
-        )
-    with torch.random.fork_rng():
-        hf_outputs_batch = HfGenerationMixin.sample(
-            model,
-            input_ids=inputs_batch,
-            max_length=inputs_batch.size(1) + max_new_tokens,
-            logits_warper=logits_warper,
-        )
-    assert torch.allclose(
-        remote_outputs_batch, hf_outputs_batch
-    ), "Sampling results are not identical to HF in multibatch mode"
+
+    for inputs in [inputs_single, inputs_batch]:
+        with torch.random.fork_rng():
+            outputs = model.generate(inputs, max_new_tokens=max_new_tokens)
+        with torch.random.fork_rng():
+            ref_outputs = ref_model.generate(inputs, max_new_tokens=max_new_tokens)
+        assert torch.allclose(
+            outputs, ref_outputs
+        ), f"Sampling is not identical to HF with {inputs.shape=}, {sampling_options=}"
 
 
 @pytest.mark.forked
-def test_beam_search_generation(tokenizer, max_new_tokens=4, num_beams=2):
-    model = AutoDistributedModelForCausalLM.from_pretrained(
-        MODEL_NAME, initial_peers=INITIAL_PEERS, torch_dtype=torch.float32
-    )
-    text = "A cat sat on a mat"
-    inputs = tokenizer(text, return_tensors="pt")["input_ids"]
-    remote_outputs = model.generate(
-        inputs,
-        max_new_tokens=max_new_tokens,
-        num_beams=num_beams,
-    )
-    beam_scorer = BeamSearchScorer(
-        batch_size=inputs.size(0),
-        num_beams=num_beams,
-        device=inputs.device,
-        length_penalty=0,
-        do_early_stopping=False,
-    )
-    hf_inputs = tokenizer([text] * 2, return_tensors="pt")["input_ids"]
-    hf_outputs = HfGenerationMixin.beam_search(
-        model, input_ids=hf_inputs, max_length=inputs.size(1) + max_new_tokens, beam_scorer=beam_scorer
-    )
-    assert torch.allclose(remote_outputs, hf_outputs), "Beam search results are not identical to HF"
+def test_beam_search_generation(tokenizer, model, ref_model, max_new_tokens=4, num_beams=2):
+    inputs = tokenizer("A cat sat on a mat", return_tensors="pt")["input_ids"]
+
+    outputs = model.generate(inputs, max_new_tokens=max_new_tokens, num_beams=num_beams)
+    ref_outputs = ref_model.generate(inputs, max_new_tokens=max_new_tokens, num_beams=num_beams)
+    assert torch.allclose(outputs, ref_outputs), "Beam search results are not identical to HF"
