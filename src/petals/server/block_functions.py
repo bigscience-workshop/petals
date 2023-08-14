@@ -12,9 +12,8 @@ from hivemind.proto import runtime_pb2
 from hivemind.utils.logging import get_logger
 from hivemind.utils.nested import nested_flatten
 
-from petals.data_structures import InferenceMetadata
+from petals.data_structures import Handle, InferenceMetadata
 from petals.server.backend import TransformerBackend
-from petals.server.memory_cache import Handle
 from petals.server.task_pool import PrioritizedTaskPool
 from petals.server.task_prioritizer import TaskPrioritizerBase
 from petals.utils.convert_block import QuantType
