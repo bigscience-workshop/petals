@@ -48,7 +48,7 @@ class DistributedLlamaModel(FromPretrainedMixin, PTuneMixin, LlamaModel):
     ) -> BaseModelOutputWithPast:
         # FIXME: Assert that the mask is None or triangle
         # assert attention_mask is None, f"{self.__class__.__name__} does not support attention masks right now"
-        logger.warning(f"forward: {input_ids.shape=}")
+        logger.warning(f"forward: {input_ids.shape=} {session=} {kwargs=}")
 
         for k, v in kwargs.items():
             if not (v is None or v is False):
@@ -137,24 +137,14 @@ class DistributedLlamaForCausalLM(FromPretrainedMixin, RemoteGenerationMixin, Ll
         # Initialize weights and apply final processing
         self.post_init()
 
+    # TODO: Upgrade forward() here
+
     def get_output_embeddings(self):
         return self.lm_head
 
     @property
     def transformer(self) -> DistributedLlamaModel:  # For compatibility with RemoteGenerationMixin
         return self.model
-
-    def prepare_inputs_for_generation(
-        self, input_ids, past_key_values=None, attention_mask=None, inputs_embeds=None, session=None, **kwargs
-    ):
-        # `session` is intentionally skipped
-        return super().prepare_inputs_for_generation(
-            input_ids,
-            past_key_values=past_key_values,
-            attention_mask=attention_mask,
-            inputs_embeds=inputs_embeds,
-            **kwargs,
-        )
 
 
 class DistributedLlamaForSequenceClassification(FromPretrainedMixin, LlamaForSequenceClassification):
