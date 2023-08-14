@@ -11,7 +11,7 @@ def _mark_masked_tensor(index: int) -> bytes:
 
 
 def _is_masked_tensor(item: Any) -> bool:
-    return isinstance(item, bytes) and item.startswith(b"__T") is not None
+    return isinstance(item, bytes) and item.startswith(b"__T")
 
 
 def _get_tensor_index(item: bytes) -> int:
