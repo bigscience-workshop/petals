@@ -7,6 +7,7 @@ import logging
 import random
 import threading
 import time
+import warnings
 from typing import Any, Dict, List, Optional, Sequence, Set, Union
 from weakref import WeakMethod
 
@@ -28,6 +29,17 @@ from petals.utils.ping import PingAggregator
 from petals.utils.random import sample_up_to
 
 logger = get_logger(__name__)
+
+
+class SequenceManagerConfig(ClientConfig):
+    def __init__(self, *args, **kwargs):
+        warnings.warn(
+            "petals.client.routing.SequenceManagerConfig has been deprecated in favor of petals.ClientConfig "
+            "and will be removed in Petals 2.1.0+",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        super().__init__(*args, **kwargs)
 
 
 @dataclasses.dataclass
