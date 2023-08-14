@@ -36,7 +36,7 @@ async def run_rpc_forward(
     active_adapter: str = "",
     prioritizer: TaskPrioritizerBase,
     points: int = 0,
-    tensor_structure: Optional[Dict[str, Any]] = None,
+    args_structure: Any = None,
 ) -> torch.Tensor:
     """
     Run forward pass on deserialized inputs and prompts, used by rpc_forward and rpc_forward_stream
@@ -46,9 +46,9 @@ async def run_rpc_forward(
     :param requested_backends: a sequence of transformer blocks in the same order as they appear in forward pass
     :returns: hidden states after the last layer [batch_size, seq_length, hid_size]
     """
-    if tensor_structure is not None:
+    if args_structure is not None:
         # TODO: kwargs currently is unused, it can be used later for peft-like adaptation
-        flat_tensors, kwargs = unpack_args_kwargs(flat_tensors, tensor_structure)
+        flat_tensors, kwargs = unpack_args_kwargs(flat_tensors, args_structure)
     hidden_states, prompts, *_ = flat_tensors
 
     dtype = requested_backends[0].dtype
@@ -88,11 +88,11 @@ async def run_rpc_backward(
     active_adapter: str = "",
     prioritizer: TaskPrioritizerBase,
     points: int = 0,
-    tensor_structure: Optional[Dict[str, Any]] = None,
+    args_structure: Any = None,
 ) -> Union[torch.Tensor, Sequence[torch.Tensor]]:
-    if tensor_structure is not None:
+    if args_structure is not None:
         # TODO: kwargs currently is unused, it can be used later for peft-like adaptation
-        flat_tensors, kwargs = unpack_args_kwargs(flat_tensors, tensor_structure)
+        flat_tensors, kwargs = unpack_args_kwargs(flat_tensors, args_structure)
     inputs, grad_outputs, prompts, *_ = flat_tensors
 
     # Cast inputs & grad outputs to backend dtype
@@ -153,7 +153,7 @@ async def iterate_rpc_inference(
     prioritizer: TaskPrioritizerBase,
     points: int,
     quant_type: QuantType,
-    tensor_structure: Optional[Dict[str, Any]] = None,
+    args_structure: Any = None,
 ) -> AsyncIterator[Tuple[Sequence[runtime_pb2.Tensor], bool]]:
     assert len(cache_handles) == len(requested_backends)
 
@@ -162,9 +162,9 @@ async def iterate_rpc_inference(
 
     async for request, step_metadata in input_iterator:
         flat_tensors = tuple(deserialize_torch_tensor(tensor) for tensor in request.tensors)
-        if tensor_structure is not None:
+        if args_structure is not None:
             # TODO: kwargs currently is unused, it can be used later for peft-like adaptation
-            flat_tensors, kwargs = unpack_args_kwargs(flat_tensors, tensor_structure)
+            flat_tensors, kwargs = unpack_args_kwargs(flat_tensors, args_structure)
 
         hidden_states, prompts, hypo_ids, *_ = flat_tensors
         batch_size, length_increment, _ = hidden_states.shape

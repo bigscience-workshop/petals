@@ -58,21 +58,18 @@ def test_pack_inputs():
     args = (x, z, None, (y, y), z)
     kwargs = dict(foo=torch.zeros(1, 1), bar={"l": "i", "g": "h", "t": ("y", "e", "a", "r", torch.rand(1), x, y)})
 
-    flat_tensors, tensor_structure = pack_args_kwargs(*args, **kwargs)
+    flat_tensors, args_structure = pack_args_kwargs(*args, **kwargs)
 
     assert len(flat_tensors) == 5
     assert all(isinstance(t, torch.Tensor) for t in flat_tensors)
 
-    restored_args, restored_kwargs = unpack_args_kwargs(flat_tensors, tensor_structure)
+    restored_args, restored_kwargs = unpack_args_kwargs(flat_tensors, args_structure)
 
     assert len(restored_args) == len(args)
     assert torch.all(restored_args[0] == x).item() and restored_args[2] is None
     assert nested_compare((args, kwargs), (restored_args, restored_kwargs))
     for original, restored in zip(nested_flatten((args, kwargs)), nested_flatten((restored_args, restored_kwargs))):
         if isinstance(original, torch.Tensor):
-            if is_dummy(original):
-                assert is_dummy(restored)
-            else:
-                assert torch.all(original == restored)
+            assert torch.all(original == restored)
         else:
             assert original == restored

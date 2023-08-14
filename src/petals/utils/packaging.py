@@ -1,5 +1,4 @@
-import re
-from typing import Any
+from typing import Any, Dict, List, Tuple
 
 import torch
 from hivemind import nested_flatten, nested_pack
@@ -7,22 +6,22 @@ from hivemind import nested_flatten, nested_pack
 # TODO: Move functions to hivemind
 
 
-def _mark_masked_tensor(index: int):
+def _mark_masked_tensor(index: int) -> bytes:
     return b"__T" + str(index).encode()
 
 
-def _is_masked_tensor(item: Any):
-    return isinstance(item, bytes) and re.match(b"^__T\d+$", item) is not None
+def _is_masked_tensor(item: Any) -> bool:
+    return isinstance(item, bytes) and item.startswith(b"__T") is not None
 
 
-def _get_tensor_index(item: bytes):
+def _get_tensor_index(item: bytes) -> int:
     return int(item[3:])
 
 
-def pack_args_kwargs(*args, **kwargs):
+def pack_args_kwargs(*args, **kwargs) -> Tuple[List[torch.Tensor], Any]:
     """
     Check the function's arguments and pack all tensors into different flattened lists.
-    :returns: a flattened list of tensors and dict of the args and kwargs, where tensors were masked
+    :returns: a flattened list of tensors and args and kwargs, where tensors were masked
     """
     masked_flat_values, flat_tensors, tensor_to_index = [], [], {}
     for value in nested_flatten((args, kwargs)):
@@ -36,7 +35,7 @@ def pack_args_kwargs(*args, **kwargs):
     return flat_tensors, nested_pack(masked_flat_values, (args, kwargs))
 
 
-def unpack_args_kwargs(flat_tensors, tensor_structure):
+def unpack_args_kwargs(flat_tensors: List[torch.Tensor], args_structure: Any):
     """
     Restore arguments after `pack_args_kwargs` function.
     :returns: list of args and dict of kwargs
@@ -44,7 +43,7 @@ def unpack_args_kwargs(flat_tensors, tensor_structure):
     return nested_pack(
         (
             value if not _is_masked_tensor(value) else flat_tensors[_get_tensor_index(value)]
-            for value in nested_flatten(tensor_structure)
+            for value in nested_flatten(args_structure)
         ),
-        tensor_structure,
+        args_structure,
     )

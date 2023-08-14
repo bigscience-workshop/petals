@@ -129,7 +129,7 @@ class _ServerInferenceSession:
             assert hypo_ids.dtype == torch.int64
 
         # serialize inputs and put them into the queue
-        input_tensors, tensor_structure = pack_args_kwargs(inputs, prompts, hypo_ids)
+        input_tensors, args_structure = pack_args_kwargs(inputs, prompts, hypo_ids)
 
         request_metadata = dict(session_id=self.session_id, step_id=step_id)
         if not self.stepped:
@@ -139,14 +139,15 @@ class _ServerInferenceSession:
             if next_servers:
                 request_metadata["next_servers"] = next_servers
 
-        request_metadata["tensor_structure"] = tensor_structure
+        request_metadata["args_structure"] = args_structure
 
+        # TODO: make possible to use different compression method for different tensors
         server_side_inference_schema, kwargs_schema = self.rpc_info["inference_schema"]
         compression = server_side_inference_schema[0].compression
         inference_schema = tuple(BatchTensorDescriptor.from_tensor(arg, compression) for arg in input_tensors)
 
         # TODO: create more explicit way to check servers schema and client's structure
-        assert len(input_tensors) + (is_dummy(hypo_ids) and is_dummy(prompts)) >= len(
+        assert len(input_tensors) >= len(
             server_side_inference_schema
         ), "Hidden_state, prompts and hypo_ids tensors are necessary for an inference step"
 
