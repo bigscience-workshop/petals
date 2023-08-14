@@ -13,12 +13,12 @@ from hivemind.proto import runtime_pb2
 from hivemind.utils.asyncio import aiter_with_timeout, iter_as_aiter
 from hivemind.utils.streaming import split_for_streaming
 
-from petals.client.routing.sequence_manager import SequenceManagerConfig
+from petals.client.config import ClientConfig
 from petals.data_structures import ModuleUID, RPCInfo
 
 
 async def _forward_unary(
-    uid: str, serialized_tensors: Iterable[runtime_pb2.Tensor], stub, config: SequenceManagerConfig, **kwargs
+    uid: str, serialized_tensors: Iterable[runtime_pb2.Tensor], stub, config: ClientConfig, **kwargs
 ) -> List[torch.Tensor]:
     outputs: runtime_pb2.ExpertResponse = await stub.rpc_forward(
         runtime_pb2.ExpertRequest(uid=uid, tensors=list(serialized_tensors), **kwargs),
@@ -28,7 +28,7 @@ async def _forward_unary(
 
 
 async def _backward_unary(
-    uid: str, serialized_tensors: Iterable[runtime_pb2.Tensor], stub, config: SequenceManagerConfig, **kwargs
+    uid: str, serialized_tensors: Iterable[runtime_pb2.Tensor], stub, config: ClientConfig, **kwargs
 ) -> List[torch.Tensor]:
     grad_inputs: runtime_pb2.ExpertResponse = await stub.rpc_backward(
         runtime_pb2.ExpertRequest(uid=uid, tensors=list(serialized_tensors), **kwargs),
@@ -38,7 +38,7 @@ async def _backward_unary(
 
 
 async def _forward_stream(
-    uid: str, serialized_tensors: Iterable[runtime_pb2.Tensor], stub, config: SequenceManagerConfig, **kwargs
+    uid: str, serialized_tensors: Iterable[runtime_pb2.Tensor], stub, config: ClientConfig, **kwargs
 ) -> List[torch.Tensor]:
     parts = (
         runtime_pb2.ExpertRequest(uid=uid, tensors=[part], **kwargs)
@@ -51,7 +51,7 @@ async def _forward_stream(
 
 
 async def _backward_stream(
-    uid: str, serialized_tensors: Iterable[runtime_pb2.Tensor], stub, config: SequenceManagerConfig, **kwargs
+    uid: str, serialized_tensors: Iterable[runtime_pb2.Tensor], stub, config: ClientConfig, **kwargs
 ) -> List[torch.Tensor]:
     parts = (
         runtime_pb2.ExpertRequest(uid=uid, tensors=[part], **kwargs)
@@ -68,7 +68,7 @@ async def run_remote_forward(
     stub: StubBase,
     rpc_info: RPCInfo,
     *inputs: torch.Tensor,
-    config: SequenceManagerConfig,
+    config: ClientConfig,
     metadata: Optional[bytes] = None,
     **kwargs,
 ) -> Tuple[torch.Tensor, ...]:
@@ -122,7 +122,7 @@ async def run_remote_backward(
     inputs: torch.Tensor,
     grad_outputs: List[torch.Tensor],
     *extra_tensors: torch.Tensor,
-    config: SequenceManagerConfig,
+    config: ClientConfig,
     metadata: Optional[bytes] = None,
     **kwargs,
 ) -> Sequence[torch.Tensor]:

@@ -5,15 +5,15 @@ from hivemind import get_logger
 from transformers.models.llama import LlamaConfig
 from transformers.models.llama.modeling_llama import LlamaAttention
 
+from petals.client.config import ClientConfig
 from petals.client.lm_head import LMHeadConfig
 from petals.client.ptune import PTuneConfig
-from petals.client.routing.sequence_manager import SequenceManagerConfig
 from petals.models.llama.block import WrappedLlamaBlock
 
 logger = get_logger(__name__)
 
 
-class DistributedLlamaConfig(LlamaConfig, SequenceManagerConfig, PTuneConfig, LMHeadConfig):
+class DistributedLlamaConfig(LlamaConfig, ClientConfig, PTuneConfig, LMHeadConfig):
     block_class = WrappedLlamaBlock
     attn_class = LlamaAttention
     block_prefix = "model.layers"
