@@ -16,7 +16,7 @@ def tokenizer():
     return transformers.AutoTokenizer.from_pretrained(MODEL_NAME, use_fast=False)
 
 
-@pytest.fixture(scope="module", params=[None, ADAPTER_NAME] if ADAPTER_NAME else [None])
+@pytest.fixture(params=[None, ADAPTER_NAME] if ADAPTER_NAME else [None])
 def models(request):
     active_adapter = request.param
 
@@ -34,6 +34,7 @@ def models(request):
     return model, ref_model
 
 
+@pytest.mark.forked
 @pytest.mark.parametrize("pass_empty_tensors", (True, False))
 def test_full_model_exact_match(tokenizer, models, pass_empty_tensors, atol_forward=1e-3, atol_inference=1e-3):
     model, ref_model = models
@@ -78,6 +79,7 @@ def test_full_model_exact_match(tokenizer, models, pass_empty_tensors, atol_forw
         ), "Outputs are not identical to HF"
 
 
+@pytest.mark.forked
 def test_greedy_generation(tokenizer, models, max_new_tokens=4):
     model, ref_model = models
 
@@ -95,6 +97,7 @@ def test_greedy_generation(tokenizer, models, max_new_tokens=4):
         assert torch.allclose(outputs, ref_outputs), f"Greedy generation is not identical to HF with {inputs.shape=}"
 
 
+@pytest.mark.forked
 @pytest.mark.parametrize(
     "sampling_options",
     [
@@ -126,6 +129,7 @@ def test_sampling(tokenizer, models, sampling_options, max_new_tokens=4):
         ), f"Sampling is not identical to HF with {inputs.shape=}, {sampling_options=}"
 
 
+@pytest.mark.forked
 def test_beam_search_generation(tokenizer, models, max_new_tokens=4, num_beams=6):
     model, ref_model = models
 
