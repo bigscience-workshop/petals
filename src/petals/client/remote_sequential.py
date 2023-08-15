@@ -54,7 +54,7 @@ class RemoteSequential(nn.Module):
     def forward(self, inputs: torch.Tensor, prompts: Optional[torch.Tensor] = None, **kwargs) -> torch.Tensor:
         assert inputs.ndim == 3, "inputs must be a tensor of shape [batch_size, seq_length, hidden_size]"
         if self._thread_local.active_session is None:
-            assert any(v is None for v in kwargs.values()), f"Extra kwargs are not supported in forward: {kwargs}"
+            assert all(v is None for v in kwargs.values()), f"Extra kwargs are not supported in forward: {kwargs}"
             return _RemoteSequentialAutogradFunction.apply(inputs, prompts, self.sequence_manager)
         else:
             return self._thread_local.active_session.step(inputs, prompts, **kwargs)
@@ -65,7 +65,7 @@ class RemoteSequential(nn.Module):
 
     @contextmanager
     def use_session(self, session: InferenceSession) -> InferenceSession:
-        """ Inside this context, forward() will use the specified InferenceSession. """
+        """Inside this context, forward() will use the specified InferenceSession."""
 
         try:
             prev_session = self._thread_local.active_session
@@ -76,7 +76,7 @@ class RemoteSequential(nn.Module):
 
     @contextmanager
     def inference_session(self, **kwargs) -> InferenceSession:
-        """ Inside this context, forward() will use a new InferenceSession created with given parameters. """
+        """Inside this context, forward() will use a new InferenceSession created with given parameters."""
 
         with self.use_session(InferenceSession(self.sequence_manager, **kwargs)) as session:
             yield session

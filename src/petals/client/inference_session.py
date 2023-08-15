@@ -87,7 +87,7 @@ class _ServerInferenceSession:
         self,
         inputs: torch.Tensor,
         prompts: Optional[torch.Tensor] = None,
-        hypo_ids: Optional[torch.LongTensor] = None,
+        hypo_ids: Optional[torch.Tensor] = None,
         *,
         step_id: str,
     ) -> torch.Tensor:
@@ -276,8 +276,6 @@ class InferenceSession:
         return self
 
     def step(self, inputs: torch.Tensor, prompts: Optional[torch.Tensor] = None, **kwargs) -> torch.Tensor:
-        logger.warning(f"inference_session.step: {inputs.shape=} {self.position=}")
-
         assert not self._closed
         if torch.is_grad_enabled():
             logger.warning("Running inference session with grad enabled. Gradients will *not* be propagated correctly.")

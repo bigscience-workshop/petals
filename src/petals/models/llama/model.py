@@ -85,7 +85,11 @@ class DistributedLlamaModel(FromPretrainedMixin, PTuneMixin, LlamaModel):
         hidden_states = inputs_embeds
         output_shape = input_shape + (hidden_states.size(-1),)
 
-        hidden_states = self.layers(hidden_states, prompts=intermediate_prompts, hypo_ids=past_key_values.hypo_ids if past_key_values is not None else None)
+        hidden_states = self.layers(
+            hidden_states,
+            prompts=intermediate_prompts,
+            hypo_ids=past_key_values.hypo_ids if past_key_values is not None else None,
+        )
 
         # Remove prefix
         if self.config.tuning_mode and "ptune" in self.config.tuning_mode:
