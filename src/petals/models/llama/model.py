@@ -60,14 +60,16 @@ class DistributedLlamaModel(FromPretrainedMixin, PTuneMixin, LlamaModel):
 
         position = self.layers.active_session.position if self.layers.active_session is not None else 0
         # The causal mask will be added on the server-side
-        assert attention_mask is None or (attention_mask == 1).all(), "Custom attention masks are not supported"
+        assert (
+            attention_mask is None or (attention_mask == 1).all()
+        ), f"Custom attention masks are not supported, {attention_mask=}"
         if position_ids is not None:
             expected = torch.arange(position, position + input_shape[1], dtype=torch.long, device=position_ids.device)
-            assert (position_ids == expected).all(), "Custom position_ids are not supported"
-        assert use_cache is None or use_cache, "use_cache=False is not supported"
-        assert not output_attentions, "output_attentions=True is not supported"
-        assert not output_hidden_states, "output_hidden_states=True is not supported"
-        assert return_dict is None or return_dict, "return_dict=True is not supported"
+            assert (position_ids == expected).all(), f"Custom position_ids are not supported, {position_ids=}"
+        assert use_cache is None or use_cache, f"{use_cache=} is not supported"
+        assert not output_attentions, f"{output_attentions=} is not supported"
+        assert not output_hidden_states, f"{output_hidden_states=} is not supported"
+        assert return_dict is None or return_dict, f"{return_dict=} is not supported"
 
         if inputs_embeds is None:
             inputs_embeds = self.embed_tokens(input_ids)
