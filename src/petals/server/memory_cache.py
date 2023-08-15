@@ -12,6 +12,7 @@ import os
 import time
 from typing import AsyncContextManager, Coroutine, Dict, Optional, Sequence
 
+import async_timeout
 import torch
 from hivemind.utils import TensorDescriptor, anext, enter_asynchronously, get_logger
 
@@ -31,6 +32,7 @@ class MemoryCache:
         self.max_alloc_timeout = max_alloc_timeout
         self._lock_metadata = mp.Lock()
         self._current_size = mp.Value(ctypes.c_int64, 0, lock=False)
+        self._enqueued_size = mp.Value(ctypes.c_int64, 0, lock=False)
         self._handle_counter = mp.Value(ctypes.c_int64, 0, lock=False)
         self._allocated_tensors: Dict[Handle, torch.Tensor] = {}
         self.runtime_pid = os.getpid()
@@ -38,7 +40,6 @@ class MemoryCache:
         self._pipe_recv, self._pipe_send = mp.Pipe(duplex=False)  # any ConnectionHandler -> runtime
         self._lock_acquire_memory = mp.Lock()
         self._memory_freed_event = mp.Event()
-        self._cache_overfull_event = mp.Event()
 
     @property
     def current_size_bytes(self) -> int:
@@ -47,6 +48,14 @@ class MemoryCache:
     @current_size_bytes.setter
     def current_size_bytes(self, value: int):
         self._current_size.value = value
+
+    @property
+    def enqueued_size_bytes(self) -> int:
+        return self._enqueued_size.value
+
+    @enqueued_size_bytes.setter
+    def enqueued_size_bytes(self, value: int):
+        self._enqueued_size.value = value
 
     @property
     def bytes_left(self) -> int:
@@ -96,7 +105,7 @@ class MemoryCache:
             logger.info(f"rpc_inference.alloc-done(size={max_alloc_size / gib:.2f} GiB)")
             yield handles
         finally:
-            await shield_and_wait(self._schedule_free(max_alloc_size, alloc_task))
+            self._free(max_alloc_size, alloc_task)
 
     @staticmethod
     def get_allocation_size(*descriptors: TensorDescriptor) -> int:
@@ -129,28 +138,22 @@ class MemoryCache:
     async def _wait_for_free_memory(self, alloc_size: int, timeout: Optional[float]):
         start_time = time.perf_counter()
         loop = asyncio.get_event_loop()
-        if timeout == 0:  # if waiting is not allowed, fail when you or anyone else begins waiting
-            stop_when_completes = loop.run_in_executor(None, self._cache_overfull_event.wait)
-        else:  # otherwise, only fail if timeout expires
-            stop_when_completes = asyncio.sleep(timeout if timeout is not None else float("inf"))
 
-        async with wait_for_aenter(enter_asynchronously(self._lock_acquire_memory), stop_when_completes):
-            if self.current_size_bytes + alloc_size > self.max_size_bytes:
-                try:
-                    self._cache_overfull_event.set()
+        if timeout == 0 and self.current_size_bytes + self.enqueued_size_bytes + alloc_size > self.max_size_bytes:
+            raise AllocationFailed(f"Count not allocate {alloc_size} immediately: server cache size exceeded")
+
+        self.enqueued_size_bytes += alloc_size
+        try:
+            async with async_timeout.timeout(timeout if timeout != 0 else self.max_alloc_timeout):
+                if self.current_size_bytes + alloc_size > self.max_size_bytes:
                     elapsed_time = time.perf_counter() - start_time
                     remaining_timeout = max(0.0, timeout - elapsed_time) if timeout is not None else None
                     await loop.run_in_executor(None, self._wait_until_available, alloc_size, remaining_timeout)
-                finally:
-                    self._cache_overfull_event.clear()
-            yield
+                yield
+        finally:
+            self.enqueued_size_bytes -= alloc_size
 
-    async def _schedule_free(self, alloc_size: int, alloc_task: asyncio.Task):
-        """
-        This method should be called inside asyncio.shield() because:
-            - hivemind.utils.enter_asynchronously() does not always release the lock on cancellation
-            - _schedule_free() must finish freeing memory even in case of cancellation
-        """
+    def _free(self, alloc_size: int, alloc_task: asyncio.Task):
         if alloc_task.exception() is not None:
             return
         handles = alloc_task.result()
