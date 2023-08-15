@@ -49,11 +49,7 @@ class RemoteGenerationMixin:
         return self.transformer.h.use_session(session)
 
     def generate(
-        self,
-        inputs: Optional[torch.Tensor] = None,
-        *args,
-        session: Optional[InferenceSession] = None,
-        **kwargs
+        self, inputs: Optional[torch.Tensor] = None, *args, session: Optional[InferenceSession] = None, **kwargs
     ):
         if session is not None:
             # If a session specified explicitly, use it
