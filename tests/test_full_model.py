@@ -109,7 +109,6 @@ def test_greedy_generation(tokenizer, models, max_new_tokens=4):
 )
 def test_sampling(tokenizer, models, sampling_options, max_new_tokens=4):
     model, ref_model = models
-    torch.manual_seed(0)
 
     inputs_single = tokenizer("A cat sat on a mat", return_tensors="pt")["input_ids"]
 
@@ -120,10 +119,12 @@ def test_sampling(tokenizer, models, sampling_options, max_new_tokens=4):
     ]
 
     for inputs in [inputs_single, inputs_batch]:
-        with torch.random.fork_rng([model.device]):
-            outputs = model.generate(inputs, max_new_tokens=max_new_tokens)
-        with torch.random.fork_rng([ref_model.device]):
-            ref_outputs = ref_model.generate(inputs, max_new_tokens=max_new_tokens)
+        torch.manual_seed(0)
+        outputs = model.generate(inputs, max_new_tokens=max_new_tokens)
+
+        torch.manual_seed(0)
+        ref_outputs = ref_model.generate(inputs, max_new_tokens=max_new_tokens)
+
         assert torch.allclose(
             outputs, ref_outputs
         ), f"Sampling is not identical to HF with {inputs.shape=}, {sampling_options=}"
