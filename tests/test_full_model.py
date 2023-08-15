@@ -101,9 +101,10 @@ def test_greedy_generation(tokenizer, model, ref_model, max_new_tokens=4):
     ]
 
     for inputs in [inputs_single, inputs_batch]:
-        outputs = model.generate(inputs, max_new_tokens=max_new_tokens)
-        ref_outputs = ref_model.generate(inputs, max_new_tokens=max_new_tokens)
-        assert torch.allclose(outputs, ref_outputs), f"Greedy search is not identical to HF with {inputs.shape=}"
+        logger.warning(f"test_greedy_generation: {inputs=}")
+        outputs = model.generate(inputs, max_new_tokens=max_new_tokens, do_sample=False)
+        ref_outputs = ref_model.generate(inputs, max_new_tokens=max_new_tokens, do_sample=False)
+        assert torch.allclose(outputs, ref_outputs), f"Greedy generation is not identical to HF with {inputs.shape=}"
 
 
 @pytest.mark.forked

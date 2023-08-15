@@ -1,6 +1,6 @@
 import contextlib
 import dataclasses
-from typing import Optional
+from typing import ContextManager, Optional
 
 import torch
 from hivemind.utils.logging import get_logger
@@ -27,7 +27,11 @@ class RemoteGenerationMixin:
     However, it has some differences for remote usage.
     """
 
-    def inference_session(self, **kwargs) -> InferenceSession:
+    @property
+    def active_session(self) -> Optional[InferenceSession]:
+        return self.transformer.h.active_session
+
+    def inference_session(self, **kwargs) -> ContextManager[InferenceSession]:
         """
         Returns an inference session for the model's RemoteSequential module.
 
@@ -37,13 +41,16 @@ class RemoteGenerationMixin:
 
         return self.transformer.h.inference_session(**kwargs)
 
+    def use_session(self, session: InferenceSession) -> ContextManager[InferenceSession]:
+        return self.transformer.h.use_session(session)
+
     def generate(self, *args, session: Optional[InferenceSession] = None, **kwargs):
         if session is None:
             context_manager = self.inference_session(max_length=2048)  # FIXME: Provide actual length
         else:
             context_manager = contextlib.nullcontext(session)  # Doesn't actually enter session or exit from it
         with context_manager as session:
-            return super().generate(*args, session=session, **kwargs)
+            return super().generate(*args, **kwargs)
 
     @staticmethod
     def _reorder_cache(past_key_values: RemotePastKeyValues, beam_idx: torch.LongTensor) -> RemotePastKeyValues:

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import threading
+from contextlib import contextmanager
 from typing import Optional, Union
 
 import torch
@@ -46,11 +48,38 @@ class RemoteSequential(nn.Module):
             sequence_manager = RemoteSequenceManager(config, block_uids, dht=dht, **kwargs)
         self.sequence_manager = sequence_manager
 
-    def forward(self, inputs: torch.Tensor, prompts: Optional[torch.Tensor] = None):
+        self._thread_local = threading.local()
+        self._thread_local.active_session = None
+
+    def forward(self, inputs: torch.Tensor, prompts: Optional[torch.Tensor] = None, **kwargs) -> torch.Tensor:
         assert inputs.ndim == 3, "inputs must be a tensor of shape [batch_size, seq_length, hidden_size]"
-        assert inputs.shape[1] <= 2048, "The sequence length is capped at 2048 tokens in this version"
-        outputs = _RemoteSequentialAutogradFunction.apply(inputs, prompts, self.sequence_manager)
-        return outputs
+        if self._thread_local.active_session is None:
+            assert any(v is None for v in kwargs.values()), f"Extra kwargs are not supported in forward: {kwargs}"
+            return _RemoteSequentialAutogradFunction.apply(inputs, prompts, self.sequence_manager)
+        else:
+            return self._thread_local.active_session.step(inputs, prompts, **kwargs)
+
+    @property
+    def active_session(self) -> Optional[InferenceSession]:
+        return self._thread_local.active_session
+
+    @contextmanager
+    def use_session(self, session: InferenceSession) -> InferenceSession:
+        """ Inside this context, forward() will use the specified InferenceSession. """
+
+        try:
+            prev_session = self._thread_local.active_session
+            self._thread_local.active_session = session
+            yield session
+        finally:
+            self._thread_local.active_session = prev_session
+
+    @contextmanager
+    def inference_session(self, **kwargs) -> InferenceSession:
+        """ Inside this context, forward() will use a new InferenceSession created with given parameters. """
+
+        with self.use_session(InferenceSession(self.sequence_manager, **kwargs)) as session:
+            yield session
 
     def __getitem__(self, ix: Union[int, slice]) -> RemoteSequential:
         return RemoteSequential(
@@ -64,9 +93,6 @@ class RemoteSequential(nn.Module):
 
     def __len__(self):
         return len(self.sequence_manager)
-
-    def inference_session(self, **kwargs) -> InferenceSession:
-        return InferenceSession(self.sequence_manager, **kwargs)
 
     def extra_repr(self) -> str:
         return f"modules={self.sequence_manager.block_uids[0]}..{self.sequence_manager.block_uids[-1]}"
