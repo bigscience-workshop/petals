@@ -5,15 +5,15 @@ from hivemind import get_logger
 from transformers.models.bloom import BloomConfig
 from transformers.models.bloom.modeling_bloom import BloomAttention
 
+from petals.client.config import ClientConfig
 from petals.client.lm_head import LMHeadConfig
 from petals.client.ptune import PTuneConfig
-from petals.client.routing.sequence_manager import SequenceManagerConfig
 from petals.models.bloom.block import WrappedBloomBlock
 
 logger = get_logger(__name__)
 
 
-class DistributedBloomConfig(BloomConfig, SequenceManagerConfig, PTuneConfig, LMHeadConfig):
+class DistributedBloomConfig(BloomConfig, ClientConfig, PTuneConfig, LMHeadConfig):
     block_class = WrappedBloomBlock
     attn_class = BloomAttention
     block_prefix = "h"

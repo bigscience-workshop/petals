@@ -15,12 +15,11 @@ from typing import AsyncContextManager, Coroutine, Dict, Optional, Sequence
 import torch
 from hivemind.utils import TensorDescriptor, anext, enter_asynchronously, get_logger
 
+from petals.data_structures import Handle
 from petals.utils.asyncio import shield_and_wait
 from petals.utils.misc import get_size_in_bytes
 
 logger = get_logger(__name__)
-
-Handle = int
 
 
 class MemoryCache:
