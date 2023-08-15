@@ -77,9 +77,24 @@ def test_full_model_exact_match(tokenizer, model, ref_model, use_peft, pass_empt
         assert torch.allclose(ref_outputs, parallel_outputs, rtol=0, atol=atol), "Outputs are not identical to HF"
 
 
+def make_generate_calls(model, inputs, *, max_new_tokens, multiple_calls=False, **kwargs):
+    if not multiple_calls:
+        return model.generate(inputs, max_new_tokens=max_new_tokens, **kwargs)
+
+    with model.inference_session(max_length=inputs.shape[1] + max_new_tokens) as sess:
+        return torch.cat(
+            [
+                # Sessions provided both explicitly and implicitly should work
+                model.generate(inputs, max_new_tokens=1, **kwargs, session=sess),
+                model.generate(None, max_new_tokens=max_new_tokens - 2, **kwargs),
+                model.generate(None, max_new_tokens=1, **kwargs),
+            ],
+            dim=1,
+        )
+
+
 @pytest.mark.forked
-@pytest.mark.parametrize("multiple_calls", [False, True])
-def test_greedy_generation(tokenizer, model, ref_model, multiple_calls, max_new_tokens=4):
+def test_greedy_generation(tokenizer, model, ref_model, max_new_tokens=4):
     inputs_single = tokenizer("A cat sat on a mat", return_tensors="pt")["input_ids"]
 
     if tokenizer.pad_token_id is None:
@@ -88,58 +103,63 @@ def test_greedy_generation(tokenizer, model, ref_model, multiple_calls, max_new_
         "input_ids"
     ]
 
-    for inputs in [inputs_single, inputs_batch]:
-        if not multiple_calls:
-            outputs = model.generate(inputs, max_new_tokens=max_new_tokens, do_sample=False)
-        else:
-            with model.inference_session(max_length=inputs.shape[1] + max_new_tokens) as sess:
-                outputs = [
-                    # Sessions provided both explicitly and implicitly should work
-                    model.generate(inputs, max_new_tokens=1, do_sample=False, session=sess),
-                    model.generate(None, max_new_tokens=max_new_tokens - 2, do_sample=False),
-                    model.generate(None, max_new_tokens=1, do_sample=False),
-                ]
-                outputs = torch.cat(outputs, dim=1)
-
-        ref_outputs = ref_model.generate(inputs, max_new_tokens=max_new_tokens, do_sample=False)
-        assert torch.allclose(outputs, ref_outputs), f"Greedy generation is not identical to HF with {inputs.shape=}"
+    for multiple_calls in [False, True]:
+        for inputs in [inputs_single, inputs_batch]:
+            outputs = make_generate_calls(
+                model, inputs, max_new_tokens=max_new_tokens, multiple_calls=multiple_calls, do_sample=False
+            )
+            ref_outputs = ref_model.generate(inputs, max_new_tokens=max_new_tokens, do_sample=False)
+            assert torch.allclose(
+                outputs, ref_outputs
+            ), f"Greedy generation is not identical to HF with {multiple_calls=}, {inputs.shape=}"
 
 
 @pytest.mark.forked
-@pytest.mark.parametrize(
-    "sampling_options",
-    [
+def test_sampling(tokenizer, model, ref_model, max_new_tokens=4):
+    inputs_single = tokenizer("A cat sat on a mat", return_tensors="pt")["input_ids"]
+
+    if tokenizer.pad_token_id is None:
+        tokenizer.pad_token_id = tokenizer.eos_token_id
+    inputs_batch = tokenizer(["A cat sat on a mat", "A dog sat on a mat"], return_tensors="pt", padding=True)[
+        "input_ids"
+    ]
+
+    for sampling_options in [
         dict(do_sample=True),
-        dict(do_sample=True, temperature=100.0),
-        dict(do_sample=True, top_k=5),
-        dict(do_sample=True, top_p=0.9),
-    ],
-)
-def test_sampling(tokenizer, model, ref_model, sampling_options, max_new_tokens=4):
-    inputs_single = tokenizer("A cat sat on a mat", return_tensors="pt")["input_ids"]
+        dict(do_sample=True, temperature=0.5),
+        dict(do_sample=True, temperature=0.5, top_k=5),
+        dict(do_sample=True, temperature=0.5, top_k=5, top_p=0.9),
+        dict(do_sample=True, temperature=0.5, top_k=5, top_p=0.9, multiple_calls=True),
+    ]:
+        multiple_calls = sampling_options.pop("multiple_calls", False)
+        for inputs in [inputs_single, inputs_batch]:
+            torch.manual_seed(0)
+            outputs = make_generate_calls(
+                model, inputs, max_new_tokens=max_new_tokens, multiple_calls=multiple_calls, **sampling_options
+            )
 
-    if tokenizer.pad_token_id is None:
-        tokenizer.pad_token_id = tokenizer.eos_token_id
-    inputs_batch = tokenizer(["A cat sat on a mat", "A dog sat on a mat"], return_tensors="pt", padding=True)[
-        "input_ids"
-    ]
+            torch.manual_seed(0)
+            ref_outputs = ref_model.generate(inputs, max_new_tokens=max_new_tokens, **sampling_options)
 
-    for inputs in [inputs_single, inputs_batch]:
-        torch.manual_seed(0)
-        outputs = model.generate(inputs, max_new_tokens=max_new_tokens)
-
-        torch.manual_seed(0)
-        ref_outputs = ref_model.generate(inputs, max_new_tokens=max_new_tokens)
-
-        assert torch.allclose(
-            outputs, ref_outputs
-        ), f"Sampling is not identical to HF with {inputs.shape=}, {sampling_options=}"
+            assert torch.allclose(
+                outputs, ref_outputs
+            ), f"Sampling is not identical to HF with {sampling_options=}, {inputs.shape=}"
 
 
 @pytest.mark.forked
 def test_beam_search_generation(tokenizer, model, ref_model, max_new_tokens=4, num_beams=6):
     inputs = tokenizer("A cat sat on a mat", return_tensors="pt")["input_ids"]
 
-    outputs = model.generate(inputs, max_new_tokens=max_new_tokens, num_beams=num_beams, do_sample=False)
-    ref_outputs = ref_model.generate(inputs, max_new_tokens=max_new_tokens, num_beams=num_beams, do_sample=False)
-    assert torch.allclose(outputs, ref_outputs), "Beam search results are not identical to HF"
+    for multiple_calls in [False, True]:
+        outputs = make_generate_calls(
+            model,
+            inputs,
+            max_new_tokens=max_new_tokens,
+            multiple_calls=multiple_calls,
+            num_beams=num_beams,
+            do_sample=False,
+        )
+        ref_outputs = ref_model.generate(inputs, max_new_tokens=max_new_tokens, num_beams=num_beams, do_sample=False)
+        assert torch.allclose(
+            outputs, ref_outputs
+        ), f"Beam search results are not identical to HF with {multiple_calls=}"
