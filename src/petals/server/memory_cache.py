@@ -138,19 +138,30 @@ class MemoryCache:
         start_time = time.perf_counter()
         loop = asyncio.get_event_loop()
 
-        if timeout == 0 and self.current_size_bytes + self.enqueued_size_bytes + alloc_size > self.max_size_bytes:
-            raise AllocationFailed(f"Count not allocate {alloc_size} immediately: server cache size exceeded")
-
         self.enqueued_size_bytes += alloc_size
+        allocated = False
         try:
             async with async_timeout.timeout(timeout if timeout != 0 else self.max_alloc_timeout):
-                if self.current_size_bytes + alloc_size > self.max_size_bytes:
-                    elapsed_time = time.perf_counter() - start_time
-                    remaining_timeout = max(0.0, timeout - elapsed_time) if timeout is not None else None
-                    await loop.run_in_executor(None, self._wait_until_available, alloc_size, remaining_timeout)
+                # the code below uses double-checked locking: https://en.wikipedia.org/wiki/Double-checked_locking
+                if timeout == 0 and self.current_size_bytes + self.enqueued_size_bytes > self.max_size_bytes:
+                    raise AllocationFailed(f"Could not allocate {alloc_size} bytes immediately: out of memory")
+                async with enter_asynchronously(self._lock_acquire_memory):
+                    if timeout == 0 and self.current_size_bytes + self.enqueued_size_bytes > self.max_size_bytes:
+                        raise AllocationFailed(f"Could not allocate {alloc_size} bytes immediately: out of memory")
+
+                    if self.current_size_bytes + alloc_size > self.max_size_bytes:
+                        elapsed_time = time.perf_counter() - start_time
+                        remaining_timeout = max(0.0, timeout - elapsed_time) if timeout is not None else None
+                        await loop.run_in_executor(None, self._wait_until_available, alloc_size, remaining_timeout)
+
+                allocated = True
+                self.enqueued_size_bytes -= alloc_size
                 yield
+        except (TimeoutError, asyncio.TimeoutError) as e:
+            raise AllocationFailed(f"Could not allocate {alloc_size} within {timeout} seconds ({e})")
         finally:
-            self.enqueued_size_bytes -= alloc_size
+            if not allocated:
+                self.enqueued_size_bytes -= alloc_size
 
     def _free(self, alloc_size: int, alloc_task: asyncio.Task):
         if alloc_task.exception() is not None:
