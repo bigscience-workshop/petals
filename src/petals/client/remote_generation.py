@@ -48,8 +48,6 @@ class RemoteGenerationMixin:
         self,
         inputs: Optional[torch.Tensor] = None,
         *args,
-        max_length: Optional[int] = None,
-        max_new_tokens: Optional[int] = None,
         session: Optional[InferenceSession] = None,
         **kwargs
     ):
@@ -61,9 +59,13 @@ class RemoteGenerationMixin:
             context_manager = contextlib.nullcontext()
         else:
             # If there's no active session, create a new one
+
+            max_length = kwargs.get("max_length")
+            max_new_tokens = kwargs.get("max_new_tokens")
             assert (max_length is None) != (
                 max_new_tokens is None
             ), "You should set `max_length` or `max_new_tokens` (but not both) to reserve server-side attention caches"
+
             if max_length is not None:
                 session_max_length = max_length
             else:
@@ -71,7 +73,7 @@ class RemoteGenerationMixin:
             context_manager = self.inference_session(max_length=session_max_length)
 
         with context_manager:
-            return super().generate(inputs, *args, max_length=max_length, max_new_tokens=max_new_tokens, **kwargs)
+            return super().generate(inputs, *args, **kwargs)
 
     @staticmethod
     def _reorder_cache(past_key_values: RemotePastKeyValues, beam_idx: torch.LongTensor) -> RemotePastKeyValues:

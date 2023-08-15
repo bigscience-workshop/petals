@@ -58,13 +58,13 @@ class DistributedLlamaModel(FromPretrainedMixin, PTuneMixin, LlamaModel):
         else:
             raise ValueError("You have to specify either input_ids or inputs_embeds")
 
-        position = self.layers.active_session.position if self.layers.active_session is not None else 0
         # The causal mask will be added on the server-side
         assert (
             attention_mask is None or (attention_mask == 1).all()
         ), f"Custom attention masks are not supported, {attention_mask=}"
         if position_ids is not None:
-            expected = torch.arange(position, position + input_shape[1], dtype=torch.long, device=position_ids.device)
+            start_pos = position_ids[0].item()
+            expected = torch.arange(start_pos, start_pos + input_shape[1], dtype=torch.long, device=position_ids.device)
             assert (position_ids == expected).all(), f"Custom position_ids are not supported, {position_ids=}"
         assert use_cache is None or use_cache, f"{use_cache=} is not supported"
         assert not output_attentions, f"{output_attentions=} is not supported"
@@ -74,7 +74,7 @@ class DistributedLlamaModel(FromPretrainedMixin, PTuneMixin, LlamaModel):
         if inputs_embeds is None:
             inputs_embeds = self.embed_tokens(input_ids)
 
-        if self.config.tuning_mode and "ptune" in self.config.tuning_mode and position == 0:
+        if self.config.tuning_mode and "ptune" in self.config.tuning_mode and self.layers.position == 0:
             batch_size = inputs_embeds.shape[0]
             prompts, intermediate_prompts = self.get_prompt(batch_size)
             inputs_embeds = torch.cat([prompts, inputs_embeds], dim=1)
