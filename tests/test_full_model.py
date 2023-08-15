@@ -153,4 +153,4 @@ def test_beam_search_generation(tokenizer, model, ref_model, max_new_tokens=4, n
     options = dict(max_new_tokens=max_new_tokens, num_beams=num_beams, do_sample=False)
     outputs = make_generate_calls(model, inputs, **options)
     ref_outputs = ref_model.generate(inputs, **options)
-    assert torch.allclose(outputs, ref_outputs), f"Beam search results are not identical to HF with {multiple_calls=}"
+    assert torch.allclose(outputs, ref_outputs), f"Beam search results are not identical to HF"
