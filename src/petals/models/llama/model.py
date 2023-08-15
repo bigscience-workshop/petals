@@ -1,14 +1,13 @@
-from typing import List, Optional, Tuple, Union
+from typing import Optional
 
 import hivemind
 import torch
 import torch.nn as nn
 from hivemind.utils.logging import get_logger
-from transformers.modeling_outputs import BaseModelOutputWithPast, CausalLMOutputWithPast
+from transformers.modeling_outputs import BaseModelOutputWithPast
 from transformers.models.llama import LlamaForCausalLM, LlamaForSequenceClassification, LlamaModel, LlamaPreTrainedModel
 
 from petals.client.from_pretrained import FromPretrainedMixin
-from petals.client.inference_session import InferenceSession
 from petals.client.lm_head import LMHead
 from petals.client.ptune import PTuneMixin
 from petals.client.remote_generation import RemoteGenerationMixin, RemotePastKeyValues
@@ -49,19 +48,6 @@ class DistributedLlamaModel(FromPretrainedMixin, PTuneMixin, LlamaModel):
         output_hidden_states: Optional[bool] = None,
         return_dict: Optional[bool] = None,
     ) -> BaseModelOutputWithPast:
-        position = self.layers.active_session.position if self.layers.active_session is not None else 0
-        n_input_tokens = input_ids.shape[1] if input_ids is not None else 0
-
-        # The causal mask will be added on the server-side
-        assert attention_mask is None or (attention_mask == 1).all(), "Custom attention masks are not supported"
-        if position_ids is not None:
-            expected = torch.arange(position, position + n_input_tokens, dtype=torch.long, device=position_ids.device)
-            assert (position_ids == expected).all(), "Custom position_ids are not supported"
-        assert use_cache is None or use_cache, "use_cache=False is not supported"
-        assert not output_attentions, "output_attentions=True is not supported"
-        assert not output_hidden_states, "output_hidden_states=True is not supported"
-        assert return_dict is None or return_dict, "return_dict=True is not supported"
-
         if input_ids is not None and inputs_embeds is not None:
             raise ValueError("You cannot specify both input_ids and inputs_embeds at the same time")
         elif input_ids is not None:
@@ -71,6 +57,17 @@ class DistributedLlamaModel(FromPretrainedMixin, PTuneMixin, LlamaModel):
             input_shape = inputs_embeds.size()[:-1]
         else:
             raise ValueError("You have to specify either input_ids or inputs_embeds")
+
+        position = self.layers.active_session.position if self.layers.active_session is not None else 0
+        # The causal mask will be added on the server-side
+        assert attention_mask is None or (attention_mask == 1).all(), "Custom attention masks are not supported"
+        if position_ids is not None:
+            expected = torch.arange(position, position + input_shape[1], dtype=torch.long, device=position_ids.device)
+            assert (position_ids == expected).all(), "Custom position_ids are not supported"
+        assert use_cache is None or use_cache, "use_cache=False is not supported"
+        assert not output_attentions, "output_attentions=True is not supported"
+        assert not output_hidden_states, "output_hidden_states=True is not supported"
+        assert return_dict is None or return_dict, "return_dict=True is not supported"
 
         if inputs_embeds is None:
             inputs_embeds = self.embed_tokens(input_ids)
