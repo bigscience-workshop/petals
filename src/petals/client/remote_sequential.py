@@ -64,7 +64,7 @@ class RemoteSequential(nn.Module):
         return self._thread_local.active_session
 
     @contextmanager
-    def use_session(self, session: InferenceSession) -> InferenceSession:
+    def use_session(self, session: Optional[InferenceSession]) -> InferenceSession:
         """Inside this context, forward() will use the specified InferenceSession."""
 
         try:

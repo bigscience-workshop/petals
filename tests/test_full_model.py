@@ -126,11 +126,11 @@ def test_sampling(tokenizer, models, sampling_options, max_new_tokens=4):
         ), f"Sampling is not identical to HF with {inputs.shape=}, {sampling_options=}"
 
 
-def test_beam_search_generation(tokenizer, models, max_new_tokens=4, num_beams=2):
+def test_beam_search_generation(tokenizer, models, max_new_tokens=4, num_beams=6):
     model, ref_model = models
 
     inputs = tokenizer("A cat sat on a mat", return_tensors="pt")["input_ids"]
 
-    outputs = model.generate(inputs, max_new_tokens=max_new_tokens, num_beams=num_beams)
-    ref_outputs = ref_model.generate(inputs, max_new_tokens=max_new_tokens, num_beams=num_beams)
+    outputs = model.generate(inputs, max_new_tokens=max_new_tokens, num_beams=num_beams, do_sample=False)
+    ref_outputs = ref_model.generate(inputs, max_new_tokens=max_new_tokens, num_beams=num_beams, do_sample=False)
     assert torch.allclose(outputs, ref_outputs), "Beam search results are not identical to HF"
