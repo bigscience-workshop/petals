@@ -78,7 +78,7 @@ class RemoteSequential(nn.Module):
     def inference_session(self, **kwargs) -> InferenceSession:
         """Inside this context, forward() will use a new InferenceSession created with given parameters."""
 
-        with self.use_session(InferenceSession(self.sequence_manager, **kwargs)) as session:
+        with InferenceSession(self.sequence_manager, **kwargs) as session, self.use_session(session):
             yield session
 
     def __getitem__(self, ix: Union[int, slice]) -> RemoteSequential:
