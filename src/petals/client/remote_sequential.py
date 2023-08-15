@@ -61,15 +61,22 @@ class RemoteSequential(nn.Module):
 
     @property
     def active_session(self) -> Optional[InferenceSession]:
+        """
+        If called inside `with model.inference_session(...):` or `with model.use_session(...):`,
+        returns an active InferenceSession. Otherwise, returns None.
+        """
+
         return self._thread_local.active_session
 
     @property
     def position(self) -> int:
+        """Returns the prefix length (in tokens) in the active inference session or zero if no session is active."""
+
         return self.active_session.position if self.active_session is not None else 0
 
     @contextmanager
     def use_session(self, session: Optional[InferenceSession]) -> InferenceSession:
-        """Inside this context, forward() will use the specified InferenceSession."""
+        """Inside this context, forward() will use an _existing_ InferenceSession provided as the argument."""
 
         try:
             prev_session = self._thread_local.active_session
@@ -80,7 +87,12 @@ class RemoteSequential(nn.Module):
 
     @contextmanager
     def inference_session(self, **kwargs) -> InferenceSession:
-        """Inside this context, forward() will use a new InferenceSession created with given parameters."""
+        """
+        Inside this context, forward() will use a _new_ InferenceSession created with given parameters.
+
+        :param max_length: Maximal expected length of inference results. Servers use this parameter
+                           to calculate the size of attention caches allocated to this client.
+        """
 
         with InferenceSession(self.sequence_manager, **kwargs) as session, self.use_session(session):
             yield session
