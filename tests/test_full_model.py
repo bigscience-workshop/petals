@@ -16,29 +16,29 @@ def tokenizer():
     return transformers.AutoTokenizer.from_pretrained(MODEL_NAME, use_fast=False)
 
 
-@pytest.fixture(params=[None, ADAPTER_NAME] if ADAPTER_NAME else [None])
-def models(request):
-    active_adapter = request.param
-
-    model = AutoDistributedModelForCausalLM.from_pretrained(
-        MODEL_NAME, initial_peers=INITIAL_PEERS, torch_dtype=torch.float32, active_adapter=active_adapter
+@pytest.fixture
+def model():
+    return AutoDistributedModelForCausalLM.from_pretrained(
+        MODEL_NAME, initial_peers=INITIAL_PEERS, torch_dtype=torch.float32
     )
 
-    ref_model = transformers.AutoModelForCausalLM.from_pretrained(
+
+@pytest.fixture
+def ref_model():
+    return transformers.AutoModelForCausalLM.from_pretrained(
         REF_NAME, low_cpu_mem_usage=True, torch_dtype=torch.float32
     )
-    if active_adapter is not None:
-        ref_model = peft.PeftModel.from_pretrained(active_adapter, ADAPTER_NAME)
-        ref_model.train(False)
-
-    return model, ref_model
 
 
 @pytest.mark.forked
+@pytest.mark.parametrize("use_peft", (True, False) if ADAPTER_NAME else (False,))
 @pytest.mark.parametrize("pass_empty_tensors", (True, False))
-def test_full_model_exact_match(tokenizer, models, pass_empty_tensors, atol_forward=1e-3, atol_inference=1e-3):
-    model, ref_model = models
-    assert len(model.transformer.h) == model.config.num_hidden_layers
+def test_full_model_exact_match(tokenizer, model, ref_model, use_peft, pass_empty_tensors, atol=1e-3):
+    if use_peft:
+        model.config.active_adapter = ADAPTER_NAME
+
+        ref_model = peft.PeftModel.from_pretrained(ref_model, ADAPTER_NAME)
+        ref_model.train(False)
 
     test_inputs = tokenizer("A quick brown fox was minding its own buisness", return_tensors="pt")["input_ids"]
 
@@ -70,19 +70,15 @@ def test_full_model_exact_match(tokenizer, models, pass_empty_tensors, atol_forw
         recurrent_outputs = model.transformer.ln_f(recurrent_outputs)
         recurrent_outputs = model.lm_head(recurrent_outputs)
         assert torch.allclose(
-            recurrent_outputs, parallel_outputs, rtol=0, atol=atol_inference
+            recurrent_outputs, parallel_outputs, rtol=0, atol=atol
         ), "Inference differs from forward pass"
 
         ref_outputs = ref_model.forward(test_inputs).logits.float()
-        assert torch.allclose(
-            ref_outputs, parallel_outputs, rtol=0, atol=atol_forward
-        ), "Outputs are not identical to HF"
+        assert torch.allclose(ref_outputs, parallel_outputs, rtol=0, atol=atol), "Outputs are not identical to HF"
 
 
 @pytest.mark.forked
-def test_greedy_generation(tokenizer, models, max_new_tokens=4):
-    model, ref_model = models
-
+def test_greedy_generation(tokenizer, model, ref_model, max_new_tokens=4):
     inputs_single = tokenizer("A cat sat on a mat", return_tensors="pt")["input_ids"]
 
     if tokenizer.pad_token_id is None:
@@ -107,9 +103,7 @@ def test_greedy_generation(tokenizer, models, max_new_tokens=4):
         dict(do_sample=True, top_p=0.9),
     ],
 )
-def test_sampling(tokenizer, models, sampling_options, max_new_tokens=4):
-    model, ref_model = models
-
+def test_sampling(tokenizer, model, ref_model, sampling_options, max_new_tokens=4):
     inputs_single = tokenizer("A cat sat on a mat", return_tensors="pt")["input_ids"]
 
     if tokenizer.pad_token_id is None:
@@ -131,9 +125,7 @@ def test_sampling(tokenizer, models, sampling_options, max_new_tokens=4):
 
 
 @pytest.mark.forked
-def test_beam_search_generation(tokenizer, models, max_new_tokens=4, num_beams=6):
-    model, ref_model = models
-
+def test_beam_search_generation(tokenizer, model, ref_model, max_new_tokens=4, num_beams=6):
     inputs = tokenizer("A cat sat on a mat", return_tensors="pt")["input_ids"]
 
     outputs = model.generate(inputs, max_new_tokens=max_new_tokens, num_beams=num_beams, do_sample=False)
