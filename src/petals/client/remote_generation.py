@@ -78,7 +78,14 @@ class RemoteGenerationMixin:
 
         with context_manager as session:
             # Prepend the last tokens from the previous .generate() call
-            if session.last_token_id is not None:
+            resuming_session = session.last_token_id is not None
+            if resuming_session:
+                if kwargs.get("num_beams", 1) > 1:
+                    logger.warning(
+                        "Beam search will not work properly in the resumed petals.InferenceSession "
+                        "since intermediate beam entries are lost"
+                    )
+
                 assert session.last_token_id.shape[1] == 1, f"{session.last_token_id.shape=} is invalid"
                 if inputs is not None:
                     inputs = torch.cat([session.last_token_id, inputs], dim=1)
@@ -89,7 +96,7 @@ class RemoteGenerationMixin:
 
             sequences = result.sequences if isinstance(result, ModelOutput) else result
             # Crop the last tokens from the previous call
-            if session.last_token_id is not None:
+            if resuming_session:
                 sequences = sequences[:, 1:]
                 if isinstance(result, ModelOutput):
                     result.sequences = sequences
