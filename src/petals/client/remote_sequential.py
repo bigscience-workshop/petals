@@ -6,8 +6,9 @@ import torch
 from hivemind import DHT, get_logger
 from torch import nn
 
+from petals.client.config import ClientConfig
 from petals.client.inference_session import InferenceSession
-from petals.client.routing.sequence_manager import RemoteSequenceManager, SequenceManagerConfig
+from petals.client.routing import RemoteSequenceManager
 from petals.client.sequential_autograd import _RemoteSequentialAutogradFunction
 from petals.data_structures import UID_DELIMITER
 from petals.utils.misc import DUMMY
@@ -22,7 +23,7 @@ class RemoteSequential(nn.Module):
 
     def __init__(
         self,
-        config: SequenceManagerConfig,
+        config: ClientConfig,
         *,
         sequence_manager: Optional[RemoteSequenceManager] = None,
         dht: Optional[DHT] = None,

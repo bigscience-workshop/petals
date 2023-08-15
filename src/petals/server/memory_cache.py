@@ -16,12 +16,11 @@ import async_timeout
 import torch
 from hivemind.utils import TensorDescriptor, anext, enter_asynchronously, get_logger
 
+from petals.data_structures import Handle
 from petals.utils.asyncio import shield_and_wait
 from petals.utils.misc import get_size_in_bytes
 
 logger = get_logger(__name__)
-
-Handle = int
 
 
 class MemoryCache:
@@ -102,7 +101,7 @@ class MemoryCache:
         alloc_task = asyncio.create_task(self._schedule_alloc(max_alloc_size, *descriptors, timeout=timeout))
         try:
             handles = await shield_and_wait(alloc_task)
-            logger.info(f"rpc_inference.alloc-done(size={max_alloc_size / gib:.2f} GiB)")
+            logger.info(f"rpc_inference.alloc_done(size={max_alloc_size / gib:.2f} GiB)")
             yield handles
         finally:
             self._free(max_alloc_size, alloc_task)

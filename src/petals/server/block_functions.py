@@ -3,20 +3,30 @@ This module implements server-side computations on served blocks: forward, backw
 """
 from __future__ import annotations
 
-from typing import AsyncIterator, Optional, Sequence, Tuple, Union
+from typing import Any, AsyncIterator, Dict, Optional, Sequence, Tuple, Union
 
 import torch
 from hivemind.compression.serialization import deserialize_torch_tensor, serialize_torch_tensor
 from hivemind.moe.expert_uid import ExpertUID
 from hivemind.proto import runtime_pb2
+from hivemind.utils.logging import get_logger
 from hivemind.utils.nested import nested_flatten
 
-from petals.data_structures import InferenceMetadata
+from petals.data_structures import Handle, InferenceMetadata
 from petals.server.backend import TransformerBackend
-from petals.server.memory_cache import Handle
 from petals.server.task_pool import PrioritizedTaskPool
 from petals.server.task_prioritizer import TaskPrioritizerBase
+from petals.utils.convert_block import QuantType
 from petals.utils.misc import DUMMY, is_dummy
+from petals.utils.packaging import unpack_args_kwargs
+
+# We prioritize short inference requests and make them use a *merged* inference pool,
+# so they are processed without interruptions and extra overheads
+# TODO: Increase the NF4 threshold once bitsandbytes ships efficient NF4 kernel for parallel forward
+MAX_SHORT_INFERENCE_TOKENS = 128
+MAX_NF4_SHORT_INFERENCE_TOKENS = 1
+
+logger = get_logger(__name__)
 
 
 async def run_rpc_forward(
@@ -25,6 +35,7 @@ async def run_rpc_forward(
     active_adapter: str = "",
     prioritizer: TaskPrioritizerBase,
     points: int = 0,
+    args_structure: Any = None,
 ) -> torch.Tensor:
     """
     Run forward pass on deserialized inputs and prompts, used by rpc_forward and rpc_forward_stream
@@ -34,7 +45,11 @@ async def run_rpc_forward(
     :param requested_backends: a sequence of transformer blocks in the same order as they appear in forward pass
     :returns: hidden states after the last layer [batch_size, seq_length, hid_size]
     """
-    hidden_states, prompts = flat_tensors
+    if args_structure is not None:
+        # TODO: kwargs currently is unused, it can be used later for peft-like adaptation
+        flat_tensors, kwargs = unpack_args_kwargs(flat_tensors, args_structure)
+    hidden_states, prompts, *_ = flat_tensors
+
     dtype = requested_backends[0].dtype
     # check parse input tensors and cast dtypes
     hidden_states = hidden_states.to(dtype)
@@ -72,8 +87,13 @@ async def run_rpc_backward(
     active_adapter: str = "",
     prioritizer: TaskPrioritizerBase,
     points: int = 0,
+    args_structure: Any = None,
 ) -> Union[torch.Tensor, Sequence[torch.Tensor]]:
-    inputs, grad_outputs, prompts = flat_tensors
+    if args_structure is not None:
+        # TODO: kwargs currently is unused, it can be used later for peft-like adaptation
+        flat_tensors, kwargs = unpack_args_kwargs(flat_tensors, args_structure)
+    inputs, grad_outputs, prompts, *_ = flat_tensors
+
     # Cast inputs & grad outputs to backend dtype
     inputs = inputs.to(requested_backends[0].dtype)
     grad_outputs = grad_outputs.to(requested_backends[-1].dtype)
@@ -127,9 +147,12 @@ async def iterate_rpc_inference(
     active_adapter: Optional[str],
     input_iterator: AsyncIterator[Tuple[runtime_pb2.ExpertRequest, dict]],
     cache_handles: Sequence[Sequence[Handle]],
+    *,
     max_length: int,
     prioritizer: TaskPrioritizerBase,
     points: int,
+    quant_type: QuantType,
+    args_structure: Any = None,
 ) -> AsyncIterator[Tuple[Sequence[runtime_pb2.Tensor], bool]]:
     assert len(cache_handles) == len(requested_backends)
 
@@ -137,7 +160,13 @@ async def iterate_rpc_inference(
     point_per_piece = points / max_length if max_length > 0 else 0.0
 
     async for request, step_metadata in input_iterator:
-        hidden_states, prompts, hypo_ids = map(deserialize_torch_tensor, request.tensors)
+        flat_tensors = tuple(deserialize_torch_tensor(tensor) for tensor in request.tensors)
+        if args_structure is not None:
+            # TODO: kwargs currently is unused, it can be used later for peft-like adaptation
+            flat_tensors, kwargs = unpack_args_kwargs(flat_tensors, args_structure)
+
+        hidden_states, prompts, hypo_ids, *_ = flat_tensors
+        batch_size, length_increment, _ = hidden_states.shape
 
         # Cast inputs to backend dtype
         hidden_states = hidden_states.to(requested_backends[0].dtype)
@@ -154,34 +183,40 @@ async def iterate_rpc_inference(
         if not (len(requested_backends) == len(prompts)):
             raise ValueError(f"Received {len(prompts)} prompts for {len(requested_backends)} backends")
 
-        length_increment = hidden_states.shape[1]  # how many tokens are added this step (in each seq)
         if prefix_length + length_increment > max_length:
             raise ValueError(
                 f"Maximum length exceeded: prefix {prefix_length} + current {length_increment}"
                 f" exceeds pre-allocated maximum {max_length}"
             )
 
+        merge_max_tokens = MAX_NF4_SHORT_INFERENCE_TOKENS if quant_type == QuantType.NF4 else MAX_SHORT_INFERENCE_TOKENS
+        can_merge_pools = batch_size * length_increment <= merge_max_tokens
         priority = prioritizer.prioritize(
             hidden_states,
             hypo_ids,
             points=point_per_piece,
             requested_uids=requested_uids,
-            type="inference",
+            type="short_inference" if can_merge_pools else "inference",
         )
 
-        inference_infos = tuple(
-            InferenceMetadata(uid, prefix_length, tuple(handles), active_adapter)
-            for uid, handles in zip(requested_uids, cache_handles)
-        )
-
-        if hidden_states.numel() == 0:
-            pass  # user passed a tensor with 0 tokens. This is a special case that occurs, e.g.
-            # when user wants to pre-allocate cache or check that server *can* allocate that cache
-        else:
+        # A client may pass a tensor with 0 tokens. This is a special case that occurs, e.g.
+        # when user wants to pre-allocate cache or check that server *can* allocate that cache.
+        if hidden_states.numel() > 0:
             assert hidden_states.ndim == 3, f"hidden states must be a single 3d tensor"
-            (hidden_states,) = await requested_backends[0].inference_pool.submit_task(
-                hidden_states, hypo_ids, inference_infos, *prompts, priority=priority
-            )
+            if can_merge_pools:
+                inference_infos = tuple(
+                    InferenceMetadata(uid, prefix_length, tuple(handles), active_adapter)
+                    for uid, handles in zip(requested_uids, cache_handles)
+                )
+                (hidden_states,) = await requested_backends[0].inference_pool.submit_task(
+                    hidden_states, hypo_ids, inference_infos, *prompts, priority=priority
+                )
+            else:
+                for backend, uid, handles, prompt in zip(requested_backends, requested_uids, cache_handles, prompts):
+                    inference_infos = (InferenceMetadata(uid, prefix_length, tuple(handles), active_adapter),)
+                    (hidden_states,) = await backend.inference_pool.submit_task(
+                        hidden_states, hypo_ids, inference_infos, prompt, priority=priority
+                    )
 
         # serialize and send last layer outputs
         output_tensors = [
