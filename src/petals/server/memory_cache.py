@@ -146,10 +146,9 @@ class MemoryCache:
                 if timeout == 0 and self.current_size_bytes + self.enqueued_size_bytes > self.max_size_bytes:
                     raise AllocationFailed(f"Could not allocate {alloc_size} bytes immediately: out of memory")
                 async with enter_asynchronously(self._lock_acquire_memory):
-                    if timeout == 0 and self.current_size_bytes + self.enqueued_size_bytes > self.max_size_bytes:
-                        raise AllocationFailed(f"Could not allocate {alloc_size} bytes immediately: out of memory")
-
                     if self.current_size_bytes + alloc_size > self.max_size_bytes:
+                        if timeout == 0:
+                            raise AllocationFailed(f"Could not allocate {alloc_size} bytes immediately: out of memory")
                         elapsed_time = time.perf_counter() - start_time
                         remaining_timeout = max(0.0, timeout - elapsed_time) if timeout is not None else None
                         await loop.run_in_executor(None, self._wait_until_available, alloc_size, remaining_timeout)
