@@ -9,7 +9,7 @@ def is_dummy(tensor: torch.Tensor):
     return tensor.numel() == 0
 
 
-SPECIAL_DTYPE_SIZES = {torch.bool: 1, torch.int8: 1, torch.qint32: 4}
+SPECIAL_DTYPE_SIZES = {torch.bool: 1, torch.qint8: 1, torch.qint32: 4}
 
 
 def get_size_in_bytes(dtype: torch.dtype) -> int:
