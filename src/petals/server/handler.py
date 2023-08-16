@@ -542,7 +542,7 @@ class TransformerConnectionHandler(ConnectionHandler):
         :returns: a list of {len(backends)} elements, where i-th element is a tuple of cache handles for i-th backend
         """
         descriptors = [backend.get_inference_cache_descriptors(batch_size, max_length) for backend in backends]
-        async with backends[0].memory_cache.allocate_cache(*chain(*descriptors)) as handles:
+        async with backends[0].memory_cache.allocate_cache(*chain(*descriptors), timeout=timeout) as handles:
             yield nested_pack(handles, descriptors)
 
     def _log_request(

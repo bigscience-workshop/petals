@@ -70,7 +70,7 @@ class MemoryCache:
 
     @contextlib.asynccontextmanager
     async def allocate_cache(
-        self, *descriptors: TensorDescriptor, timeout: Optional[float] = None
+        self, *descriptors: TensorDescriptor, timeout: Optional[float]
     ) -> AsyncContextManager[Sequence[Handle]]:
         """
         Create a handle that is associated with buffers on unique device. If cache full, raises AllocationFailed.
