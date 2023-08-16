@@ -25,18 +25,18 @@ def _make_tensor_descriptor(num_bytes: int, dtype: Optional[torch.dtype] = None)
 async def test_cache_timeout():
     cache = MemoryCache(max_size_bytes=1024, max_alloc_timeout=0.5)
     cache.runtime_pid += 1  # pretend we're another process
-    async with cache.allocate_cache(_make_tensor_descriptor(768)):
+    async with cache.allocate_cache(_make_tensor_descriptor(768), timeout=0):
         pass
 
-    async with cache.allocate_cache(_make_tensor_descriptor(100)):
+    async with cache.allocate_cache(_make_tensor_descriptor(100), timeout=999):
         async with cache.allocate_cache(_make_tensor_descriptor(512), timeout=0):
-            async with cache.allocate_cache(_make_tensor_descriptor(128), _make_tensor_descriptor(32)):
+            async with cache.allocate_cache(_make_tensor_descriptor(128), _make_tensor_descriptor(32), timeout=1):
                 t_start = time.perf_counter()
                 with pytest.raises(AllocationFailed):
                     async with cache.allocate_cache(_make_tensor_descriptor(768), timeout=0.1):
                         pass
                 assert 0.1 < time.perf_counter() - t_start < 0.2, "wait time exceeds alloc timeout"
-                async with cache.allocate_cache(_make_tensor_descriptor(128)):
+                async with cache.allocate_cache(_make_tensor_descriptor(128), timeout=None):
                     pass
 
                 t_start = time.perf_counter()
@@ -54,7 +54,7 @@ async def test_cache_timeout():
 
             t_start = time.perf_counter()
             await asyncio.sleep(0.05)  # wait for large alloc to enqueue
-            async with cache.allocate_cache(_make_tensor_descriptor(128)):  # exceeds max timeout
+            async with cache.allocate_cache(_make_tensor_descriptor(128), timeout=None):  # exceeds max timeout
                 pass  # this memory should allocate once the background task clears the queue
             assert 0.2 < time.perf_counter() - t_start < 0.3, "memory should be allocated after background task clears"
             with pytest.raises(AllocationFailed):
@@ -78,7 +78,7 @@ async def test_cache_usage():
     alloc_event, dealloc_a_event, dealloc_bcd_event, dealloc_e_event, dealloc_f_event = (mp.Event() for _ in range(5))
     pipe_receiver, pipe_sender = mp.Pipe(duplex=False)
     with pytest.raises(AssertionError):
-        async with cache.allocate_cache(_make_tensor_descriptor(123)):
+        async with cache.allocate_cache(_make_tensor_descriptor(123), timeout=1):
             pass  # fails because cache must be allocated from another process
 
     descr_a = TensorDescriptor.from_tensor(torch.empty(768, dtype=torch.uint8))  # 768 bytes
