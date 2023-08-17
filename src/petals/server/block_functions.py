@@ -66,8 +66,8 @@ async def run_rpc_forward(
             hidden_states, points=points / len(requested_backends), backend=backend, type="forward"
         )
         (hidden_states,) = await backend.forward_pool.submit_task(
+            active_adapter,
             hidden_states,
-            active_adapter=active_adapter,
             **kwargs,
             priority=priority,
             size=num_tokens,
@@ -113,7 +113,7 @@ async def run_rpc_backward(
             hidden_states, points=points / len(requested_backends), backend=backend, type="forward_in_backward"
         )
         (hidden_states,) = await backend.forward_pool.submit_task(
-            hidden_states, active_adapter, **kwargs, priority=priority, size=num_tokens
+            active_adapter, hidden_states, **kwargs, priority=priority, size=num_tokens
         )
 
         assert isinstance(hidden_states, torch.Tensor)
@@ -131,7 +131,7 @@ async def run_rpc_backward(
             inp, grad_outputs, points=points / len(requested_backends), backend=backend, type="backward"
         )
         (grad_outputs,) = await backend.backward_pool.submit_task(
-            inp, grad_outputs, active_adapter, **kwargs, priority=priority, size=num_tokens
+            active_adapter, grad_outputs, inp, **kwargs, priority=priority, size=num_tokens
         )
 
         assert isinstance(grad_outputs, torch.Tensor)
@@ -211,7 +211,7 @@ async def iterate_rpc_inference(
                     hypo_ids,
                     inference_infos,
                     *prompts,
-                    backend_kwargs,
+                    backend_kwargs=backend_kwargs,
                     priority=priority,
                     size=num_tokens,
                 )
@@ -221,7 +221,13 @@ async def iterate_rpc_inference(
                 ):
                     inference_infos = (InferenceMetadata(uid, prefix_length, tuple(handles), active_adapter),)
                     (hidden_states,) = await backend.inference_pool.submit_task(
-                        hidden_states, hypo_ids, inference_infos, prompt, **kwargs, priority=priority, size=num_tokens
+                        hidden_states,
+                        hypo_ids,
+                        inference_infos,
+                        prompt,
+                        backend_kwargs=(kwargs,),
+                        priority=priority,
+                        size=num_tokens,
                     )
 
         # serialize and send last layer outputs
@@ -250,6 +256,9 @@ def _check_inputs(
             f"(one for each block). Found {len(backend_kwargs)} instead."
         )
     if len(backend_kwargs) == 1:
-        backend_kwargs = (backend_kwargs,) * len(requested_backends)
+        backend_kwargs = backend_kwargs * len(requested_backends)
     assert len(backend_kwargs) == len(requested_backends)
+    for i, kwargs in enumerate(backend_kwargs):
+        if not isinstance(kwargs, dict):
+            raise RuntimeError(f"Expected kwargs for block {i} to be a dictionary, got {type(kwargs)}")
     return args, backend_kwargs

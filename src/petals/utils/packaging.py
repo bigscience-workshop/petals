@@ -1,4 +1,4 @@
-from typing import Any, Tuple, Sequence
+from typing import Any, Sequence, Tuple
 
 import torch
 from hivemind import nested_flatten, nested_pack
