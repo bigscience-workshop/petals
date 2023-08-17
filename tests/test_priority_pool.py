@@ -13,7 +13,8 @@ def test_priority_pools():
     outputs_queue = mp.SimpleQueue()
     results_valid = mp.Event()
 
-    def dummy_pool_func(x):
+    def dummy_pool_func(args, kwargs):
+        (x,) = args  # TODO modify the PriorityPool code such that dummy_pool_func can accept x directly
         time.sleep(0.1)
         y = x**2
         outputs_queue.put((x, y))
