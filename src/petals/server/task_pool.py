@@ -20,7 +20,8 @@ class Task:
     priority: float
     time_submitted: float
     future: MPFuture = field(compare=False)
-    args: Sequence[torch.Tensor] = field(compare=False)
+    args: Sequence[Union[torch.Tensor, Any]] = field(compare=False)
+    size: int = 1
 
     @property
     def uid(self) -> int:
@@ -104,15 +105,15 @@ class PrioritizedTaskPool(TaskPoolBase):
             logger.warning(f"{self.__class__.__name__} failed to shut down gracefully, sending SIGTERM")
             self.terminate()
 
-    def submit_task(self, *args: Any, priority: float = 0.0) -> MPFuture:
+    def submit_task(self, *args: Any, priority: float = 0.0, size: int = 1) -> MPFuture:
         """Add task to this pool's queue, return Future for its output"""
         future = MPFuture()
         # Remove shmem from MPFuture. This disables the .cancel() feature but
         # saves the server from "could not unlink the shared memory file" crashes during rebalancing
         future._shared_state_code = torch.tensor([ALL_STATES.index(PENDING)], dtype=torch.uint8)
 
-        task = Task(priority, time.monotonic(), future, args)
-        if self.get_task_size(task) > self.max_batch_size:
+        task = Task(priority, time.monotonic(), future, args, size=size)
+        if task.size > self.max_batch_size:
             exc = ValueError(f"Task size greater than max_batch_size ({self.max_batch_size}), it can't be processed")
             task.future.set_exception(exc)
         else:
@@ -121,12 +122,6 @@ class PrioritizedTaskPool(TaskPoolBase):
             if (task.priority, task.time_submitted) < self.priority:
                 self.priority = (task.priority, task.time_submitted)
         return task.future
-
-    def get_task_size(self, task: Task) -> int:
-        """compute task processing complexity; defaults to the total number of tokens"""
-        if task.args and task.args[0].ndim >= 2:
-            return task.args[0].shape[0] * task.args[0].shape[1]
-        return 1
 
     def load_batch_to_runtime(
         self, timeout: Optional[float] = None, device: Optional[torch.device] = None
