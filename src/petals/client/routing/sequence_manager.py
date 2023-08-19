@@ -7,7 +7,8 @@ import logging
 import random
 import threading
 import time
-from typing import Any, Collection, Dict, List, Optional, Sequence, Union
+import warnings
+from typing import Any, Dict, List, Optional, Sequence, Set, Union
 from weakref import WeakMethod
 
 import dijkstar
@@ -18,39 +19,27 @@ from hivemind.moe.client.remote_expert_worker import RemoteExpertWorker
 from hivemind.proto import runtime_pb2
 from hivemind.utils.logging import get_logger
 
-import petals.dht_utils
+from petals.client.config import ClientConfig
 from petals.client.routing.sequence_info import RemoteSequenceInfo
 from petals.client.routing.spending_policy import NoSpendingPolicy
-from petals.constants import PUBLIC_INITIAL_PEERS
 from petals.data_structures import ModuleUID, RemoteSpanInfo, ServerState
 from petals.server.handler import TransformerConnectionHandler
+from petals.utils.dht import get_remote_module_infos
 from petals.utils.ping import PingAggregator
 from petals.utils.random import sample_up_to
 
 logger = get_logger(__name__)
 
 
-@dataclasses.dataclass
-class SequenceManagerConfig:
-    initial_peers: Sequence[str] = tuple(PUBLIC_INITIAL_PEERS)  # a list of initial peers for hivemind DHT
-    dht_prefix: Optional[str] = None  # a prefix for all dht keys that correspond to this model (default: model name)
-    daemon_startup_timeout: int = 60  # timeout for the libp2p daemon connecting to initial peers
-
-    show_route: Union[str, bool] = "inference"  # show chosen route through servers. one of [False, "inference", True]
-    allowed_servers: Optional[Collection[Union[PeerID, str]]] = None  # if defined, send requests only to these servers
-    use_server_to_server: bool = True  # Use direct server-to-server communication
-
-    request_timeout: float = 3 * 60  # timeout for forward/backward/inference requests
-    update_period: float = 60  # refresh DHT information once in this many seconds
-
-    max_retries: Optional[int] = None  # max number retries before the client raises an exception (default: inf)
-    min_backoff: float = 1  # after a repeated failure, sleep for this many seconds times 2 ** (num_failures - 1)
-    max_backoff: float = 60  # limit maximal sleep time between retries to this value
-    ban_timeout: float = 15  # when a remote peer fails to respond, prevent routing to that peer for this many seconds
-    active_adapter: Optional[str] = None  # name of active LoRA adapter (usually, Hugging Face repo)
-
-    max_pinged: int = 5  # max servers to ping from each sequence side, per update
-    ping_timeout: float = 2  # max time to wait for pings, per update
+class SequenceManagerConfig(ClientConfig):
+    def __init__(self, *args, **kwargs):
+        warnings.warn(
+            "petals.client.routing.SequenceManagerConfig has been moved to petals.ClientConfig. "
+            "This alias will be removed in Petals 2.2.0+",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        super().__init__(*args, **kwargs)
 
 
 @dataclasses.dataclass
@@ -81,7 +70,7 @@ class RemoteSequenceManager:
 
     def __init__(
         self,
-        config: SequenceManagerConfig,
+        config: ClientConfig,
         block_uids: Sequence[ModuleUID],
         *,
         dht: Optional[DHT] = None,
@@ -115,6 +104,9 @@ class RemoteSequenceManager:
         self._thread_start_lock = threading.Lock()
         self.policy = NoSpendingPolicy()
 
+        self.allowed_servers = self._peer_ids_to_set(config.allowed_servers)
+        self.blocked_servers = self._peer_ids_to_set(config.blocked_servers)
+
         self.ping_aggregator = PingAggregator(dht)
 
         if state.banned_peers is None:
@@ -126,6 +118,23 @@ class RemoteSequenceManager:
             assert block_uids == state.sequence_info.block_uids
             self._thread.ready.set()  # no need to await the first dht fetch
             self._need_latest_infos = True
+
+    @staticmethod
+    def _peer_ids_to_set(peer_ids: Optional[Sequence[Union[PeerID, str]]]) -> Optional[Set[PeerID]]:
+        if peer_ids is None:
+            return None
+
+        result = set()
+        for peer_id in peer_ids:
+            if isinstance(peer_id, PeerID):
+                result.add(peer_id)
+            elif isinstance(peer_id, str):
+                result.add(PeerID.from_base58(peer_id))
+            else:
+                raise TypeError(
+                    f"`allowed_servers` and `blocked_servers` have to contain only PeerIDs or strings, but got {type(peer_id)}"
+                )
+        return result
 
     def make_sequence(
         self,
@@ -291,9 +300,9 @@ class RemoteSequenceManager:
         # This is okay since false positives are more costly than false negatives here.
         return cache_tokens_needed * 2 * span.length <= span.server_info.cache_tokens_left
 
-    def _make_sequence_with_max_throughput(
-        self, start_index: int, end_index: int, *, relay_penalty: float = 0.5
-    ) -> List[RemoteSpanInfo]:
+    def _make_sequence_with_max_throughput(self, start_index: int, end_index: int) -> List[RemoteSpanInfo]:
+        client_server_rtts = self.ping_aggregator.to_dict()
+
         span_sequence = []
         current_index = start_index
         while current_index < end_index:
@@ -301,11 +310,11 @@ class RemoteSequenceManager:
             if not candidate_spans:
                 raise MissingBlocksError(current_index)
 
+            # We choose longer servers to minimize the number of hops but leave some randomization
+            # to distribute the load. We also exclude servers known to be unreachable.
+            eps = 1e-6
             span_weights = np.array(
-                [
-                    span.server_info.throughput * (1 if not span.server_info.using_relay else relay_penalty)
-                    for span in candidate_spans
-                ],
+                [span.length if client_server_rtts.get(span.peer_id) != np.inf else eps for span in candidate_spans],
                 dtype=np.float64,
             )
             chosen_span = np.random.choice(candidate_spans, p=span_weights / span_weights.sum())
@@ -332,7 +341,7 @@ class RemoteSequenceManager:
     def _update(self):
         """Perform an immediate and synchronous refresh, may take time"""
 
-        new_block_infos = petals.dht_utils.get_remote_module_infos(
+        new_block_infos = get_remote_module_infos(
             self.dht, self.block_uids, active_adapter=self.config.active_adapter, latest=True
         )
 
@@ -340,13 +349,13 @@ class RemoteSequenceManager:
             if not block_info:
                 continue
 
-            # Apply whitelist, if defined
-            if self.config.allowed_servers is not None:
-                block_info.servers = {
-                    peer_id: server_info
-                    for peer_id, server_info in block_info.servers.items()
-                    if peer_id in self.config.allowed_servers or str(peer_id) in self.config.allowed_servers
-                }
+            # Apply allow and block lists
+            block_info.servers = {
+                peer_id: server_info
+                for peer_id, server_info in block_info.servers.items()
+                if (self.allowed_servers is None or peer_id in self.allowed_servers)
+                and (self.blocked_servers is None or peer_id not in self.blocked_servers)
+            }
 
             # Remove temporarily banned peers, unless there are no peers left
             valid_servers = {
@@ -368,9 +377,13 @@ class RemoteSequenceManager:
             self.state.sequence_info.update_(new_block_infos)
 
             first_servers = [span.peer_id for span in self.state.sequence_info.spans_containing_block[0]]
+            middle_servers = [
+                span.peer_id for spans in self.state.sequence_info.spans_containing_block[1:-1] for span in spans
+            ]
             last_servers = [span.peer_id for span in self.state.sequence_info.spans_containing_block[-1]]
 
         pinged_servers = set(sample_up_to(first_servers, self.config.max_pinged))
+        pinged_servers = set(sample_up_to(middle_servers, self.config.max_pinged))
         pinged_servers |= set(sample_up_to(last_servers, self.config.max_pinged))
         self.ping_aggregator.ping(list(pinged_servers), wait_timeout=self.config.ping_timeout)
 
@@ -461,14 +474,21 @@ class RemoteSequenceManager:
             return 0
         return min(self.config.min_backoff * 2 ** (attempt_no - 1), self.config.max_backoff)
 
-    def get_request_metadata(self, protocol: str, *args, **kwargs) -> Optional[Dict[str, Any]]:
+    def get_request_metadata(
+        self, protocol: str, args_structure: Any = None, *args, **kwargs
+    ) -> Optional[Dict[str, Any]]:
         """
         :param protocol: one of "rpc_forward", "rpc_backward" or "rpc_inference"
+        :param args_structure: the structure of flattened tensors from pack_args_kwargs in petals.utils.packaging
         :param args: request-specific inputs, typically block uids and input tensors
         :param kwargs: additional request context, such as remote peer ID
         :returns: msgpack-serialized metadata dict that will be passed alongside a given request
         """
-        return dict(points=self.policy.get_points(protocol, *args, **kwargs), active_adapter=self.config.active_adapter)
+        return dict(
+            points=self.policy.get_points(protocol, *args, **kwargs),
+            active_adapter=self.config.active_adapter,
+            args_structure=args_structure,
+        )
 
     def shutdown(self):
         self._thread.shutdown()

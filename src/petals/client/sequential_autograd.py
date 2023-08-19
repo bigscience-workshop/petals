@@ -12,10 +12,11 @@ from hivemind.moe.client.remote_expert_worker import RemoteExpertWorker
 from hivemind.utils.logging import get_logger
 
 from petals.client.remote_forward_backward import run_remote_backward, run_remote_forward
-from petals.client.routing.sequence_manager import RemoteSequenceManager, maybe_log_traceback
+from petals.client.routing import RemoteSequenceManager, maybe_log_traceback
 from petals.data_structures import CHAIN_DELIMITER, RemoteSpanInfo
 from petals.server.handler import TransformerConnectionHandler
 from petals.utils.misc import DUMMY, is_dummy
+from petals.utils.packaging import pack_args_kwargs
 
 logger = get_logger(__name__)
 
@@ -67,16 +68,18 @@ async def sequential_forward(
                 span = sequences.popleft()
 
                 stub = TransformerConnectionHandler.get_stub(sequence_manager.state.p2p, span.peer_id)
-                inputs_and_prompts = [inputs, prompts[span.start : span.end]]
+                flat_tensors, args_structure = pack_args_kwargs(inputs, prompts[span.start : span.end])
 
                 span_uids = CHAIN_DELIMITER.join(sequence_manager.block_uids[span.start : span.end])
-                metadata = sequence_manager.get_request_metadata("rpc_forward", span_uids, *inputs_and_prompts)
+                metadata = sequence_manager.get_request_metadata(
+                    "rpc_forward", args_structure, span_uids, *flat_tensors
+                )
                 (outputs,) = await run_remote_forward(
                     span_uids,
                     stub,
                     sequence_manager.rpc_info,
-                    *inputs_and_prompts,
-                    timeout=sequence_manager.config.request_timeout,
+                    *flat_tensors,
+                    config=sequence_manager.config,
                     metadata=MSGPackSerializer.dumps(metadata),
                 )
 
@@ -149,19 +152,22 @@ async def sequential_backward(
                     inputs = intermediate_inputs.pop()
                     span = forward_sequences.pop()
 
+                grad_outputs_cpu = [grad.cpu() for grad in grad_outputs]
+                flat_tensors, args_structure = pack_args_kwargs(
+                    inputs, *grad_outputs_cpu, prompts[span.start : span.end]
+                )
+
                 span_uids = CHAIN_DELIMITER.join(sequence_manager.block_uids[span.start : span.end])
                 stub = TransformerConnectionHandler.get_stub(sequence_manager.state.p2p, span.peer_id)
                 metadata = sequence_manager.get_request_metadata(
-                    "rpc_backward", span_uids, *inputs, *grad_outputs, peer_id=span.peer_id
+                    "rpc_backward", args_structure, span_uids, *flat_tensors, peer_id=span.peer_id
                 )
                 grad_outputs, *span_grad_prompts = await run_remote_backward(
                     span_uids,
                     stub,
                     sequence_manager.rpc_info,
-                    inputs,
-                    grad_outputs,
-                    prompts[span.start : span.end],
-                    timeout=sequence_manager.config.request_timeout,
+                    *flat_tensors,
+                    config=sequence_manager.config,
                     metadata=MSGPackSerializer.dumps(metadata),
                 )
                 grad_outputs = [grad_outputs]

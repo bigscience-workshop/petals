@@ -16,13 +16,13 @@ logger = get_logger()
 
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--model", type=str, default="bigscience/bloom")
-    parser.add_argument("--initial_peers", type=str, nargs="+", default=PUBLIC_INITIAL_PEERS)
-    parser.add_argument("--torch_dtype", type=str, default="bfloat16")
-    parser.add_argument("--n_processes", type=str, default=1)
-    parser.add_argument("--seq_len", type=int, default=2048)
-    parser.add_argument("--warmup_steps", type=int, default=1)
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument("--model", type=str, required=True, help="Model")
+    parser.add_argument("--initial_peers", type=str, nargs="+", default=PUBLIC_INITIAL_PEERS, help="Initial peers")
+    parser.add_argument("--torch_dtype", type=str, default="float32", help="Torch dtype")
+    parser.add_argument("--n_processes", type=str, default=1, help="Number of concurrent processes")
+    parser.add_argument("--seq_len", type=int, default=2048, help="Sequence length")
+    parser.add_argument("--warmup_steps", type=int, default=1, help="Number of warmup steps")
     args = parser.parse_args()
 
     if args.n_processes == "n_gpus":
@@ -30,15 +30,19 @@ def main():
     else:
         args.n_processes = int(args.n_processes)
 
-    processes = [mp.Process(target=benchmark_inference, args=(i, args)) for i in range(args.n_processes)]
+    pipe_recv, pipe_send = mp.Pipe(duplex=False)
+    processes = [mp.Process(target=benchmark_inference, args=(i, args, pipe_send)) for i in range(args.n_processes)]
     for proc in processes:
         proc.start()
     for proc in processes:
         proc.join()
 
+    speed = np.mean([pipe_recv.recv() for _ in range(args.n_processes)])
+    logger.info(f"Final result: {speed=:.2f}")
+
 
 @torch.inference_mode()
-def benchmark_inference(process_idx, args):
+def benchmark_inference(process_idx, args, result_pipe):
     tokenizer = AutoTokenizer.from_pretrained(args.model, use_fast=False)
     # Using use_fast=False since LlamaTokenizerFast takes a long time to start, and we decode 1 token at a time anyway
 
@@ -61,7 +65,7 @@ def benchmark_inference(process_idx, args):
                 speed = 1 / np.mean(step_times)
                 logger.info(f"{process_idx=} {step=} {speed=:.2f}")
 
-    logger.info(f"Final result: {process_idx=} {speed=:.2f}")
+    result_pipe.send(speed)
 
 
 if __name__ == "__main__":

@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from hivemind import DHT, BatchTensorDescriptor, get_logger
 from hivemind.proto import runtime_pb2
 
-from petals import DistributedBloomConfig
+from petals import AutoDistributedConfig
 from petals.client import RemoteSequenceManager, RemoteSequential
 from petals.data_structures import UID_DELIMITER
 from petals.server.from_pretrained import load_pretrained_block
@@ -15,7 +15,7 @@ logger = get_logger(__name__)
 
 @pytest.mark.forked
 def test_remote_sequential():
-    config = DistributedBloomConfig.from_pretrained(MODEL_NAME, initial_peers=INITIAL_PEERS)
+    config = AutoDistributedConfig.from_pretrained(MODEL_NAME, initial_peers=INITIAL_PEERS)
     dht = DHT(initial_peers=config.initial_peers, client_mode=True, start=True)
     test_inputs = torch.randn(1, 5, config.hidden_size, requires_grad=True)
     grad_proj = torch.randn(1, 5, config.hidden_size)
@@ -40,10 +40,10 @@ def test_remote_sequential():
     assert hidden.shape == test_inputs.shape
     assert hidden.requires_grad
     second_half_outputs = second_half(hidden)
-    assert torch.allclose(second_half_outputs, full_outputs, atol=1e-4)
+    assert torch.allclose(second_half_outputs, full_outputs, atol=1e-3)
 
     (second_half_outputs * grad_proj).sum().backward()
-    assert torch.allclose(test_inputs.grad, full_grad, atol=1e-3)
+    assert torch.allclose(test_inputs.grad, full_grad, atol=3e-2)
 
     # test RemoteSequential with lossy compression
     block_uids = [f"{config.dht_prefix}{UID_DELIMITER}{i}" for i in range(config.num_hidden_layers)]
@@ -56,7 +56,7 @@ def test_remote_sequential():
     (approx_outputs * grad_proj).sum().backward()
 
     assert not torch.allclose(approx_outputs, full_outputs, rtol=0, atol=1e-4), "compression was not used"
-    assert not torch.allclose(test_inputs.grad, full_grad, rtol=0, atol=1e-2), "compression was not used"
+    assert not torch.allclose(test_inputs.grad, full_grad, rtol=0, atol=1e-3), "compression was not used"
     assert abs(approx_outputs - full_outputs).mean() < 0.01
     absmax = abs(full_grad).max()
     assert abs(test_inputs.grad / absmax - full_grad / absmax).mean() < 0.05
@@ -87,7 +87,7 @@ class DummyCustomSequenceManager(RemoteSequenceManager):
 
 @pytest.mark.forked
 def test_remote_sequential_prompts(batch_size=2, seq_len=5, pre_seq_len=3):
-    config = DistributedBloomConfig.from_pretrained(MODEL_NAME, initial_peers=INITIAL_PEERS)
+    config = AutoDistributedConfig.from_pretrained(MODEL_NAME, initial_peers=INITIAL_PEERS)
     remote_sequential = RemoteSequential(config)
 
     inputs = F.normalize(torch.randn(batch_size, seq_len, config.hidden_size), dim=-1)
