@@ -114,7 +114,7 @@ def test_greedy_generation(tokenizer, model, ref_model, max_new_tokens=4):
 
 
 @pytest.mark.forked
-def test_sampling(tokenizer, model, ref_model, max_new_tokens=4):
+def test_sampling(tokenizer, model, ref_model, max_new_tokens=10):
     inputs_single = tokenizer("A cat sat on a mat", return_tensors="pt")["input_ids"]
 
     if tokenizer.pad_token_id is None:
@@ -124,26 +124,21 @@ def test_sampling(tokenizer, model, ref_model, max_new_tokens=4):
     ]
 
     for options in [
-        dict(do_sample=True),
-        dict(do_sample=True, temperature=0.5),
-        dict(do_sample=True, temperature=0.5, top_k=5),
         dict(do_sample=True, temperature=0.5, top_k=5, top_p=0.9),
-        dict(do_sample=True, temperature=0.5, top_k=5, top_p=0.9, multiple_calls=True),
         dict(do_sample=True, temperature=0.5, repetition_penalty=1.2),
     ]:
         options.update(max_new_tokens=max_new_tokens)
-        multiple_calls = options.pop("multiple_calls", False)
+        for multiple_calls in [False, True]:
+            for inputs in [inputs_single, inputs_batch]:
+                torch.manual_seed(0)
+                outputs = make_generate_calls(model, inputs, multiple_calls=multiple_calls, **options)
 
-        for inputs in [inputs_single, inputs_batch]:
-            torch.manual_seed(0)
-            outputs = make_generate_calls(model, inputs, multiple_calls=multiple_calls, **options)
+                torch.manual_seed(0)
+                ref_outputs = ref_model.generate(inputs, **options)
 
-            torch.manual_seed(0)
-            ref_outputs = ref_model.generate(inputs, **options)
-
-            assert torch.allclose(
-                outputs, ref_outputs
-            ), f"Sampling is not identical to HF with {options=}, {inputs.shape=}"
+                assert torch.allclose(
+                    outputs, ref_outputs
+                ), f"Sampling is not identical to HF with {options=}, {multiple_calls=}, {inputs.shape=}"
 
 
 @pytest.mark.forked

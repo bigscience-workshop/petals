@@ -1,5 +1,6 @@
 import contextlib
 import dataclasses
+from contextvars import ContextVar
 from typing import ContextManager, List, Optional
 
 import torch
@@ -24,7 +25,19 @@ class RemotePastKeyValues:
         return [DUMMY]  # For compatibility with BloomForCausalLM.prepare_inputs_for_generation()
 
 
-class RemoteGenerationMixin:
+_skipped_tokens = ContextVar("skipped_tokens", default=0)
+
+
+class _SkipTokensMixin:
+    # This override is used in RemoteGenerationMixin by has to be defined in a class not named as "GenerationMixin"
+    # due to how transformers.PreTrainedModel.can_generate() works
+    def prepare_inputs_for_generation(self, input_ids: torch.LongTensor, **kwargs) -> dict:
+        input_ids = input_ids[:, _skipped_tokens.get() :]
+        _skipped_tokens.set(0)
+        return super().prepare_inputs_for_generation(input_ids, **kwargs)
+
+
+class RemoteGenerationMixin(_SkipTokensMixin):
     """
     This class is an upgrade to `transformers.GenerationMixin` that:
 
@@ -77,33 +90,35 @@ class RemoteGenerationMixin:
             context_manager = self.inference_session(max_length=session_max_length)
 
         with context_manager as session:
-            # Prepend the last tokens from the previous .generate() call
-            resuming_session = session.last_token_id is not None
-            if resuming_session:
+            # Prepend the tokens from the previous .generate() call
+            n_prev_tokens = session.output_ids.shape[1] if session.output_ids is not None else 0
+            if n_prev_tokens > 0:
                 if kwargs.get("num_beams", 1) > 1:
                     logger.warning(
                         "Beam search will not work properly in the resumed petals.InferenceSession "
                         "since intermediate beam entries are lost"
                     )
 
-                assert session.last_token_id.shape[1] == 1, f"{session.last_token_id.shape=} is invalid"
                 if inputs is not None:
-                    inputs = torch.cat([session.last_token_id, inputs], dim=1)
+                    inputs = torch.cat([session.output_ids, inputs], dim=1)
                 else:
-                    inputs = session.last_token_id
+                    inputs = session.output_ids
+
+                # Don't actually run all previous tokens through the transformer,
+                # but keep them for transformers.GenerationMixin (e.g., to compute repetition_penalty)
+                _skipped_tokens.set(max(0, n_prev_tokens - 1))
 
             result = super().generate(inputs, *args, **kwargs)
 
             sequences = result.sequences if isinstance(result, ModelOutput) else result
+            # Save tokens from this .generate() call
+            session.output_ids = sequences
             # Crop the last tokens from the previous call
-            if resuming_session:
-                sequences = sequences[:, 1:]
-                if isinstance(result, ModelOutput):
-                    result.sequences = sequences
-                else:
-                    result = sequences
-            # Save the last tokens from this call
-            session.last_token_id = sequences[:, -1:]
+            sequences = sequences[:, n_prev_tokens:].clone()
+            if isinstance(result, ModelOutput):
+                result.sequences = sequences
+            else:
+                result = sequences
 
         return result
 
