@@ -18,7 +18,7 @@ from petals.server.task_pool import PrioritizedTaskPool
 from petals.server.task_prioritizer import TaskPrioritizerBase
 from petals.utils.convert_block import QuantType
 from petals.utils.misc import DUMMY, is_dummy
-from petals.utils.packaging import unpack_args_kwargs
+from petals.utils.packaging import unpack_args_kwargs, pack_args_kwargs
 
 # We prioritize short inference requests and make them use a *merged* inference pool,
 # so they are processed without interruptions and extra overheads
@@ -86,9 +86,9 @@ async def run_rpc_backward(
     active_adapter: str = "",
     prioritizer: TaskPrioritizerBase,
     points: int = 0,
-    structure: Any,
-) -> Union[torch.Tensor, Sequence[torch.Tensor]]:
-    (hidden_states, grad_outputs, prompts), backend_kwargs = _check_inputs(requested_backends, flat_tensors, structure)
+    args_structure: Any,
+) -> Tuple[Sequence[torch.Tensor], Any]:
+    (hidden_states, grad_outputs, prompts), backend_kwargs = _check_inputs(requested_backends, flat_tensors, args_structure)
     # Cast inputs & grad outputs to backend dtype
     assert hidden_states.ndim == 3
     num_tokens = hidden_states.shape[0] * hidden_states.shape[1]
@@ -124,22 +124,26 @@ async def run_rpc_backward(
 
     assert len(inter_inputs) == len(prompts) == len(requested_backends), "internal shape error during backward"
     grad_prompts_reversed = []
+    grad_backend_kwargs_reversed = []
+
     # Run a chain of requested backends
     for inp, prompt, backend, kwargs in reversed(list(zip(inter_inputs, prompts, requested_backends, backend_kwargs))):
         assert isinstance(backend.inference_pool, PrioritizedTaskPool), "petals support only prioritized pools"
         priority = prioritizer.prioritize(
             inp, grad_outputs, points=points / len(requested_backends), backend=backend, type="backward"
         )
-        (grad_outputs,) = await backend.backward_pool.submit_task(
+        (grad_outputs,), grad_kwargs = await backend.backward_pool.submit_task(
             active_adapter, grad_outputs, inp, **kwargs, priority=priority, size=num_tokens
         )
 
         assert isinstance(grad_outputs, torch.Tensor)
         if not is_dummy(prompt):
             grad_prompts_reversed.append(grad_outputs[:, : prompt.shape[1]].unsqueeze(0))
+        grad_backend_kwargs_reversed.append(grad_kwargs)
 
     grad_prompts = torch.cat(grad_prompts_reversed[::-1], dim=0) if grad_prompts_reversed else DUMMY
-    return [grad_outputs] if is_dummy(grad_prompts) else [grad_outputs, grad_prompts]  # TODO un-duct-tape
+    grad_args = [grad_outputs] if is_dummy(grad_prompts) else [grad_outputs, grad_prompts]
+    return pack_args_kwargs((grad_args, reversed(grad_backend_kwargs_reversed)))
 
 
 async def iterate_rpc_inference(
@@ -153,7 +157,7 @@ async def iterate_rpc_inference(
     prioritizer: TaskPrioritizerBase,
     points: int,
     quant_type: QuantType,
-    structure: Any = None,
+    args_structure: Any = None,
 ) -> AsyncIterator[Tuple[Sequence[runtime_pb2.Tensor], bool]]:
     assert len(cache_handles) == len(requested_backends)
 
@@ -162,7 +166,7 @@ async def iterate_rpc_inference(
 
     async for request, step_metadata in input_iterator:
         flat_tensors = tuple(deserialize_torch_tensor(tensor) for tensor in request.tensors)
-        (hidden_states, prompts, hypo_ids), backend_kwargs = _check_inputs(requested_backends, flat_tensors, structure)
+        (hidden_states, prompts, hypo_ids), backend_kwargs = _check_inputs(requested_backends, flat_tensors, args_structure)
         batch_size, length_increment, _ = hidden_states.shape
         num_tokens = batch_size * length_increment
 

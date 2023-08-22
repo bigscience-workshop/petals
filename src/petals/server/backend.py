@@ -111,18 +111,22 @@ class TransformerBackend(ModuleBackend):
 
     def backward(
         self, active_adapter: Optional[str], grad_outputs: torch.Tensor, *args, **kwargs
-    ) -> Tuple[torch.Tensor, ...]:
+    ) -> Tuple[Union[torch.Tensor, Any], ...]:
         args = [x.detach().requires_grad_(True) if x.is_floating_point() else x.detach() for x in args]
-        # TODO remove this WITHIN PR#467; make sure args are passed properly and retain requires_grad
+        # ^-- TODO remove this AFTER PR#467; make sure args are passed properly and retain requires_grad
         assert any(x.requires_grad for x in nested_flatten((args, kwargs)) if isinstance(x, torch.Tensor))
         with self._peft_module.using_adapter(active_adapter), torch.enable_grad():
             (outputs,) = self.module(*args, **kwargs)
             assert isinstance(outputs, torch.Tensor) and outputs.shape == grad_outputs.shape
             torch.autograd.backward((outputs,), grad_tensors=(grad_outputs,), create_graph=False, retain_graph=False)
-        # flat_tensors, structure = pack_args_kwargs(nested_map(
-        #     lambda x: x.grad if isinstance(x.grad, torch.Tensor) and x.requires_grad else None, (args, kwargs))
-        # )
-        return (args[0].grad,)  # TODO pass additional kwarg-grads back to the user WITHIN #467
+        return nested_map(self._get_grad_if_required, (args, kwargs))
+
+    @staticmethod
+    def _get_grad_if_required(input: Any) -> Optional[torch.Tensor]:
+        """Get grad w.r.t. input if input is a tensor that requires grad; otherwise return None"""
+        if isinstance(input, torch.Tensor) and input.requires_grad:
+            return input.grad if input.grad is not None else torch.zeros_like(input)
+        return None
 
     @torch.inference_mode()
     def inference_step(
