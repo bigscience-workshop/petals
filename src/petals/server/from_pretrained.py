@@ -109,7 +109,7 @@ def _load_state_dict_from_repo(
             raise RuntimeError(f"Block {block_prefix}* not found in the index: {index['weight_map']}")
     else:  # Non-sharded model
         filenames = {index_file}
-    logger.info(f"Loading {block_prefix}* from {filenames}")
+    logger.debug(f"Loading {block_prefix}* from {filenames}")
 
     state_dict = {}
     for filename in filenames:
