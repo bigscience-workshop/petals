@@ -502,15 +502,19 @@ class TransformerConnectionHandler(ConnectionHandler):
     ) -> Sequence[runtime_pb2.Tensor]:
         """Serialize backward gradients w.r.t. inputs using either default schema or custom user-specified schema"""
         inputs_with_grad = tuple(input for input in flat_inputs if input.requires_grad)
-        assert len(flat_grads) == len(inputs_with_grad), f"user provides {len(inputs_with_grad)} inputs with grad, " \
-                                                         f"but backward produced {len(flat_grads)} gradients"
+        assert len(flat_grads) == len(inputs_with_grad), (
+            f"user provides {len(inputs_with_grad)} inputs with grad, "
+            f"but backward produced {len(flat_grads)} gradients"
+        )
         # Modify grad_inputs_schema to support grad_prompts
         if input_metadata.get("output_compression") is not None:
             output_compression = input_metadata["output_compression"]
             assert isinstance(output_compression, (list, tuple)), "output_compression must be a tuple/list"
             assert all(isinstance(c, int) for c in output_compression), "output_compression must contain integers"
-            assert len(output_compression) == len(flat_grads), f"output_compression should have {len(flat_grads)} " \
-                                                               f"elements, one for every tensor thar requires grad"
+            assert len(output_compression) == len(flat_grads), (
+                f"output_compression should have {len(flat_grads)} "
+                f"elements, one for every tensor thar requires grad"
+            )
         else:
             output_compression = tuple(runtime_pb2.NONE for _ in flat_grads)
         output_compression = tuple(output_compression)
