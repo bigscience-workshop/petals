@@ -368,7 +368,7 @@ class TransformerConnectionHandler(ConnectionHandler):
                 prioritizer=self._prioritizer,
                 active_adapter=active_adapter,
                 points=points,
-                structure=args_structure,
+                args_structure=args_structure,
             )
             return runtime_pb2.ExpertResponse(
                 tensors=self._serialize_outputs(hidden_states, requested_backends, metadata)
@@ -397,7 +397,7 @@ class TransformerConnectionHandler(ConnectionHandler):
                 prioritizer=self._prioritizer,
                 active_adapter=active_adapter,
                 points=points,
-                structure=args_structure,
+                args_structure=args_structure,
             )
 
             # Split the serialized_output for streaming and respond to client
