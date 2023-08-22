@@ -3,7 +3,7 @@ import json
 import os
 import re
 import tempfile
-import threading
+from contextvars import ContextVar
 from typing import List, Optional, Tuple, Union
 
 import torch
@@ -47,18 +47,16 @@ class FromPretrainedMixin:
     )
 
 
-_shard_config = threading.local()
-_shard_config.ignored_keys = None
+_ignored_keys = ContextVar("ignored_keys", default=None)
 
 
 @contextlib.contextmanager
 def ignore_keys(patterns: List[str]):
+    token = _ignored_keys.set(patterns)
     try:
-        prev_patterns = _shard_config.ignored_keys
-        _shard_config.ignored_keys = patterns
         yield
     finally:
-        _shard_config.ignored_keys = prev_patterns
+        _ignored_keys.reset(token)
 
 
 def patched_get_checkpoint_shard_files(
@@ -66,7 +64,7 @@ def patched_get_checkpoint_shard_files(
 ) -> Tuple[List[str], dict]:
     """Same as modeling_utils.get_checkpoint_shard_files(), but does not download shards for the ignored keys."""
 
-    should_ignore_keys = _shard_config.ignored_keys is not None
+    should_ignore_keys = _ignored_keys.get() is not None
     tempdir_ctx = tempfile.TemporaryDirectory() if should_ignore_keys else contextlib.nullcontext()
     with tempdir_ctx as tempdir:
         if should_ignore_keys:
@@ -77,7 +75,7 @@ def patched_get_checkpoint_shard_files(
             index["weight_map"] = {
                 param_name: filename
                 for param_name, filename in index["weight_map"].items()
-                if all(re.search(pattern, param_name) is None for pattern in _shard_config.ignored_keys)
+                if all(re.search(pattern, param_name) is None for pattern in _ignored_keys.get())
             }
             n_loaded_shards = len(set(index["weight_map"].values()))
             logger.debug(f"Loading {n_loaded_shards} shards out of {n_original_shards}")
