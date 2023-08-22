@@ -230,7 +230,7 @@ class _RemoteSequentialAutogradFunction(torch.autograd.Function):
     def forward(ctx, inputs: torch.Tensor, prompts: torch.Tensor, sequence_manager: RemoteSequenceManager):
         batch_size = max(MAX_TOKENS_IN_BATCH // inputs.shape[1], 1)
         input_batches: Sequence[torch.Tensor] = inputs.detach().split(batch_size)
-        if is_dummy(prompts):
+        if prompts is None or is_dummy(prompts):
             prompt_batches = [DUMMY] * len(input_batches)
         else:
             prompt_batches: Sequence[torch.Tensor] = prompts.detach().split(batch_size, dim=1)
