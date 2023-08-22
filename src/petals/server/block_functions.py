@@ -202,7 +202,7 @@ async def iterate_rpc_inference(
             hypo_ids,
             points=point_per_piece,
             requested_uids=requested_uids,
-            type="short_inference" if can_merge_pools else "inference",
+            type="inference",
         )
 
         # A client may pass a tensor with 0 tokens. This is a special case that occurs, e.g.

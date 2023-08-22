@@ -230,7 +230,7 @@ class InferenceSession:
         self._server_sessions = []
         self._position = 0
         self._max_length = max_length
-        self.last_token_id = None
+        self.output_ids = None
 
     @property
     def num_blocks(self) -> int:
@@ -377,3 +377,13 @@ class InferenceSession:
 
     def __del__(self):
         self.close()
+
+    @property
+    def last_token_id(self) -> Optional[torch.Tensor]:  # Backward compatibility with Petals < 2.1.0
+        return self.output_ids[:, -1:] if self.output_ids is not None else None
+
+    @last_token_id.setter
+    def last_token_id(self, value: torch.Tensor):  # Backward compatibility with Petals < 2.1.0
+        if self.output_ids is None:
+            raise RuntimeError("Can't override `last_token_id` since the session has not stepped yet")
+        self.output_ids[:, -1:] = value
