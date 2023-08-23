@@ -20,6 +20,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Increase swap space
+        if: ${{ matrix.os == 'ubuntu' }}
         uses: pierotofy/set-swap-space@master
         with:
           swap-size-gb: 10
