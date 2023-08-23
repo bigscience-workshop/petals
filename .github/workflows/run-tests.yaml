@@ -7,17 +7,16 @@ on:
 
 jobs:
   run-tests:
-    runs-on: ubuntu-latest
     strategy:
       matrix:
         include:
-          - { model: 'bigscience/bloom-560m', python-version: '3.8' }
-          - { model: 'bigscience/bloom-560m', python-version: '3.9' }
-          - { model: 'bigscience/bloom-560m', python-version: '3.10' }
-          - { model: 'bigscience/bloom-560m', python-version: '3.11' }
-          - { model: 'Maykeye/TinyLLama-v0', python-version: '3.8' }
-          - { model: 'Maykeye/TinyLLama-v0', python-version: '3.11' }
+          - { model: 'bigscience/bloom-560m', os: 'ubuntu', python-version: '3.8' }
+          - { model: 'bigscience/bloom-560m', os: 'ubuntu', python-version: '3.11' }
+          - { model: 'Maykeye/TinyLLama-v0', os: 'ubuntu', python-version: '3.8' }
+          - { model: 'Maykeye/TinyLLama-v0', os: 'ubuntu', python-version: '3.11' }
+          - { model: 'Maykeye/TinyLLama-v0', os: 'macos', python-version: '3.11' }
       fail-fast: false
+    runs-on: ${{ matrix.os }}-latest
     timeout-minutes: 15
     steps:
       - name: Increase swap space
