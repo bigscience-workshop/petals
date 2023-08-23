@@ -74,7 +74,8 @@ def load_pretrained_block(
             param = param.to(torch_dtype)
         set_module_tensor_to_device(block, param_name, "cpu", value=param, dtype=param.dtype)
 
-    logger.info(f"Loaded {model_name} block {block_index}, {report}")
+    logger.info(f"Loaded {model_name} block {block_index}")
+    logger.debug(f"Details: {report}")
     return block
 
 
