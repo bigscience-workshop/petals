@@ -8,6 +8,23 @@ from hivemind.moe.server.runtime import Runtime
 from petals.server.task_pool import PrioritizedTaskPool
 
 
+def _process_tasks(pools, results_valid):
+    futures = []
+    futures.append(pools[0].submit_task(torch.tensor([0]), priority=1))
+    futures.append(pools[0].submit_task(torch.tensor([1]), priority=1))
+    time.sleep(0.01)
+    futures.append(pools[1].submit_task(torch.tensor([2]), priority=1))
+    futures.append(pools[0].submit_task(torch.tensor([3]), priority=2))
+    futures.append(pools[0].submit_task(torch.tensor([4]), priority=10))
+    futures.append(pools[0].submit_task(torch.tensor([5]), priority=0))
+    futures.append(pools[0].submit_task(torch.tensor([6]), priority=1))
+    futures.append(pools[1].submit_task(torch.tensor([7]), priority=11))
+    futures.append(pools[1].submit_task(torch.tensor([8]), priority=1))
+    for i, f in enumerate(futures):
+        assert f.result()[0].item() == i**2
+    results_valid.set()
+
+
 @pytest.mark.forked
 def test_priority_pools():
     outputs_queue = mp.SimpleQueue()
@@ -34,23 +51,7 @@ def test_priority_pools():
     runtime = Runtime({str(i): DummyBackend([pool]) for i, pool in enumerate(pools)}, prefetch_batches=0)
     runtime.start()
 
-    def process_tasks():
-        futures = []
-        futures.append(pools[0].submit_task(torch.tensor([0]), priority=1))
-        futures.append(pools[0].submit_task(torch.tensor([1]), priority=1))
-        time.sleep(0.01)
-        futures.append(pools[1].submit_task(torch.tensor([2]), priority=1))
-        futures.append(pools[0].submit_task(torch.tensor([3]), priority=2))
-        futures.append(pools[0].submit_task(torch.tensor([4]), priority=10))
-        futures.append(pools[0].submit_task(torch.tensor([5]), priority=0))
-        futures.append(pools[0].submit_task(torch.tensor([6]), priority=1))
-        futures.append(pools[1].submit_task(torch.tensor([7]), priority=11))
-        futures.append(pools[1].submit_task(torch.tensor([8]), priority=1))
-        for i, f in enumerate(futures):
-            assert f.result()[0].item() == i**2
-        results_valid.set()
-
-    proc = mp.Process(target=process_tasks)
+    proc = mp.Process(target=_process_tasks, args=(pools, results_valid))
     proc.start()
     proc.join()
     assert results_valid.is_set()
