@@ -10,8 +10,10 @@ import transformers
 from accelerate import init_empty_weights
 from hivemind.utils.logging import get_logger
 from huggingface_hub import HfFileSystem, get_hf_file_metadata, hf_hub_url
+from peft.config import PeftConfig
 from peft.tuners import lora
-from peft.utils import COMMON_LAYERS_PATTERN, CONFIG_NAME, SAFETENSORS_WEIGHTS_NAME, PeftConfig
+from peft.tuners.tuners_utils import BaseTunerLayer
+from peft.utils import COMMON_LAYERS_PATTERN, CONFIG_NAME, SAFETENSORS_WEIGHTS_NAME
 from safetensors import safe_open
 from safetensors.torch import load_file
 from transformers.utils import get_file_from_repo
@@ -151,6 +153,8 @@ class AdapterContextMixin:
     def active_adapter(self, value: Optional[str]):
         assert value == self.ADAPTER_NOT_SET, "active adapter can only be changed via .using_adapter" ""
 
+
+BaseTunerLayer.active_adapter = AdapterContextMixin.active_adapter
 
 using_adapter = AdapterContextMixin.using_adapter
 
