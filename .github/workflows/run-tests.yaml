@@ -59,7 +59,7 @@ jobs:
           export INITIAL_PEERS=/ip4/127.0.0.1/tcp/31337/p2p/QmS9KwZptnVdB9FFV7uGgaTq4sEKBwcYeKZDfSpyKDUd1g
           # ^-- multiaddr in INITIAL_PEERS is determined by --identity_path and --host_maddrs
 
-          sleep ${{ matrix.os == 'ubuntu' && '5' || '20' }}  # wait for DHT init
+          sleep ${{ matrix.os == 'ubuntu' && '5' || '30' }}  # wait for DHT init
 
           python -m petals.cli.run_server $MODEL_NAME --adapters $ADAPTER_NAME --torch_dtype float32 --num_blocks 5 \
             --mean_balance_check_period 10 \
