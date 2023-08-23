@@ -51,7 +51,7 @@ def test_priority_pools():
     runtime = Runtime({str(i): DummyBackend([pool]) for i, pool in enumerate(pools)}, prefetch_batches=0)
     runtime.start()
 
-    proc = mp.Process(target=_process_tasks, args=(pools, results_valid))
+    proc = mp.context.ForkProcess(target=_process_tasks, args=(pools, results_valid))
     proc.start()
     proc.join()
     assert results_valid.is_set()
