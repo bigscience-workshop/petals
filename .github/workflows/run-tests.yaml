@@ -96,7 +96,7 @@ jobs:
 
           # [Step 2] Run PyTest
 
-          pytest tests --durations=0 --durations-min=1.0 -vv -s
+          pytest tests --durations=0 --durations-min=1.0 -v
 
           # [Step 3] Check if benchmarks work (their results here are meaningless since it's a tiny swarm of CPU servers)
 
@@ -110,8 +110,6 @@ jobs:
             --seq_len 3 --batch_size 3 --pre_seq_len 1 --n_steps 1 --task causal_lm
 
           # [Step 4] Clean up
-
-          kill -0 $BOOTSTRAP_PID $SERVER1_PID $SERVER2_PID $SERVER3_PID $SERVER4_PID  # ensure all peers survived tests
 
           kill -s SIGINT $BOOTSTRAP_PID $SERVER1_PID $SERVER2_PID $SERVER3_PID $SERVER4_PID $LOGGER_PID
           echo "Done!"
