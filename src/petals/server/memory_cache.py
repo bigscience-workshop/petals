@@ -144,7 +144,6 @@ class MemoryCache:
             context_manager = async_timeout.timeout(timeout) if timeout != 0 else contextlib.AsyncExitStack()
             # contextlib.AsyncExitStack() is used as a null context here
             async with context_manager:
-                # the code below uses double-checked locking: https://en.wikipedia.org/wiki/Double-checked_locking
                 if timeout == 0 and self.current_size_bytes + self.enqueued_size_bytes > self.max_size_bytes:
                     raise AllocationFailed(f"Could not allocate {alloc_size} bytes immediately: out of memory")
                 async with enter_asynchronously(self._lock_acquire_memory):
