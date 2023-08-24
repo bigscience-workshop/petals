@@ -157,15 +157,15 @@ class AdapterContextMixin:
 using_adapter = AdapterContextMixin.using_adapter
 
 
-class LoraLinear(lora.Linear, AdapterContextMixin):
+class LoraLinear(AdapterContextMixin, lora.Linear):
     """LoRA linear layer that uses adapter selected via using_adapter"""
 
 
-class LoraLinear8bitLt(lora.Linear8bitLt, AdapterContextMixin):
+class LoraLinear8bitLt(AdapterContextMixin, lora.Linear8bitLt):
     """LoRA linear 8-bit with outliers that uses adapter selected via using_adapter"""
 
 
-class LoraLinear4bit(lora.Linear4bit, AdapterContextMixin):
+class LoraLinear4bit(AdapterContextMixin, lora.Linear4bit):
     """LoRA linear 4-bit that uses adapter selected via using_adapter"""
 
 
