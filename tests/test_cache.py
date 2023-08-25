@@ -36,7 +36,7 @@ async def test_cache_timeout():
                     async with cache.allocate_cache(_make_tensor_descriptor(768), timeout=0.1):
                         pass
                 assert 0.1 < time.perf_counter() - t_start < 0.2, "wait time exceeds alloc timeout"
-                async with cache.allocate_cache(_make_tensor_descriptor(128), timeout=float('inf')):
+                async with cache.allocate_cache(_make_tensor_descriptor(128), timeout=float("inf")):
                     pass
 
                 t_start = time.perf_counter()
@@ -54,7 +54,7 @@ async def test_cache_timeout():
 
             t_start = time.perf_counter()
             await asyncio.sleep(0.05)  # wait for large alloc to enqueue
-            async with cache.allocate_cache(_make_tensor_descriptor(128), timeout=float('inf')):  # exceeds max timeout
+            async with cache.allocate_cache(_make_tensor_descriptor(128), timeout=float("inf")):  # exceeds max timeout
                 pass  # this memory should allocate once the background task clears the queue
             assert 0.2 < time.perf_counter() - t_start < 0.3, "memory should be allocated after background task clears"
             with pytest.raises(AllocationFailed):
@@ -81,8 +81,9 @@ async def test_unlimited_timeout():
     async def _klog_the_cache():
         async with cache.allocate_cache(_make_tensor_descriptor(512), timeout=0.2):
             await asyncio.sleep(0.5)
+
     alloc_task = asyncio.create_task(_klog_the_cache())
-    async with cache.allocate_cache(_make_tensor_descriptor(768), timeout=float('inf')):
+    async with cache.allocate_cache(_make_tensor_descriptor(768), timeout=float("inf")):
         await alloc_task
     assert 0.5 < time.perf_counter() - t_start < 0.6, "memory should be allocated after background task clears"
 
