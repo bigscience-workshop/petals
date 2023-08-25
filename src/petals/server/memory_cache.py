@@ -70,7 +70,7 @@ class MemoryCache:
 
     @contextlib.asynccontextmanager
     async def allocate_cache(
-        self, *descriptors: TensorDescriptor, timeout: Optional[float]
+        self, *descriptors: TensorDescriptor, timeout: float
     ) -> AsyncContextManager[Sequence[Handle]]:
         """
         Create a handle that is associated with buffers on unique device. If cache full, raises AllocationFailed.
@@ -87,7 +87,7 @@ class MemoryCache:
         assert os.getpid() != self.runtime_pid, "must be called by a ConnectionHandler, not runtime"
         assert all(descr.device is not None for descr in descriptors), "please specify allocated devices"
         if self.max_alloc_timeout is not None:
-            timeout = min(timeout, self.max_alloc_timeout) if timeout is not None else self.max_alloc_timeout
+            timeout = min(timeout, self.max_alloc_timeout)
         max_alloc_size = self.get_allocation_size(*descriptors)
 
         gib = 1024**3
@@ -116,7 +116,7 @@ class MemoryCache:
         return max(alloc_size_by_device.values())
 
     async def _schedule_alloc(
-        self, alloc_size: int, *descriptors: TensorDescriptor, timeout: Optional[float]
+        self, alloc_size: int, *descriptors: TensorDescriptor, timeout: float
     ) -> Sequence[Handle]:
         """
         This method should be called inside asyncio.shield() because:
