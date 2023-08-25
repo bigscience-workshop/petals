@@ -119,7 +119,7 @@ class TransformerBackend(ModuleBackend):
             (outputs,) = self.module(*args, **kwargs)
             assert isinstance(outputs, torch.Tensor) and outputs.shape == grad_outputs.shape
             torch.autograd.backward((outputs,), grad_tensors=(grad_outputs,), create_graph=False, retain_graph=False)
-        return nested_map(self._get_grad_if_required, (args, kwargs))
+        return nested_map(self._get_grad_if_required, (*args, kwargs))
 
     @staticmethod
     def _get_grad_if_required(input: Any) -> Optional[torch.Tensor]:

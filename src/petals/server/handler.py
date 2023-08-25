@@ -482,7 +482,7 @@ class TransformerConnectionHandler(ConnectionHandler):
                 args_structure=args_structure,
             )
             # Split the serialized_grad_inputs for streaming and respond
-            serialized_output_metadata = MSGPackSerializer.dumps(output_metadata)
+            serialized_output_metadata = MSGPackSerializer.dumps(dict(structure=grad_structure))
             for tensor in self._serialize_grads(flat_grads, requested_backends, metadata):
                 for part in split_for_streaming(tensor, DEFAULT_MAX_MSG_SIZE):
                     yield runtime_pb2.ExpertResponse(tensors=[part], metadata=serialized_output_metadata)
