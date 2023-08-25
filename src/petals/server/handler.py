@@ -533,6 +533,7 @@ class TransformerConnectionHandler(ConnectionHandler):
     async def _allocate_cache(
         self,
         backends: Sequence[TransformerBackend],
+        *,
         batch_size: int,
         max_length: int,
         timeout: Optional[float],
