@@ -157,8 +157,8 @@ class MemoryCache:
                 allocated = True
                 self.enqueued_size_bytes -= alloc_size
                 yield
-        except (TimeoutError, asyncio.TimeoutError) as e:
-            raise AllocationFailed(f"Could not allocate {alloc_size} within {timeout} seconds ({e})")
+        except asyncio.TimeoutError:
+            raise AllocationFailed(f"Could not allocate {alloc_size} within {timeout} seconds")
         finally:
             if not allocated:
                 self.enqueued_size_bytes -= alloc_size
