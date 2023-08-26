@@ -93,6 +93,10 @@ jobs:
 
           # [Step 2] Run PyTest
 
+          # Necessary for @pytest.mark.forked to work properly on macOS, see https://github.com/kevlened/pytest-parallel/issues/93
+          export no_proxy=*
+          export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
+
           pytest tests --durations=0 --durations-min=1.0 -v
 
           # [Step 3] Check if benchmarks work (their results here are meaningless since it's a tiny swarm of CPU servers)
