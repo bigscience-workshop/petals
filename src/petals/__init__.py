@@ -1,6 +1,12 @@
 import os
+import platform
 
 os.environ.setdefault("BITSANDBYTES_NOWELCOME", "1")
+
+if platform.system() == "Darwin":
+    # Necessary for forks to work properly, see https://github.com/kevlened/pytest-parallel/issues/93
+    os.environ.setdefault("no_proxy", "*")
+    os.environ.setdefault("OBJC_DISABLE_INITIALIZE_FORK_SAFETY", "YES")
 
 import hivemind
 import transformers
