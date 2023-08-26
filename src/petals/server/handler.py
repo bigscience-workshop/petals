@@ -168,7 +168,7 @@ class TransformerConnectionHandler(ConnectionHandler):
                 batch_size = request.tensors[0].size[0] if request.tensors else 1
 
                 async with self._allocate_cache(
-                    requested_backends, batch_size, max_length, alloc_timeout
+                    requested_backends, batch_size=batch_size, max_length=max_length, timeout=alloc_timeout
                 ) as cache_handles:
                     background_tasks = set()
                     async for output_tensors, can_push in iterate_rpc_inference(
