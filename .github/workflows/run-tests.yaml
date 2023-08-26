@@ -48,9 +48,6 @@ jobs:
           export ADAPTER_NAME="${{ matrix.model == 'bigscience/bloom-560m' && 'artek0chumak/bloom-560m-safe-peft' || '' }}"
           export TENSOR_PARALLEL_ARGS="${{ matrix.model == 'bigscience/bloom-560m' && '--tensor_parallel_devices cpu cpu' || '' }}"
 
-          export no_proxy=*  # See https://github.com/kevlened/pytest-parallel/issues/93#issuecomment-839913651
-          export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
-
           # [Step 1] Set up a tiny test swarm (see https://github.com/bigscience-workshop/petals/wiki/Launch-your-own-swarm)
 
           python -m petals.cli.run_dht \
