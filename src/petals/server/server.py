@@ -153,7 +153,12 @@ class Server:
         self.should_validate_reachability = not skip_reachability_check and initial_peers == PUBLIC_INITIAL_PEERS
 
         if device is None:
-            device = "cuda" if torch.cuda.is_available() else "cpu"
+            if torch.cuda.is_available():
+                device = "cuda"
+            elif torch.backends.mps.is_available():
+                device = "mps"
+            else:
+                device = "cpu"
         device = torch.device(device)
         if device.type == "cuda" and device.index is None:
             device = torch.device(device.type, index=0)
@@ -373,6 +378,8 @@ class Server:
                 f"Cleaning up, left {allocated_vram / gib:.1f} GiB allocated memory, "
                 f"{reserved_vram / gib:.1f} GiB reserved memory"
             )
+        elif self.device.type == "mps":
+            torch.mps.empty_cache()
 
     def _choose_blocks(self) -> List[int]:
         if self.strict_block_indices is not None:
