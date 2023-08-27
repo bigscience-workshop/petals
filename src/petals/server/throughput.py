@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Dict, Optional, Sequence, Union
 
 import torch
+import torch.mps
 from hivemind.utils.logging import get_logger
 from transformers import PretrainedConfig
 
