@@ -8,6 +8,9 @@ if platform.system() == "Darwin":
     os.environ.setdefault("no_proxy", "*")
     os.environ.setdefault("OBJC_DISABLE_INITIALIZE_FORK_SAFETY", "YES")
 
+    # Forward passes may freeze without that
+    os.environ.setdefault("OMP_NUM_THREADS", "1")
+
 import hivemind
 import transformers
 from packaging import version
