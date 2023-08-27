@@ -167,6 +167,13 @@ class Server:
         self.device = device
 
         torch_dtype = resolve_block_dtype(self.block_config, DTYPE_MAP[torch_dtype])
+        if device.type == "cpu" and torch_dtype == torch.float16:
+            raise ValueError(
+                f"Type float16 is not supported on CPU. Please use --torch_dtype float32 or --torch_dtype bfloat16"
+            )
+        if device.type == "mps" and torch_dtype == torch.bfloat16:
+            logger.warning(f"Type bfloat16 is not supported on MPS, using float16 instead")
+            torch_dtype = torch.float16
         self.torch_dtype = torch_dtype
 
         if tensor_parallel_devices is None:
