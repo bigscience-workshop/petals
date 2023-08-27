@@ -9,6 +9,7 @@ import time
 from typing import Dict, List, Optional, Sequence, Union
 
 import hivemind
+import psutil
 import torch
 import torch.mps
 from hivemind import DHT, MAX_DHT_TIME_DISCREPANCY_SECONDS, BatchTensorDescriptor, get_dht_time
@@ -259,13 +260,14 @@ class Server:
         self.stop = threading.Event()
 
     def _choose_num_blocks(self) -> int:
-        assert self.device.type == "cuda", (
+        assert self.device.type in ("cuda", "mps"), (
             "GPU is not available. If you want to run a CPU-only server, please specify --num_blocks. "
             "CPU-only servers in the public swarm are discouraged since they are much slower"
         )
         num_devices = len(self.tensor_parallel_devices) if self.tensor_parallel_devices else 1
 
         if num_devices > 1:
+            assert self.device.type == "cuda", f"Tensor parallelism is not supported on {self.device.type.upper()}"
             memory_per_device = tuple(
                 torch.cuda.get_device_properties(device).total_memory for device in self.tensor_parallel_devices
             )
@@ -276,8 +278,10 @@ class Server:
                     "Please launch individual servers on each GPU or set --num_blocks manually to "
                     "override this exception."
                 )
-        else:
+        elif self.device.type == "cuda":
             total_memory = torch.cuda.get_device_properties(self.device).total_memory
+        else:
+            total_memory = psutil.virtual_memory().available
 
         gib = 1024**3
         # Estimate of GPU memory used in rpc_backward (2 GiB for BLOOM, proportional for other models)
