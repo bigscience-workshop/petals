@@ -41,6 +41,7 @@ jobs:
           pip install .[dev]
       - name: Test
         run: |
+          set -x  # Print executed commands
           export MODEL_NAME="${{ matrix.model }}"
           export REF_NAME="${{ matrix.model }}"
           export ADAPTER_NAME="${{ matrix.model == 'bigscience/bloom-560m' && 'artek0chumak/bloom-560m-safe-peft' || '' }}"

@@ -76,9 +76,9 @@ def force_non_empty_weights():
     [1] https://github.com/huggingface/transformers/blob/ab9fe45236cd99b8797df78219438f8f6662bb42/src/transformers/modeling_utils.py#L2515
     """
 
+    possibly_patched_register_parameter = nn.Module.register_parameter
+    nn.Module.register_parameter = _original_register_parameter
     try:
-        possibly_patched_register_parameter = nn.Module.register_parameter
-        nn.Module.register_parameter = _original_register_parameter
         yield
     finally:
         nn.Module.register_parameter = possibly_patched_register_parameter
