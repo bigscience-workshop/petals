@@ -5,6 +5,7 @@ from accelerate import init_empty_weights
 from transformers import PretrainedConfig
 
 from petals.utils.convert_block import QuantType
+from petals.utils.misc import get_size_in_bytes
 
 
 def resolve_block_dtype(config: PretrainedConfig, dtype: Union[str, torch.dtype]) -> torch.dtype:
@@ -37,7 +38,7 @@ def get_block_size(
     if location == "memory":
         if quant_type == QuantType.NONE:
             dtype = resolve_block_dtype(config, dtype)
-            bytes_per_value = torch.finfo(dtype).bits // 8
+            bytes_per_value = get_size_in_bytes(dtype)
         elif quant_type == QuantType.INT8:
             bytes_per_value = 1
         elif quant_type == QuantType.NF4:
@@ -46,6 +47,6 @@ def get_block_size(
             raise ValueError(f"Unsupported quant_type={quant_type}")
     elif location == "disk":
         dtype = resolve_block_dtype(config, "auto")
-        bytes_per_value = torch.finfo(dtype).bits // 8
+        bytes_per_value = get_size_in_bytes(dtype)
 
     return round(n_params * bytes_per_value * (1 + eps))
