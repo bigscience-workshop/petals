@@ -1,7 +1,9 @@
 import argparse
 import logging
+import platform
 
 import configargparse
+import torch
 from hivemind.proto.runtime_pb2 import CompressionType
 from hivemind.utils import limits
 from hivemind.utils.logging import get_logger
@@ -209,6 +211,9 @@ def main():
         args["quant_type"] = QuantType[quant_type.upper()]
 
     validate_version()
+
+    if platform.platform() == "Darwin":
+        torch.set_num_threads(1)
 
     server = Server(
         **args,
