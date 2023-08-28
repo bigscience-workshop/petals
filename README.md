@@ -39,7 +39,7 @@ print(tokenizer.decode(outputs[0]))  # A cat sat on a mat...
 
 💬 **Any questions?** Ping us in [our Discord](https://discord.gg/KdThf2bWVU)!
 
-### Connect your GPU and increase Petals capacity
+## Connect your GPU and increase Petals capacity
 
 Petals is a community-run system &mdash; we rely on people sharing their GPUs. You can check out available models on our [swarm monitor](https://health.petals.dev) and connect your GPU to help serving one of them! As an example, we show how to host a part of [Stable Beluga 2](https://huggingface.co/stabilityai/StableBeluga2) below:
 
