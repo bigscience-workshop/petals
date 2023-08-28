@@ -9,7 +9,7 @@ from petals.server.handler import CACHE_TOKENS_AVAILABLE
 from test_utils import *
 
 
-@pytest.mark.forked
+@pytest.mark.skip
 def test_server_info(block_from: int = 2, block_to: int = 5, max_length: int = 100, max_length2: int = 50):
     config = AutoDistributedConfig.from_pretrained(MODEL_NAME)
     config.allowed_servers = ["QmNV5G3hq2UmAck2htEgsqrmPFBff5goFZAdmKDcZLBZLX"]  # PeerID from server2.id

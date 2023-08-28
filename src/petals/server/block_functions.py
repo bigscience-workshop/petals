@@ -92,7 +92,7 @@ async def run_rpc_backward(
         requested_backends, flat_tensors, args_structure
     )
     # Cast inputs & grad outputs to backend dtype
-    assert hidden_states.ndim == 3
+    assert any(x.requires_grad for x in flat_tensors), "cannot backward: none of the input tensors requires_grad"
     num_tokens = hidden_states.shape[0] * hidden_states.shape[1]
     hidden_states = hidden_states.to(requested_backends[0].dtype)
     grad_outputs = grad_outputs.to(requested_backends[-1].dtype)
