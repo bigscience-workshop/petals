@@ -1,6 +1,5 @@
 import argparse
 import logging
-import platform
 
 import configargparse
 import torch
@@ -212,7 +211,8 @@ def main():
 
     validate_version()
 
-    if platform.platform() == "Darwin":
+    if not torch.backends.openmp.is_available():
+        # Necessary to prevent the server from freezing after forks
         torch.set_num_threads(1)
 
     server = Server(
