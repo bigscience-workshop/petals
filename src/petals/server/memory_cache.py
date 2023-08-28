@@ -179,7 +179,7 @@ class MemoryCache:
             raise AllocationFailed(
                 f"Could not allocate {allocated_size} bytes, max cache size = {self.max_size_bytes} bytes"
             )
-        timeout = timeout if timeout != float('inf') else None
+        timeout = timeout if timeout != float("inf") else None
         deadline = None if timeout is None else time.perf_counter() + timeout
         while self.current_size_bytes + allocated_size > self.max_size_bytes:
             remaining_time = None if timeout is None else deadline - time.perf_counter()
