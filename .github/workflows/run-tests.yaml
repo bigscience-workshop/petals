@@ -51,7 +51,7 @@ jobs:
           # [Step 1] Set up a tiny test swarm (see https://github.com/bigscience-workshop/petals/wiki/Launch-your-own-swarm)
 
           python -m petals.cli.run_dht \
-            --identity_path tests/bootstrap.id --host_maddrs /ip4/127.0.0.1/tcp/31337 2>&1 &> bootstrap.log &
+            --identity_path tests/bootstrap.id --host_maddrs /ip4/127.0.0.1/tcp/31337 &> bootstrap.log &
           BOOTSTRAP_PID=$!
 
           export INITIAL_PEERS=/ip4/127.0.0.1/tcp/31337/p2p/QmS9KwZptnVdB9FFV7uGgaTq4sEKBwcYeKZDfSpyKDUd1g
@@ -61,7 +61,7 @@ jobs:
 
           python -m petals.cli.run_server $MODEL_NAME --adapters $ADAPTER_NAME --torch_dtype float32 --num_blocks 5 \
             --mean_balance_check_period 10 \
-            --initial_peers $INITIAL_PEERS --throughput 1 2>&1 &> server1.log &
+            --initial_peers $INITIAL_PEERS --throughput 1 &> server1.log &
           SERVER1_PID=$!
           # ^-- rebalacing test: this server chooses blocks 0:5, then sees a gap in the swarm and moves there
 
@@ -69,17 +69,17 @@ jobs:
 
           python -m petals.cli.run_server $MODEL_NAME --adapters $ADAPTER_NAME --torch_dtype float32 --block_indices 0:5 \
             --identity_path tests/server2.id \
-            --initial_peers $INITIAL_PEERS --throughput 1 2>&1 &> server2.log &
+            --initial_peers $INITIAL_PEERS --throughput 1 &> server2.log &
           SERVER2_PID=$!
 
           python -m petals.cli.run_server $MODEL_NAME --adapters $ADAPTER_NAME --torch_dtype float32 --num_blocks 14 \
             --attn_cache_tokens 2048 --max_chunk_size_bytes 1024 \
-            --initial_peers $INITIAL_PEERS --throughput auto 2>&1 &> server3.log &
+            --initial_peers $INITIAL_PEERS --throughput auto &> server3.log &
           SERVER3_PID=$!
           # ^-- chunking test
 
           python -m petals.cli.run_server $MODEL_NAME $TENSOR_PARALLEL_ARGS --torch_dtype float32 --block_indices 0:2 \
-            --initial_peers $INITIAL_PEERS --throughput auto 2>&1 &> server4.log &
+            --initial_peers $INITIAL_PEERS --throughput auto &> server4.log &
           SERVER4_PID=$!
           # ^-- tensor parallelism test (not compatible with adapters yet)
 
