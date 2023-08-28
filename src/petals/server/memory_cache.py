@@ -124,7 +124,7 @@ class MemoryCache:
         """
         try:
             async with self._wait_for_free_memory(alloc_size, timeout):
-                with self._lock_metadata:
+                async with enter_asynchronously(self._lock_metadata):
                     handles = tuple(int(self.handle_counter) + i for i in range(len(descriptors)))
                     self.current_size_bytes += alloc_size
                     self.handle_counter += len(handles)  # note: this will eventually overflow and it is okay
