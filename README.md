@@ -14,14 +14,14 @@ Generate text with distributed **Llama 2 (70B)**, **Stable Beluga 2**, **Guanaco
 from transformers import AutoTokenizer
 from petals import AutoDistributedModelForCausalLM
 
+# Choose any model available at https://health.petals.dev
 model_name = "petals-team/StableBeluga2"
-# You can also use "meta-llama/Llama-2-70b-hf", "meta-llama/Llama-2-70b-chat-hf",
-# repos with Llama-65B, "bigscience/bloom", or "bigscience/bloomz"
 
+# Connect to a distributed network hosting model layers
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 model = AutoDistributedModelForCausalLM.from_pretrained(model_name)
-# Embeddings & prompts are on your device, transformer blocks are distributed across the Internet
 
+# Run the model as if it were on your computer
 inputs = tokenizer("A cat sat", return_tensors="pt")["input_ids"]
 outputs = model.generate(inputs, max_new_tokens=5)
 print(tokenizer.decode(outputs[0]))  # A cat sat on a mat...
@@ -31,7 +31,7 @@ print(tokenizer.decode(outputs[0]))  # A cat sat on a mat...
     🚀 &nbsp;<b><a href="https://colab.research.google.com/drive/1uCphNY7gfAUkdDrTx21dZZwCOUDCMPw8?usp=sharing">Try now in Colab</a></b>
 </p>
 
-🦙 **Want to run Llama 2?** Request access to its weights at the ♾️ [Meta AI website](https://ai.meta.com/resources/models-and-libraries/llama-downloads/) and 🤗 [Model Hub](https://huggingface.co/meta-llama/Llama-2-70b-hf), then run `huggingface-cli login` in the terminal before loading the model. Or just try it in our [chatbot app](https://chat.petals.dev).
+🦙 **Want to run Llama 2?** Request access to its weights at the ♾️ [Meta AI website](https://ai.meta.com/resources/models-and-libraries/llama-downloads/) and 🤗 [Model Hub](https://huggingface.co/meta-llama/Llama-2-70b-chat-hf), then run `huggingface-cli login` in the terminal before loading the model. Or just try it in our [chatbot app](https://chat.petals.dev).
 
 📋 **Terms of use.** Make sure you follow the model license (see [Llama 2](https://bit.ly/llama2-license), [Stable Beluga 2](https://huggingface.co/stabilityai/StableBeluga2/blob/main/LICENSE.txt), [Llama](https://bit.ly/llama-license), and [BLOOM](https://bit.ly/bloom-license)).
 
@@ -41,9 +41,9 @@ print(tokenizer.decode(outputs[0]))  # A cat sat on a mat...
 
 ### Connect your GPU and increase Petals capacity
 
-Petals is a community-run system &mdash; we rely on people sharing their GPUs. You can check out available servers on our [swarm monitor](https://health.petals.dev) and connect your GPU to help serving one of the models!
+Petals is a community-run system &mdash; we rely on people sharing their GPUs. You can check out available models on our [swarm monitor](https://health.petals.dev) and connect your GPU to help serving one of them! As an example, we show how to host a part of [Stable Beluga 2](https://huggingface.co/stabilityai/StableBeluga2) below:
 
-🐧 **Linux + Anaconda.** If you have an NVIDIA GPU, run these commands:
+🐧 **Linux + Anaconda.** Run these commands for NVIDIA GPUs (or follow [this](https://github.com/bigscience-workshop/petals/wiki/Running-on-AMD-GPU) for AMD):
 
 ```bash
 conda install pytorch pytorch-cuda=11.7 -c pytorch -c nvidia
@@ -51,18 +51,14 @@ pip install git+https://github.com/bigscience-workshop/petals
 python -m petals.cli.run_server petals-team/StableBeluga2
 ```
 
-If you have an AMD GPU, follow [this guide](https://github.com/bigscience-workshop/petals/wiki/Running-on-AMD-GPU) on our Wiki.
-
 🪟 **Windows + WSL.** Follow [this guide](https://github.com/bigscience-workshop/petals/wiki/Run-Petals-server-on-Windows) on our Wiki.
 
-🐋 **Any OS + Docker.** Run our [Docker](https://www.docker.com) image:
+🐋 **Any OS + Docker.** Run our [Docker](https://www.docker.com) image for NVIDIA GPUs (or follow [this](https://github.com/bigscience-workshop/petals/wiki/Running-on-AMD-GPU) for AMD):
 
 ```bash
 sudo docker run -p 31330:31330 --ipc host --gpus all --volume petals-cache:/cache --rm learningathome/petals:main \
     python -m petals.cli.run_server --port 31330 petals-team/StableBeluga2
 ```
-
-These commands will host a part of [Stable Beluga 2](https://huggingface.co/stabilityai/StableBeluga2) on your machine. You can also host `meta-llama/Llama-2-70b-hf`, `meta-llama/Llama-2-70b-chat-hf`, repos with Llama-65B, `bigscience/bloom`, `bigscience/bloomz`, and other compatible models from 🤗 [Model Hub](https://huggingface.co/models), or [add support](https://github.com/bigscience-workshop/petals/wiki/Run-a-custom-model-with-Petals) for new model architectures.
 
 💬 **FAQ.** Check out our [Wiki](https://github.com/bigscience-workshop/petals/wiki/FAQ:-Frequently-asked-questions#running-a-server) to learn how to use multple GPUs, restart the server on reboot, etc. If you have any issues, ping us in [our Discord](https://discord.gg/X7DgtxgMhc)!
 
@@ -94,12 +90,15 @@ Basic tutorials:
 - Prompt-tune Llama-65B for text semantic classification: [tutorial](https://colab.research.google.com/github/bigscience-workshop/petals/blob/main/examples/prompt-tuning-sst2.ipynb)
 - Prompt-tune BLOOM to create a personified chatbot: [tutorial](https://colab.research.google.com/github/bigscience-workshop/petals/blob/main/examples/prompt-tuning-personachat.ipynb)
 
-Useful tools and advanced guides:
+Useful tools:
 
 - [Chatbot web app](https://chat.petals.dev) (connects to Petals via an HTTP/WebSocket endpoint): [source code](https://github.com/petals-infra/chat.petals.dev)
 - [Monitor](https://health.petals.dev) for the public swarm: [source code](https://github.com/petals-infra/health.petals.dev)
-- Launch your own swarm: [guide](https://github.com/bigscience-workshop/petals/wiki/Launch-your-own-swarm)
-- Run a custom foundation model: [guide](https://github.com/bigscience-workshop/petals/wiki/Run-a-custom-model-with-Petals)
+
+Advanced guides:
+
+- Launch a private swarm: [guide](https://github.com/bigscience-workshop/petals/wiki/Launch-your-own-swarm)
+- Run a custom model: [guide](https://github.com/bigscience-workshop/petals/wiki/Run-a-custom-model-with-Petals)
 
 ## Benchmarks
 
