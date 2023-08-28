@@ -51,12 +51,20 @@ python -m petals.cli.run_server petals-team/StableBeluga2
 
 🪟 **Windows + WSL.** Follow [this guide](https://github.com/bigscience-workshop/petals/wiki/Run-Petals-server-on-Windows) on our Wiki.
 
-🐋 **Any OS + Docker.** Run our [Docker](https://www.docker.com) image for NVIDIA GPUs (or follow [this](https://github.com/bigscience-workshop/petals/wiki/Running-on-AMD-GPU) for AMD):
+🐋 **Docker.** Run our [Docker](https://www.docker.com) image for NVIDIA GPUs (or follow [this](https://github.com/bigscience-workshop/petals/wiki/Running-on-AMD-GPU) for AMD):
 
 ```bash
 sudo docker run -p 31330:31330 --ipc host --gpus all --volume petals-cache:/cache --rm \
     learningathome/petals:main \
     python -m petals.cli.run_server --port 31330 petals-team/StableBeluga2
+```
+
+🍏 **macOS + Apple M1/M2 GPU.** Install [Homebrew](https://brew.sh/), then run these commands:
+
+```bash
+brew install python
+python3 -m pip install git+https://github.com/bigscience-workshop/petals
+python3 -m petals.cli.run_server petals-team/StableBeluga2
 ```
 
 <p align="center">
