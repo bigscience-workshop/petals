@@ -58,9 +58,11 @@ sudo docker run -p 31330:31330 --ipc host --gpus all --volume petals-cache:/cach
     python -m petals.cli.run_server --port 31330 petals-team/StableBeluga2
 ```
 
-<br>
-
-💬 **Any questions?** Check out our [FAQ](https://github.com/bigscience-workshop/petals/wiki/FAQ:-Frequently-asked-questions#running-a-server) to learn how to use multple GPUs, restart the server on reboot, etc. If you have any issues, ping us in [our Discord](https://discord.gg/X7DgtxgMhc)!
+<p align="center">
+    📚 &nbsp;<b><a href="https://github.com/bigscience-workshop/petals/wiki/FAQ:-Frequently-asked-questions">See FAQ</a></b>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    💬 &nbsp;<b><a href="https://discord.gg/X7DgtxgMhc">Ask for help in Discord</a></b>
+</p>
 
 🔒 **Security.** Hosting a server does not allow others to run custom code on your computer. Learn more [here](https://github.com/bigscience-workshop/petals/wiki/Security,-privacy,-and-AI-safety).
 
@@ -77,9 +79,9 @@ sudo docker run -p 31330:31330 --ipc host --gpus all --volume petals-cache:/cach
 </p>
 
 <p align="center">
-    📚 &nbsp;<b><a href="https://github.com/bigscience-workshop/petals/wiki/FAQ:-Frequently-asked-questions">See FAQ</a></b>
-    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
     📜 &nbsp;<b><a href="https://arxiv.org/pdf/2209.01188.pdf">Read paper</a></b>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    📝 &nbsp;<b><a href="https://github.com/bigscience-workshop/petals/wiki/">Explore Wiki</a></b>
 </p>
 
 ## 📚 Tutorials, examples, and more
