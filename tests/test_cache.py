@@ -83,6 +83,7 @@ async def test_unlimited_timeout():
             await asyncio.sleep(0.5)
 
     alloc_task = asyncio.create_task(_klog_the_cache())
+    await asyncio.sleep(0.1)
     async with cache.allocate_cache(_make_tensor_descriptor(768), timeout=float("inf")):
         await alloc_task
     assert 0.5 < time.perf_counter() - t_start < 0.6, "memory should be allocated after background task clears"
@@ -160,6 +161,7 @@ async def test_cache_usage():
 
     dealloc_a_event.set()
     (handle_e,) = pipe_receiver.recv()  # e can finally be allocated
+    await asyncio.sleep(0.1)
     assert cache.current_size_bytes == 1536  # tensor e should finally be able to allocate
 
     with pytest.raises(KeyError):

@@ -116,7 +116,7 @@ class MemoryCache:
         return max(alloc_size_by_device.values())
 
     async def _schedule_alloc(
-        self, alloc_size: int, *descriptors: TensorDescriptor, timeout: float
+        self, alloc_size: int, *descriptors: TensorDescriptor, timeout: Optional[float]
     ) -> Sequence[Handle]:
         """
         This method should be called inside asyncio.shield() because:
@@ -124,7 +124,7 @@ class MemoryCache:
         """
         try:
             async with self._wait_for_free_memory(alloc_size, timeout):
-                async with enter_asynchronously(self._lock_metadata):
+                with self._lock_metadata:
                     handles = tuple(int(self.handle_counter) + i for i in range(len(descriptors)))
                     self.current_size_bytes += alloc_size
                     self.handle_counter += len(handles)  # note: this will eventually overflow and it is okay
@@ -179,9 +179,10 @@ class MemoryCache:
             raise AllocationFailed(
                 f"Could not allocate {allocated_size} bytes, max cache size = {self.max_size_bytes} bytes"
             )
+        timeout = timeout if timeout != float('inf') else None
         deadline = None if timeout is None else time.perf_counter() + timeout
         while self.current_size_bytes + allocated_size > self.max_size_bytes:
-            remaining_time = deadline - time.perf_counter() if timeout is not None else None
+            remaining_time = None if timeout is None else deadline - time.perf_counter()
             if not self._memory_freed_event.wait(remaining_time):
                 raise AllocationFailed(
                     f"Server's attention cache is full, failed to allocate {allocated_size} bytes in {timeout} seconds"
