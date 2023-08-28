@@ -288,7 +288,7 @@ class Server:
         elif self.device.type == "cuda":
             total_memory = torch.cuda.get_device_properties(self.device).total_memory
         else:
-            total_memory = psutil.virtual_memory().available
+            total_memory = psutil.virtual_memory().total
 
         gib = 1024**3
         # Estimate of GPU memory used in rpc_backward (2 GiB for BLOOM, proportional for other models)
