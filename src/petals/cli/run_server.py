@@ -96,9 +96,9 @@ def main():
     parser.add_argument("--torch_dtype", type=str, choices=DTYPE_MAP.keys(), default="auto",
                         help="Use this dtype to store block weights and do computations. "
                              "By default, respect the dtypes in the pre-trained state dict.")
-    parser.add_argument('--alloc_timeout', type=float, default=1,
-                        help='If the cache is full, the server will wait for this number of seconds hoping that some memory will be freed '
-                             'before rejecting the request')
+    parser.add_argument('--max_alloc_timeout', type=float, default=600,
+                        help="If the cache is full, the server will wait for memory to be freed up to this many seconds"
+                             " before rejecting the request")
     parser.add_argument('--revision', type=str, default=None,
                         help="The specific model version to use. It can be a branch name, a tag name, or a commit id, since we use a git-based system for storing models"
                              "and other artifacts on huggingface.co, so `revision` can be any identifier allowed by git.")
