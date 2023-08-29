@@ -1,8 +1,10 @@
 import argparse
+import logging
 
 import configargparse
+import torch
 from hivemind.proto.runtime_pb2 import CompressionType
-from hivemind.utils.limits import increase_file_limit
+from hivemind.utils import limits
 from hivemind.utils.logging import get_logger
 from humanfriendly import parse_size
 
@@ -96,9 +98,9 @@ def main():
     parser.add_argument("--torch_dtype", type=str, choices=DTYPE_MAP.keys(), default="auto",
                         help="Use this dtype to store block weights and do computations. "
                              "By default, respect the dtypes in the pre-trained state dict.")
-    parser.add_argument('--alloc_timeout', type=float, default=1,
-                        help='If the cache is full, the server will wait for this number of seconds hoping that some memory will be freed '
-                             'before rejecting the request')
+    parser.add_argument('--max_alloc_timeout', type=float, default=600,
+                        help="If the cache is full, the server will wait for memory to be freed up to this many seconds"
+                             " before rejecting the request")
     parser.add_argument('--revision', type=str, default=None,
                         help="The specific model version to use. It can be a branch name, a tag name, or a commit id, since we use a git-based system for storing models"
                              "and other artifacts on huggingface.co, so `revision` can be any identifier allowed by git.")
@@ -127,9 +129,9 @@ def main():
     group.add_argument('--new_swarm', action='store_true',
                        help='Start a new private swarm (i.e., do not connect to any initial peers)')
 
-    parser.add_argument('--increase_file_limit', action='store_true',
-                        help='On *nix, this will increase the max number of processes '
-                             'a server can spawn before hitting "Too many open files"; Use at your own risk.')
+    parser.add_argument('--increase_file_limit', type=int, default=4096,
+                        help='On *nix, increase the max number of files a server can open '
+                             'before hitting "Too many open files" (set to zero to keep the system limit)')
     parser.add_argument('--stats_report_interval', type=int, required=False,
                         help='Interval between two reports of batch processing performance statistics')
 
@@ -185,8 +187,10 @@ def main():
 
     args["startup_timeout"] = args.pop("daemon_startup_timeout")
 
-    if args.pop("increase_file_limit"):
-        increase_file_limit()
+    file_limit = args.pop("increase_file_limit")
+    if file_limit:
+        limits.logger.setLevel(logging.WARNING)
+        limits.increase_file_limit(file_limit, file_limit)
 
     compression_type = args.pop("compression").upper()
     compression = getattr(CompressionType, compression_type)
@@ -206,6 +210,10 @@ def main():
         args["quant_type"] = QuantType[quant_type.upper()]
 
     validate_version()
+
+    if not torch.backends.openmp.is_available():
+        # Necessary to prevent the server from freezing after forks
+        torch.set_num_threads(1)
 
     server = Server(
         **args,
