@@ -140,7 +140,7 @@ class ReachabilityProtocol(ServicerBase):
                 protocol.probe = await P2P.create(initial_peers, **STRIPPED_PROBE_ARGS)
 
                 ready.set_result(True)
-                logger.info("Reachability service started")
+                logger.debug("Reachability service started")
 
                 async with protocol.serve(common_p2p):
                     await protocol._stop.wait()
