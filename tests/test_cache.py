@@ -118,7 +118,7 @@ async def test_cache_usage():
         allocate_f_task = asyncio.create_task(_allocate_and_wait(dealloc_f_event, descr_f))  # klogs the cache
         await allocate_f_task
 
-    alloc_process1 = mp.Process(target=lambda: asyncio.run(_allocate_af()), daemon=True)
+    alloc_process1 = mp.context.ForkProcess(target=lambda: asyncio.run(_allocate_af()), daemon=True)
     alloc_process1.start()
 
     async def _allocate_bcde():
@@ -128,7 +128,7 @@ async def test_cache_usage():
         allocate_e_task = asyncio.create_task(_allocate_and_wait(dealloc_e_event, descr_e))  # doesn't fit
         await asyncio.wait({allocate_e_task, allocate_bcd_task}, return_when=asyncio.ALL_COMPLETED)
 
-    alloc_process2 = mp.Process(target=lambda: asyncio.run(_allocate_bcde()), daemon=True)
+    alloc_process2 = mp.context.ForkProcess(target=lambda: asyncio.run(_allocate_bcde()), daemon=True)
     alloc_process2.start()
     assert cache.current_size_bytes == 0
     alloc_event.set()

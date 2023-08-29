@@ -51,7 +51,7 @@ python -m petals.cli.run_server petals-team/StableBeluga2
 
 🪟 **Windows + WSL.** Follow [this guide](https://github.com/bigscience-workshop/petals/wiki/Run-Petals-server-on-Windows) on our Wiki.
 
-🐋 **Any OS + Docker.** Run our [Docker](https://www.docker.com) image for NVIDIA GPUs (or follow [this](https://github.com/bigscience-workshop/petals/wiki/Running-on-AMD-GPU) for AMD):
+🐋 **Docker.** Run our [Docker](https://www.docker.com) image for NVIDIA GPUs (or follow [this](https://github.com/bigscience-workshop/petals/wiki/Running-on-AMD-GPU) for AMD):
 
 ```bash
 sudo docker run -p 31330:31330 --ipc host --gpus all --volume petals-cache:/cache --rm \
@@ -59,11 +59,19 @@ sudo docker run -p 31330:31330 --ipc host --gpus all --volume petals-cache:/cach
     python -m petals.cli.run_server --port 31330 petals-team/StableBeluga2
 ```
 
+🍏 **macOS + Apple M1/M2 GPU.** Install [Homebrew](https://brew.sh/), then run these commands:
+
+```bash
+brew install python
+python3 -m pip install git+https://github.com/bigscience-workshop/petals
+python3 -m petals.cli.run_server petals-team/StableBeluga2
+```
+
 <p align="center">
-    📚 &nbsp;<b><a href="https://github.com/bigscience-workshop/petals/wiki/FAQ:-Frequently-asked-questions#running-a-server">Learn more</a></b> (using multiple GPUs, starting on boot, etc.)
-    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-    💬 &nbsp;<b><a href="https://discord.gg/X7DgtxgMhc">Ask for help in Discord</a></b>
+    📚 &nbsp;<b><a href="https://github.com/bigscience-workshop/petals/wiki/FAQ:-Frequently-asked-questions#running-a-server">Learn more</a></b> (how to use multiple GPUs, start the server on boot, etc.)
 </p>
+
+💬 **Any questions?** Ping us in [our Discord](https://discord.gg/X7DgtxgMhc)!
 
 🦙 **Want to host Llama 2?** Request access to its weights at the ♾️ [Meta AI website](https://ai.meta.com/resources/models-and-libraries/llama-downloads/) and 🤗 [Model Hub](https://huggingface.co/meta-llama/Llama-2-70b-hf), generate an 🔑 [access token](https://huggingface.co/settings/tokens), then add `--token YOUR_TOKEN_HERE` to the `python -m petals.cli.run_server` command.
 
