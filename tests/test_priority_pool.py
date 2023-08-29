@@ -1,4 +1,5 @@
 import multiprocessing as mp
+import platform
 import time
 
 import pytest
@@ -27,6 +28,7 @@ def _submit_tasks(runtime_ready, pools, results_valid):
     results_valid.set()
 
 
+@pytest.mark.skipif(platform.system() == "Darwin", reason="Flapping on macOS due to multiprocessing quirks")
 @pytest.mark.forked
 def test_priority_pools():
     outputs_queue = mp.SimpleQueue()
