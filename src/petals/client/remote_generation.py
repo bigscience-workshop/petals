@@ -69,6 +69,8 @@ class RemoteGenerationMixin(_SkipTokensMixin):
         self, inputs: Optional[torch.Tensor] = None, *args, session: Optional[InferenceSession] = None, **kwargs
     ):
         self._fix_generate_kwargs(kwargs)
+        if inputs is None:
+            inputs = kwargs.pop("input_ids", None)
 
         if session is not None:
             # If a session specified explicitly, use it
@@ -125,7 +127,7 @@ class RemoteGenerationMixin(_SkipTokensMixin):
         return result
 
     @staticmethod
-    def _fix_generate_kwargs(kwargs: dict) -> dict:
+    def _fix_generate_kwargs(kwargs: dict):
         # Suppress inappropriate "Both max_new_tokens and max_length" HF warning
         if "max_length" in kwargs and kwargs["max_length"] is None:
             del kwargs["max_length"]
@@ -134,8 +136,6 @@ class RemoteGenerationMixin(_SkipTokensMixin):
         do_sample = kwargs.get("do_sample")
         if isinstance(do_sample, int):
             kwargs["do_sample"] = bool(do_sample)
-
-        return kwargs
 
     @staticmethod
     def _reorder_cache(past_key_values: RemotePastKeyValues, beam_idx: torch.LongTensor) -> RemotePastKeyValues:
