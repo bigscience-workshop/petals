@@ -71,9 +71,6 @@ class RemoteGenerationMixin(_SkipTokensMixin):
         self._fix_generate_kwargs(kwargs)
         if inputs is None:
             inputs = kwargs.pop("input_ids", None)
-        inputs_len = inputs.shape[1] if inputs is not None else 0
-        if "inputs_embeds" in kwargs:
-            inputs_len = kwargs["inputs_embeds"].shape[1]
 
         if session is not None:
             # If a session specified explicitly, use it
@@ -93,7 +90,7 @@ class RemoteGenerationMixin(_SkipTokensMixin):
             if max_length is not None:
                 session_max_length = max_length
             else:
-                session_max_length = inputs_len + max_new_tokens
+                session_max_length = (inputs.shape[1] if inputs is not None else 0) + max_new_tokens
             context_manager = self.inference_session(max_length=session_max_length)
 
         with context_manager as session:
