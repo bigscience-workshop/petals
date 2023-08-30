@@ -30,5 +30,6 @@ class DistributedBloomConfig(BloomConfig, ClientConfig, PTuneConfig, LMHeadConfi
         if loading_from_repo and dht_prefix is None:
             # We need "-petals" for backward compatibility with Petals < 1.2.0
             dht_prefix = str(model_name_or_path) + "-petals"
+            dht_prefix = dht_prefix.replace(".", "-")
             logger.info(f"Using DHT prefix: {dht_prefix}")
         return super().from_pretrained(model_name_or_path, *args, dht_prefix=dht_prefix, **kwargs)
