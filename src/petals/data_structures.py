@@ -21,6 +21,19 @@ RPS = pydantic.confloat(ge=0, allow_inf_nan=False, strict=True)
 
 
 @pydantic.dataclasses.dataclass
+class ModelInfo:
+    num_blocks: int
+    repository: Optional[str] = None
+
+    def to_dict(self) -> dict:
+        return dataclasses.asdict(self)
+
+    @classmethod
+    def from_dict(cls, source: dict):
+        return cls(**source)
+
+
+@pydantic.dataclasses.dataclass
 class ServerInfo:
     state: ServerState
     throughput: RPS
