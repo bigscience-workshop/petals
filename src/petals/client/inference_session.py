@@ -343,7 +343,7 @@ class InferenceSession:
         n_prev_spans = len(self._server_sessions)
         update_end = self._server_sessions[server_idx].span.end if server_idx < n_prev_spans else self.num_blocks
         if attempt_no >= 1:
-            logger.info(
+            logger.debug(
                 f"Due to a server failure, remote attention caches "
                 f"from block {block_idx} to {update_end} will be regenerated"
             )
