@@ -7,20 +7,21 @@ on:
 
 jobs:
   run-tests:
-    runs-on: ubuntu-latest
     strategy:
       matrix:
         include:
-          - { model: 'bigscience/bloom-560m', python-version: '3.8' }
-          - { model: 'bigscience/bloom-560m', python-version: '3.9' }
-          - { model: 'bigscience/bloom-560m', python-version: '3.10' }
-          - { model: 'bigscience/bloom-560m', python-version: '3.11' }
-          - { model: 'Maykeye/TinyLLama-v0', python-version: '3.8' }
-          - { model: 'Maykeye/TinyLLama-v0', python-version: '3.11' }
+          - { model: 'bigscience/bloom-560m', os: 'ubuntu', python-version: '3.8' }
+          - { model: 'bigscience/bloom-560m', os: 'ubuntu', python-version: '3.11' }
+          - { model: 'Maykeye/TinyLLama-v0', os: 'ubuntu', python-version: '3.8' }
+          - { model: 'Maykeye/TinyLLama-v0', os: 'ubuntu', python-version: '3.11' }
+          - { model: 'Maykeye/TinyLLama-v0', os: 'macos', python-version: '3.10' }
+          - { model: 'Maykeye/TinyLLama-v0', os: 'macos', python-version: '3.11' }
       fail-fast: false
+    runs-on: ${{ matrix.os }}-latest
     timeout-minutes: 15
     steps:
       - name: Increase swap space
+        if: ${{ matrix.os == 'ubuntu' }}
         uses: pierotofy/set-swap-space@master
         with:
           swap-size-gb: 10
@@ -47,12 +48,7 @@ jobs:
           export ADAPTER_NAME="${{ matrix.model == 'bigscience/bloom-560m' && 'artek0chumak/bloom-560m-safe-peft' || '' }}"
           export TENSOR_PARALLEL_ARGS="${{ matrix.model == 'bigscience/bloom-560m' && '--tensor_parallel_devices cpu cpu' || '' }}"
 
-          # [Step 1] Watch free RAM (lack of RAM is a common issue in CI)
-
-          bash -c 'while true; do free -h && sleep 30s; done' &
-          RAM_WATCH_PID=$!
-
-          # [Step 2] Set up a tiny test swarm (see https://github.com/bigscience-workshop/petals/wiki/Launch-your-own-swarm)
+          # [Step 1] Set up a tiny test swarm (see https://github.com/bigscience-workshop/petals/wiki/Launch-your-own-swarm)
 
           python -m petals.cli.run_dht \
             --identity_path tests/bootstrap.id --host_maddrs /ip4/127.0.0.1/tcp/31337 &> bootstrap.log &
@@ -61,7 +57,7 @@ jobs:
           export INITIAL_PEERS=/ip4/127.0.0.1/tcp/31337/p2p/QmS9KwZptnVdB9FFV7uGgaTq4sEKBwcYeKZDfSpyKDUd1g
           # ^-- multiaddr in INITIAL_PEERS is determined by --identity_path and --host_maddrs
 
-          sleep 5  # wait for DHT init
+          until [ -s bootstrap.log ]; do sleep 5; done  # wait for DHT init
 
           python -m petals.cli.run_server $MODEL_NAME --adapters $ADAPTER_NAME --torch_dtype float32 --num_blocks 5 \
             --mean_balance_check_period 10 \
@@ -95,11 +91,15 @@ jobs:
           sleep 30  # wait for servers to eval throughput, download layers, and rebalance
           kill -0 $BOOTSTRAP_PID $SERVER1_PID $SERVER2_PID $SERVER3_PID $SERVER4_PID  # ensure all peers survived init
 
-          # [Step 3] Run PyTest
+          # [Step 2] Run PyTest
+
+          # Necessary for @pytest.mark.forked to work properly on macOS, see https://github.com/kevlened/pytest-parallel/issues/93
+          export no_proxy=*
+          export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
 
           pytest tests --durations=0 --durations-min=1.0 -v
 
-          # [Step 4] Check if benchmarks work (their results here are meaningless since it's a tiny swarm of CPU servers)
+          # [Step 3] Check if benchmarks work (their results here are meaningless since it's a tiny swarm of CPU servers)
 
           python benchmarks/benchmark_inference.py --model $MODEL_NAME --initial_peers $INITIAL_PEERS --torch_dtype float32 \
             --seq_len 3
@@ -110,9 +110,7 @@ jobs:
           python benchmarks/benchmark_training.py --model $MODEL_NAME --initial_peers $INITIAL_PEERS --torch_dtype float32 \
             --seq_len 3 --batch_size 3 --pre_seq_len 1 --n_steps 1 --task causal_lm
 
-          # [Step 5] Clean up
+          # [Step 4] Clean up
 
-          kill -0 $BOOTSTRAP_PID $SERVER1_PID $SERVER2_PID $SERVER3_PID $SERVER4_PID  # ensure all peers survived tests
-
-          kill -s SIGINT $BOOTSTRAP_PID $SERVER1_PID $SERVER2_PID $SERVER3_PID $SERVER4_PID $LOGGER_PID $RAM_WATCH_PID
+          kill -s SIGINT $BOOTSTRAP_PID $SERVER1_PID $SERVER2_PID $SERVER3_PID $SERVER4_PID $LOGGER_PID
           echo "Done!"
