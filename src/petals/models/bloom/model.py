@@ -43,7 +43,7 @@ class DistributedBloomModel(FromPretrainedMixin, PTuneMixin, BloomModel):
         attention_mask: Optional[torch.Tensor] = None,
         head_mask: Optional[torch.LongTensor] = None,
         inputs_embeds: Optional[torch.LongTensor] = None,
-        use_cache: Optional[bool] = None,  # Not used here but needed for HF Transformers compatibility
+        use_cache: Optional[bool] = None,
         output_attentions: Optional[bool] = None,
         output_hidden_states: Optional[bool] = None,
         return_dict: Optional[bool] = None,
@@ -63,6 +63,7 @@ class DistributedBloomModel(FromPretrainedMixin, PTuneMixin, BloomModel):
             attention_mask is None or (attention_mask == 1).all()
         ), f"Custom attention masks are not supported, {attention_mask=}"
         assert head_mask is None, f"Custom head masks are not supported, {head_mask=}"
+        assert use_cache is None or use_cache, f"{use_cache=} is not supported"
         assert not output_attentions, f"{output_attentions=} is not supported"
         assert not output_hidden_states, f"{output_hidden_states=} is not supported"
         assert return_dict is None or return_dict, f"{return_dict=} is not supported"
