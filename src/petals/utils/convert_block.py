@@ -50,6 +50,19 @@ def convert_block(
     if freeze:
         block.requires_grad_(False)
 
+    if hasattr(block, "self_attn") and hasattr(block.self_attn, "qkv_proj"):
+        offset = 0
+        for data in [
+            block.self_attn.q_proj.weight.data,
+            block.self_attn.k_proj.weight.data,
+            block.self_attn.v_proj.weight.data,
+        ]:
+            block.self_attn.qkv_proj.weight.data[offset : offset + data.size(0)].copy_(data)
+            offset += data.size(0)
+        del block.self_attn.q_proj
+        del block.self_attn.k_proj
+        del block.self_attn.v_proj
+
     block = make_tensor_parallel(block, config, tensor_parallel_devices, output_device=output_device)
 
     if quant_type != QuantType.NONE:
