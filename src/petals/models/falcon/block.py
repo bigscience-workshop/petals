@@ -1,6 +1,6 @@
 """
 Falcon intermediate layer
-Based on https://github.com/huggingface/transformers/commit/ca2a55e9dfb245527b5e1c954fec6ffbb7aef07b
+Based on https://github.com/huggingface/transformers/blob/main/src/transformers/models/falcon/modeling_falcon.py
 See commit history for authorship.
 """
 from typing import Optional, Tuple
