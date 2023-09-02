@@ -106,12 +106,13 @@ def main():
                              "and other artifacts on huggingface.co, so `revision` can be any identifier allowed by git.")
 
     parser.add_argument('--throughput',
-                        type=lambda value: value if value in ['auto', 'eval'] else float(value),
+                        type=lambda value: value if value in ['auto', 'eval', 'dry_run'] else float(value),
                         default='auto',
                         help='Expected server throughput (a float measured in RPS). '
                              'If set to "auto" (default), the script evaluates network and compute throughput '
                              'on the first run and uses these estimates for future runs. '
-                             'If set to "eval", the script re-evaluates the throughput and overrides the cache.')
+                             'If set to "eval", the script re-evaluates the throughput and overrides the cache. '
+                             'If set to "dry_run", the script re-evaluates the throughput and exits.')
     parser.add_argument('--update_period', type=float, required=False, default=120,
                         help='Server will report blocks to DHT once in this many seconds')
     parser.add_argument('--expiration', type=float, required=False, default=None,
