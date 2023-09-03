@@ -298,7 +298,7 @@ class OptimizedFalconDecoderLayer(FalconDecoderLayer):
         return outputs  # hidden_states, present, attentions
 
 
-class _WrappedFalconBlock(OptimizedFalconDecoderLayer):
+class WrappedFalconBlock(OptimizedFalconDecoderLayer):
     def __init__(self, config: FalconConfig):
         super().__init__(config)
         assert not self.config.alibi
@@ -379,7 +379,7 @@ class _WrappedFalconBlock(OptimizedFalconDecoderLayer):
         return state
 
 
-class WrappedFalconBlock(FalconDecoderLayer):
+class UnoptimizedWrappedFalconBlock(FalconDecoderLayer):
     def forward(
         self,
         hidden_states: torch.Tensor,
