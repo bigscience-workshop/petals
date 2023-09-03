@@ -106,6 +106,10 @@ class DistributedFalconModel(FromPretrainedMixin, PTuneMixin, FalconModel):
             attentions=None,
         )
 
+    @property
+    def word_embeddings_layernorm(self) -> nn.Module:  # For compatibility with RemoteGenerationMixin
+        return nn.Identity()
+
 
 class DistributedFalconForCausalLM(FromPretrainedMixin, RemoteGenerationMixin, FalconForCausalLM):
     _keys_to_ignore_on_load_missing = DistributedFalconModel._keys_to_ignore_on_load_missing
