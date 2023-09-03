@@ -21,8 +21,10 @@ class DistributedFalconConfig(DefaultRevisionMixin, FalconConfig, ClientConfig, 
 
     @property
     def num_key_value_groups(self) -> int:
-        if self.new_decoder_architecture or not self.multi_query:
+        if self.new_decoder_architecture:
             return self.num_attention_heads // self.num_kv_heads
+        if self.multi_query:
+            return self.num_attention_heads
         return 1
 
     @classmethod
