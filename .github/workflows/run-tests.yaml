@@ -14,11 +14,13 @@ jobs:
           - { model: 'bigscience/bloom-560m', os: 'ubuntu', python-version: '3.11' }
           - { model: 'Maykeye/TinyLLama-v0', os: 'ubuntu', python-version: '3.8' }
           - { model: 'Maykeye/TinyLLama-v0', os: 'ubuntu', python-version: '3.11' }
+          - { model: 'petals-team/falcon-rw-1b', os: 'ubuntu', python-version: '3.8' }
+          - { model: 'petals-team/falcon-rw-1b', os: 'ubuntu', python-version: '3.11' }
           - { model: 'Maykeye/TinyLLama-v0', os: 'macos', python-version: '3.10' }
           - { model: 'Maykeye/TinyLLama-v0', os: 'macos', python-version: '3.11' }
       fail-fast: false
     runs-on: ${{ matrix.os }}-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - name: Increase swap space
         if: ${{ matrix.os == 'ubuntu' }}
@@ -92,6 +94,9 @@ jobs:
           kill -0 $BOOTSTRAP_PID $SERVER1_PID $SERVER2_PID $SERVER3_PID $SERVER4_PID  # ensure all peers survived init
 
           # [Step 2] Run PyTest
+
+          # Share disk cache between Petals servers, clients, and HF Transformers
+          export TRANSFORMERS_CACHE=~/.cache/petals
 
           # Necessary for @pytest.mark.forked to work properly on macOS, see https://github.com/kevlened/pytest-parallel/issues/93
           export no_proxy=*
