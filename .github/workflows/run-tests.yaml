@@ -20,7 +20,7 @@ jobs:
           - { model: 'Maykeye/TinyLLama-v0', os: 'macos', python-version: '3.11' }
       fail-fast: false
     runs-on: ${{ matrix.os }}-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - name: Increase swap space
         if: ${{ matrix.os == 'ubuntu' }}

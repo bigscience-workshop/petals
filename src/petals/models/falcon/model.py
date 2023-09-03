@@ -18,11 +18,12 @@ from petals.client.ptune import PTuneMixin
 from petals.client.remote_generation import RemoteGenerationMixin, RemotePastKeyValues
 from petals.client.remote_sequential import RemoteSequential
 from petals.models.falcon.config import DistributedFalconConfig
+from petals.utils.auto_config import DefaultRevisionMixin
 
 logger = get_logger(__name__)
 
 
-class DistributedFalconModel(FromPretrainedMixin, PTuneMixin, FalconModel):
+class DistributedFalconModel(DefaultRevisionMixin, FromPretrainedMixin, PTuneMixin, FalconModel):
     """FalconModel, but all transformer layers are hosted by the swarm"""
 
     _keys_to_ignore_on_load_missing = PTuneMixin._keys_to_ignore_on_load_missing
@@ -111,9 +112,8 @@ class DistributedFalconModel(FromPretrainedMixin, PTuneMixin, FalconModel):
         return nn.Identity()
 
 
-class DistributedFalconForCausalLM(FromPretrainedMixin, RemoteGenerationMixin, FalconForCausalLM):
+class DistributedFalconForCausalLM(DefaultRevisionMixin, FromPretrainedMixin, RemoteGenerationMixin, FalconForCausalLM):
     _keys_to_ignore_on_load_missing = DistributedFalconModel._keys_to_ignore_on_load_missing
-    # _keys_to_ignore_on_load_missing += [r"^lm_head\."]  # Missing since they are shared with input embeddings
     _keys_to_ignore_on_load_unexpected = DistributedFalconModel._keys_to_ignore_on_load_unexpected
 
     config_class = DistributedFalconConfig
@@ -130,7 +130,9 @@ class DistributedFalconForCausalLM(FromPretrainedMixin, RemoteGenerationMixin, F
         return self.lm_head
 
 
-class DistributedFalconForSequenceClassification(FromPretrainedMixin, FalconForSequenceClassification):
+class DistributedFalconForSequenceClassification(
+    DefaultRevisionMixin, FromPretrainedMixin, FalconForSequenceClassification
+):
     _keys_to_ignore_on_load_missing = DistributedFalconModel._keys_to_ignore_on_load_missing
     _keys_to_ignore_on_load_unexpected = DistributedFalconModel._keys_to_ignore_on_load_unexpected
 

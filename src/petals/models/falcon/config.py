@@ -9,11 +9,12 @@ from petals.client.config import ClientConfig
 from petals.client.lm_head import LMHeadConfig
 from petals.client.ptune import PTuneConfig
 from petals.models.falcon.block import WrappedFalconBlock
+from petals.utils.auto_config import DefaultRevisionMixin
 
 logger = get_logger(__name__)
 
 
-class DistributedFalconConfig(FalconConfig, ClientConfig, PTuneConfig, LMHeadConfig):
+class DistributedFalconConfig(DefaultRevisionMixin, FalconConfig, ClientConfig, PTuneConfig, LMHeadConfig):
     block_class = WrappedFalconBlock
     attn_class = FalconAttention
     block_prefix = "transformer.h"
