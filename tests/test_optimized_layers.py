@@ -6,6 +6,7 @@ from transformers.models.falcon.modeling_falcon import FalconDecoderLayer, Falco
 
 from petals.utils.auto_config import AutoDistributedConfig
 from petals.utils.convert_block import QuantType, convert_block
+from test_utils import MODEL_NAME
 
 KVCache = Tuple[torch.Tensor, torch.Tensor]
 
@@ -93,11 +94,10 @@ class UnoptimizedWrappedFalconBlock(FalconDecoderLayer):
         return state
 
 
+@pytest.mark.skipif("falcon" not in MODEL_NAME, reason="This test is applicable only to Falcon models")
 @pytest.mark.forked
 def test_falcon():
-    config = AutoDistributedConfig.from_pretrained("tiiuae/falcon-rw-1b")
-    config.alibi = False
-    config.new_decoder_architecture = True
+    config = AutoDistributedConfig.from_pretrained(MODEL_NAME)
 
     device = "cpu"
     tensor_parallel_devices = (device,)
