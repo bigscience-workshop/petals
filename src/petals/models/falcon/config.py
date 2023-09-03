@@ -34,4 +34,9 @@ class DistributedFalconConfig(FalconConfig, ClientConfig, PTuneConfig, LMHeadCon
             dht_prefix = dht_prefix.split("/")[-1]  # Use only repo name to merge blocks hosted by different accounts
             dht_prefix = dht_prefix.replace(".", "-")
             logger.info(f"Using DHT prefix: {dht_prefix}")
-        return super().from_pretrained(model_name_or_path, *args, dht_prefix=dht_prefix, **kwargs)
+
+        result = super().from_pretrained(model_name_or_path, *args, dht_prefix=dht_prefix, **kwargs)
+        config = result[0] if isinstance(result, tuple) else result
+        if config.pad_token_id is None:
+            config.pad_token_id = 0
+        return result
