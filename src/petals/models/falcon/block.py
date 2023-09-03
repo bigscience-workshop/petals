@@ -86,8 +86,8 @@ class OptimizedFalconRotaryEmbedding(nn.Module):
             if dtype in [torch.float16, torch.bfloat16]:
                 emb = emb.float()
 
-            self.register_buffer("cos_cached", emb.cos()[None, :, :].type(dtype))
-            self.register_buffer("sin_cached", emb.sin()[None, :, :].type(dtype))
+            self.register_buffer("cos_cached", emb.cos()[None, :, :].type(dtype), persistent=False)
+            self.register_buffer("sin_cached", emb.sin()[None, :, :].type(dtype), persistent=False)
 
         return (
             self.cos_cached[:, past_key_values_length : seq_len + past_key_values_length].type(dtype),
