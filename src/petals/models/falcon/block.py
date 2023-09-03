@@ -24,7 +24,6 @@ from transformers.models.falcon.modeling_falcon import (
     rotate_half,
 )
 
-
 KVCache = Tuple[torch.Tensor, torch.Tensor]
 INFERENCE_MAX_LENGTH = 8192
 
@@ -225,6 +224,7 @@ class OptimizedFalconDecoderLayer(FalconDecoderLayer):
         self.hidden_dropout = config.hidden_dropout
         self.config = config
 
+        assert not self.config.alibi
         assert config.new_decoder_architecture
         self.ln_attn = LayerNorm(hidden_size, eps=config.layer_norm_epsilon)
         self.ln_mlp = LayerNorm(hidden_size, eps=config.layer_norm_epsilon)
@@ -299,10 +299,6 @@ class OptimizedFalconDecoderLayer(FalconDecoderLayer):
 
 
 class WrappedFalconBlock(OptimizedFalconDecoderLayer):
-    def __init__(self, config: FalconConfig):
-        super().__init__(config)
-        assert not self.config.alibi
-
     def forward(
         self,
         hidden_states: torch.Tensor,
