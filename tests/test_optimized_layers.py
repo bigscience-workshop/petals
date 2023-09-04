@@ -95,11 +95,14 @@ class UnoptimizedWrappedFalconBlock(FalconDecoderLayer):
 
 
 @pytest.mark.skipif("falcon" not in MODEL_NAME, reason="This test is applicable only to Falcon models")
+@pytest.mark.parametrize("device", ["cpu", "cuda:0"])
 @pytest.mark.forked
-def test_falcon():
+def test_falcon(device):
+    if device == "cuda:0" and not torch.cuda.is_available():
+        pytest.skip("CUDA tests can be run only in CUDA-enabled setups")
+
     config = AutoDistributedConfig.from_pretrained(MODEL_NAME)
 
-    device = "cpu"
     tensor_parallel_devices = (device,)
     dtype = torch.bfloat16
     quant_type = QuantType.NONE
