@@ -493,6 +493,7 @@ class RemoteSequenceManager:
         self, peer_id: PeerID, protocol: str, uids: Sequence[str], *args, **kwargs
     ) -> Optional[Sequence[runtime_pb2.CompressionType.ValueType]]:
         """
+        return a sequence of compression codecs for client-side compression (applied to tensors sent to remote server)
         :param peer_id: remote server's PeerID
         :param protocol: one of "rpc_forward", "rpc_backward" or "rpc_inference"
         :param args: request-specific input tensors

@@ -104,9 +104,13 @@ async def run_remote_forward(
     size = sum(t.element_size() * t.nelement() for t in flat_tensors)
     forward_fn = _forward_stream if size > MAX_UNARY_PAYLOAD_SIZE // 2 else _forward_unary
     # Hotfix: we use "// 2" since hivemind==1.1.5 serializes bfloat16 tensors in float32, so they take 2x more space - TODO remove in the next PR
-    return await forward_fn(
+    output_tensors = await forward_fn(
         merged_uid, serialized_tensors, stub, sequence_manager.config, metadata=MSGPackSerializer.dumps(metadata)
     )
+    # backward compatibility: ensure requires_grad; remove after https://github.com/learning-at-home/hivemind/pull/591
+    requires_grad = any(tensor.requires_grad for tensor in flat_tensors)
+    output_tensors = [tensor.requires_grad_(requires_grad) for tensor in output_tensors]
+    return output_tensors
 
 
 async def run_remote_backward(

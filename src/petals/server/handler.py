@@ -361,18 +361,19 @@ class TransformerConnectionHandler(ConnectionHandler):
             active_adapter = self._get_active_adapter(metadata)
             points = metadata.get("points", 0)
             args_structure = metadata.get("args_structure")
+
             assert isinstance(
                 points, (float, int)
             ), f"rpc_forward should have number of points as number or None, got {points}"
-
             hidden_states = await run_rpc_forward(
                 *flat_inputs,
-                requested_backends=requested_backends,
-                prioritizer=self._prioritizer,
-                active_adapter=active_adapter,
-                points=points,
                 args_structure=args_structure,
+                requested_backends=requested_backends,
+                active_adapter=active_adapter,
+                prioritizer=self._prioritizer,
+                points=points,
             )
+
             return runtime_pb2.ExpertResponse(
                 tensors=self._serialize_outputs(hidden_states, requested_backends, metadata)
             )
@@ -396,11 +397,11 @@ class TransformerConnectionHandler(ConnectionHandler):
 
             hidden_states = await run_rpc_forward(
                 *flat_inputs,
-                requested_backends=requested_backends,
-                prioritizer=self._prioritizer,
-                active_adapter=active_adapter,
-                points=points,
                 args_structure=args_structure,
+                requested_backends=requested_backends,
+                active_adapter=active_adapter,
+                prioritizer=self._prioritizer,
+                points=points,
             )
 
             # Split the serialized_output for streaming and respond to client
@@ -450,8 +451,8 @@ class TransformerConnectionHandler(ConnectionHandler):
             flat_grads, grads_structure = await run_rpc_backward(
                 *flat_tensors,
                 requested_backends=requested_backends,
-                prioritizer=self._prioritizer,
                 active_adapter=active_adapter,
+                prioritizer=self._prioritizer,
                 points=points,
                 args_structure=args_structure,
             )
@@ -479,8 +480,8 @@ class TransformerConnectionHandler(ConnectionHandler):
             flat_grads, grad_structure = await run_rpc_backward(
                 *flat_tensors,
                 requested_backends=requested_backends,
-                prioritizer=self._prioritizer,
                 active_adapter=active_adapter,
+                prioritizer=self._prioritizer,
                 points=points,
                 args_structure=args_structure,
             )
