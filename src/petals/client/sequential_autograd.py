@@ -162,7 +162,7 @@ async def sequential_backward(
                     sequence_manager.block_uids[span.start : span.end],
                     grad_outputs,
                     inputs,
-                    prompts[span.start: span.end],
+                    prompts[span.start : span.end],
                     *block_kwargs[span.start : span.end],
                 )
                 grad_outputs = [grad_outputs]
