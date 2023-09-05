@@ -46,8 +46,11 @@ async def sequential_forward(
     """
 
     assert isinstance(inputs, torch.Tensor) and inputs.ndim == 3, f"{type(inputs)}: {inputs.ndim}"
-    assert len(block_kwargs) in (0, 1, end_index - start_index), \
-        f"got {end_index - start_index} blocks but {len(block_kwargs)} sets of kwargs"
+    assert len(block_kwargs) in (
+        0,
+        1,
+        end_index - start_index,
+    ), f"got {end_index - start_index} blocks but {len(block_kwargs)} sets of kwargs"
 
     inputs_device = inputs.device
     inputs_dtype = inputs.dtype
@@ -78,27 +81,19 @@ async def sequential_forward(
 
                 span = sequences.popleft()
 
-                stub = TransformerConnectionHandler.get_stub(sequence_manager.state.p2p, span.peer_id)
-                flat_tensors, args_structure = pack_args_kwargs(
-                    inputs, prompts[span.start : span.end], *block_kwargs[span.start: span.end])
-
-                span_uids = CHAIN_DELIMITER.join(sequence_manager.block_uids[span.start : span.end])
-                metadata = sequence_manager.get_request_metadata(
-                    "rpc_forward", args_structure, span_uids, *flat_tensors
-                )
                 (outputs,) = await run_remote_forward(
-                    span_uids,
-                    stub,
-                    sequence_manager.rpc_info,
-                    *flat_tensors,
-                    config=sequence_manager.config,
-                    metadata=MSGPackSerializer.dumps(metadata),
+                    sequence_manager,
+                    span.peer_id,
+                    sequence_manager.block_uids[span.start : span.end],
+                    inputs,
+                    prompts[span.start : span.end],
+                    *block_kwargs[span.start : span.end]
                 )
 
                 assert isinstance(outputs, torch.Tensor)
                 assert outputs.shape == inputs.shape, f"Expected output {inputs.shape}, got {outputs.shape}"
 
-                # Save intermediate inputs and subsequences if the forward is already done for them
+                # Save intermediate inputs and subsequ_peerences if the forward is already done for them
                 intermediate_inputs.append(inputs)
                 done_sequences.append(span)
 
@@ -164,23 +159,14 @@ async def sequential_backward(
                     inputs = intermediate_inputs.pop()
                     span = forward_sequences.pop()
 
-                grad_outputs_cpu = [grad.cpu() for grad in grad_outputs]
-                flat_tensors, args_structure = pack_args_kwargs(
-                    inputs, *grad_outputs_cpu, prompts[span.start : span.end]
-                )
 
                 span_uids = CHAIN_DELIMITER.join(sequence_manager.block_uids[span.start : span.end])
                 stub = TransformerConnectionHandler.get_stub(sequence_manager.state.p2p, span.peer_id)
-                metadata = sequence_manager.get_request_metadata(
-                    "rpc_backward", args_structure, span_uids, *flat_tensors, peer_id=span.peer_id
-                )
                 grad_outputs, *span_grad_prompts = await run_remote_backward(
+                    sequence_manager,
+                    sequence_manager.block_uids[span.start: span.end],
                     span_uids,
-                    stub,
-                    sequence_manager.rpc_info,
-                    *flat_tensors,
-                    config=sequence_manager.config,
-                    metadata=MSGPackSerializer.dumps(metadata),
+                    grad_outputs, inputs,
                 )
                 grad_outputs = [grad_outputs]
                 grad_prompts_reversed.extend(span_grad_prompts)
