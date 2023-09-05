@@ -4,7 +4,7 @@ A PyTorch autograd function that runs forward/backward on a sequence of remote s
 import asyncio
 import itertools
 from collections import deque
-from typing import List, Optional, Sequence, Tuple
+from typing import List, Optional, Sequence, Tuple, Dict, Any
 
 import torch
 from hivemind import MSGPackSerializer
@@ -29,14 +29,25 @@ async def sequential_forward(
     sequence_manager: RemoteSequenceManager,
     start_index: int = 0,
     end_index: Optional[int] = None,
+    block_kwargs: Sequence[Dict[str, Any]] = (),
 ) -> Tuple[torch.Tensor, Sequence[torch.Tensor], Sequence[RemoteSpanInfo]]:
     """
     Constructs a routing path from <start_index> to <end_index>.
     Performs chained forward for each subsequence of blocks on the path.
     If some subsequence fails, reconstructs the remaining path and tries to finish the forward.
+
+    :param inputs: initial hidden states of shape [batch_size, sequence length, hidden_size]
+    :param prompts: optional DEEP prompts, added to a prefix of each layer's outputs,
+          if specified, deep prompts should have shape [num_layers, batch_size, prefix_len, hid_size]
+    :param sequence_manager: a running SequenceManager used to select remote servers and handle failures
+    :param start_index: run remote blocks starting from this index
+    :param end_index: run remote blocks up to (but not including) this index
+    :param block_kwargs: optional per-block keyword arguments. Must be a sequence with one dictionary for each block
     """
 
     assert isinstance(inputs, torch.Tensor) and inputs.ndim == 3, f"{type(inputs)}: {inputs.ndim}"
+    assert len(block_kwargs) in (0, 1, end_index - start_index), \
+        f"got {end_index - start_index} blocks but {len(block_kwargs)} sets of kwargs"
 
     inputs_device = inputs.device
     inputs_dtype = inputs.dtype
@@ -68,7 +79,8 @@ async def sequential_forward(
                 span = sequences.popleft()
 
                 stub = TransformerConnectionHandler.get_stub(sequence_manager.state.p2p, span.peer_id)
-                flat_tensors, args_structure = pack_args_kwargs(inputs, prompts[span.start : span.end])
+                flat_tensors, args_structure = pack_args_kwargs(
+                    inputs, prompts[span.start : span.end], *block_kwargs[span.start: span.end])
 
                 span_uids = CHAIN_DELIMITER.join(sequence_manager.block_uids[span.start : span.end])
                 metadata = sequence_manager.get_request_metadata(
