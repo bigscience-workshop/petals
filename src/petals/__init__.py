@@ -24,6 +24,9 @@ if not os.getenv("PETALS_IGNORE_DEPENDENCY_VERSION"):
     assert (
         version.parse("4.32.0") <= version.parse(transformers.__version__) < version.parse("5.0.0")
     ), "Please install a proper transformers version: pip install transformers>=4.32.0,<5.0.0"
+    assert version.parse("1.1.10") <= version.parse(
+        hivemind.__version__
+    ), "Please install a proper hivemind version: pip install hivemind>=1.1.10"
 
 
 def _override_bfloat16_mode_default():

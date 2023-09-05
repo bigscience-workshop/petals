@@ -221,7 +221,7 @@ def merge_inference_pools_inplace(backends: Dict[ExpertUID, TransformerBackend])
     first_pool = next(iter(backends.values())).inference_pool
     merged_inference_func = _MergedInferenceStep(backends)
     merged_pool = PrioritizedTaskPool(
-        lambda args, kwargs: merged_inference_func(*args, **kwargs),
+        merged_inference_func,
         max_batch_size=first_pool.max_batch_size,
         device=first_pool.device,
         name=f"merged_inference",
