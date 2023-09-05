@@ -144,6 +144,8 @@ async def run_remote_backward(
             for tensor, compression in zip(flat_tensors, codecs)
         )
     )
+    for tensor, serialized_tensor in zip(flat_tensors, serialized_tensors):
+        serialized_tensor.requires_grad = tensor.requires_grad
 
     size = sum(t.element_size() * t.nelement() for t in flat_tensors)
     backward_fn = _backward_stream if size > MAX_UNARY_PAYLOAD_SIZE // 2 else _backward_unary

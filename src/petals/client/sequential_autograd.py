@@ -161,7 +161,8 @@ async def sequential_backward(
                     span.peer_id,
                     sequence_manager.block_uids[span.start : span.end],
                     grad_outputs,
-                    *inputs,
+                    inputs,
+                    prompts[span.start: span.end],
                     *block_kwargs[span.start : span.end],
                 )
                 grad_outputs = [grad_outputs]
@@ -224,12 +225,14 @@ class _RemoteSequentialAutogradFunction(torch.autograd.Function):
     def forward(ctx, inputs: torch.Tensor, prompts: torch.Tensor, sequence_manager: RemoteSequenceManager):
         batch_size = max(MAX_TOKENS_IN_BATCH // inputs.shape[1], 1)
         input_batches: Sequence[torch.Tensor] = inputs.detach().split(batch_size)
+        input_batches = tuple(batch.requires_grad_(inputs.requires_grad) for batch in input_batches)
         if prompts is None or is_dummy(prompts):
             prompt_batches = [DUMMY] * len(input_batches)
         else:
             prompt_batches: Sequence[torch.Tensor] = prompts.detach().split(batch_size, dim=1)
+            prompt_batches = tuple(batch.requires_grad_(prompts.requires_grad) for batch in prompt_batches)
 
-        sequence_manager.rpc_info  # lazy init
+        sequence_manager.rpc_info  # lazy init #TODO no longer needed
         outputs = RemoteExpertWorker.run_coroutine(_gather_forward(input_batches, prompt_batches, sequence_manager))
         assert len(outputs) == len(input_batches)
 
