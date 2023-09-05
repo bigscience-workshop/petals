@@ -474,7 +474,9 @@ class RemoteSequenceManager:
             return 0
         return min(self.config.min_backoff * 2 ** (attempt_no - 1), self.config.max_backoff)
 
-    def get_request_metadata(self, peer_id: PeerID, protocol: str, uids: Sequence[str], *args, **kwargs) -> Optional[Dict[str, Any]]:
+    def get_request_metadata(
+        self, peer_id: PeerID, protocol: str, uids: Sequence[str], *args, **kwargs
+    ) -> Optional[Dict[str, Any]]:
         """
         :param peer_id: remote server's PeerID
         :param protocol: one of "rpc_forward", "rpc_backward" or "rpc_inference"
@@ -488,7 +490,8 @@ class RemoteSequenceManager:
         )
 
     def get_compression_codecs(
-            self, peer_id: PeerID, protocol: str, uids: Sequence[str], *args, **kwargs) -> Optional[Sequence[runtime_pb2.CompressionType.ValueType]]:
+        self, peer_id: PeerID, protocol: str, uids: Sequence[str], *args, **kwargs
+    ) -> Optional[Sequence[runtime_pb2.CompressionType.ValueType]]:
         """
         :param peer_id: remote server's PeerID
         :param protocol: one of "rpc_forward", "rpc_backward" or "rpc_inference"

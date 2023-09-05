@@ -4,19 +4,16 @@ A PyTorch autograd function that runs forward/backward on a sequence of remote s
 import asyncio
 import itertools
 from collections import deque
-from typing import List, Optional, Sequence, Tuple, Dict, Any
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import torch
-from hivemind import MSGPackSerializer
 from hivemind.moe.client.remote_expert_worker import RemoteExpertWorker
 from hivemind.utils.logging import get_logger
 
 from petals.client.remote_forward_backward import run_remote_backward, run_remote_forward
 from petals.client.routing import RemoteSequenceManager, maybe_log_traceback
-from petals.data_structures import CHAIN_DELIMITER, RemoteSpanInfo
-from petals.server.handler import TransformerConnectionHandler
+from petals.data_structures import RemoteSpanInfo
 from petals.utils.misc import DUMMY, is_dummy
-from petals.utils.packaging import pack_args_kwargs
 
 logger = get_logger(__name__)
 
@@ -24,12 +21,12 @@ MAX_TOKENS_IN_BATCH = 1024
 
 
 async def sequential_forward(
+    sequence_manager: RemoteSequenceManager,
     inputs: torch.Tensor,
     prompts: torch.Tensor,
-    sequence_manager: RemoteSequenceManager,
     start_index: int = 0,
     end_index: Optional[int] = None,
-    block_kwargs: Sequence[Dict[str, Any]] = (),
+    *block_kwargs: Dict[str, Any],
 ) -> Tuple[torch.Tensor, Sequence[torch.Tensor], Sequence[RemoteSpanInfo]]:
     """
     Constructs a routing path from <start_index> to <end_index>.
@@ -45,13 +42,6 @@ async def sequential_forward(
     :param block_kwargs: optional per-block keyword arguments. Must be a sequence with one dictionary for each block
     """
 
-    assert isinstance(inputs, torch.Tensor) and inputs.ndim == 3, f"{type(inputs)}: {inputs.ndim}"
-    assert len(block_kwargs) in (
-        0,
-        1,
-        end_index - start_index,
-    ), f"got {end_index - start_index} blocks but {len(block_kwargs)} sets of kwargs"
-
     inputs_device = inputs.device
     inputs_dtype = inputs.dtype
     inputs = inputs.cpu()
@@ -59,6 +49,9 @@ async def sequential_forward(
 
     end_index = end_index if end_index is not None else len(sequence_manager.block_uids)
     assert start_index >= 0 and end_index <= len(sequence_manager.block_uids)
+    assert len(block_kwargs) in (0, 1, end_index - start_index), \
+        f"got {end_index - start_index} blocks but {len(block_kwargs)} sets of kwargs"
+    assert isinstance(inputs, torch.Tensor) and inputs.ndim == 3, f"{type(inputs)}: {inputs.ndim}"
     assert is_dummy(prompts) or len(prompts) == len(
         sequence_manager.block_uids
     )  # should be n_layers - 1 but add extra prompts for convenience
@@ -87,13 +80,13 @@ async def sequential_forward(
                     sequence_manager.block_uids[span.start : span.end],
                     inputs,
                     prompts[span.start : span.end],
-                    *block_kwargs[span.start : span.end]
+                    *block_kwargs[span.start : span.end],
                 )
 
                 assert isinstance(outputs, torch.Tensor)
                 assert outputs.shape == inputs.shape, f"Expected output {inputs.shape}, got {outputs.shape}"
 
-                # Save intermediate inputs and subsequ_peerences if the forward is already done for them
+                # Save intermediate inputs and subsequences if the forward is already done for them
                 intermediate_inputs.append(inputs)
                 done_sequences.append(span)
 
@@ -118,11 +111,12 @@ async def sequential_forward(
 
 
 async def sequential_backward(
+    sequence_manager: RemoteSequenceManager,
+    forward_sequences: List[RemoteSpanInfo],
     grad_outputs: Sequence[torch.Tensor],
     intermediate_inputs: List[torch.Tensor],
     prompts: torch.Tensor,
-    forward_sequences: List[RemoteSpanInfo],
-    sequence_manager: RemoteSequenceManager,
+    *block_kwargs: Dict[str, Any],
 ) -> Tuple[Sequence[torch.Tensor], torch.Tensor]:
     """
     Performs chained backward for each forward subsequence.
@@ -148,7 +142,7 @@ async def sequential_backward(
             try:
                 if attempt_no >= 1:
                     _, backup_inputs, backup_sequences = await sequential_forward(
-                        inputs, prompts, sequence_manager, start_index=span.start, end_index=span.end
+                        sequence_manager, inputs, prompts, start_index=span.start, end_index=span.end
                     )
                     assert len(backup_inputs) == len(backup_sequences)
                     assert backup_sequences[0].start == span.start
@@ -159,14 +153,13 @@ async def sequential_backward(
                     inputs = intermediate_inputs.pop()
                     span = forward_sequences.pop()
 
-
-                span_uids = CHAIN_DELIMITER.join(sequence_manager.block_uids[span.start : span.end])
-                stub = TransformerConnectionHandler.get_stub(sequence_manager.state.p2p, span.peer_id)
                 grad_outputs, *span_grad_prompts = await run_remote_backward(
                     sequence_manager,
-                    sequence_manager.block_uids[span.start: span.end],
-                    span_uids,
-                    grad_outputs, inputs,
+                    span.peer_id,
+                    sequence_manager.block_uids[span.start : span.end],
+                    grad_outputs,
+                    *inputs,
+                    *block_kwargs[span.start : span.end],
                 )
                 grad_outputs = [grad_outputs]
                 grad_prompts_reversed.extend(span_grad_prompts)
@@ -198,7 +191,7 @@ async def _gather_forward(input_batches, prompt_batches, sequence_manager):
     """Wrapper for asyncio.gather to perform parallel sequential forwards"""
     return await asyncio.gather(
         *[
-            sequential_forward(input_batch, prompt_batch, sequence_manager)
+            sequential_forward(sequence_manager, input_batch, prompt_batch)
             for input_batch, prompt_batch in zip(input_batches, prompt_batches)
         ]
     )
@@ -210,7 +203,7 @@ async def _gather_backward(
     """Wrapper for asyncio.gather to perform parallel sequential backwards"""
     return await asyncio.gather(
         *[
-            sequential_backward((grad_output,), input_batch, prompt_batch, spans, sequence_manager)
+            sequential_backward(sequence_manager, spans, (grad_output,), input_batch, prompt_batch)
             for grad_output, input_batch, prompt_batch, spans in zip(
                 grad_output_batches, intermediate_input_batches, prompt_batches, forward_sequences
             )

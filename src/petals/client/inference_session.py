@@ -4,7 +4,7 @@ import asyncio
 import itertools
 import time
 import uuid
-from typing import AsyncIterator, List, Optional, Tuple
+from typing import AsyncIterator, List, Optional, Tuple, Sequence
 
 import torch
 from hivemind import MSGPackSerializer, anext, deserialize_torch_tensor, get_logger, serialize_torch_tensor
@@ -34,7 +34,7 @@ class _ServerInferenceSession:
         self,
         config: ClientConfig,
         span: RemoteSpanInfo,
-        uid: ModuleUID,
+        span_uids: Sequence[ModuleUID],
         rpc_info: RPCInfo,
         inputs_queue: asyncio.Queue,
         outputs_aiter: AsyncIterator,
@@ -43,8 +43,8 @@ class _ServerInferenceSession:
         **metadata,
     ):
         self.config = config
-        self.span, self.uid, self.rpc_info = span, uid, rpc_info
-        self.num_blocks = uid.count(CHAIN_DELIMITER) + 1
+        self.span, self.span_uids, self.rpc_info = span, span_uids, rpc_info
+        self.num_blocks = len(span_uids)
         self._inputs_queue: asyncio.Queue[runtime_pb2.ExpertRequest] = inputs_queue
         self._outputs_stream: AsyncIterator[runtime_pb2.ExpertResponse] = outputs_aiter
         self.session_id = str(uuid.uuid4())
@@ -62,18 +62,19 @@ class _ServerInferenceSession:
         config: ClientConfig,
         p2p: P2P,
         span: RemoteSpanInfo,
-        uid: ModuleUID,
+        span_uids: Sequence[RemoteSpanInfo],
         rpc_info: RPCInfo,
         **metadata,
     ) -> _ServerInferenceSession:
         """Create a new session for a given remote module. This code is meant to be run inside RemoteExpertWorker"""
+        # TODO YOZH you don't need rpc info here
         stub = TransformerConnectionHandler.get_stub(p2p, span.peer_id)
         inputs_queue = asyncio.Queue()
         outputs_stream = await asyncio.wait_for(
             stub.rpc_inference(cls._read_inputs_from_queue(inputs_queue)),
             config.connect_timeout,
         )
-        return cls(config, span, uid, rpc_info, inputs_queue, outputs_stream, **metadata)
+        return cls(config, span, span_uids, rpc_info, inputs_queue, outputs_stream, **metadata)
 
     @staticmethod
     async def _read_inputs_from_queue(queue: asyncio.Queue, input_timeout: Optional[float] = None) -> AsyncIterator:
@@ -142,6 +143,7 @@ class _ServerInferenceSession:
 
         request_metadata["args_structure"] = args_structure
 
+        # TODO YOZH FIX THIS BEFORE THE END OF THIS PR
         # TODO: make possible to use different compression method for different tensors
         server_side_inference_schema, kwargs_schema = self.rpc_info["inference_schema"]
         compression = server_side_inference_schema[0].compression
@@ -155,7 +157,7 @@ class _ServerInferenceSession:
         outputs_serialized = RemoteExpertWorker.run_coroutine(
             self._step(
                 runtime_pb2.ExpertRequest(
-                    uid=self.uid,
+                    uid=CHAIN_DELIMITER.join(self.span_uids),
                     tensors=[
                         serialize_torch_tensor(tensor.to(proto.dtype), proto.compression)
                         for tensor, proto in zip(input_tensors, inference_schema)
@@ -244,8 +246,8 @@ class InferenceSession:
         server_sessions = []
         try:
             for span in chosen_spans:
-                span_uids = CHAIN_DELIMITER.join(self._sequence_manager.block_uids[span.start : span.end])
-                metadata = self._sequence_manager.get_request_metadata("rpc_inference", span_uids, peer_id=span.peer_id)
+                span_uids = self._sequence_manager.block_uids[span.start : span.end]
+                metadata = self._sequence_manager.get_request_metadata(span.peer_id, "rpc_inference", span_uids)
                 session = RemoteExpertWorker.run_coroutine(
                     _ServerInferenceSession.create(
                         self._sequence_manager.config,
