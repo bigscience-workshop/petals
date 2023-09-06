@@ -29,10 +29,13 @@ class TransformerBackend(ModuleBackend):
     def __init__(
         self,
         *args,
+        block_index: int,
         config: PretrainedConfig,
         memory_cache: MemoryCache,
         backend_dtype: torch.dtype,
         max_chunk_size_bytes: int,
+        cache_dir: str,
+        max_disk_space: int,
         **kwargs,
     ):
         import petals.utils.peft as _peft_module
@@ -41,9 +44,12 @@ class TransformerBackend(ModuleBackend):
 
         super().__init__(*args, **kwargs)
         assert isinstance(self.module, TensorParallel)
+        self.block_index = block_index
         self.config = config
         self.memory_cache = memory_cache
         self.max_chunk_size_bytes = max_chunk_size_bytes
+        self.cache_dir = cache_dir
+        self.max_disk_space = max_disk_space
 
         for name, param in self.module.named_parameters():
             assert not param.requires_grad, f"Block parameters must not accumulate gradients, but {name} does"

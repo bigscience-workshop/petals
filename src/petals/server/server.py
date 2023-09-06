@@ -512,6 +512,7 @@ class ModuleContainer(threading.Thread):
                 blocks[module_uid] = TransformerBackend(
                     module_uid,
                     block,
+                    block_index=block_index,
                     config=block_config,
                     memory_cache=memory_cache,
                     backend_dtype=torch_dtype,
