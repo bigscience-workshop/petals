@@ -57,15 +57,15 @@ class TransformerBackend(ModuleBackend):
             assert not buf.requires_grad, f"Block parameters must not accumulate gradients, but {name} does"
 
         max_batch_size = self.forward_pool.max_batch_size
-        device = self.module.devices[self.module.output_device_index]
+        self.device = self.module.devices[self.module.output_device_index]
         self.inference_pool = PrioritizedTaskPool(
-            self.inference_step, max_batch_size=max_batch_size, device=device, name=f"{self.name}_inference"
+            self.inference_step, max_batch_size=max_batch_size, device=self.device, name=f"{self.name}_inference"
         )  # note: inference_pools may be merged later, see merge_inference_pools_inplace
         self.forward_pool = PrioritizedTaskPool(
-            self.forward, max_batch_size=max_batch_size, device=device, name=f"{self.name}_forward"
+            self.forward, max_batch_size=max_batch_size, device=self.device, name=f"{self.name}_forward"
         )
         self.backward_pool = PrioritizedTaskPool(
-            self.backward, max_batch_size=max_batch_size, device=device, name=f"{self.name}_backward"
+            self.backward, max_batch_size=max_batch_size, device=self.device, name=f"{self.name}_backward"
         )
 
         self.dtype = backend_dtype

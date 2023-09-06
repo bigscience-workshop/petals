@@ -128,6 +128,15 @@ def load_peft(
             time.sleep(delay)
 
 
+def get_estimated_peft_module_size(
+        repo_id: str,
+        revision: Optional[str] = None,
+        token: Optional[Union[str, bool]] = None,
+):
+    weight_url = hf_hub_url(repo_id, SAFETENSORS_WEIGHTS_NAME, revision=revision)
+    return get_hf_file_metadata(weight_url, token=token).size
+
+
 class AdapterContextMixin:
     """A mixin that makes LoRA-wrapped linear layers obey an adapter set from context"""
 
