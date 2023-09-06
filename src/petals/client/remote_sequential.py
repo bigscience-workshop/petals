@@ -53,7 +53,7 @@ class RemoteSequential(nn.Module):
         assert inputs.ndim == 3, "inputs must be a tensor of shape [batch_size, seq_length, hidden_size]"
         if self.active_session is None:
             assert all(v is None for v in kwargs.values()), f"Extra kwargs are not supported in forward: {kwargs}"
-            return _RemoteSequentialAutogradFunction.apply(self.sequence_manager, inputs, prompts, *args, **kwargs)
+            return _RemoteSequentialAutogradFunction.apply(self.sequence_manager, inputs, prompts, *args)
         else:
             return self.active_session.step(inputs, prompts, *args, **kwargs)
 
