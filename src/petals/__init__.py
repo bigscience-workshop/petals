@@ -17,7 +17,7 @@ from petals.models import *
 from petals.utils import *
 from petals.utils.logging import initialize_logs as _initialize_logs
 
-__version__ = "2.1.0"
+__version__ = "2.2.0"
 
 
 if not os.getenv("PETALS_IGNORE_DEPENDENCY_VERSION"):
