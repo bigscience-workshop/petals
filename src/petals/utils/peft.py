@@ -128,6 +128,15 @@ def load_peft(
             time.sleep(delay)
 
 
+def get_estimated_peft_module_size(
+        repo_id: str,
+        revision: Optional[str] = None,
+        token: Optional[Union[str, bool]] = None,
+):
+    weight_url = hf_hub_url(repo_id, SAFETENSORS_WEIGHTS_NAME, revision=revision)
+    return get_hf_file_metadata(weight_url, token=token).size
+
+
 class AdapterContextMixin:
     """A mixin that makes LoRA-wrapped linear layers obey an adapter set from context"""
 
@@ -265,6 +274,22 @@ def add_adapter_to_block(block, block_index, adapter_name, peft_config, peft_sta
                 elif is_lora_a_loaded or is_lora_b_loaded:
                     raise ValueError(f"Invalid adapter {adapter_name} for block {block_index}.{child_name}")
     logger.info(f"Loaded adapter {adapter_name} for block {block_index}")
+
+
+def remove_adapter_from_block(block, adapter_name):
+    for _, module in block.named_modules():
+        for child_name, child in module.named_children():
+            if not isinstance(child, (lora.Linear, lora.Linear8bitLt, lora.Linear4bit)):
+                continue
+
+            if adapter_name in child.lora_A:
+                del child.lora_A[adapter_name]
+            if adapter_name in child.lora_B:
+                del child.lora_B[adapter_name]
+
+            # TODO: check is this needed
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
 
 
 def estimate_adapter_memory_per_block(

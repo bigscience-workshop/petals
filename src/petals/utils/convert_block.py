@@ -58,10 +58,11 @@ def convert_block(
     for shard, device in zip(block.module_shards, block.devices):
         shard.to(device)
 
-    if adapters:
-        from petals.utils.peft import add_adapter_to_block, create_lora_adapter, load_peft
+    from petals.utils.peft import add_adapter_to_block, create_lora_adapter, load_peft
 
-        create_lora_adapter(block, quant_type=quant_type)
+    create_lora_adapter(block, quant_type=quant_type)
+
+    if adapters:
         for adapter_name in adapters:
             adapter_config, adapter_state_dict = load_peft(
                 adapter_name,

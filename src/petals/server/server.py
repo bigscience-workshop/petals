@@ -231,6 +231,8 @@ class Server:
         gib = 1024**3
         self.attn_cache_bytes = self._cache_bytes_per_block * num_blocks
         logger.info(f"Attention cache for all blocks will consume up to {self.attn_cache_bytes / gib:.2f} GiB")
+        self.adapters_cache_bytes = self.attn_cache_bytes
+        logger.info(f"Adapter cache for all blocks will consume up to {self.adapters_cache_bytes / gib:.2f} GiB")
 
         assert isinstance(throughput, float) or throughput in ["auto", "eval", "dry_run"]
         if throughput in ["auto", "eval", "dry_run"]:
@@ -335,6 +337,7 @@ class Server:
                 converted_model_name_or_path=self.converted_model_name_or_path,
                 block_config=self.block_config,
                 attn_cache_bytes=self.attn_cache_bytes,
+                adapters_cache_bytes=self.adapters_cache_bytes,
                 server_info=self.server_info,
                 model_info=self.model_info,
                 block_indices=block_indices,
@@ -442,6 +445,7 @@ class ModuleContainer(threading.Thread):
         converted_model_name_or_path: str,
         block_config: PretrainedConfig,
         attn_cache_bytes: int,
+        adapters_cache_bytes: int,
         server_info: ServerInfo,
         model_info: ModelInfo,
         block_indices: List[int],
@@ -464,7 +468,7 @@ class ModuleContainer(threading.Thread):
         **kwargs,
     ) -> ModuleContainer:
         module_uids = [f"{dht_prefix}{UID_DELIMITER}{block_index}" for block_index in block_indices]
-        memory_cache = MemoryCache(attn_cache_bytes, max_alloc_timeout)
+        memory_cache = MemoryCache(attn_cache_bytes + adapters_cache_bytes, max_alloc_timeout)
 
         server_info.state = ServerState.JOINING
         dht_announcer = ModuleAnnouncerThread(
@@ -512,10 +516,13 @@ class ModuleContainer(threading.Thread):
                 blocks[module_uid] = TransformerBackend(
                     module_uid,
                     block,
+                    block_index=block_index,
                     config=block_config,
                     memory_cache=memory_cache,
                     backend_dtype=torch_dtype,
                     max_chunk_size_bytes=max_chunk_size_bytes,
+                    cache_dir=cache_dir,
+                    max_disk_space=max_disk_space,
                     args_schema=(
                         BatchTensorDescriptor(
                             1, 2048, block_config.hidden_size, dtype=torch_dtype, compression=compression

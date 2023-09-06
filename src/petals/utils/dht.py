@@ -111,11 +111,6 @@ async def _get_remote_module_infos(
             try:
                 peer_id = PeerID.from_base58(peer_id)
                 server_info = ServerInfo.from_tuple(server_info.value)
-
-                if active_adapter and active_adapter not in server_info.adapters:
-                    logger.debug(f"Skipped server {peer_id} since it does not have adapter {active_adapter}")
-                    continue
-
                 servers[peer_id] = server_info
             except (TypeError, ValueError) as e:
                 logger.warning(f"Incorrect peer entry for uid={uid}, peer_id={peer_id}: {e}")
