@@ -242,12 +242,12 @@ class _MergedInferenceStep:
         hypo_ids: torch.LongTensor,
         inference_infos: Sequence[InferenceMetadata],
         *optional_prompts: Optional[torch.Tensor],
-        backend_kwargs: Sequence[Dict[str, torch.Tensor]],
+        block_kwargs: Sequence[Dict[str, torch.Tensor]],
     ) -> Tuple[torch.Tensor, ...]:
         assert (
-            len(inference_infos) == len(optional_prompts) == len(backend_kwargs)
-        ), f"mismatch: got {len(inference_infos)} infos, {len(optional_prompts)} prompts, {len(backend_kwargs)} kwargs"
-        for inference_info, optional_prompt, kwargs in zip(inference_infos, optional_prompts, backend_kwargs):
+            len(inference_infos) == len(optional_prompts) == len(block_kwargs)
+        ), f"mismatch: got {len(inference_infos)} infos, {len(optional_prompts)} prompts, {len(block_kwargs)} kwargs"
+        for inference_info, optional_prompt, kwargs in zip(inference_infos, optional_prompts, block_kwargs):
             if optional_prompt is not None:
                 hidden_states[:, : optional_prompt.shape[1]] += optional_prompt
             (hidden_states,) = self.backends[inference_info.uid].inference_step(
