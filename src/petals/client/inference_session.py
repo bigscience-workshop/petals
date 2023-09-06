@@ -255,7 +255,7 @@ class InferenceSession:
                         self._sequence_manager.state.p2p,
                         span,
                         span_uids,
-                        rpc_info=self._sequence_manager.rpc_info, #TODO not actually needed
+                        rpc_info=self._sequence_manager.rpc_info,  # TODO not actually needed
                         max_length=self._max_length,
                         **metadata,
                     )
