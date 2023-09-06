@@ -233,7 +233,6 @@ class _RemoteSequentialAutogradFunction(torch.autograd.Function):
             prompt_batches: Sequence[torch.Tensor] = prompts.detach().split(batch_size, dim=1)
             prompt_batches = tuple(batch.requires_grad_(prompts.requires_grad) for batch in prompt_batches)
 
-        sequence_manager.rpc_info  # lazy init #TODO no longer needed
         outputs = RemoteExpertWorker.run_coroutine(_gather_forward(input_batches, prompt_batches, sequence_manager))
         assert len(outputs) == len(input_batches)
 

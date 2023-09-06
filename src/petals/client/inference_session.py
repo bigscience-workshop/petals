@@ -34,7 +34,7 @@ class _ServerInferenceSession:
         span: RemoteSpanInfo,
         span_uids: Sequence[ModuleUID],
         inputs_queue: asyncio.Queue,
-        outputs_stream: AsyncIterator,
+        outputs_aiter: AsyncIterator,
         *block_kwargs,
         max_length: int,
     ):
@@ -42,7 +42,7 @@ class _ServerInferenceSession:
         self.span, self.span_uids = span, span_uids
         self.num_blocks = len(span_uids)
         self._inputs_queue: asyncio.Queue[runtime_pb2.ExpertRequest] = inputs_queue
-        self._outputs_stream: AsyncIterator[runtime_pb2.ExpertResponse] = outputs_stream
+        self._outputs_stream: AsyncIterator[runtime_pb2.ExpertResponse] = outputs_aiter
         self.session_id = str(uuid.uuid4())
         self.max_length = max_length
         self.stepped = False
