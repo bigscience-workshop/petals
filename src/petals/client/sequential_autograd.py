@@ -52,7 +52,7 @@ async def sequential_forward(
     if len(block_kwargs) == 1:
         block_kwargs = block_kwargs * (end_index - start_index)
     assert (
-        len(block_kwargs) in (0, end_index - start_index)
+        not block_kwargs or len(block_kwargs) == end_index - start_index
     ), f"got {end_index - start_index} blocks but {len(block_kwargs)} sets of kwargs"
     assert isinstance(inputs, torch.Tensor) and inputs.ndim == 3, f"{type(inputs)}: {inputs.ndim}"
     assert is_dummy(prompts) or len(prompts) == len(
@@ -222,7 +222,8 @@ class _RemoteSequentialAutogradFunction(torch.autograd.Function):
     """
 
     @staticmethod
-    def forward(ctx, inputs: torch.Tensor, prompts: torch.Tensor, sequence_manager: RemoteSequenceManager):
+    def forward(ctx, sequence_manager: RemoteSequenceManager, inputs: torch.Tensor, prompts: torch.Tensor):
+        # TODO add kwargs here; figure out a way to split kwargs across servers
         batch_size = max(MAX_TOKENS_IN_BATCH // inputs.shape[1], 1)
         input_batches: Sequence[torch.Tensor] = inputs.detach().split(batch_size)
         input_batches = tuple(batch.requires_grad_(inputs.requires_grad) for batch in input_batches)
@@ -271,4 +272,5 @@ class _RemoteSequentialAutogradFunction(torch.autograd.Function):
         grad_inputs = torch.cat(grad_input_batches, dim=0)
         dummy_grad_prompts = [grad_prompt is None for grad_prompt in grad_prompt_batches]
         grad_prompts = torch.cat(grad_prompt_batches, dim=1) if not any(dummy_grad_prompts) else None
-        return (grad_inputs, grad_prompts, None)
+        # TODO return grads w.r.t. kwargs here
+        return (None, grad_inputs, grad_prompts)
