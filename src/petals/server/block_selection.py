@@ -40,16 +40,16 @@ def compute_spans(module_infos: List[Optional[RemoteModuleInfo]]) -> Tuple[Dict[
             if server.state == ServerState.OFFLINE:
                 continue
 
-            if peer_id in spans:
-                spans[peer_id].start = min(spans[peer_id].start, block)
-                spans[peer_id].end = max(spans[peer_id].end, block + 1)
-            else:
+            if peer_id not in spans or spans[peer_id].state.value < server.state.value:
                 spans[peer_id] = Span(
                     start=server.get("start_block", block),
                     end=server.get("end_block", block + 1),
                     throughput=server.throughput,
                     state=server.state,
                 )
+            elif spans[peer_id].state == server.state:
+                spans[peer_id].start = min(spans[peer_id].start, block)
+                spans[peer_id].end = max(spans[peer_id].end, block + 1)
 
             throughputs[block] += server.throughput
 
