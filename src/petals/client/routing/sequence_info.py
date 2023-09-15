@@ -4,7 +4,7 @@ from typing import Iterable, List, Optional, Sequence, Tuple, Type, TypeVar
 
 from hivemind import get_logger
 
-from petals.data_structures import UID_DELIMITER, ModuleUID, RemoteModuleInfo, RemoteSpanInfo, ServerState, parse_uid
+from petals.data_structures import ModuleUID, RemoteModuleInfo, RemoteSpanInfo, ServerState, parse_uid
 
 logger = get_logger(__name__)
 

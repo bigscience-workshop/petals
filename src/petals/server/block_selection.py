@@ -4,7 +4,7 @@ from typing import Dict, List, Optional, Tuple
 import numpy as np
 from hivemind import PeerID, get_logger
 
-from petals.data_structures import UID_DELIMITER, RemoteModuleInfo, ServerState, parse_uid
+from petals.data_structures import RemoteModuleInfo, ServerState, parse_uid
 
 __all__ = ["choose_best_blocks", "should_choose_other_blocks"]
 
