@@ -92,8 +92,16 @@ class RemoteSpanInfo:
     server_info: ServerInfo
 
     @property
-    def length(self):
+    def length(self) -> int:
         return self.end - self.start
+
+    @property
+    def state(self) -> ServerState:
+        return self.server_info.state
+
+    @property
+    def throughput(self) -> float:
+        return self.server_info.throughput
 
 
 RPCInfo = Dict[str, Any]

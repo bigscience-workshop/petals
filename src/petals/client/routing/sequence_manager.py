@@ -117,7 +117,6 @@ class RemoteSequenceManager:
         if state.sequence_info.last_updated_time is not None:
             assert block_uids == state.sequence_info.block_uids
             self._thread.ready.set()  # no need to await the first dht fetch
-            self._need_latest_infos = True
 
     @staticmethod
     def _peer_ids_to_set(peer_ids: Optional[Sequence[Union[PeerID, str]]]) -> Optional[Set[PeerID]]:

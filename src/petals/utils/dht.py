@@ -11,7 +11,16 @@ from hivemind.dht import DHT, DHTNode, DHTValue
 from hivemind.p2p import PeerID
 from hivemind.utils import DHTExpiration, MPFuture, get_dht_time, get_logger
 
-from petals.data_structures import CHAIN_DELIMITER, UID_DELIMITER, ModuleUID, RemoteModuleInfo, ServerInfo
+from petals.data_structures import (
+    CHAIN_DELIMITER,
+    UID_DELIMITER,
+    ModuleUID,
+    RemoteModuleInfo,
+    RemoteSpanInfo,
+    ServerInfo,
+    ServerState,
+    parse_uid,
+)
 
 logger = get_logger(__name__)
 
@@ -120,3 +129,26 @@ async def _get_remote_module_infos(
             except (TypeError, ValueError) as e:
                 logger.warning(f"Incorrect peer entry for uid={module_info.uid}, peer_id={peer_id}: {e}")
     return modules
+
+
+def compute_spans(module_infos: List[RemoteModuleInfo], *, min_state: ServerState) -> Dict[PeerID, RemoteSpanInfo]:
+    block_offset = parse_uid(module_infos[0].uid)[1] if module_infos else 0
+    num_blocks = len(module_infos)
+
+    spans = {}
+    for block_idx, module_info in enumerate(module_infos):
+        for peer_id, server_info in sorted(module_info.servers.items()):
+            if server_info.state.value < min_state.value:
+                continue
+
+            if peer_id not in spans or spans[peer_id].state.value < server_info.state.value:
+                spans[peer_id] = RemoteSpanInfo(
+                    peer_id=peer_id, start=block_idx, end=block_idx + 1, server_info=server_info
+                )
+                if server_info.start_block is not None and server_info.end_block is not None:
+                    spans[peer_id].start = max(server_info.start_block - block_offset, 0)
+                    spans[peer_id].end = min(server_info.end_block - block_offset, num_blocks)
+            elif spans[peer_id].state == server_info.state:
+                spans[peer_id].start = min(spans[peer_id].start, block_idx)
+                spans[peer_id].end = max(spans[peer_id].end, block_idx + 1)
+    return spans
