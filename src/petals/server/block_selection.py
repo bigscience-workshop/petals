@@ -28,8 +28,10 @@ class Span:
 
 def compute_spans(module_infos: List[Optional[RemoteModuleInfo]]) -> Tuple[Dict[PeerID, Span], np.ndarray]:
     block_offset = parse_uid(module_infos[0].uid)[1] if module_infos else 0
+    num_blocks = len(module_infos)
+
     spans = {}
-    throughputs = np.zeros(len(module_infos))
+    throughputs = np.zeros(num_blocks)
     for block, module in enumerate(module_infos):
         if module is None:
             continue
@@ -42,12 +44,10 @@ def compute_spans(module_infos: List[Optional[RemoteModuleInfo]]) -> Tuple[Dict[
                 continue
 
             if peer_id not in spans or spans[peer_id].state.value < server.state.value:
-                spans[peer_id] = Span(
-                    start=server.start_block - block_offset if server.start_block is not None else block,
-                    end=server.end_block - block_offset if server.end_block is not None else block + 1,
-                    throughput=server.throughput,
-                    state=server.state,
-                )
+                spans[peer_id] = Span(start=block, end=block + 1, throughput=server.throughput, state=server.state)
+                if server.start_block is not None and server.end_block is not None:
+                    spans[peer_id].start = max(server.start_block - block_offset, 0)
+                    spans[peer_id].end = min(server.end_block - block_offset, num_blocks)
             elif spans[peer_id].state == server.state:
                 spans[peer_id].start = min(spans[peer_id].start, block)
                 spans[peer_id].end = max(spans[peer_id].end, block + 1)
