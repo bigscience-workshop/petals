@@ -23,7 +23,7 @@ from transformers import PretrainedConfig
 
 import petals
 from petals.constants import DTYPE_MAP, PUBLIC_INITIAL_PEERS
-from petals.data_structures import CHAIN_DELIMITER, UID_DELIMITER, ModelInfo, ServerInfo, ServerState
+from petals.data_structures import CHAIN_DELIMITER, UID_DELIMITER, ModelInfo, ServerInfo, ServerState, parse_uid
 from petals.server import block_selection
 from petals.server.backend import TransformerBackend, merge_inference_pools_inplace
 from petals.server.block_utils import get_block_size, resolve_block_dtype
@@ -702,8 +702,8 @@ class ModuleAnnouncerThread(threading.Thread):
         self.expiration = expiration
         self.trigger = threading.Event()
 
-        self.dht_prefix = module_uids[0].split(UID_DELIMITER)[0]
-        block_indices = [int(uid.split(UID_DELIMITER)[-1]) for uid in module_uids]
+        self.dht_prefix = parse_uid(module_uids[0])[0]
+        block_indices = [parse_uid(uid)[1] for uid in module_uids]
         self.server_info.start_block = min(block_indices)
         self.server_info.end_block = max(block_indices) + 1
 

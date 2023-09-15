@@ -11,6 +11,12 @@ UID_DELIMITER = "."  # delimits parts of one module uid, e.g. "bloom.transformer
 CHAIN_DELIMITER = " "  # delimits multiple uids in a sequence, e.g. "bloom.layer3 bloom.layer4"
 
 
+def parse_uid(uid: ModuleUID) -> Tuple[str, int]:
+    assert CHAIN_DELIMITER not in uid, "parse_uid() does not support chained UIDs"
+    dht_prefix, index = uid.split(UID_DELIMITER)
+    return dht_prefix, int(index)
+
+
 @pydantic.dataclasses.dataclass
 class ModelInfo:
     num_blocks: pydantic.conint(ge=1, strict=True)

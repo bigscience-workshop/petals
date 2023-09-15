@@ -4,7 +4,7 @@ from typing import Iterable, List, Optional, Sequence, Tuple, Type, TypeVar
 
 from hivemind import get_logger
 
-from petals.data_structures import ModuleUID, RemoteModuleInfo, RemoteSpanInfo, ServerState
+from petals.data_structures import UID_DELIMITER, ModuleUID, RemoteModuleInfo, RemoteSpanInfo, ServerState, parse_uid
 
 logger = get_logger(__name__)
 
@@ -68,20 +68,21 @@ class RemoteSequenceInfo:
         self.last_updated_time = time.perf_counter()
 
     @staticmethod
-    def compute_spans(block_infos: Sequence[RemoteModuleInfo]):
+    def compute_spans(block_infos: Sequence[Optional[RemoteModuleInfo]]):
+        block_offset = parse_uid(block_infos[0].uid)[1] if block_infos else 0
         closed_spans = []
         active_spans = {}
         for block_index, info in enumerate(block_infos):
             if info is not None:
-                for peer_id, server_info in info.servers.items():
-                    if server_info.state != ServerState.ONLINE:
+                for peer_id, server in info.servers.items():
+                    if server.state != ServerState.ONLINE:
                         continue
                     if peer_id not in active_spans:
                         active_spans[peer_id] = RemoteSpanInfo(
                             peer_id=peer_id,
-                            start=server_info.get("start_block", block_index),
-                            end=server_info.get("end_block", block_index + 1),
-                            server_info=server_info,
+                            start=server.start_block - block_offset if server.start_block is not None else block_index,
+                            end=server.end_block - block_offset if server.end_block is not None else block_index + 1,
+                            server_info=server,
                         )
                     else:  # peer_id in active_spans
                         active_spans[peer_id].end = max(active_spans[peer_id].end, block_index + 1)

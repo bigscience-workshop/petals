@@ -4,7 +4,7 @@ from typing import Dict, List, Optional, Tuple
 import numpy as np
 from hivemind import PeerID, get_logger
 
-from petals.data_structures import RemoteModuleInfo, ServerState
+from petals.data_structures import UID_DELIMITER, RemoteModuleInfo, ServerState, parse_uid
 
 __all__ = ["choose_best_blocks", "should_choose_other_blocks"]
 
@@ -27,6 +27,7 @@ class Span:
 
 
 def compute_spans(module_infos: List[Optional[RemoteModuleInfo]]) -> Tuple[Dict[PeerID, Span], np.ndarray]:
+    block_offset = parse_uid(module_infos[0].uid)[1] if module_infos else 0
     spans = {}
     throughputs = np.zeros(len(module_infos))
     for block, module in enumerate(module_infos):
@@ -42,8 +43,8 @@ def compute_spans(module_infos: List[Optional[RemoteModuleInfo]]) -> Tuple[Dict[
 
             if peer_id not in spans or spans[peer_id].state.value < server.state.value:
                 spans[peer_id] = Span(
-                    start=server.get("start_block", block),
-                    end=server.get("end_block", block + 1),
+                    start=server.start_block - block_offset if server.start_block is not None else block,
+                    end=server.end_block - block_offset if server.end_block is not None else block + 1,
                     throughput=server.throughput,
                     state=server.state,
                 )
