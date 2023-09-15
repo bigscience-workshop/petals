@@ -55,6 +55,10 @@ class ServerInfo:
     cache_tokens_left: Optional[pydantic.conint(ge=0, strict=True)] = None
     next_pings: Optional[Dict[str, pydantic.confloat(ge=0, strict=True)]] = None
 
+    def get(self, name: str, default: Any = None) -> Any:
+        value = getattr(self, name)
+        return value if value is not None else default
+
     def to_tuple(self) -> Tuple[int, float, dict]:
         extra_info = dataclasses.asdict(self)
         del extra_info["state"], extra_info["throughput"]

@@ -42,9 +42,14 @@ def compute_spans(module_infos: List[Optional[RemoteModuleInfo]]) -> Tuple[Dict[
 
             if peer_id in spans:
                 spans[peer_id].start = min(spans[peer_id].start, block)
-                spans[peer_id].end = max(spans[peer_id].start, block + 1)
+                spans[peer_id].end = max(spans[peer_id].end, block + 1)
             else:
-                spans[peer_id] = Span(start=block, end=block + 1, throughput=server.throughput, state=server.state)
+                spans[peer_id] = Span(
+                    start=server.get("start_block", block),
+                    end=server.get("end_block", block + 1),
+                    throughput=server.throughput,
+                    state=server.state,
+                )
 
             throughputs[block] += server.throughput
 

@@ -79,12 +79,12 @@ class RemoteSequenceInfo:
                     if peer_id not in active_spans:
                         active_spans[peer_id] = RemoteSpanInfo(
                             peer_id=peer_id,
-                            start=block_index,
-                            end=block_index + 1,
+                            start=server_info.get("start_block", block_index),
+                            end=server_info.get("end_block", block_index + 1),
                             server_info=server_info,
                         )
                     else:  # peer_id in active_spans
-                        active_spans[peer_id].end = block_index + 1
+                        active_spans[peer_id].end = max(active_spans[peer_id].end, block_index + 1)
 
             for peer_id in list(active_spans.keys()):
                 if (
