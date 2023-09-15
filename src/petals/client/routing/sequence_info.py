@@ -47,50 +47,38 @@ class RemoteSequenceInfo:
     def __len__(self):
         return len(self.block_uids)
 
-    def update_(self, new_block_infos: List[Optional[RemoteModuleInfo]]):
+    def update_(self, new_block_infos: List[RemoteModuleInfo]):
         assert len(new_block_infos) == len(self.block_uids)
         for block_index, (uid, info) in enumerate(zip(self.block_uids, new_block_infos)):
-            if info is None:
-                logger.debug(f"Found no block info for block {uid}")
-                continue
-            if not isinstance(info, RemoteModuleInfo):
-                logger.warning(f"Unexpected dht entry type for {uid}: {info}")
-                continue
-            if not info.servers:
-                logger.debug(f"Found no active peers for block {uid}")
-                continue
-            if info.uid != uid:
-                logger.warning(f"The DHT entry for {uid} actually points to {info.uid}")
-                continue
+            assert uid == info.uid, f"The DHT entry for {uid} actually points to {info.uid}"
             self.block_infos[block_index].servers = info.servers
 
         self.spans_by_priority, self.spans_containing_block = self.compute_spans(self.block_infos)
         self.last_updated_time = time.perf_counter()
 
     @staticmethod
-    def compute_spans(block_infos: Sequence[Optional[RemoteModuleInfo]]):
+    def compute_spans(block_infos: Sequence[RemoteModuleInfo]):
         block_offset = parse_uid(block_infos[0].uid)[1] if block_infos else 0
         num_blocks = len(block_infos)
 
         closed_spans = []
         active_spans = {}
         for block_index, info in enumerate(block_infos):
-            if info is not None:
-                for peer_id, server_info in info.servers.items():
-                    if server_info.state != ServerState.ONLINE:
-                        continue
-                    if peer_id not in active_spans:
-                        active_spans[peer_id] = RemoteSpanInfo(
-                            peer_id=peer_id,
-                            start=block_index,
-                            end=block_index + 1,
-                            server_info=server_info,
-                        )
-                        if server_info.start_block is not None and server_info.end_block is not None:
-                            active_spans[peer_id].start = max(server_info.start_block - block_offset, 0)
-                            active_spans[peer_id].end = min(server_info.end_block - block_offset, num_blocks)
-                    else:  # peer_id in active_spans
-                        active_spans[peer_id].end = max(active_spans[peer_id].end, block_index + 1)
+            for peer_id, server_info in info.servers.items():
+                if server_info.state != ServerState.ONLINE:
+                    continue
+                if peer_id not in active_spans:
+                    active_spans[peer_id] = RemoteSpanInfo(
+                        peer_id=peer_id,
+                        start=block_index,
+                        end=block_index + 1,
+                        server_info=server_info,
+                    )
+                    if server_info.start_block is not None and server_info.end_block is not None:
+                        active_spans[peer_id].start = max(server_info.start_block - block_offset, 0)
+                        active_spans[peer_id].end = min(server_info.end_block - block_offset, num_blocks)
+                else:  # peer_id in active_spans
+                    active_spans[peer_id].end = max(active_spans[peer_id].end, block_index + 1)
 
             for peer_id in list(active_spans.keys()):
                 if (

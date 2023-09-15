@@ -346,9 +346,6 @@ class RemoteSequenceManager:
         )
 
         for block_info in new_block_infos:
-            if not block_info:
-                continue
-
             # Apply allow and block lists
             block_info.servers = {
                 peer_id: server_info

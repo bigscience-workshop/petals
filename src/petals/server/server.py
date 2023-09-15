@@ -759,12 +759,11 @@ class ModuleAnnouncerThread(threading.Thread):
 
     def _ping_next_servers(self) -> Dict[hivemind.PeerID, float]:
         module_infos = get_remote_module_infos(self.dht, self.next_uids, latest=True)
-        middle_servers = {peer_id for info in module_infos[:-1] if info is not None for peer_id in info.servers}
+        middle_servers = {peer_id for info in module_infos[:-1] for peer_id in info.servers}
         pinged_servers = set(sample_up_to(middle_servers, self.max_pinged))
         pinged_servers.discard(self.dht.peer_id)
-        if module_infos[-1] is not None:
-            # Sample servers hosting the block after the last one (most likely continuations) separately
-            pinged_servers |= set(sample_up_to(module_infos[-1].servers, self.max_pinged))
+        # Sample servers hosting the block after the last one (most likely continuations) separately
+        pinged_servers |= set(sample_up_to(module_infos[-1].servers, self.max_pinged))
         self.ping_aggregator.ping(list(pinged_servers))
 
 

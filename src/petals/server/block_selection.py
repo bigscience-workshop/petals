@@ -26,16 +26,13 @@ class Span:
         self.start, self.end = new_start, new_start + self.length
 
 
-def compute_spans(module_infos: List[Optional[RemoteModuleInfo]]) -> Tuple[Dict[PeerID, Span], np.ndarray]:
+def compute_spans(module_infos: List[RemoteModuleInfo]) -> Tuple[Dict[PeerID, Span], np.ndarray]:
     block_offset = parse_uid(module_infos[0].uid)[1] if module_infos else 0
     num_blocks = len(module_infos)
 
     spans = {}
     throughputs = np.zeros(num_blocks)
     for block, module in enumerate(module_infos):
-        if module is None:
-            continue
-
         # We sort servers here to ensure that we get exactly the same throughputs for a given set of servers.
         # If the order were not defined, we would get slightly different values due to floating point errors,
         # which may cause excess block replacements.
@@ -62,14 +59,14 @@ def _choose_best_start(throughputs: np.ndarray, num_blocks: int) -> int:
     return min(options)[-1]
 
 
-def choose_best_blocks(num_blocks: int, module_infos: List[Optional[RemoteModuleInfo]]) -> List[int]:
+def choose_best_blocks(num_blocks: int, module_infos: List[RemoteModuleInfo]) -> List[int]:
     _, throughputs = compute_spans(module_infos)
     start = _choose_best_start(throughputs, num_blocks)
     return list(range(start, start + num_blocks))
 
 
 def should_choose_other_blocks(
-    local_peer_id: PeerID, module_infos: List[Optional[RemoteModuleInfo]], balance_quality: float
+    local_peer_id: PeerID, module_infos: List[RemoteModuleInfo], balance_quality: float
 ) -> bool:
     if balance_quality > 1.0:
         return True  # Forces rebalancing on each check (may be used for debugging purposes)
