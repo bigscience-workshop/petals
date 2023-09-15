@@ -38,6 +38,9 @@ class ServerInfo:
     state: ServerState
     throughput: RPS
 
+    start_block: Optional[int] = None
+    end_block: Optional[int] = None
+
     public_name: Optional[str] = None
     version: Optional[str] = None
 

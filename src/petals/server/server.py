@@ -220,11 +220,10 @@ class Server:
             num_blocks = min(num_blocks, self.block_config.num_hidden_layers)
         if block_indices is not None:
             try:
-                first_block_index, last_block_index = block_indices.split(":")
-                first_block_index, last_block_index = map(int, map(str.strip, (first_block_index, last_block_index)))
+                start_block, end_block = [int(index.strip()) for index in block_indices.split(":")]
             except Exception as e:
                 raise ValueError(f"Failed to parse `--block_indices {block_indices}`, must be start:end (e.g. 0:18)")
-            block_indices = range(first_block_index, last_block_index)
+            block_indices = range(start_block, end_block)
             num_blocks = len(block_indices)
         self.strict_block_indices, self.num_blocks = block_indices, num_blocks
 
@@ -703,11 +702,16 @@ class ModuleAnnouncerThread(threading.Thread):
         self.expiration = expiration
         self.trigger = threading.Event()
 
-        self.max_pinged = max_pinged
         self.dht_prefix = module_uids[0].split(UID_DELIMITER)[0]
         block_indices = [int(uid.split(UID_DELIMITER)[-1]) for uid in module_uids]
-        start_block, end_block = min(block_indices), max(block_indices) + 1
-        self.next_uids = [f"{self.dht_prefix}{UID_DELIMITER}{i}" for i in range(start_block + 1, end_block + 1)]
+        self.server_info.start_block = min(block_indices)
+        self.server_info.end_block = max(block_indices) + 1
+
+        self.max_pinged = max_pinged
+        self.next_uids = [
+            f"{self.dht_prefix}{UID_DELIMITER}{i}"
+            for i in range(self.server_info.start_block + 1, self.server_info.end_block + 1)
+        ]
         self.ping_aggregator = PingAggregator(self.dht)
 
     def run(self) -> None:
