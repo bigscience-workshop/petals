@@ -149,6 +149,5 @@ def compute_spans(module_infos: List[RemoteModuleInfo], *, min_state: ServerStat
                     spans[peer_id].start = max(server_info.start_block - block_offset, 0)
                     spans[peer_id].end = min(server_info.end_block - block_offset, num_blocks)
             elif spans[peer_id].state == server_info.state:
-                spans[peer_id].start = min(spans[peer_id].start, block_idx)
                 spans[peer_id].end = max(spans[peer_id].end, block_idx + 1)
     return spans
