@@ -56,7 +56,7 @@ def get_server_throughput(
 
     # We use the system-wide lock since only one process at a time can measure the host throughput
     os.makedirs(lock_path.parent, exist_ok=True)
-    with open(lock_path, "wb") as lock_fd:
+    with open(lock_path, "wb+") as lock_fd:
         logger.info("Loading throughput info")
         fcntl.flock(lock_fd.fileno(), fcntl.LOCK_EX)
         # The OS will release the lock when lock_fd is closed or the process is killed
