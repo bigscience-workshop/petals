@@ -6,11 +6,28 @@ import pydantic
 from hivemind import PeerID
 from hivemind.moe.expert_uid import ExpertUID
 
-from petals.server.memory_cache import Handle
-
 ModuleUID = str
 UID_DELIMITER = "."  # delimits parts of one module uid, e.g. "bloom.transformer.h.4.self_attention"
 CHAIN_DELIMITER = " "  # delimits multiple uids in a sequence, e.g. "bloom.layer3 bloom.layer4"
+
+
+def parse_uid(uid: ModuleUID) -> Tuple[str, int]:
+    assert CHAIN_DELIMITER not in uid, "parse_uid() does not support chained UIDs"
+    dht_prefix, index = uid.split(UID_DELIMITER)
+    return dht_prefix, int(index)
+
+
+@pydantic.dataclasses.dataclass
+class ModelInfo:
+    num_blocks: pydantic.conint(ge=1, strict=True)
+    repository: Optional[str] = None
+
+    def to_dict(self) -> dict:
+        return dataclasses.asdict(self)
+
+    @classmethod
+    def from_dict(cls, source: dict):
+        return cls(**source)
 
 
 class ServerState(Enum):
@@ -26,6 +43,9 @@ RPS = pydantic.confloat(ge=0, allow_inf_nan=False, strict=True)
 class ServerInfo:
     state: ServerState
     throughput: RPS
+
+    start_block: Optional[pydantic.conint(ge=0, strict=True)] = None
+    end_block: Optional[pydantic.conint(ge=0, strict=True)] = None
 
     public_name: Optional[str] = None
     version: Optional[str] = None
@@ -72,11 +92,21 @@ class RemoteSpanInfo:
     server_info: ServerInfo
 
     @property
-    def length(self):
+    def length(self) -> int:
         return self.end - self.start
+
+    @property
+    def state(self) -> ServerState:
+        return self.server_info.state
+
+    @property
+    def throughput(self) -> float:
+        return self.server_info.throughput
 
 
 RPCInfo = Dict[str, Any]
+
+Handle = int
 
 
 @dataclasses.dataclass(frozen=True)

@@ -16,7 +16,7 @@ from transformers import PretrainedConfig
 from petals.data_structures import InferenceMetadata
 from petals.server.memory_cache import MemoryCache
 from petals.server.task_pool import PrioritizedTaskPool
-from petals.utils.misc import is_dummy
+from petals.utils.misc import get_size_in_bytes, is_dummy
 
 logger = get_logger(__name__)
 
@@ -63,7 +63,7 @@ class TransformerBackend(ModuleBackend):
         )
 
         self.dtype = backend_dtype
-        self.dtype_bytes = torch.finfo(self.dtype).bits // 8
+        self.dtype_bytes = get_size_in_bytes(self.dtype)
         self.shard_num_heads = []
         for shard in self.module.module_shards:
             for submodule in shard.modules():
@@ -83,7 +83,7 @@ class TransformerBackend(ModuleBackend):
 
         self.cache_bytes_per_token: Dict[torch.device, int] = Counter()
         for descr in self.get_inference_cache_descriptors(batch_size=1, max_length=1):
-            self.cache_bytes_per_token[descr.device] += descr.numel() * torch.finfo(descr.dtype).bits // 8
+            self.cache_bytes_per_token[descr.device] += descr.numel() * get_size_in_bytes(descr.dtype)
 
     def get_inference_cache_descriptors(self, batch_size: int, max_length: int) -> Sequence[TensorDescriptor]:
         """Create tensor descriptors for attention cache tensors used during inference_step"""

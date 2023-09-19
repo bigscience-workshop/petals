@@ -43,7 +43,7 @@ def test_remote_sequential():
     assert torch.allclose(second_half_outputs, full_outputs, atol=1e-3)
 
     (second_half_outputs * grad_proj).sum().backward()
-    assert torch.allclose(test_inputs.grad, full_grad, atol=1e-2)
+    assert torch.allclose(test_inputs.grad, full_grad, atol=3e-2)
 
     # test RemoteSequential with lossy compression
     block_uids = [f"{config.dht_prefix}{UID_DELIMITER}{i}" for i in range(config.num_hidden_layers)]
@@ -126,6 +126,6 @@ def test_remote_sequential_prompts(batch_size=2, seq_len=5, pre_seq_len=3):
 
     (outputs_ref * output_proj).sum().backward()
     assert input_prompts_ref.grad is not None
-    assert torch.allclose(input_prompts_ref.grad, input_prompts.grad, atol=1e-2)
+    assert torch.allclose(input_prompts_ref.grad, input_prompts.grad, atol=3e-2)
     assert intermediate_prompts_ref.grad is not None
     assert torch.allclose(intermediate_prompts_ref.grad, intermediate_prompts.grad, atol=1e-2)

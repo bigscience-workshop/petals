@@ -10,8 +10,9 @@ import transformers
 from accelerate import init_empty_weights
 from hivemind.utils.logging import get_logger
 from huggingface_hub import HfFileSystem, get_hf_file_metadata, hf_hub_url
+from peft.config import PeftConfig
 from peft.tuners import lora
-from peft.utils import COMMON_LAYERS_PATTERN, CONFIG_NAME, SAFETENSORS_WEIGHTS_NAME, PeftConfig
+from peft.utils import COMMON_LAYERS_PATTERN, CONFIG_NAME, SAFETENSORS_WEIGHTS_NAME
 from safetensors import safe_open
 from safetensors.torch import load_file
 from transformers.utils import get_file_from_repo
@@ -19,6 +20,7 @@ from transformers.utils import get_file_from_repo
 from petals.server.block_utils import resolve_block_dtype
 from petals.utils.convert_block import QuantType
 from petals.utils.disk_cache import allow_cache_reads, allow_cache_writes, free_disk_space_for
+from petals.utils.misc import get_size_in_bytes
 
 logger = get_logger(__name__)
 
@@ -155,15 +157,15 @@ class AdapterContextMixin:
 using_adapter = AdapterContextMixin.using_adapter
 
 
-class LoraLinear(lora.Linear, AdapterContextMixin):
+class LoraLinear(AdapterContextMixin, lora.Linear):
     """LoRA linear layer that uses adapter selected via using_adapter"""
 
 
-class LoraLinear8bitLt(lora.Linear8bitLt, AdapterContextMixin):
+class LoraLinear8bitLt(AdapterContextMixin, lora.Linear8bitLt):
     """LoRA linear 8-bit with outliers that uses adapter selected via using_adapter"""
 
 
-class LoraLinear4bit(lora.Linear4bit, AdapterContextMixin):
+class LoraLinear4bit(AdapterContextMixin, lora.Linear4bit):
     """LoRA linear 4-bit that uses adapter selected via using_adapter"""
 
 
@@ -284,5 +286,5 @@ def estimate_adapter_memory_per_block(
                 block, block_index=0, adapter_name=adapter, peft_config=peft_config, peft_state_dict=peft_state_dict
             )
         adapter_parameters = sum(p.numel() for p in block.parameters()) - base_block_parameters
-    bytes_per_parameter = torch.finfo(resolve_block_dtype(block_config, torch_dtype)).bits / 8
+    bytes_per_parameter = get_size_in_bytes(resolve_block_dtype(block_config, torch_dtype))
     return adapter_parameters * bytes_per_parameter

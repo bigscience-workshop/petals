@@ -5,15 +5,15 @@ from hivemind import get_logger
 from transformers.models.bloom import BloomConfig
 from transformers.models.bloom.modeling_bloom import BloomAttention
 
+from petals.client.config import ClientConfig
 from petals.client.lm_head import LMHeadConfig
 from petals.client.ptune import PTuneConfig
-from petals.client.routing.sequence_manager import SequenceManagerConfig
 from petals.models.bloom.block import WrappedBloomBlock
 
 logger = get_logger(__name__)
 
 
-class DistributedBloomConfig(BloomConfig, SequenceManagerConfig, PTuneConfig, LMHeadConfig):
+class DistributedBloomConfig(BloomConfig, ClientConfig, PTuneConfig, LMHeadConfig):
     block_class = WrappedBloomBlock
     attn_class = BloomAttention
     block_prefix = "h"
@@ -30,5 +30,6 @@ class DistributedBloomConfig(BloomConfig, SequenceManagerConfig, PTuneConfig, LM
         if loading_from_repo and dht_prefix is None:
             # We need "-petals" for backward compatibility with Petals < 1.2.0
             dht_prefix = str(model_name_or_path) + "-petals"
+            dht_prefix = dht_prefix.replace(".", "-")
             logger.info(f"Using DHT prefix: {dht_prefix}")
         return super().from_pretrained(model_name_or_path, *args, dht_prefix=dht_prefix, **kwargs)

@@ -7,22 +7,18 @@ import uuid
 from typing import AsyncIterator, List, Optional, Tuple
 
 import torch
-from hivemind import (
-    MSGPackSerializer,
-    anext,
-    deserialize_torch_tensor,
-    get_logger,
-    nested_flatten,
-    serialize_torch_tensor,
-)
+from hivemind import MSGPackSerializer, anext, deserialize_torch_tensor, get_logger, serialize_torch_tensor
 from hivemind.moe.client.remote_expert_worker import RemoteExpertWorker
 from hivemind.p2p import P2P
 from hivemind.proto import runtime_pb2
+from hivemind.utils.tensor_descr import BatchTensorDescriptor
 
-from petals.client.routing.sequence_manager import RemoteSequenceManager, SequenceManagerConfig, maybe_log_traceback
+from petals.client.config import ClientConfig
+from petals.client.routing import RemoteSequenceManager, maybe_log_traceback
 from petals.data_structures import CHAIN_DELIMITER, ModuleUID, RemoteSpanInfo, RPCInfo
 from petals.server.handler import TransformerConnectionHandler
-from petals.utils.misc import DUMMY, is_dummy
+from petals.utils.misc import DUMMY, DUMMY_INT64, is_dummy
+from petals.utils.packaging import pack_args_kwargs
 
 logger = get_logger(__name__)
 
@@ -36,7 +32,7 @@ class _ServerInferenceSession:
 
     def __init__(
         self,
-        config: SequenceManagerConfig,
+        config: ClientConfig,
         span: RemoteSpanInfo,
         uid: ModuleUID,
         rpc_info: RPCInfo,
@@ -63,7 +59,7 @@ class _ServerInferenceSession:
     @classmethod
     async def create(
         cls,
-        config: SequenceManagerConfig,
+        config: ClientConfig,
         p2p: P2P,
         span: RemoteSpanInfo,
         uid: ModuleUID,
@@ -128,13 +124,13 @@ class _ServerInferenceSession:
             assert prompts.shape[3] == inputs.shape[2]
 
         if hypo_ids is None or is_dummy(hypo_ids):
-            hypo_ids = DUMMY
+            hypo_ids = DUMMY_INT64
         else:
             assert len(hypo_ids) == len(inputs)
             assert hypo_ids.dtype == torch.int64
 
         # serialize inputs and put them into the queue
-        input_tensors = (inputs, prompts, hypo_ids)
+        input_tensors, args_structure = pack_args_kwargs(inputs, prompts, hypo_ids)
 
         request_metadata = dict(session_id=self.session_id, step_id=step_id)
         if not self.stepped:
@@ -144,13 +140,25 @@ class _ServerInferenceSession:
             if next_servers:
                 request_metadata["next_servers"] = next_servers
 
+        request_metadata["args_structure"] = args_structure
+
+        # TODO: make possible to use different compression method for different tensors
+        server_side_inference_schema, kwargs_schema = self.rpc_info["inference_schema"]
+        compression = server_side_inference_schema[0].compression
+        inference_schema = tuple(BatchTensorDescriptor.from_tensor(arg, compression) for arg in input_tensors)
+
+        # TODO: create more explicit way to check servers schema and client's structure
+        assert len(input_tensors) >= len(
+            server_side_inference_schema
+        ), "Hidden_state, prompts and hypo_ids tensors are necessary for an inference step"
+
         outputs_serialized = RemoteExpertWorker.run_coroutine(
             self._step(
                 runtime_pb2.ExpertRequest(
                     uid=self.uid,
                     tensors=[
                         serialize_torch_tensor(tensor.to(proto.dtype), proto.compression)
-                        for tensor, proto in zip(input_tensors, nested_flatten(self.rpc_info["inference_schema"]))
+                        for tensor, proto in zip(input_tensors, inference_schema)
                     ],
                     metadata=MSGPackSerializer.dumps(request_metadata),
                 )
@@ -222,7 +230,7 @@ class InferenceSession:
         self._server_sessions = []
         self._position = 0
         self._max_length = max_length
-        self.last_token_id = None
+        self.output_ids = None
 
     @property
     def num_blocks(self) -> int:
@@ -335,7 +343,7 @@ class InferenceSession:
         n_prev_spans = len(self._server_sessions)
         update_end = self._server_sessions[server_idx].span.end if server_idx < n_prev_spans else self.num_blocks
         if attempt_no >= 1:
-            logger.info(
+            logger.debug(
                 f"Due to a server failure, remote attention caches "
                 f"from block {block_idx} to {update_end} will be regenerated"
             )
@@ -369,3 +377,13 @@ class InferenceSession:
 
     def __del__(self):
         self.close()
+
+    @property
+    def last_token_id(self) -> Optional[torch.Tensor]:  # Backward compatibility with Petals < 2.1.0
+        return self.output_ids[:, -1:] if self.output_ids is not None else None
+
+    @last_token_id.setter
+    def last_token_id(self, value: torch.Tensor):  # Backward compatibility with Petals < 2.1.0
+        if self.output_ids is None:
+            raise RuntimeError("Can't override `last_token_id` since the session has not stepped yet")
+        self.output_ids[:, -1:] = value
