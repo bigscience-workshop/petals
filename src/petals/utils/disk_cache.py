@@ -22,7 +22,7 @@ def _blocks_lock(cache_dir: Optional[str], mode: int):
     lock_path = Path(cache_dir, BLOCKS_LOCK_FILE)
 
     os.makedirs(lock_path.parent, exist_ok=True)
-    with open(lock_path, "wb") as lock_fd:
+    with open(lock_path, "wb+") as lock_fd:
         fcntl.flock(lock_fd.fileno(), mode)
         # The OS will release the lock when lock_fd is closed or the process is killed
         yield
