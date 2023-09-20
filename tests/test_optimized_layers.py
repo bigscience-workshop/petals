@@ -177,10 +177,6 @@ class UnoptimizedWrappedLlamaBlock(LlamaDecoderLayer):
         return (key_states, value_states)
 
 
-@pytest.mark.skipif(
-    all(model_name not in MODEL_NAME.lower() for model_name in ("falcon", "llama")),
-    reason="This test is applicable only to Falcon and LLaMA models",
-)
 @pytest.mark.parametrize("device", ["cpu", "cuda:0"])
 @pytest.mark.forked
 def test_optimized_block(device):
@@ -196,10 +192,12 @@ def test_optimized_block(device):
     block = config.block_class(config).to(dtype)
     block = convert_block(block, 1, config, tensor_parallel_devices, device, quant_type=quant_type, freeze=True)
 
-    if "falcon" in MODEL_NAME.lower():
+    if config.model_type == "falcon":
         unopt_block = UnoptimizedWrappedFalconBlock(config).to(dtype)
-    elif "llama" in MODEL_NAME.lower():
+    elif config.model_type == "llama":
         unopt_block = UnoptimizedWrappedLlamaBlock(config).to(dtype)
+    else:
+        pytest.skip(f"This test is not applicable to {config.model_type} models")
 
     unopt_block = convert_block(
         unopt_block, 1, config, tensor_parallel_devices, device, quant_type=quant_type, freeze=True
