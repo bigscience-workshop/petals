@@ -15,7 +15,7 @@ from transformers import AutoTokenizer
 from petals import AutoDistributedModelForCausalLM
 
 # Choose any model available at https://health.petals.dev
-model_name = "petals-team/StableBeluga2"  # This one is a fine-tuned variant of Llama 2 (70B)
+model_name = "petals-team/StableBeluga2"  # This one is fine-tuned Llama 2 (70B)
 
 # Connect to a distributed network hosting model layers
 tokenizer = AutoTokenizer.from_pretrained(model_name)
