@@ -114,7 +114,7 @@ Advanced guides:
 
 ## Benchmarks
 
-Please see benchmarks in **Section 3.3** of our [paper](https://arxiv.org/pdf/2209.01188.pdf).
+Please see **Section 3.3** of our [paper](https://arxiv.org/pdf/2209.01188.pdf).
 
 ## 🛠️ Contributing
 
