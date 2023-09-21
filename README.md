@@ -112,15 +112,15 @@ Advanced guides:
 - Launch a private swarm: [guide](https://github.com/bigscience-workshop/petals/wiki/Launch-your-own-swarm)
 - Run a custom model: [guide](https://github.com/bigscience-workshop/petals/wiki/Run-a-custom-model-with-Petals)
 
-## Benchmarks
+### Benchmarks
 
 Please see **Section 3.3** of our [paper](https://arxiv.org/pdf/2209.01188.pdf).
 
-## 🛠️ Contributing
+### 🛠️ Contributing
 
 Please see our [FAQ](https://github.com/bigscience-workshop/petals/wiki/FAQ:-Frequently-asked-questions#contributing) on contributing.
 
-## 📜 Citation
+### 📜 Citation
 
 Alexander Borzunov, Dmitry Baranchuk, Tim Dettmers, Max Ryabinin, Younes Belkada, Artem Chumachenko, Pavel Samygin, and Colin Raffel.
 [Petals: Collaborative Inference and Fine-tuning of Large Models.](https://arxiv.org/abs/2209.01188)
