@@ -178,12 +178,12 @@ class UnoptimizedWrappedLlamaBlock(LlamaDecoderLayer):
 
 
 @pytest.mark.skipif(
-    all(model_name not in MODEL_NAME for model_name in ("falcon", "llama")),
-    reason="This test is applicable only to Falcon and LLaMa models",
+    all(model_name not in MODEL_NAME.lower() for model_name in ("falcon", "llama")),
+    reason="This test is applicable only to Falcon and LLaMA models",
 )
 @pytest.mark.parametrize("device", ["cpu", "cuda:0"])
 @pytest.mark.forked
-def test_falcon(device):
+def test_optimized_block(device):
     if device == "cuda:0" and not torch.cuda.is_available():
         pytest.skip("CUDA tests can be run only in CUDA-enabled setups")
 
@@ -194,15 +194,15 @@ def test_falcon(device):
     quant_type = QuantType.NONE
 
     block = config.block_class(config).to(dtype)
-    block = convert_block(block, 0, config, tensor_parallel_devices, device, quant_type=quant_type, freeze=True)
+    block = convert_block(block, 1, config, tensor_parallel_devices, device, quant_type=quant_type, freeze=True)
 
-    if "falcon" in MODEL_NAME:
+    if "falcon" in MODEL_NAME.lower():
         unopt_block = UnoptimizedWrappedFalconBlock(config).to(dtype)
-    elif "llama" in MODEL_NAME:
+    elif "llama" in MODEL_NAME.lower():
         unopt_block = UnoptimizedWrappedLlamaBlock(config).to(dtype)
 
     unopt_block = convert_block(
-        unopt_block, 0, config, tensor_parallel_devices, device, quant_type=quant_type, freeze=True
+        unopt_block, 1, config, tensor_parallel_devices, device, quant_type=quant_type, freeze=True
     )
 
     unopt_block.load_state_dict(block.state_dict())
