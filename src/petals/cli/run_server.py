@@ -70,17 +70,17 @@ def main():
 
     parser.add_argument('--inference_max_length', type=int, default=None,
                         help='Maximum total sequence length permitted per inference, defaults to 16384 tokens. '
-                             'Default: 2048 for most models, 8192 for models with multi-query attention (e.g., Llama-2-70b)')
+                             'Default: 8192 for models with multi-query attention (based on Llama 2, Falcon), 2048 for others')
     parser.add_argument('--min_batch_size', type=int, default=1,
                         help='Minimum required batch size for all operations (in total tokens)')
     parser.add_argument('--max_batch_size', type=int, default=None,
                         help='The total number of tokens in the same batch will not exceed this value. '
-                             'Default: 2048 for most models, 8192 for models with multi-query attention (e.g., Llama-2-70b)')
+                             'Default: 8192 for models with multi-query attention (based on Llama 2, Falcon), 2048 for others')
     parser.add_argument('--max_chunk_size_bytes', type=int, default=256 * 1024 * 1024,
                         help='Maximum size of activation tensor processed in one go; larger tensors are split into chunks')
     parser.add_argument('--attn_cache_tokens', type=int, default=None,
                         help='The number of past attention key/value pairs that will be stored between inference steps. '
-                             'Default: 8192 for most models, 32768 for models with multi-query attention (e.g., Llama-2-70b)')
+                             'Default: 16384 for models with multi-query attention (based on Llama 2, Falcon), 4096 for others')
 
     parser.add_argument('--cache_dir', type=str, default=None,
                         help='Path to a directory in which a downloaded pretrained model configuration should be cached if the standard cache should not be used.')
