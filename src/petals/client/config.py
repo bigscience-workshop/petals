@@ -1,9 +1,13 @@
 import dataclasses
+import os
 from typing import Optional, Sequence, Union
 
 from hivemind import PeerID
 
 from petals.constants import PUBLIC_INITIAL_PEERS
+
+_max_retries = os.getenv("PETALS_MAX_RETRIES")
+DEFAULT_MAX_RETRIES = int(_max_retries) if isinstance(_max_retries, str) else None
 
 
 @dataclasses.dataclass
@@ -21,7 +25,7 @@ class ClientConfig:
     request_timeout: float = 3 * 60  # timeout for forward/backward/inference requests
     update_period: float = 60  # refresh DHT information once in this many seconds
 
-    max_retries: Optional[int] = None  # max number retries before the client raises an exception (default: inf)
+    max_retries: Optional[int] = DEFAULT_MAX_RETRIES  # max number of retries before an exception (default: inf)
     min_backoff: float = 1  # after a repeated failure, sleep for this many seconds times 2 ** (num_failures - 1)
     max_backoff: float = 60  # limit maximal sleep time between retries to this value
     ban_timeout: float = 15  # when a remote peer fails to respond, prevent routing to that peer for this many seconds
