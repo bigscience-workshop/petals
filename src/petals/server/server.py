@@ -203,7 +203,7 @@ class Server:
 
         # For attention cache in GPU or RAM
         if attn_cache_tokens is None:
-            attn_cache_tokens = 32768 if is_multiquery_attn else 8192
+            attn_cache_tokens = 16384 if is_multiquery_attn else 4096
         cache_values_per_block = 2 * self.block_config.hidden_size * attn_cache_tokens
         cache_values_per_block //= self.block_config.num_key_value_groups
         self._cache_bytes_per_block = cache_values_per_block * get_size_in_bytes(self.torch_dtype)
