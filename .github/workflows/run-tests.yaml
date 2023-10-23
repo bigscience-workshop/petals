@@ -48,7 +48,6 @@ jobs:
           export MODEL_NAME="${{ matrix.model }}"
           export REF_NAME="${{ matrix.model }}"
           export ADAPTER_NAME="${{ matrix.model == 'bigscience/bloom-560m' && 'artek0chumak/bloom-560m-safe-peft' || '' }}"
-          export TENSOR_PARALLEL_ARGS="${{ matrix.model == 'bigscience/bloom-560m' && '--tensor_parallel_devices cpu cpu' || '' }}"
 
           # [Step 1] Set up a tiny test swarm (see https://github.com/bigscience-workshop/petals/wiki/Launch-your-own-swarm)
 
@@ -61,27 +60,25 @@ jobs:
 
           until [ -s bootstrap.log ]; do sleep 5; done  # wait for DHT init
 
-          python -m petals.cli.run_server $MODEL_NAME --adapters $ADAPTER_NAME --torch_dtype float32 --num_blocks 5 \
-            --mean_balance_check_period 10 \
-            --initial_peers $INITIAL_PEERS --throughput 1 &> server1.log &
+          export RUN_SERVER="python -m petals.cli.run_server $MODEL_NAME \
+            --device cpu --torch_dtype float32 --initial_peers $INITIAL_PEERS"
+          export TENSOR_PARALLEL_ARGS="${{ matrix.model == 'bigscience/bloom-560m' && '--tensor_parallel_devices cpu cpu' || '' }}"
+
+          $RUN_SERVER --adapters $ADAPTER_NAME --num_blocks 5 --throughput 1 --mean_balance_check_period 10 &> server1.log &
           SERVER1_PID=$!
           # ^-- rebalacing test: this server chooses blocks 0:5, then sees a gap in the swarm and moves there
 
           sleep 10  # wait for the 1st server to choose blocks
 
-          python -m petals.cli.run_server $MODEL_NAME --adapters $ADAPTER_NAME --torch_dtype float32 --block_indices 0:5 \
-            --identity_path tests/server2.id \
-            --initial_peers $INITIAL_PEERS --throughput 1 &> server2.log &
+          $RUN_SERVER --adapters $ADAPTER_NAME --block_indices 0:5 --throughput 1 --identity_path tests/server2.id &> server2.log &
           SERVER2_PID=$!
 
-          python -m petals.cli.run_server $MODEL_NAME --adapters $ADAPTER_NAME --torch_dtype float32 --num_blocks 14 \
-            --attn_cache_tokens 2048 --max_chunk_size_bytes 1024 \
-            --initial_peers $INITIAL_PEERS --throughput auto &> server3.log &
+          $RUN_SERVER --adapters $ADAPTER_NAME --num_blocks 14 --throughput auto \
+            --attn_cache_tokens 2048 --max_chunk_size_bytes 1024 &> server3.log &
           SERVER3_PID=$!
           # ^-- chunking test
 
-          python -m petals.cli.run_server $MODEL_NAME $TENSOR_PARALLEL_ARGS --torch_dtype float32 --block_indices 0:2 \
-            --initial_peers $INITIAL_PEERS --throughput auto &> server4.log &
+          $RUN_SERVER $TENSOR_PARALLEL_ARGS --block_indices 0:2 --throughput auto &> server4.log &
           SERVER4_PID=$!
           # ^-- tensor parallelism test (not compatible with adapters yet)
 
@@ -121,4 +118,3 @@ jobs:
           # [Step 4] Clean up
 
           kill -s SIGINT $BOOTSTRAP_PID $SERVER1_PID $SERVER2_PID $SERVER3_PID $SERVER4_PID $LOGGER_PID
-          echo "Done!"
