@@ -1,8 +1,10 @@
 import dataclasses
+import os
 from enum import Enum
-from typing import Any, Dict, Optional, Sequence, Tuple
+from typing import Any, Dict, Optional, Sequence, Tuple, Union
 
 import pydantic
+import torch
 from hivemind import PeerID
 from hivemind.moe.expert_uid import ExpertUID
 
@@ -115,3 +117,10 @@ class InferenceMetadata:
     prefix_length: int
     cache_handles: Tuple[Handle, ...]
     active_adapter: Optional[str]
+
+
+@dataclasses.dataclass(frozen=True)
+class FromPretrainedInfo:
+    model_name_or_path: Union[str, os.PathLike, None]
+    low_cpu_mem_usage: Optional[bool] = None
+    torch_dtype: Optional[Union[str, torch.dtype]] = None
