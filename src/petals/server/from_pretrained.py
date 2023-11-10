@@ -65,14 +65,21 @@ def load_pretrained_block(
 
     # dummy load, check that keys match
     report = block.load_state_dict(state_dict, strict=False)
+    if "self_attn.qkv_proj.weight" in report.missing_keys:
+        report.missing_keys.remove("self_attn.qkv_proj.weight")  # will be filled later
     assert not report.missing_keys, f"Some block weights are missing: {report.missing_keys}"
 
     for param_name, _ in block.named_parameters():
-        assert param_name in state_dict, f"{param_name} not in state dict"
-        param = state_dict[param_name]
-        if not str(param.dtype).startswith(("torch.uint", "torch.int", "torch.bool")):
-            param = param.to(torch_dtype)
-        set_module_tensor_to_device(block, param_name, "cpu", value=param, dtype=param.dtype)
+        if param_name != "self_attn.qkv_proj.weight":
+            assert param_name in state_dict, f"{param_name} not in state dict"
+            param = state_dict[param_name]
+            if not str(param.dtype).startswith(("torch.uint", "torch.int", "torch.bool")):
+                param = param.to(torch_dtype)
+            set_module_tensor_to_device(block, param_name, "cpu", value=param, dtype=param.dtype)
+        else:
+            cur_block = getattr(block, param_name)
+            dummy_value = torch.empty_like(cur_block, device="cpu")
+            set_module_tensor_to_device(block, param_name, "cpu", dummy_value)
 
     logger.info(f"Loaded {model_name} block {block_index}")
     logger.debug(f"Details: {report}")
