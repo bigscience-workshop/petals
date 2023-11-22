@@ -10,6 +10,7 @@ from typing import Optional, Tuple
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from transformers.modeling_attn_mask_utils import _prepare_4d_causal_attention_mask
 from transformers.models.falcon.modeling_falcon import (
     FalconAttention,
     FalconConfig,
@@ -418,7 +419,14 @@ class WrappedFalconBlock(OptimizedFalconDecoderLayer):
         attention_mask = torch.ones((batch_size, seq_length_with_past), device=hidden_states.device)
         if alibi is None and self.config.alibi:
             alibi = build_alibi_tensor(attention_mask, num_heads=self.num_heads, dtype=hidden_states.dtype)
-        attention_mask = FalconModel._prepare_attn_mask(attention_mask, (batch_size, seq_length), past_length)
+
+        fake_inputs_embeds = torch.tensor([42], dtype=torch.float32)
+        attention_mask = _prepare_4d_causal_attention_mask(
+            attention_mask=attention_mask,
+            input_shape=(batch_size, seq_length),
+            inputs_embeds=fake_inputs_embeds,
+            past_key_values_length=past_length,
+        )
 
         outputs = super().forward(
             hidden_states,
