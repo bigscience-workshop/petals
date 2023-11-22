@@ -27,7 +27,7 @@ class WrappedBloomBlock(BloomBlock):
         attention_mask = torch.ones((batch_size, seq_length_with_past), device=hidden_states.device)
         if alibi is None:
             alibi = build_alibi_tensor(attention_mask, num_heads=self.num_heads, dtype=hidden_states.dtype)
-        
+
         attention_mask = _prepare_4d_causal_attention_mask(
             attention_mask=attention_mask,
             input_shape=(batch_size, seq_length),

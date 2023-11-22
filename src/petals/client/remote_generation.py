@@ -35,8 +35,8 @@ class _SkipTokensMixin:
         input_ids = input_ids[:, _skipped_tokens.get() :]
         _skipped_tokens.set(0)
         if "past_key_values" in kwargs:
-            if kwargs['past_key_values'][0][0].shape == torch.Size([0]):
-                kwargs['past_key_values'] = None
+            if kwargs["past_key_values"][0][0].shape == torch.Size([0]):
+                kwargs["past_key_values"] = None
         return super().prepare_inputs_for_generation(input_ids, **kwargs)
 
 
