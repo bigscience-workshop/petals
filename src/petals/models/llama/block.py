@@ -246,7 +246,10 @@ class WrappedLlamaBlock(OptimizedLlamaDecoderLayer):
                 (batch_size, seq_length_with_past), dtype=torch.bool, device=hidden_states.device
             )
         attention_mask = _prepare_4d_causal_attention_mask(
-            attention_mask, (batch_size, seq_length), hidden_states, past_key_values_length
+            attention_mask=attention_mask,
+            input_shape=(batch_size, seq_length),
+            inputs_embeds=hidden_states,
+            past_key_values_length=past_key_values_length,
         )
 
         outputs = super().forward(
