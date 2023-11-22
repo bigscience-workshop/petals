@@ -28,16 +28,13 @@ class WrappedBloomBlock(BloomBlock):
         if alibi is None:
             alibi = build_alibi_tensor(attention_mask, num_heads=self.num_heads, dtype=hidden_states.dtype)
         
-        # _prepare_4d only needs inputs_embeds.dtype. And it is changed to bool before .forward() anyways
-        fake_inputs_embeds = torch.tensor([42], dtype=torch.float32)  
-
         attention_mask = _prepare_4d_causal_attention_mask(
             attention_mask=attention_mask,
             input_shape=(batch_size, seq_length),
-            inputs_embeds=fake_inputs_embeds,
+            inputs_embeds=hidden_states,
             past_key_values_length=past_length,
         )
-        attention_mask = attention_mask.bool()  # consistent with https://github.com/huggingface/transformers/pull/27086
+        attention_mask = attention_mask.bool()
         return super().forward(
             hidden_states, *args, attention_mask=attention_mask, alibi=alibi, layer_past=layer_past, **kwargs
         )

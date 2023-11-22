@@ -420,11 +420,10 @@ class WrappedFalconBlock(OptimizedFalconDecoderLayer):
         if alibi is None and self.config.alibi:
             alibi = build_alibi_tensor(attention_mask, num_heads=self.num_heads, dtype=hidden_states.dtype)
 
-        fake_inputs_embeds = torch.tensor([42], dtype=torch.float32)
         attention_mask = _prepare_4d_causal_attention_mask(
             attention_mask=attention_mask,
             input_shape=(batch_size, seq_length),
-            inputs_embeds=fake_inputs_embeds,
+            inputs_embeds=hidden_states,
             past_key_values_length=past_length,
         )
 
