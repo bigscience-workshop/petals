@@ -5,7 +5,7 @@ from itertools import chain
 from typing import Any, Dict, Optional, Sequence, Tuple, Union
 
 import torch
-from hivemind import BatchTensorDescriptor, TensorDescriptor
+from hivemind import BatchTensorDescriptor, TensorDescriptor, nested_flatten, nested_map
 from hivemind.moe.expert_uid import ExpertUID
 from hivemind.moe.server.module_backend import ModuleBackend
 from hivemind.utils import get_logger
@@ -96,22 +96,29 @@ class TransformerBackend(ModuleBackend):
             cache_tensors.extend((keys, values))
         return cache_tensors
 
-    def forward(self, *inputs: Union[torch.Tensor, str]) -> Tuple[torch.Tensor, ...]:
-        *inputs, active_adapter = inputs
-        with self._peft_module.using_adapter(active_adapter):
-            return super().forward(*inputs)
+    def forward(self, active_adapter: Optional[str], *args: torch.Tensor, **kwargs) -> Tuple[torch.Tensor, ...]:
+        with self._peft_module.using_adapter(active_adapter), torch.no_grad():
+            return self.module(*args, **kwargs)
 
-    def backward(self, *inputs: Union[torch.Tensor, str]) -> Tuple[torch.Tensor, ...]:
-        *inputs, active_adapter = inputs
-        with self._peft_module.using_adapter(active_adapter):
-            return super().backward(*inputs)
+    def backward(
+        self, active_adapter: Optional[str], grad_outputs: torch.Tensor, *args, **kwargs
+    ) -> Tuple[Union[torch.Tensor, Any], ...]:
+        with self._peft_module.using_adapter(active_adapter), torch.enable_grad():
+            (outputs,) = self.module(*args, **kwargs)
+            assert isinstance(outputs, torch.Tensor) and outputs.shape == grad_outputs.shape
+            torch.autograd.backward((outputs,), grad_tensors=(grad_outputs,), create_graph=False, retain_graph=False)
+        return nested_map(self._get_grad_if_required, (*args, kwargs))
+
+    @staticmethod
+    def _get_grad_if_required(input: Any) -> Optional[torch.Tensor]:
+        """Get grad w.r.t. input if input is a tensor that requires grad; otherwise return None"""
+        if isinstance(input, torch.Tensor) and input.requires_grad:
+            return input.grad if input.grad is not None else torch.zeros_like(input)
+        return None
 
     @torch.inference_mode()
     def inference_step(
-        self,
-        hidden_states: torch.Tensor,
-        hypo_ids: torch.LongTensor,
-        inference_info: InferenceMetadata,
+        self, hidden_states: torch.Tensor, hypo_ids: torch.LongTensor, inference_info: InferenceMetadata, **kwargs
     ) -> Tuple[torch.Tensor, ...]:
         assert hidden_states.ndim == 3, "expected hidden states to be 3-dimensional: [batch_size, seq_len, hid_size]"
         seq_len = hidden_states.shape[1]
@@ -129,8 +136,9 @@ class TransformerBackend(ModuleBackend):
             layer_past = self._select_layer_past(cache_tensors, inference_info.prefix_length)
             for offset in range(0, seq_len, max_chunk_length):
                 hidden_states_chunk = hidden_states[:, offset : offset + max_chunk_length, :]
+                kwargs_chunk = self._select_kwargs_chunk(kwargs, seq_len, offset, max_chunk_length)
                 output_hidden_states_chunk, new_kvs = self.module.forward(
-                    hidden_states_chunk, layer_past=layer_past, use_cache=True
+                    hidden_states_chunk, layer_past=layer_past, use_cache=True, **kwargs_chunk
                 )
                 if seq_len > max_chunk_length:
                     output_hidden_states[:, offset : offset + max_chunk_length] = output_hidden_states_chunk
@@ -178,6 +186,17 @@ class TransformerBackend(ModuleBackend):
             new_value = new_value.view(*cache_value.shape[:2], new_length, head_dim)
             cache_value[:, :, prefix_length:new_length, :] = new_value[:, :, prefix_length:new_length, :]
 
+    @staticmethod
+    def _select_kwargs_chunk(kwargs: Dict[str, Any], seq_len: int, offset: int, max_chunk_length: int):
+        if offset == 0 and max_chunk_length >= seq_len:
+            return kwargs
+        kwargs_chunk = {}
+        for key, value in kwargs.items():
+            if isinstance(value, torch.Tensor) and value.ndim >= 2 and value.shape[-2] == seq_len:
+                value = value[:, offset : offset + max_chunk_length]
+            kwargs_chunk[key] = value
+        return kwargs_chunk
+
     def get_pools(self) -> Sequence[PrioritizedTaskPool]:
         return self.forward_pool, self.backward_pool, self.inference_pool
 
@@ -200,8 +219,9 @@ def merge_inference_pools_inplace(backends: Dict[ExpertUID, TransformerBackend])
     """Replace each backend's rpc_inference pools with a combined pool runs multiple blocks in one call"""
     assert len(backends) != 0 and all(isinstance(b, TransformerBackend) for b in backends.values())
     first_pool = next(iter(backends.values())).inference_pool
+    merged_inference_func = _MergedInferenceStep(backends)
     merged_pool = PrioritizedTaskPool(
-        _MergedInferenceStep(backends),
+        merged_inference_func,
         max_batch_size=first_pool.max_batch_size,
         device=first_pool.device,
         name=f"merged_inference",
@@ -222,12 +242,15 @@ class _MergedInferenceStep:
         hypo_ids: torch.LongTensor,
         inference_infos: Sequence[InferenceMetadata],
         *optional_prompts: Optional[torch.Tensor],
+        block_kwargs: Sequence[Dict[str, torch.Tensor]],
     ) -> Tuple[torch.Tensor, ...]:
-        assert len(inference_infos) == len(
-            optional_prompts
-        ), f"found {len(inference_infos)} blocks but {len(optional_prompts)} prompts"
-        for inference_info, optional_prompt in zip(inference_infos, optional_prompts):
+        assert (
+            len(inference_infos) == len(optional_prompts) == len(block_kwargs)
+        ), f"mismatch: got {len(inference_infos)} infos, {len(optional_prompts)} prompts, {len(block_kwargs)} kwargs"
+        for inference_info, optional_prompt, kwargs in zip(inference_infos, optional_prompts, block_kwargs):
             if optional_prompt is not None:
                 hidden_states[:, : optional_prompt.shape[1]] += optional_prompt
-            (hidden_states,) = self.backends[inference_info.uid].inference_step(hidden_states, hypo_ids, inference_info)
+            (hidden_states,) = self.backends[inference_info.uid].inference_step(
+                hidden_states, hypo_ids, inference_info, **kwargs
+            )
         return (hidden_states,)

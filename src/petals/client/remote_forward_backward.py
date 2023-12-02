@@ -2,20 +2,22 @@
 Utility functions that call RPC forward or backward on a single remote server
 """
 import asyncio
-from typing import Iterable, List, Optional, Sequence, Tuple
+from typing import Iterable, List, Sequence, Tuple
 
 import torch
-from hivemind import nested_compare, nested_flatten, nested_pack, serialize_torch_tensor
+from hivemind import PeerID, nested_flatten, serialize_torch_tensor
 from hivemind.compression.serialization import deserialize_tensor_stream, deserialize_torch_tensor
-from hivemind.p2p import StubBase
 from hivemind.p2p.p2p_daemon_bindings.control import DEFAULT_MAX_MSG_SIZE, MAX_UNARY_PAYLOAD_SIZE
 from hivemind.proto import runtime_pb2
 from hivemind.utils.asyncio import aiter_with_timeout, iter_as_aiter
+from hivemind.utils.serializer import MSGPackSerializer
 from hivemind.utils.streaming import split_for_streaming
-from hivemind.utils.tensor_descr import BatchTensorDescriptor
 
 from petals.client.config import ClientConfig
-from petals.data_structures import ModuleUID, RPCInfo
+from petals.client.routing import RemoteSequenceManager
+from petals.data_structures import CHAIN_DELIMITER, ModuleUID
+from petals.server.handler import TransformerConnectionHandler
+from petals.utils.packaging import pack_args_kwargs
 
 
 async def _forward_unary(
@@ -65,85 +67,93 @@ async def _backward_stream(
 
 
 async def run_remote_forward(
-    uid: ModuleUID,
-    stub: StubBase,
-    rpc_info: RPCInfo,
-    *inputs: torch.Tensor,
-    config: ClientConfig,
-    metadata: Optional[bytes] = None,
-    **kwargs,
+    sequence_manager: RemoteSequenceManager,
+    peer_id: PeerID,
+    span_uids: Sequence[ModuleUID],
+    *args: torch.Tensor,
+    **kwargs: torch.Tensor,
 ) -> Tuple[torch.Tensor, ...]:
     """
     Serializes input tensors and calls "rpc_forward" on a remote server.
     Mostly adapted from https://github.com/learning-at-home/hivemind/blob/7a7c93aefffc9494c39e7b170c07cb06d8c09c4c/hivemind/moe/client/expert.py#L198
     but without RemoteExpertWorker.run_coroutine() call that leads to deadlock here.
     """
-
-    # Note: *inputs are flattened input tensors that follow the expert's info['input_schema']
-    # detach to avoid pickling the computation graph
-    assert len(kwargs) == len(rpc_info["keyword_names"]), f"Keyword args should be {rpc_info['keyword_names']}"
-    kwargs = {key: kwargs[key] for key in rpc_info["keyword_names"]}
-
-    # Note: we put keyword arguments in the same order as on a server to prevent f(a=1, b=2) != f(b=2, a=1) errors
-    forward_inputs = tuple(nested_flatten((inputs, kwargs)))
-    args_schema, kwargs_schema = rpc_info["forward_schema"]
-    compression = args_schema[0].compression
-    forward_schema = tuple(BatchTensorDescriptor.from_tensor(arg, compression) for arg in forward_inputs)
-    inputs = tuple(tensor.cpu().detach() for tensor in forward_inputs)
-    # TODO: create more explicit way to check servers schema and client's structure
-    assert len(inputs) >= len(args_schema) + 1, "Inputs and prompt tensors are necessary for a forward step"
+    merged_uid = CHAIN_DELIMITER.join(span_uids)
+    stub = TransformerConnectionHandler.get_stub(sequence_manager.state.p2p, peer_id)
+    metadata = sequence_manager.get_request_metadata(peer_id, "rpc_forward", span_uids, *args, **kwargs)
+    codecs = sequence_manager.get_compression_codecs(peer_id, "rpc_forward", span_uids, *args, **kwargs)
+    flat_tensors, args_structure = pack_args_kwargs(*args, **kwargs)
+    flat_tensors = tuple(tensor.cpu().detach().requires_grad_(tensor.requires_grad) for tensor in flat_tensors)
+    args_structure = metadata.setdefault("args_structure", args_structure)
+    if codecs is None:
+        codecs = [runtime_pb2.CompressionType.NONE] * len(flat_tensors)
+    else:
+        codecs = list(nested_flatten(codecs))
+        assert len(codecs) == len(flat_tensors), f"got {len(flat_tensors)} tensors but {len(codecs)} compression codecs"
 
     # Asynchronous serialization
     loop = asyncio.get_running_loop()
     serialized_tensors = await asyncio.gather(
         *(
-            loop.run_in_executor(None, serialize_torch_tensor, tensor.to(proto.dtype), proto.compression)
-            for tensor, proto in zip(inputs, forward_schema)
+            loop.run_in_executor(None, serialize_torch_tensor, tensor, compression)
+            for tensor, compression in zip(flat_tensors, codecs)
         )
     )
 
     # call RPC on remote server
-    size = sum(t.element_size() * t.nelement() for t in inputs)
+    size = sum(t.element_size() * t.nelement() for t in flat_tensors)
     forward_fn = _forward_stream if size > MAX_UNARY_PAYLOAD_SIZE // 2 else _forward_unary
-    # Hotfix: we use "// 2" since hivemind==1.1.5 serializes bfloat16 tensors in float32, so they take 2x more space
-    deserialized_outputs = await forward_fn(uid, serialized_tensors, stub, config, metadata=metadata, **kwargs)
-    return nested_pack(deserialized_outputs, structure=rpc_info["outputs_schema"])
+    # Hotfix: we use "// 2" since hivemind==1.1.5 serializes bfloat16 tensors in float32, so they take 2x more space - TODO remove in the next PR
+    output_tensors = await forward_fn(
+        merged_uid, serialized_tensors, stub, sequence_manager.config, metadata=MSGPackSerializer.dumps(metadata)
+    )
+    # backward compatibility: ensure requires_grad; remove after https://github.com/learning-at-home/hivemind/pull/591
+    requires_grad = any(tensor.requires_grad for tensor in flat_tensors)
+    output_tensors = [tensor.requires_grad_(requires_grad) for tensor in output_tensors]
+    return output_tensors
 
 
 async def run_remote_backward(
-    uid: ModuleUID,
-    stub: StubBase,
-    rpc_info: RPCInfo,
-    *inputs_and_grad_outputs: torch.Tensor,
-    config: ClientConfig,
-    metadata: Optional[bytes] = None,
-    **kwargs,
+    sequence_manager: RemoteSequenceManager,
+    peer_id: PeerID,
+    span_uids: Sequence[ModuleUID],
+    grad_outputs: Sequence[torch.Tensor],
+    *args: torch.Tensor,
+    **kwargs: torch.Tensor,
 ) -> Sequence[torch.Tensor]:
     """
     Serializes grad outputs and calls "rpc_backward" on a remote server.
     Mostly adapted from https://github.com/learning-at-home/hivemind/blob/7a7c93aefffc9494c39e7b170c07cb06d8c09c4c/hivemind/moe/client/expert.py#L221
     but without RemoteExpertWorker.run_coroutine() call that leads to deadlock here.
     """
-    args_schema, kwargs_schema = rpc_info["forward_schema"]
-    outputs_schema = rpc_info["outputs_schema"]
-    compression = args_schema[0].compression
-    backward_schema = tuple(BatchTensorDescriptor.from_tensor(arg, compression) for arg in inputs_and_grad_outputs)
-    # TODO: create more explicit way to check servers schema and client's structure
-    assert (
-        len(inputs_and_grad_outputs) >= len(args_schema) + len(outputs_schema) + 1
-    ), "Inputs, grad_outputs and prompt tensors are necessary for a backward step"
+    merged_uid = CHAIN_DELIMITER.join(span_uids)
+    stub = TransformerConnectionHandler.get_stub(sequence_manager.state.p2p, peer_id)
+    metadata = sequence_manager.get_request_metadata(peer_id, "rpc_backward", span_uids, grad_outputs, *args, **kwargs)
+    codecs = sequence_manager.get_compression_codecs(peer_id, "rpc_backward", span_uids, grad_outputs, *args, **kwargs)
+    flat_tensors, args_structure = pack_args_kwargs(grad_outputs, *args, **kwargs)
+    flat_tensors = tuple(tensor.cpu().detach().requires_grad_(tensor.requires_grad) for tensor in flat_tensors)
+    args_structure = metadata.setdefault("args_structure", args_structure)
+
+    if codecs is None:
+        codecs = [runtime_pb2.CompressionType.NONE] * len(flat_tensors)
+    else:
+        codecs = list(nested_flatten(codecs))
+        assert len(codecs) == len(flat_tensors), f"got {len(flat_tensors)} tensors but {len(codecs)} compression codecs"
 
     # Asynchronous serialization
     loop = asyncio.get_running_loop()
     serialized_tensors = await asyncio.gather(
         *(
-            loop.run_in_executor(None, serialize_torch_tensor, tensor.to(proto.dtype), proto.compression)
-            for tensor, proto in zip(inputs_and_grad_outputs, backward_schema)
+            loop.run_in_executor(None, serialize_torch_tensor, tensor, compression)
+            for tensor, compression in zip(flat_tensors, codecs)
         )
     )
+    for tensor, serialized in zip(flat_tensors, serialized_tensors):
+        serialized.requires_grad = tensor.requires_grad  # see https://github.com/learning-at-home/hivemind/pull/591
 
-    size = sum(t.element_size() * t.nelement() for t in inputs_and_grad_outputs)
+    size = sum(t.element_size() * t.nelement() for t in flat_tensors)
     backward_fn = _backward_stream if size > MAX_UNARY_PAYLOAD_SIZE // 2 else _backward_unary
     # Hotfix: we use "// 2" since hivemind==1.1.5 serializes bfloat16 tensors in float32, so they take 2x more space
-    deserialized_grad_inputs = await backward_fn(uid, serialized_tensors, stub, config, metadata=metadata, **kwargs)
-    return deserialized_grad_inputs
+    return await backward_fn(
+        merged_uid, serialized_tensors, stub, sequence_manager.config, metadata=MSGPackSerializer.dumps(metadata)
+    )

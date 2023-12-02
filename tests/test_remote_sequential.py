@@ -73,8 +73,8 @@ class DummyCustomSequenceManager(RemoteSequenceManager):
         rpc_info["forward_schema"] = (compressed_input_schema,), dict()  # (args, kwargs)
         return rpc_info
 
-    def get_request_metadata(self, protocol: str, *args, **kwargs):
-        metadata = super().get_request_metadata(protocol, *args, **kwargs)
+    def get_request_metadata(self, peer_id, protocol, block_uids, *args, **kwargs):
+        metadata = super().get_request_metadata(peer_id, protocol, block_uids, *args, **kwargs)
         if protocol == "rpc_forward":
             metadata["output_compression"] = (runtime_pb2.CompressionType.FLOAT16,)
         elif protocol == "rpc_backward":

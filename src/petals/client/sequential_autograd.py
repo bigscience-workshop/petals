@@ -4,19 +4,16 @@ A PyTorch autograd function that runs forward/backward on a sequence of remote s
 import asyncio
 import itertools
 from collections import deque
-from typing import List, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import torch
-from hivemind import MSGPackSerializer
 from hivemind.moe.client.remote_expert_worker import RemoteExpertWorker
 from hivemind.utils.logging import get_logger
 
 from petals.client.remote_forward_backward import run_remote_backward, run_remote_forward
 from petals.client.routing import RemoteSequenceManager, maybe_log_traceback
-from petals.data_structures import CHAIN_DELIMITER, RemoteSpanInfo
-from petals.server.handler import TransformerConnectionHandler
+from petals.data_structures import RemoteSpanInfo
 from petals.utils.misc import DUMMY, is_dummy
-from petals.utils.packaging import pack_args_kwargs
 
 logger = get_logger(__name__)
 
@@ -24,19 +21,26 @@ MAX_TOKENS_IN_BATCH = 1024
 
 
 async def sequential_forward(
+    sequence_manager: RemoteSequenceManager,
     inputs: torch.Tensor,
     prompts: torch.Tensor,
-    sequence_manager: RemoteSequenceManager,
     start_index: int = 0,
     end_index: Optional[int] = None,
+    *block_kwargs: Dict[str, Any],
 ) -> Tuple[torch.Tensor, Sequence[torch.Tensor], Sequence[RemoteSpanInfo]]:
     """
     Constructs a routing path from <start_index> to <end_index>.
     Performs chained forward for each subsequence of blocks on the path.
     If some subsequence fails, reconstructs the remaining path and tries to finish the forward.
-    """
 
-    assert isinstance(inputs, torch.Tensor) and inputs.ndim == 3, f"{type(inputs)}: {inputs.ndim}"
+    :param inputs: initial hidden states of shape [batch_size, sequence length, hidden_size]
+    :param prompts: optional DEEP prompts, added to a prefix of each layer's outputs,
+          if specified, deep prompts should have shape [num_layers, batch_size, prefix_len, hid_size]
+    :param sequence_manager: a running SequenceManager used to select remote servers and handle failures
+    :param start_index: run remote blocks starting from this index
+    :param end_index: run remote blocks up to (but not including) this index
+    :param block_kwargs: optional per-block keyword arguments. Must be a sequence with one dictionary for each block
+    """
 
     inputs_device = inputs.device
     inputs_dtype = inputs.dtype
@@ -45,6 +49,12 @@ async def sequential_forward(
 
     end_index = end_index if end_index is not None else len(sequence_manager.block_uids)
     assert start_index >= 0 and end_index <= len(sequence_manager.block_uids)
+    if len(block_kwargs) == 1:
+        block_kwargs = block_kwargs * (end_index - start_index)
+    assert (
+        not block_kwargs or len(block_kwargs) == end_index - start_index
+    ), f"got {end_index - start_index} blocks but {len(block_kwargs)} sets of kwargs"
+    assert isinstance(inputs, torch.Tensor) and inputs.ndim == 3, f"{type(inputs)}: {inputs.ndim}"
     assert is_dummy(prompts) or len(prompts) == len(
         sequence_manager.block_uids
     )  # should be n_layers - 1 but add extra prompts for convenience
@@ -67,20 +77,13 @@ async def sequential_forward(
 
                 span = sequences.popleft()
 
-                stub = TransformerConnectionHandler.get_stub(sequence_manager.state.p2p, span.peer_id)
-                flat_tensors, args_structure = pack_args_kwargs(inputs, prompts[span.start : span.end])
-
-                span_uids = CHAIN_DELIMITER.join(sequence_manager.block_uids[span.start : span.end])
-                metadata = sequence_manager.get_request_metadata(
-                    "rpc_forward", args_structure, span_uids, *flat_tensors
-                )
                 (outputs,) = await run_remote_forward(
-                    span_uids,
-                    stub,
-                    sequence_manager.rpc_info,
-                    *flat_tensors,
-                    config=sequence_manager.config,
-                    metadata=MSGPackSerializer.dumps(metadata),
+                    sequence_manager,
+                    span.peer_id,
+                    sequence_manager.block_uids[span.start : span.end],
+                    inputs,
+                    prompts[span.start : span.end],
+                    *block_kwargs[span.start : span.end],
                 )
 
                 assert isinstance(outputs, torch.Tensor)
@@ -111,11 +114,12 @@ async def sequential_forward(
 
 
 async def sequential_backward(
+    sequence_manager: RemoteSequenceManager,
+    forward_sequences: List[RemoteSpanInfo],
     grad_outputs: Sequence[torch.Tensor],
     intermediate_inputs: List[torch.Tensor],
     prompts: torch.Tensor,
-    forward_sequences: List[RemoteSpanInfo],
-    sequence_manager: RemoteSequenceManager,
+    *block_kwargs: Dict[str, Any],
 ) -> Tuple[Sequence[torch.Tensor], torch.Tensor]:
     """
     Performs chained backward for each forward subsequence.
@@ -141,7 +145,7 @@ async def sequential_backward(
             try:
                 if attempt_no >= 1:
                     _, backup_inputs, backup_sequences = await sequential_forward(
-                        inputs, prompts, sequence_manager, start_index=span.start, end_index=span.end
+                        sequence_manager, inputs, prompts, start_index=span.start, end_index=span.end
                     )
                     assert len(backup_inputs) == len(backup_sequences)
                     assert backup_sequences[0].start == span.start
@@ -152,23 +156,14 @@ async def sequential_backward(
                     inputs = intermediate_inputs.pop()
                     span = forward_sequences.pop()
 
-                grad_outputs_cpu = [grad.cpu() for grad in grad_outputs]
-                flat_tensors, args_structure = pack_args_kwargs(
-                    inputs, *grad_outputs_cpu, prompts[span.start : span.end]
-                )
-
-                span_uids = CHAIN_DELIMITER.join(sequence_manager.block_uids[span.start : span.end])
-                stub = TransformerConnectionHandler.get_stub(sequence_manager.state.p2p, span.peer_id)
-                metadata = sequence_manager.get_request_metadata(
-                    "rpc_backward", args_structure, span_uids, *flat_tensors, peer_id=span.peer_id
-                )
                 grad_outputs, *span_grad_prompts = await run_remote_backward(
-                    span_uids,
-                    stub,
-                    sequence_manager.rpc_info,
-                    *flat_tensors,
-                    config=sequence_manager.config,
-                    metadata=MSGPackSerializer.dumps(metadata),
+                    sequence_manager,
+                    span.peer_id,
+                    sequence_manager.block_uids[span.start : span.end],
+                    grad_outputs,
+                    inputs,
+                    prompts[span.start : span.end],
+                    *block_kwargs[span.start : span.end],
                 )
                 grad_outputs = [grad_outputs]
                 grad_prompts_reversed.extend(span_grad_prompts)
@@ -200,7 +195,7 @@ async def _gather_forward(input_batches, prompt_batches, sequence_manager):
     """Wrapper for asyncio.gather to perform parallel sequential forwards"""
     return await asyncio.gather(
         *[
-            sequential_forward(input_batch, prompt_batch, sequence_manager)
+            sequential_forward(sequence_manager, input_batch, prompt_batch)
             for input_batch, prompt_batch in zip(input_batches, prompt_batches)
         ]
     )
@@ -212,7 +207,7 @@ async def _gather_backward(
     """Wrapper for asyncio.gather to perform parallel sequential backwards"""
     return await asyncio.gather(
         *[
-            sequential_backward((grad_output,), input_batch, prompt_batch, spans, sequence_manager)
+            sequential_backward(sequence_manager, spans, (grad_output,), input_batch, prompt_batch)
             for grad_output, input_batch, prompt_batch, spans in zip(
                 grad_output_batches, intermediate_input_batches, prompt_batches, forward_sequences
             )
@@ -227,15 +222,17 @@ class _RemoteSequentialAutogradFunction(torch.autograd.Function):
     """
 
     @staticmethod
-    def forward(ctx, inputs: torch.Tensor, prompts: torch.Tensor, sequence_manager: RemoteSequenceManager):
+    def forward(ctx, sequence_manager: RemoteSequenceManager, inputs: torch.Tensor, prompts: torch.Tensor):
+        # TODO add kwargs here; figure out a way to split kwargs across servers
         batch_size = max(MAX_TOKENS_IN_BATCH // inputs.shape[1], 1)
         input_batches: Sequence[torch.Tensor] = inputs.detach().split(batch_size)
+        input_batches = tuple(batch.requires_grad_(inputs.requires_grad) for batch in input_batches)
         if prompts is None or is_dummy(prompts):
             prompt_batches = [DUMMY] * len(input_batches)
         else:
             prompt_batches: Sequence[torch.Tensor] = prompts.detach().split(batch_size, dim=1)
+            prompt_batches = tuple(batch.requires_grad_(prompts.requires_grad) for batch in prompt_batches)
 
-        sequence_manager.rpc_info  # lazy init
         outputs = RemoteExpertWorker.run_coroutine(_gather_forward(input_batches, prompt_batches, sequence_manager))
         assert len(outputs) == len(input_batches)
 
@@ -274,4 +271,5 @@ class _RemoteSequentialAutogradFunction(torch.autograd.Function):
         grad_inputs = torch.cat(grad_input_batches, dim=0)
         dummy_grad_prompts = [grad_prompt is None for grad_prompt in grad_prompt_batches]
         grad_prompts = torch.cat(grad_prompt_batches, dim=1) if not any(dummy_grad_prompts) else None
-        return (grad_inputs, grad_prompts, None)
+        # TODO return grads w.r.t. kwargs here
+        return (None, grad_inputs, grad_prompts)

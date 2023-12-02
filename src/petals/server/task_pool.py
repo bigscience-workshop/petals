@@ -4,12 +4,16 @@ import threading
 import time
 from concurrent.futures._base import PENDING
 from dataclasses import dataclass, field
+from functools import partial
 from queue import PriorityQueue
 from typing import Any, List, Optional, Sequence, Tuple, Union
 
 import torch
-from hivemind import get_logger
+from hivemind import get_logger, nested_map
+from hivemind.moe.server.task_pool import TaskPoolBase
 from hivemind.utils.mpfuture import ALL_STATES, MPFuture
+
+from petals.utils.packaging import pack_args_kwargs, unpack_args_kwargs
 
 logger = get_logger(__name__)
 
@@ -18,8 +22,10 @@ logger = get_logger(__name__)
 class Task:
     priority: float
     time_submitted: float
+    size: int
     future: MPFuture = field(compare=False)
-    args: Sequence[torch.Tensor] = field(compare=False)
+    flat_tensors: Sequence[torch.Tensor] = field(compare=False)
+    structure: Any
 
     @property
     def uid(self) -> int:
@@ -92,15 +98,14 @@ class PrioritizedTaskPool(threading.Thread):
     def shutdown(self):
         self.submitted_tasks.put(None)  # Shuts down self.run()
 
-    def submit_task(self, *args: Any, priority: float = 0.0) -> MPFuture:
+    def submit_task(self, *args: Any, priority: float = 0.0, size: int = 1, **kwargs: Any) -> MPFuture:
         """Add task to this pool's queue, return Future for its output"""
         future = MPFuture()
         # Remove shmem from MPFuture. This disables the .cancel() feature but
         # saves the server from "could not unlink the shared memory file" crashes during rebalancing
         future._shared_state_code = torch.tensor([ALL_STATES.index(PENDING)], dtype=torch.uint8)
-
-        task = Task(priority, time.monotonic(), future, args)
-        if self.get_task_size(task) > self.max_batch_size:
+        task = Task(priority, time.monotonic(), size, future, *pack_args_kwargs(*args, **kwargs))
+        if task.size > self.max_batch_size:
             exc = ValueError(f"Task size greater than max_batch_size ({self.max_batch_size}), it can't be processed")
             task.future.set_exception(exc)
         else:
@@ -110,33 +115,27 @@ class PrioritizedTaskPool(threading.Thread):
                 self.priority = (task.priority, task.time_submitted)
         return task.future
 
-    def get_task_size(self, task: Task) -> int:
-        """compute task processing complexity; defaults to the total number of tokens"""
-        if task.args and task.args[0].ndim >= 2:
-            return task.args[0].shape[0] * task.args[0].shape[1]
-        return 1
-
     def load_batch_to_runtime(
         self, timeout: Optional[float] = None, device: Optional[torch.device] = None
-    ) -> Tuple[Any, List[torch.Tensor]]:
+    ) -> Tuple[int, Any]:
         """receive next batch of arrays"""
         device = device if device is not None else self.device
         task = self._ordered_tasks.get(block=True, timeout=timeout)
-        batch_inputs = [_move_to_device_if_tensor(arg, device, share_memory=False) for arg in task.args]
+        device_flat_tensors = [_move_to_device_if_tensor(arg, device, share_memory=False) for arg in task.flat_tensors]
         self._dispatched_tasks[task.uid] = task
         self.batch_receiver.recv()  # reduce the number of active batches
         if not self._ordered_tasks.empty():
             first_remaining_task: Task = self._ordered_tasks.queue[0]
             self.priority = (first_remaining_task.priority, first_remaining_task.time_submitted)
-        return task.uid, batch_inputs
+        return task.uid, unpack_args_kwargs(device_flat_tensors, task.structure)
 
     def send_outputs_from_runtime(self, uid: int, batch_outputs: List[torch.Tensor]):
         """send results for a processed batch, previously loaded through load_batch_to_runtime"""
-        batch_outputs = [_move_to_device_if_tensor(output, device="cpu", share_memory=True) for output in batch_outputs]
+        batch_outputs = nested_map(partial(_move_to_device_if_tensor, device="cpu", share_memory=True), batch_outputs)
         task = self._dispatched_tasks.pop(uid, None)
         if task is None:
             logger.error(
-                f"Internal error: task task with index {uid} is missing from the dictionary; " f"Could not set result"
+                f"Internal error: task task with index {uid} is missing from the dictionary; Could not set result"
             )
         else:
             task.future.set_result(batch_outputs)

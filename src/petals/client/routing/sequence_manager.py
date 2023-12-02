@@ -471,20 +471,32 @@ class RemoteSequenceManager:
         return min(self.config.min_backoff * 2 ** (attempt_no - 1), self.config.max_backoff)
 
     def get_request_metadata(
-        self, protocol: str, args_structure: Any = None, *args, **kwargs
+        self, peer_id: PeerID, protocol: str, uids: Sequence[str], *args, **kwargs
     ) -> Optional[Dict[str, Any]]:
         """
+        :param peer_id: remote server's PeerID
         :param protocol: one of "rpc_forward", "rpc_backward" or "rpc_inference"
-        :param args_structure: the structure of flattened tensors from pack_args_kwargs in petals.utils.packaging
-        :param args: request-specific inputs, typically block uids and input tensors
-        :param kwargs: additional request context, such as remote peer ID
-        :returns: msgpack-serialized metadata dict that will be passed alongside a given request
+        :param args: request-specific input tensors
+        :param kwargs: additional request keyword arguments
+        :returns: metadata dict that will be passed alongside a given request
         """
         return dict(
             points=self.policy.get_points(protocol, *args, **kwargs),
             active_adapter=self.config.active_adapter,
-            args_structure=args_structure,
         )
+
+    def get_compression_codecs(
+        self, peer_id: PeerID, protocol: str, uids: Sequence[str], *args, **kwargs
+    ) -> Optional[Sequence[runtime_pb2.CompressionType.ValueType]]:
+        """
+        return a sequence of compression codecs for client-side compression (applied to tensors sent to remote server)
+        :param peer_id: remote server's PeerID
+        :param protocol: one of "rpc_forward", "rpc_backward" or "rpc_inference"
+        :param args: request-specific input tensors
+        :param kwargs: additional request keyword arguments
+        :returns: compressions for each input tensor; contains as many elements as there are tensors in (args, kwargs)
+        """
+        return None
 
     def shutdown(self):
         self._thread.shutdown()
