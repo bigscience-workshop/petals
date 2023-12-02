@@ -11,18 +11,15 @@ UID_DELIMITER = "."  # delimits parts of one module uid, e.g. "bloom.transformer
 CHAIN_DELIMITER = " "  # delimits multiple uids in a sequence, e.g. "bloom.layer3 bloom.layer4"
 
 
-class ServerState(Enum):
-    OFFLINE = 0
-    JOINING = 1
-    ONLINE = 2
-
-
-RPS = pydantic.confloat(ge=0, allow_inf_nan=False, strict=True)
+def parse_uid(uid: ModuleUID) -> Tuple[str, int]:
+    assert CHAIN_DELIMITER not in uid, "parse_uid() does not support chained UIDs"
+    dht_prefix, index = uid.split(UID_DELIMITER)
+    return dht_prefix, int(index)
 
 
 @pydantic.dataclasses.dataclass
 class ModelInfo:
-    num_blocks: int
+    num_blocks: pydantic.conint(ge=1, strict=True)
     repository: Optional[str] = None
 
     def to_dict(self) -> dict:
@@ -33,10 +30,22 @@ class ModelInfo:
         return cls(**source)
 
 
+class ServerState(Enum):
+    OFFLINE = 0
+    JOINING = 1
+    ONLINE = 2
+
+
+RPS = pydantic.confloat(ge=0, allow_inf_nan=False, strict=True)
+
+
 @pydantic.dataclasses.dataclass
 class ServerInfo:
     state: ServerState
     throughput: RPS
+
+    start_block: Optional[pydantic.conint(ge=0, strict=True)] = None
+    end_block: Optional[pydantic.conint(ge=0, strict=True)] = None
 
     public_name: Optional[str] = None
     version: Optional[str] = None
@@ -83,8 +92,16 @@ class RemoteSpanInfo:
     server_info: ServerInfo
 
     @property
-    def length(self):
+    def length(self) -> int:
         return self.end - self.start
+
+    @property
+    def state(self) -> ServerState:
+        return self.server_info.state
+
+    @property
+    def throughput(self) -> float:
+        return self.server_info.throughput
 
 
 RPCInfo = Dict[str, Any]
