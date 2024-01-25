@@ -22,7 +22,7 @@ __version__ = "2.3.0.dev1"
 
 if not os.getenv("PETALS_IGNORE_DEPENDENCY_VERSION"):
     assert (
-        version.parse("4.32.0") <= version.parse(transformers.__version__) < version.parse("4.35.0")
+        version.parse("4.37.1") <= version.parse(transformers.__version__) < version.parse("4.38.1")
     ), "Please install a proper transformers version: pip install transformers>=4.32.0,<4.35.0"
 
 
