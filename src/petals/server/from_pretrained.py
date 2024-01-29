@@ -23,6 +23,7 @@ from transformers import PretrainedConfig
 from transformers.utils import get_file_from_repo
 
 from petals.constants import DTYPE_MAP
+from petals.models.mixtral import WrappedMixtralBlock
 from petals.server.block_utils import resolve_block_dtype
 from petals.utils.auto_config import AutoDistributedConfig
 from petals.utils.disk_cache import DEFAULT_CACHE_DIR, allow_cache_reads, allow_cache_writes, free_disk_space_for
@@ -51,7 +52,11 @@ def load_pretrained_block(
     torch_dtype = resolve_block_dtype(config, torch_dtype)
 
     with init_empty_weights():
-        block = config.block_class(config)
+        # TODO: Remove this
+        if config.block_class == WrappedMixtralBlock:
+            block = config.block_class(config, block_index)
+        else:
+            block = config.block_class(config)
 
     block_prefix = f"{config.block_prefix}.{block_index}."
     state_dict = _load_state_dict_from_repo(
