@@ -1,28 +1,44 @@
 import contextlib
 import dataclasses
 from contextvars import ContextVar
-from typing import ContextManager, List, Optional
+from typing import Any, ContextManager, Dict, List, Optional, Tuple
 
 import torch
 import transformers
 from hivemind.utils.logging import get_logger
 from transformers.generation.utils import ModelOutput
+from transformers.cache_utils import Cache, DynamicCache
 
 from petals.client.inference_session import InferenceSession
 from petals.client.remote_sequential import RemoteSequential
 from petals.utils.misc import DUMMY, docstring_from
 
+from torch import Tensor
+
 logger = get_logger(__name__)
 
 
-@dataclasses.dataclass(frozen=True)
-class RemotePastKeyValues:
-    """A mock class representing the fact that `past_key_values` do exist but are stored on remote servers."""
+class RemotePastKeyValues(Cache):
+    """only keeps the number of seen tokens. pretends to be a legit cache"""
+    def __init__(self) -> None:
+        super().__init__()
+        self.seen_tokens = 0
+        self.hypo_ids: Optional[torch.LongTensor] = None
 
-    hypo_ids: Optional[torch.LongTensor] = None
+    def get_seq_length(self, layer_idx: Optional[int] = 0) -> int:
+        return self.seen_tokens
 
-    def __getitem__(self, _index: int) -> List[torch.Tensor]:
-        return [DUMMY]  # For compatibility with BloomForCausalLM.prepare_inputs_for_generation()
+    def get_max_length(self) -> int | None:
+        return None
+
+    def update_seen(self, new_seen: int) -> None:
+        self.seen_tokens += new_seen
+
+    def reorder_cache(self, beam_idx):
+        pass
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}({self.seen_tokens=})"
 
 
 _skipped_tokens = ContextVar("skipped_tokens", default=0)
@@ -113,6 +129,10 @@ class RemoteGenerationMixin(_SkipTokensMixin):
                 # but keep them for transformers.GenerationMixin (e.g., to compute repetition_penalty)
                 _skipped_tokens.set(max(0, n_prev_tokens - 1))
 
+            if "past_key_values" not in kwargs:
+                rpkv = RemotePastKeyValues()
+                rpkv.update_seen(session.position)
+                kwargs["past_key_values"] = rpkv
             result = super().generate(inputs, *args, **kwargs)
 
             sequences = result.sequences if isinstance(result, ModelOutput) else result
