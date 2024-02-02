@@ -126,10 +126,10 @@ class RemoteGenerationMixin(_SkipTokensMixin):
                 # but keep them for transformers.GenerationMixin (e.g., to compute repetition_penalty)
                 _skipped_tokens.set(max(0, n_prev_tokens - 1))
 
-            if "past_key_values" not in kwargs:
-                rpkv = RemotePastKeyValues()
-                rpkv.update_seen(session.position)
-                kwargs["past_key_values"] = rpkv
+            if self._supports_cache_class and "past_key_values" not in kwargs:
+                past_key_values = RemotePastKeyValues()
+                past_key_values.update_seen(session.position)
+                kwargs["past_key_values"] = past_key_values
             result = super().generate(inputs, *args, **kwargs)
 
             sequences = result.sequences if isinstance(result, ModelOutput) else result
