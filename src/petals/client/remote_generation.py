@@ -37,9 +37,6 @@ class RemotePastKeyValues(Cache):
     def reorder_cache(self, beam_idx):
         pass
 
-    def __repr__(self) -> str:
-        return f"{self.__class__.__name__}({self.seen_tokens=})"
-
 
 _skipped_tokens = ContextVar("skipped_tokens", default=0)
 
