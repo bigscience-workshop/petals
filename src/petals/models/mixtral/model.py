@@ -94,6 +94,10 @@ class DistributedMixtralModel(DefaultRevisionMixin, FromPretrainedMixin, PTuneMi
         hidden_states = inputs_embeds
         output_shape = input_shape + (hidden_states.size(-1),)
 
+        if past_key_values is None:
+            past_key_values = RemotePastKeyValues()
+        past_key_values.update_seen(hidden_states.size(1))
+
         hidden_states = self.layers(
             hidden_states,
             prompts=intermediate_prompts,
@@ -109,7 +113,7 @@ class DistributedMixtralModel(DefaultRevisionMixin, FromPretrainedMixin, PTuneMi
         hidden_states = hidden_states.view(output_shape)
         return MoeModelOutputWithPast(
             last_hidden_state=hidden_states,
-            past_key_values=RemotePastKeyValues(),
+            past_key_values=past_key_values,
             hidden_states=None,
             attentions=None,
         )
