@@ -42,12 +42,6 @@ class WrappedMixtralBlock(MixtralDecoderLayer):
                 past_key_value.update(torch.empty(_past_key_value[0].size()), torch.empty(_past_key_value[1].size()), idx)
             past_key_value.update(_past_key_value[0], _past_key_value[1], self.layer_idx)
 
-        # embed positions
-        if attention_mask is None:
-            attention_mask = torch.ones(
-                (batch_size, seq_length_with_past), dtype=torch.bool, device=hidden_states.device
-            )
-
         # TODO: make sure it's working
         if self._attn_implementation == "flash_attention_2":
             # 2d mask is passed through the layers

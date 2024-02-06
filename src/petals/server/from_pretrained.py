@@ -54,6 +54,8 @@ def load_pretrained_block(
     with init_empty_weights():
         # TODO: Remove this
         if config.block_class == WrappedMixtralBlock:
+            # TODO: figure out why sdpa is always choosen
+            config._attn_implementation = "sdpa"
             block = config.block_class(config, block_index)
         else:
             block = config.block_class(config)
