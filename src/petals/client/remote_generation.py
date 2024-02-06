@@ -28,7 +28,7 @@ class RemotePastKeyValues(Cache):
     def get_seq_length(self, layer_idx: Optional[int] = 0) -> int:
         return self.seen_tokens
 
-    def get_max_length(self) -> int | None:
+    def get_max_length(self) -> Optional[int]:
         return None
 
     def update_seen(self, new_seen: int) -> None:
