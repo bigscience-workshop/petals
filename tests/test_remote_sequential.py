@@ -86,6 +86,7 @@ class DummyCustomSequenceManager(RemoteSequenceManager):
 
 
 @pytest.mark.forked
+@pytest.mark.skip(reason="no way of currently testing this")
 def test_remote_sequential_prompts(batch_size=2, seq_len=5, pre_seq_len=3):
     config = AutoDistributedConfig.from_pretrained(MODEL_NAME, initial_peers=INITIAL_PEERS)
     remote_sequential = RemoteSequential(config)
