@@ -6,20 +6,20 @@ from typing import Any, ContextManager, Dict, List, Optional, Tuple
 import torch
 import transformers
 from hivemind.utils.logging import get_logger
-from transformers.generation.utils import ModelOutput
+from torch import Tensor
 from transformers.cache_utils import Cache, DynamicCache
+from transformers.generation.utils import ModelOutput
 
 from petals.client.inference_session import InferenceSession
 from petals.client.remote_sequential import RemoteSequential
 from petals.utils.misc import DUMMY, docstring_from
-
-from torch import Tensor
 
 logger = get_logger(__name__)
 
 
 class RemotePastKeyValues(Cache):
     """only keeps the number of seen tokens. pretends to be a legit cache"""
+
     def __init__(self) -> None:
         super().__init__()
         self.seen_tokens = 0

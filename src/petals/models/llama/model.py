@@ -101,7 +101,7 @@ class DistributedLlamaModel(FromPretrainedMixin, PTuneMixin, LlamaModel):
         # Add last hidden state
         hidden_states = self.norm(hidden_states)
         hidden_states = hidden_states.view(output_shape)
-        
+
         return BaseModelOutputWithPast(
             last_hidden_state=hidden_states,
             past_key_values=past_key_values,

@@ -9,6 +9,7 @@ from typing import Optional, Tuple
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from transformers.modeling_attn_mask_utils import _prepare_4d_causal_attention_mask
 from transformers.models.llama.modeling_llama import (
     LlamaAttention,
     LlamaConfig,
@@ -19,7 +20,6 @@ from transformers.models.llama.modeling_llama import (
     repeat_kv,
     rotate_half,
 )
-from transformers.modeling_attn_mask_utils import _prepare_4d_causal_attention_mask
 
 from petals.utils.cuda_graphs import make_inference_graphed_callable
 
@@ -99,7 +99,7 @@ class OptimizedLlamaAttention(LlamaAttention):
             value_states = torch.cat([past_key_value[1], value_states], dim=2)
 
         past_key_value = (key_states, value_states) if use_cache else None
-        
+
         # repeat k/v heads if n_kv_heads < n_heads
         key_states = repeat_kv(key_states, self.num_key_value_groups)
         value_states = repeat_kv(value_states, self.num_key_value_groups)

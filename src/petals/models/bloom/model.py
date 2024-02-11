@@ -4,9 +4,9 @@ import hivemind
 import torch
 import torch.nn as nn
 from hivemind.utils.logging import get_logger
+from transformers.cache_utils import Cache
 from transformers.modeling_outputs import BaseModelOutputWithPastAndCrossAttentions
 from transformers.models.bloom import BloomForCausalLM, BloomForSequenceClassification, BloomModel, BloomPreTrainedModel
-from transformers.cache_utils import Cache
 
 from petals.client.from_pretrained import FromPretrainedMixin
 from petals.client.lm_head import LMHead
@@ -124,7 +124,6 @@ class DistributedBloomForCausalLM(FromPretrainedMixin, RemoteGenerationMixin, Bl
         # Initialize weights and apply final processing
         self.post_init()
 
-    
     def prepare_inputs_for_generation(
         self, input_ids, past_key_values=None, attention_mask=None, inputs_embeds=None, **kwargs
     ) -> dict:
@@ -174,11 +173,9 @@ class DistributedBloomForCausalLM(FromPretrainedMixin, RemoteGenerationMixin, Bl
         )
         return model_inputs
 
-    
     def _temporary_reorder_cache(self, past_key_values, beam_idx):
         return past_key_values
-        
-    
+
     def get_output_embeddings(self):
         return self.lm_head
 
