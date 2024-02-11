@@ -25,6 +25,9 @@ class RemotePastKeyValues(Cache):
         self.seen_tokens = 0
         self.hypo_ids: Optional[torch.LongTensor] = None
 
+    def __getitem__(self, _index: int) -> List[torch.Tensor]:
+        return [DUMMY]  # For compatibility with BloomForCausalLM.prepare_inputs_for_generation()
+
     def get_seq_length(self, layer_idx: Optional[int] = 0) -> int:
         return self.seen_tokens
 
@@ -130,6 +133,7 @@ class RemoteGenerationMixin(_SkipTokensMixin):
                 past_key_values = RemotePastKeyValues()
                 past_key_values.update_seen(session.position)
                 kwargs["past_key_values"] = past_key_values
+
             result = super().generate(inputs, *args, **kwargs)
 
             sequences = result.sequences if isinstance(result, ModelOutput) else result
