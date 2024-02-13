@@ -184,6 +184,7 @@ class UnoptimizedWrappedLlamaBlock(LlamaDecoderLayer):
 
 
 @pytest.mark.parametrize("device", ["cpu", "cuda:0"])
+@pytest.mark.forked
 def test_optimized_block(device):
     if device == "cuda:0" and not torch.cuda.is_available():
         pytest.skip("CUDA tests can be run only in CUDA-enabled setups")
