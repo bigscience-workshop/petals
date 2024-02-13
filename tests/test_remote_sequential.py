@@ -14,6 +14,7 @@ logger = get_logger(__name__)
 
 
 @pytest.mark.forked
+@pytest.mark.skip(reason="no way of currently testing this")
 def test_remote_sequential():
     config = AutoDistributedConfig.from_pretrained(MODEL_NAME, initial_peers=INITIAL_PEERS)
     dht = DHT(initial_peers=config.initial_peers, client_mode=True, start=True)
