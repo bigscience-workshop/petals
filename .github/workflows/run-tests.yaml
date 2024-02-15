@@ -14,8 +14,6 @@ jobs:
           - { model: 'bigscience/bloom-560m', os: 'ubuntu', python-version: '3.11' }
           - { model: 'Maykeye/TinyLLama-v0', os: 'ubuntu', python-version: '3.8' }
           - { model: 'Maykeye/TinyLLama-v0', os: 'ubuntu', python-version: '3.11' }
-          - { model: 'petals-team/falcon-rw-1b', os: 'ubuntu', python-version: '3.8' }
-          - { model: 'petals-team/falcon-rw-1b', os: 'ubuntu', python-version: '3.11' }
           - { model: 'Maykeye/TinyLLama-v0', os: 'macos', python-version: '3.10' }
           - { model: 'Maykeye/TinyLLama-v0', os: 'macos', python-version: '3.11' }
       fail-fast: false

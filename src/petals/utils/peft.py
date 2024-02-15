@@ -26,9 +26,7 @@ logger = get_logger(__name__)
 
 
 def check_peft_repository(repo_id: str) -> bool:
-    fs = HfFileSystem()
-    list_of_files = fs.glob(f"{repo_id}/{SAFETENSORS_WEIGHTS_NAME}", detail=False)
-    return len(list_of_files) > 0
+    return HfFileSystem().exists(f"{repo_id}/{SAFETENSORS_WEIGHTS_NAME}")
 
 
 def load_specific_module(block_idx: int, filepath: str, framework: str = "pt", device: Optional[int] = None):
