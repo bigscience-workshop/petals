@@ -211,6 +211,7 @@ class InferenceSession:
         self._position = 0
         self._max_length = max_length
         self.output_ids = None
+        self.past_key_values = None
 
     @property
     def num_blocks(self) -> int:
