@@ -21,7 +21,9 @@ __version__ = "2.3.0.dev2"
 
 
 if not os.getenv("PETALS_IGNORE_DEPENDENCY_VERSION"):
-    version.parse(transformers.__version__) == version.parse("4.37.1")
+    assert (
+        version.parse("4.37.1") <= version.parse(transformers.__version__) < version.parse("4.38.0")
+    ), "Please install a proper transformers version: pip install transformers>=4.37.1,<4.38.0"
 
 
 def _override_bfloat16_mode_default():
