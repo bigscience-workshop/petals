@@ -36,13 +36,11 @@ class WrappedMixtralBlock(MixtralDecoderLayer):
             past_key_values_length = past_key_value[0].shape[2]
             seq_length_with_past = seq_length_with_past + past_key_values_length
             _past_key_value = self._reorder_cache_from_bloom(past_key_value, batch_size, past_key_values_length)
-            # TODO: remove DynamicCache
             past_key_value = DynamicCache()
             for idx in range(self.layer_idx):
                 past_key_value.update(torch.empty(_past_key_value[0].size()), torch.empty(_past_key_value[1].size()), idx)
             past_key_value.update(_past_key_value[0], _past_key_value[1], self.layer_idx)
 
-        # TODO: make sure it's working
         if self._attn_implementation == "flash_attention_2":
             # 2d mask is passed through the layers
             attention_mask = attention_mask if (attention_mask is not None and 0 in attention_mask) else None

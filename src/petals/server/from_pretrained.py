@@ -19,7 +19,7 @@ from accelerate.utils import set_module_tensor_to_device
 from hivemind.utils.logging import get_logger
 from huggingface_hub import get_hf_file_metadata, hf_hub_url
 from huggingface_hub.utils import EntryNotFoundError
-from transformers import PretrainedConfig
+from transformers import PretrainedConfig, PreTrainedModel
 from transformers.utils import get_file_from_repo
 
 from petals.constants import DTYPE_MAP
@@ -52,10 +52,8 @@ def load_pretrained_block(
     torch_dtype = resolve_block_dtype(config, torch_dtype)
 
     with init_empty_weights():
-        # TODO: Remove this
         if config.block_class == WrappedMixtralBlock:
-            # TODO: figure out why sdpa is always choosen
-            config._attn_implementation = "sdpa"
+            config = PreTrainedModel._autoset_attn_implementation(config)
             block = config.block_class(config, block_index)
         else:
             block = config.block_class(config)

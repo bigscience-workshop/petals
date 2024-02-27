@@ -78,7 +78,7 @@ class DistributedMixtralModel(DefaultRevisionMixin, FromPretrainedMixin, PTuneMi
         assert not output_attentions, f"{output_attentions=} is not supported"
         assert not output_hidden_states, f"{output_hidden_states=} is not supported"
         assert return_dict is None or return_dict, f"{return_dict=} is not supported"
-        assert not output_router_logits, f"{output_router_logits=} is not supported"  # TODO: check this
+        assert not output_router_logits, f"{output_router_logits=} is not supported"
 
         if inputs_embeds is None:
             inputs_embeds = self.embed_tokens(input_ids)
