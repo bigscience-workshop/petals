@@ -135,7 +135,9 @@ class DistributedMixtralModel(DefaultRevisionMixin, FromPretrainedMixin, PTuneMi
         return self.norm
 
 
-class DistributedMixtralForCausalLM(DefaultRevisionMixin, FromPretrainedMixin, RemoteGenerationMixin, MixtralForCausalLM):
+class DistributedMixtralForCausalLM(
+    DefaultRevisionMixin, FromPretrainedMixin, RemoteGenerationMixin, MixtralForCausalLM
+):
     _keys_to_ignore_on_load_missing = DistributedMixtralModel._keys_to_ignore_on_load_missing
     _keys_to_ignore_on_load_unexpected = DistributedMixtralModel._keys_to_ignore_on_load_unexpected
 
@@ -160,7 +162,6 @@ class DistributedMixtralForCausalLM(DefaultRevisionMixin, FromPretrainedMixin, R
 class DistributedMixtralForSequenceClassification(
     DefaultRevisionMixin, FromPretrainedMixin, MixtralForSequenceClassification
 ):
-
     def __init__(self, config: DistributedMixtralConfig):
         MixtralPreTrainedModel.__init__(self, config)
         self.num_labels = config.num_labels
