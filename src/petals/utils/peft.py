@@ -153,6 +153,12 @@ class AdapterContextMixin:
     def active_adapter(self, value: Optional[str]):
         assert value == self.ADAPTER_NOT_SET, "active adapter can only be changed via .using_adapter" ""
 
+    @property
+    def active_adapters(self):
+        if self._context_active_adapter == self.ADAPTER_NOT_SET:
+            logger.warning(f"Layer {self} was called without using_adapter. This should only be used for debug")
+        return [self._context_active_adapter]
+
 
 using_adapter = AdapterContextMixin.using_adapter
 
