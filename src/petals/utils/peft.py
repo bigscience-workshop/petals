@@ -1,7 +1,7 @@
 import contextlib
 import re
 import time
-from typing import Optional, Sequence, Union
+from typing import List, Optional, Sequence, Union
 
 import bitsandbytes as bnb
 import torch
@@ -157,7 +157,7 @@ class AdapterContextMixin:
     def active_adapters(self):
         return [self._context_active_adapter]
 
-    def set_adapter(self, adapter_names: str | list[str]) -> None:
+    def set_adapter(self, adapter_names) -> None:
         """
         In PEFT, this function making adapter trainable. However, in Petals environment is not possible now. So,
         this code remove this functionality.
