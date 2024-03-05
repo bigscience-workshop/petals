@@ -171,6 +171,7 @@ using_adapter = AdapterContextMixin.using_adapter
 
 class LoraLinear(AdapterContextMixin, lora.Linear):
     """LoRA linear layer that uses adapter selected via using_adapter"""
+
     def __init__(self, base_layer, adapter_name: str):
         nn.Module.__init__(self)
         lora.LoraLayer.__init__(self, base_layer)
