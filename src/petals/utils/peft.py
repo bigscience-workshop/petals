@@ -155,9 +155,15 @@ class AdapterContextMixin:
 
     @property
     def active_adapters(self):
-        if self._context_active_adapter == self.ADAPTER_NOT_SET:
-            logger.warning(f"Layer {self} was called without using_adapter. This should only be used for debug")
         return [self._context_active_adapter]
+
+    def set_adapter(self, adapter_names: str | list[str]) -> None:
+        """
+        In PEFT, this function making adapter trainable. However, in Petals environment is not possible now. So,
+        this code remove this functionality.
+        Link to peft code: https://github.com/huggingface/peft/blob/98f4db2c7990ef9c879a0e1da9a28a19a04701ef/src/peft/tuners/tuners_utils.py#L463
+        """
+        pass
 
 
 using_adapter = AdapterContextMixin.using_adapter
