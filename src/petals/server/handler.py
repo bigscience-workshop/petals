@@ -591,12 +591,14 @@ class TransformerConnectionHandler(ConnectionHandler):
 
         return runtime_pb2.ExpertInfo(serialized_info=MSGPackSerializer.dumps(result))
 
+    @staticmethod
     async def _wrap_input_stream(stream):
         while True:
             expert_request = await anext(stream)
             yield expert_request
-            print(expert_request.metadata)
-            if expert_request.metadata.get("SEP"):
+            metadata = MSGPackSerializer.loads(expert_request.metadata)
+            print(metadata)
+            if metadata.get("_EOS"):
                 break
 
     async def rpc_forward_backward_stream(
