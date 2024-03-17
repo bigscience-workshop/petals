@@ -153,7 +153,7 @@ async def iterate_rpc_inference(
     points: int,
     quant_type: QuantType,
     args_structure: Any = None,
-) -> AsyncIterator[Tuple[Sequence[runtime_pb2.Tensor], bool]]:
+) -> AsyncIterator[Tuple[Sequence[runtime_pb2.Tensor], bool, Dict]]:
     assert len(cache_handles) == len(requested_backends)
 
     prefix_length = 0
@@ -224,7 +224,7 @@ async def iterate_rpc_inference(
             for result, proto in zip((hidden_states,), nested_flatten(requested_backends[-1].outputs_schema))
         ]
         can_push = not has_prompts
-        yield output_tensors, can_push
+        yield output_tensors, can_push, step_metadata
 
         # prepare for next step
         prefix_length += length_increment
