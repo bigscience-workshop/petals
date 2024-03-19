@@ -144,6 +144,12 @@ class _ServerInferenceSession:
                 )
             )
         )
+
+        import random
+
+        if random.random() < 0.05:
+            raise Exception("fail")
+
         outputs = list(map(deserialize_torch_tensor, outputs_serialized.tensors))
         assert (
             outputs[0].shape == inputs.shape
