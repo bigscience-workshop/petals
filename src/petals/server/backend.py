@@ -191,9 +191,9 @@ class TransformerBackend(ModuleBackend):
 
         # Explicitly free the GPU memory. This is not necessary at the time this code is written,
         # but may help to avoid future issues when the module is not garbage-collected for some reasons
-        dummy = torch.tensor([])
-        for p in self.module.parameters():
-            p.data = dummy
+#        dummy = torch.tensor([])
+#        for p in self.module.parameters():
+#            p.data = dummy
 
 
 def merge_inference_pools_inplace(backends: Dict[ExpertUID, TransformerBackend]):
