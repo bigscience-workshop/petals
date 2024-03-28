@@ -1,0 +1,11 @@
+[Unit]
+Description=Petals Inference
+
+[Service]
+User=petals
+Group=petals
+Environment=PJRT_DEVICE=TPU
+ExecStart=/home/petals/venv/bin/python -m petals.cli.run_server --port 31330 petals-team/StableBeluga2 --device xla --num_blocks=4
+
+[Install]
+WantedBy=multi-user.target

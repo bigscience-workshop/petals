@@ -9,18 +9,19 @@ jobs:
   black:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: psf/black@stable
+      - uses: meta-introspector/checkout@main
+      - uses: meta-introspector/black@main
         with:
           options: "--check --diff"
           version: "22.3.0"
   isort:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v3
+      - uses: meta-introspector/checkout@main
+      - uses: meta-introspector/setup-python@main
         with:
           python-version: 3.8
-      - uses: isort/isort-action@master
+      - uses: meta-introspector/isort-action@main
         with:
           isortVersion: "5.10.1"
+

@@ -1,0 +1,111 @@
+#version: "3"
+
+services:
+
+  health:
+    restart: always
+    depends_on:
+     - backbone
+    image: h4ckermike/health.petals:main
+    ports:
+      - "8100:5000"
+    env_file: health.env
+    command: flask run --host=0.0.0.0 --port=5000
+
+  inference   :
+    restart: always
+    depends_on:
+      - backbone
+    image: h4ckermike/inference.petals:main
+    ports:
+      - "8000:5000"
+    env_file: health.env
+    command: gunicorn app:app --bind 0.0.0.0:5000 --worker-class gthread --threads 100 --timeout 1000
+
+  tinyllamacpu:
+    image: h4ckermike/petals:main
+    depends_on:
+       - backbone       
+    command: python -m petals.cli.run_server --port 31331  --num_blocks=1 Maykeye/TinyLLama-v0 --initial_peers $INITIAL_PEERS  --device=$DEVICE
+    ports:
+      - "31331:31331"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: always
+
+  tinyllamagpu:
+    image: h4ckermike/petals:main
+    depends_on:
+       - backbone
+    ports:
+      - "31332:31332"
+    command: python -m petals.cli.run_server --port 31332  --num_blocks=1 Maykeye/TinyLLama-v0 --initial_peers $INITIAL_PEERS  --device=$DEVICE
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: always
+
+  tinyllamatpu:
+    image: h4ckermike/petals:main
+    depends_on:
+       - backbone
+    ports:
+      - "31333:31333"
+    command: python -m petals.cli.run_server --port 31333  --num_blocks=1 Maykeye/TinyLLama-v0 --initial_peers $INITIAL_PEERS  --device=$DEVICE
+
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+    restart: always
+
+    # beluga:
+  #   image: h4ckermike/petals:main
+  #   depends_on:
+  #      - backbone
+  #   deploy:
+  #     resources:
+  #       reservations:
+  #         devices:
+  #           - driver: nvidia
+  #             count: 1
+  #             capabilities: [gpu]
+  #   ports:
+  #     - "31330:31330"
+  #   restart: always
+
+  backbone:
+    image: h4ckermike/petals:main
+    command: python -m petals.cli.run_dht --host_maddrs /ip4/0.0.0.0/tcp/8099 --identity_path /cache/bootstrap1.id
+    volumes:
+      - petals-cache-backbone:/cache
+    network_mode: host
+    ipc: host
+    restart: unless-stopped
+    env_file: health.env
+    
+  #   # DEbug target
+  # debug_health:
+  #   #environment:
+
+  #   env_file: health.env
+  #   image: h4ckermike/health.petals:main
+  #   command: bash
+  #   stdin_open: true
+  #   tty: true
+
+
+volumes:
+  petals-cache-backbone:

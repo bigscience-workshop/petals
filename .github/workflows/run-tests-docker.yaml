@@ -1,0 +1,36 @@
+name: Tests in docker compose
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  run-tests-in-compose:
+   # runs-on: ubuntu-latest    
+    runs-on: self-hosted
+    timeout-minutes: 20
+    steps:
+      - name: Increase swap space
+        if: ${{ matrix.os == 'ubuntu' }}
+        uses: meta-introspector/set-swap-space@main
+        with:
+          swap-size-gb: 10
+      - name: Checkout
+        uses: meta-introspector/checkout@main
+
+      - name: Build the docker-compose stack
+        run: docker-compose -f docker-compose.yml up -d
+        
+      - name: Check running containers
+        run: docker ps -a
+        
+      - name: Check logs
+        run: docker logs health
+        
+      - name: Build the docker-compose stack
+        run: docker-compose down 
+        
+
+  
+  

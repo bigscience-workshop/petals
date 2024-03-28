@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.black]
 line-length = 120
-required-version = "22.3.0"
+required-version = "24.3.0"
 
 [tool.isort]
 profile = "black"
