@@ -1,0 +1,1 @@
+PJRT_DEVICE=TPU python -m petals.cli.run_server --port 31330 petals-team/StableBeluga2 --device xla --num_blocks=4  --initial_peers /ip4/10.128.0.41/tcp/8099/p2p/QmVA1BeK2UYaXPwmHQ5EZ2biyzyVWdnQj2zHcEVYxgiSDY
