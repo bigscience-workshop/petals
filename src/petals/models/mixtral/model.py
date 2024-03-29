@@ -24,7 +24,7 @@ logger = get_logger(__name__)
 
 
 class DistributedMixtralModel(DefaultRevisionMixin, FromPretrainedMixin, PTuneMixin, MixtralModel):
-    """MixtalModel, but all transformer layers are hosted by the swarm"""
+    """MixtralModel, but all transformer layers are hosted by the swarm"""
 
     _keys_to_ignore_on_load_missing = PTuneMixin._keys_to_ignore_on_load_missing
     _keys_to_ignore_on_load_unexpected = [r"^model\.layers\."]
