@@ -180,12 +180,10 @@ class LoraLinear(AdapterContextMixin, lora.Linear):
         self.is_target_conv_1d_layer = False
 
 
-# TODO: Check if lora.Linear can be mixed with lora.Linear8bitLt
 class LoraLinear8bitLt(LoraLinear, lora.Linear8bitLt):
     """LoRA linear 8-bit with outliers that uses adapter selected via using_adapter"""
 
 
-# TODO: Check if lora.Linear can be mixed with lora.Linear4bit
 class LoraLinear4bit(LoraLinear, lora.Linear4bit):
     """LoRA linear 4-bit that uses adapter selected via using_adapter"""
 
