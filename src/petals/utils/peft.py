@@ -159,8 +159,8 @@ class AdapterContextMixin:
 
     def set_adapter(self, adapter_names) -> None:
         """
-        In PEFT, this function making adapter trainable. However, in Petals environment is not possible now. So,
-        this code remove this functionality.
+        In PEFT, this function makes the adapter trainable. However, in Petals environment this is not possible now. Thus,
+        this code removes this functionality.
         Link to peft code: https://github.com/huggingface/peft/blob/98f4db2c7990ef9c879a0e1da9a28a19a04701ef/src/peft/tuners/tuners_utils.py#L463
         """
         pass
