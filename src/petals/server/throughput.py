@@ -14,7 +14,7 @@ from hivemind.utils.logging import get_logger
 from transformers import PretrainedConfig
 
 from petals.server.block_utils import resolve_block_dtype
-from petals.utils.convert_block import QuantType, convert_block
+from petals.utils.convert_block import QuantType, convert_block, get_model_block
 from petals.utils.disk_cache import DEFAULT_CACHE_DIR
 
 logger = get_logger(__name__)
@@ -201,7 +201,8 @@ def measure_compute_rps(
     if not tensor_parallel_devices:
         tensor_parallel_devices = (device,)
     with torch.inference_mode():
-        block = config.block_class(config).to(dtype)
+        block = get_model_block(config)
+        block = block.to(dtype)
         block = convert_block(block, 0, config, tensor_parallel_devices, device, quant_type=quant_type, freeze=True)
 
         cache = None

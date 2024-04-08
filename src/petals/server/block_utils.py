@@ -4,7 +4,7 @@ import torch
 from accelerate import init_empty_weights
 from transformers import PretrainedConfig
 
-from petals.utils.convert_block import QuantType
+from petals.utils.convert_block import QuantType, get_model_block
 from petals.utils.misc import get_size_in_bytes
 
 
@@ -32,7 +32,7 @@ def get_block_size(
         ), 'get_block_size(..., location="memory") requires to specify dtype and quant_type for calculations'
 
     with init_empty_weights(include_buffers=True):
-        block = config.block_class(config)
+        block = get_model_block(config)
         n_params = sum(param.numel() for param in block.parameters())
 
     if location == "memory":
