@@ -144,3 +144,25 @@ _arXiv preprint arXiv:2209.01188,_ 2022.
 <p align="center">
     <img src="https://petals.dev/bigscience.png" width="150">
 </p>
+
+
+# setup
+
+
+ 1623  sudo cp petals-inference.service /etc/systemd/system/
+ 1634  sudo systemctl daemon-reload
+ 1635  sudo systemctl status petals-inference.service -l
+ 1636  sudo systemctl restart petals-inference.service -l
+
+ 1639  sudo useradd petals
+ 1640  sudo mkdir /home/petals
+ 1641  sudo chown petals: /home/petals/
+ 1643  sudo cp -r ~/.venv/ /home/petals/venv
+ 1644  sudo rm -rf /home/petals/venv
+ 1658  sudo mv ~/.venv/ /home/petals/venv
+ 1659  sudo chown petals: /home/petals/
+
+1670  sudo systemctl status petals-inference.service -l
+ 1674  sudo systemctl restart petals-inference.service -l
+ 1675  sudo systemctl status petals-inference.service -l
+ 
