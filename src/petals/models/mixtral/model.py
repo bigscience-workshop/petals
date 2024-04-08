@@ -135,7 +135,6 @@ class DistributedMixtralModel(DefaultRevisionMixin, FromPretrainedMixin, PTuneMi
         return self.norm
 
 
-
 class DistributedMixtralForCausalLM(
     DefaultRevisionMixin, FromPretrainedMixin, RemoteGenerationMixin, MixtralForCausalLM
 ):

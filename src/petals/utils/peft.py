@@ -17,7 +17,7 @@ from safetensors import safe_open
 from safetensors.torch import load_file
 from transformers.utils import get_file_from_repo
 
-from petals.server.block_utils import resolve_block_dtype
+from petals.server.block_utils import get_model_block, resolve_block_dtype
 from petals.utils.convert_block import QuantType
 from petals.utils.disk_cache import allow_cache_reads, allow_cache_writes, free_disk_space_for
 from petals.utils.misc import get_size_in_bytes
@@ -273,7 +273,7 @@ def estimate_adapter_memory_per_block(
 ) -> int:
     """Get the number of extra bytes used to store a set of adapters per given block"""
     with init_empty_weights(include_buffers=True):
-        block = block_config.block_class(block_config)
+        block = get_model_block(block_config)
         base_block_parameters = sum(p.numel() for p in block.parameters())
         create_lora_adapter(block, quant_type=QuantType.NONE)
 
