@@ -4,6 +4,8 @@ DUMMY = torch.empty(0)  # dummy tensor that replaces empty prompt or adapter par
 
 DUMMY_INT64 = torch.empty(0, dtype=torch.int64)
 
+DUMMY_KEY_PAST = torch.empty((0, 0, 0))
+
 
 def is_dummy(tensor: torch.Tensor) -> bool:
     return tensor.numel() == 0
