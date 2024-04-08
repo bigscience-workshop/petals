@@ -13,8 +13,8 @@ import torch.mps
 from hivemind.utils.logging import get_logger
 from transformers import PretrainedConfig
 
-from petals.server.block_utils import resolve_block_dtype
-from petals.utils.convert_block import QuantType, convert_block, get_model_block
+from petals.server.block_utils import resolve_block_dtype, get_model_block
+from petals.utils.convert_block import QuantType, convert_block
 from petals.utils.disk_cache import DEFAULT_CACHE_DIR
 
 logger = get_logger(__name__)

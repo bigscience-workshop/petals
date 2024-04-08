@@ -24,9 +24,8 @@ from transformers.utils import get_file_from_repo
 
 from petals.constants import DTYPE_MAP
 from petals.models.mixtral import WrappedMixtralBlock
-from petals.server.block_utils import resolve_block_dtype
+from petals.server.block_utils import resolve_block_dtype, get_model_block
 from petals.utils.auto_config import AutoDistributedConfig
-from petals.utils.convert_block import get_model_block
 from petals.utils.disk_cache import DEFAULT_CACHE_DIR, allow_cache_reads, allow_cache_writes, free_disk_space_for
 from petals.utils.hf_auth import always_needs_auth
 
