@@ -16,6 +16,8 @@ jobs:
           - { model: 'Maykeye/TinyLLama-v0', os: 'ubuntu', python-version: '3.11' }
           - { model: 'Maykeye/TinyLLama-v0', os: 'macos', python-version: '3.10' }
           - { model: 'Maykeye/TinyLLama-v0', os: 'macos', python-version: '3.11' }
+          - { model: 'artek0chumak/TestMixtral', os: 'ubuntu', python-version: '3.8' }
+          - { model: 'artek0chumak/TestMixtral', os: 'ubuntu', python-version: '3.11' }
       fail-fast: false
     runs-on: ${{ matrix.os }}-latest
     timeout-minutes: 20
