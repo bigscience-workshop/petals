@@ -206,7 +206,7 @@ def measure_compute_rps(
         block = block.to(dtype)
         block = convert_block(block, 0, config, tensor_parallel_devices, device, quant_type=quant_type, freeze=True)
 
-        cache = (DUMMY_KEY_PAST, DUMMY_KEY_PAST)
+        cache = (DUMMY_KEY_PAST.to(dtype), DUMMY_KEY_PAST.to(dtype))
         elapsed = 0
         dummy_input = torch.randn(1, n_tokens, config.hidden_size, device=device, dtype=dtype)
 
