@@ -123,8 +123,17 @@ class DistributedMixtralModel(DefaultRevisionMixin, FromPretrainedMixin, PTuneMi
         return self.embed_tokens
 
     @property
+    def word_embeddings_layernorm(self) -> nn.Module:  # For compatibility with RemoteGenerationMixin in tests
+        return nn.Identity()
+
+    @property
     def h(self) -> RemoteSequential:  # For compatibility with RemoteGenerationMixin
         return self.layers
+
+    @property
+    def ln_f(self) -> nn.Module:  # For compatibility with RemoteGenerationMixin in tests
+        return self.norm
+
 
 
 class DistributedMixtralForCausalLM(
