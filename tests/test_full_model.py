@@ -141,6 +141,9 @@ def test_sampling(tokenizer, model, ref_model, max_new_tokens=10):
                 ), f"Sampling is not identical to HF with {options=}, {multiple_calls=}, {inputs.shape=}"
 
 
+@pytest.mark.skipif(
+    MODEL_NAME.lower().find("mixtral"), reason="Mixtral use DynamicCache, that can change based on BS choices"
+)
 @pytest.mark.forked
 def test_beam_search_generation(tokenizer, model, ref_model, max_new_tokens=4, num_beams=5):
     inputs = tokenizer("A cat sat on a mat", return_tensors="pt")["input_ids"]

@@ -60,6 +60,6 @@ def get_model_block(config, **kwargs):
     They will not be passed to other block constructors.
     """
     if config.block_class == WrappedMixtralBlock:
-        PreTrainedModel._autoset_attn_implementation(config)
+        config = PreTrainedModel._autoset_attn_implementation(config)
         return config.block_class(config, kwargs.get("layer_idx", 0))
     return config.block_class(config)
