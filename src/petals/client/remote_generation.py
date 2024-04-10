@@ -38,7 +38,7 @@ class RemotePastKeyValues(Cache):
         self.seen_tokens += new_seen
 
     def reorder_cache(self, beam_idx):
-        pass
+        raise NotImplementedError("Beam search reordering is not implemented yet")
 
 
 _skipped_tokens = ContextVar("skipped_tokens", default=0)
