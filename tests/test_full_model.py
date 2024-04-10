@@ -142,7 +142,7 @@ def test_sampling(tokenizer, model, ref_model, max_new_tokens=10):
 
 
 @pytest.mark.skipif(
-    MODEL_NAME.lower().find("mixtral"), reason="Mixtral use DynamicCache, that can change based on BS choices"
+    MODEL_NAME.lower().find("mixtral"), reason="Mixtral uses DynamicCache, which can change based on beam search choices"
 )
 @pytest.mark.forked
 def test_beam_search_generation(tokenizer, model, ref_model, max_new_tokens=4, num_beams=5):
