@@ -210,12 +210,12 @@ def measure_compute_rps(
         elapsed = 0
         dummy_input = torch.randn(1, n_tokens, config.hidden_size, device=device, dtype=dtype)
 
+        # Skip the 1st step to exclude the initialization time
         def step(cache_):
             outputs = block.forward(dummy_input, use_cache=inference, layer_past=cache_ if inference else None)
             return outputs[1] if inference else None
 
         cache = step(cache)
-        # Skip the 1st step to exclude the initialization time
         synchronize(device)
 
         start_time = time.perf_counter()
