@@ -1,0 +1,53 @@
+version: "3"
+
+services:
+
+  beluga:
+    image: learningathome/petals:main
+    depends_on:
+       - backbone
+    environment:
+#      - PJRT_DEVICE=TPU
+#--device xla
+      - BOOTSTRAP_INFO=/ip4/0.0.0.0/tcp/8099
+    command: python -m petals.cli.run_server --port 31330  --num_blocks=1 petals-team/StableBeluga2 --initial_peers /ip4/192.168.1.90/tcp/8099/p2p/QmfVvYv3w3EqpKGYG5FCcER9bFgoGLCUvXDUJsZAgSDw3N
+
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    ports:
+      - "31330:31330"
+    restart: always
+
+  backbone:
+    image: learningathome/petals:main
+    command: python -m petals.cli.run_dht --host_maddrs /ip4/0.0.0.0/tcp/8099 --identity_path /cache/bootstrap1.id
+    volumes:
+      - petals-cache-backbone:/cache
+    network_mode: host
+    ipc: host
+    restart: unless-stopped
+
+
+# version: '3.8'
+# services:
+#   backbone:
+#     image: learningathome/petals:main
+#     environment:
+#       - BOOTSTRAP_INFO=/ip4/0.0.0.0/tcp/8099
+#     command: python -m petals.cli.run_dht --host_maddrs ${BOOTSTRAP_INFO} --identity_path bootstrap1.id
+#     volumes:
+#       - type: volume
+#         source: petals-cache-backbone
+#         target: /cache
+#     network_mode: host
+#     ipc: host
+#     restart: always
+#     container_name: backbone
+
+volumes:
+  petals-cache-backbone:
