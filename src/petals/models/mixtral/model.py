@@ -123,13 +123,19 @@ class DistributedMixtralModel(DefaultRevisionMixin, FromPretrainedMixin, PTuneMi
         return self.embed_tokens
 
     @property
+    def word_embeddings_layernorm(self) -> nn.Module:  # For compatibility with RemoteGenerationMixin in tests
+        return nn.Identity()
+
+    @property
     def h(self) -> RemoteSequential:  # For compatibility with RemoteGenerationMixin
         return self.layers
 
+    @property
+    def ln_f(self) -> nn.Module:  # For compatibility with RemoteGenerationMixin in tests
+        return self.norm
 
-class DistributedMixtralForCausalLM(
-    DefaultRevisionMixin, FromPretrainedMixin, RemoteGenerationMixin, MixtralForCausalLM
-):
+
+class DistributedMixtralForCausalLM(FromPretrainedMixin, RemoteGenerationMixin, MixtralForCausalLM):
     _keys_to_ignore_on_load_missing = DistributedMixtralModel._keys_to_ignore_on_load_missing
     _keys_to_ignore_on_load_unexpected = DistributedMixtralModel._keys_to_ignore_on_load_unexpected
 
@@ -151,9 +157,12 @@ class DistributedMixtralForCausalLM(
         return self.model
 
 
-class DistributedMixtralForSequenceClassification(
-    DefaultRevisionMixin, FromPretrainedMixin, MixtralForSequenceClassification
-):
+class DistributedMixtralForSequenceClassification(FromPretrainedMixin, MixtralForSequenceClassification):
+    _keys_to_ignore_on_load_missing = DistributedMixtralModel._keys_to_ignore_on_load_missing
+    _keys_to_ignore_on_load_unexpected = DistributedMixtralModel._keys_to_ignore_on_load_unexpected
+
+    config_class = DistributedMixtralConfig
+
     def __init__(self, config: DistributedMixtralConfig):
         MixtralPreTrainedModel.__init__(self, config)
         self.num_labels = config.num_labels

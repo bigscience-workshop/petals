@@ -141,6 +141,10 @@ def test_sampling(tokenizer, model, ref_model, max_new_tokens=10):
                 ), f"Sampling is not identical to HF with {options=}, {multiple_calls=}, {inputs.shape=}"
 
 
+@pytest.mark.skipif(
+    "bloom" not in MODEL_NAME.lower(),
+    reason="Mixtral and Llama use DynamicCache, which can change based on beam search choices",
+)
 @pytest.mark.forked
 def test_beam_search_generation(tokenizer, model, ref_model, max_new_tokens=4, num_beams=5):
     inputs = tokenizer("A cat sat on a mat", return_tensors="pt")["input_ids"]

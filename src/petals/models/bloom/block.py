@@ -9,6 +9,8 @@ import torch
 from transformers.modeling_attn_mask_utils import _prepare_4d_causal_attention_mask
 from transformers.models.bloom.modeling_bloom import BloomBlock, BloomModel, build_alibi_tensor
 
+from petals.utils.misc import is_dummy
+
 
 class WrappedBloomBlock(BloomBlock):
     def forward(
@@ -22,6 +24,10 @@ class WrappedBloomBlock(BloomBlock):
     ):
         assert attention_mask is None, "Non-causal attention masks are not supported yet"
         batch_size, seq_length = hidden_states.shape[:2]
+        if layer_past is not None and is_dummy(layer_past[0]):
+            # Bloom cannot use cache if it was misconsctructed(e.g. Dummy tensors)
+            # In this case, fallback to the old code:
+            layer_past = None
         past_length = 0 if layer_past is None else layer_past[0].shape[-1]
         seq_length_with_past = seq_length + past_length
         attention_mask = torch.ones((batch_size, seq_length_with_past), device=hidden_states.device)
