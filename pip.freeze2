@@ -1,0 +1,3 @@
+transformers==4.34.0
+tokenizers>=0.14,<0.15
+huggingface_hub>=0.16.4,<0.18

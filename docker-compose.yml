@@ -1,0 +1,116 @@
+services:
+  backbone:
+    profiles: ["core"]
+    image: h4ckermike/petals:main
+    command: python -m petals.cli.run_dht --host_maddrs /ip4/0.0.0.0/tcp/8008 --identity_path /cache/bootstrap1.id
+    volumes:
+      - petals-cache-backbone:/cache
+    network_mode: host
+    ipc: host
+    restart: unless-stopped
+    env_file: ./.env
+    
+  health:
+    profiles: ["core"]
+    restart: always
+    depends_on:
+     - backbone
+    image: h4ckermike/health.petals:main
+    ports:
+      - "8009:5000"
+    command: flask run --host=0.0.0.0 --port=5000
+    env_file: ./.env
+
+  tinyllama_local_gpu:
+    profiles: ["local","gpu"]
+   #    image: h4ckermike/petals:main
+    build : .
+    depends_on:
+       - backbone
+    ports:
+      - "31336:31336"
+    command: python -m petals.cli.run_server --port 31336  --num_blocks=1 Maykeye/TinyLLama-v0 --initial_peers $INITIAL_PEERS  --device=$DEVICE
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: always
+    env_file: ./.env
+    
+  tinyllama_local_cpu:
+    profiles: ["local","cpu"]
+    build: .
+    depends_on:
+       - backbone
+    command: python -m petals.cli.run_server --port 31331  --num_blocks=1 Maykeye/TinyLLama-v0 --initial_peers $INITIAL_PEERS  --device=$DEVICE
+    ports:
+      - "31331:31331"
+    restart: always
+    env_file: ./.env
+    
+  tinyllamacpu:
+    profiles: ["tinyllama","cpu"]
+    image: h4ckermike/petals:main
+    depends_on:
+       - backbone
+    command: python -m petals.cli.run_server --port 31331  --num_blocks=1 Maykeye/TinyLLama-v0 --initial_peers $INITIAL_PEERS  --device=$DEVICE
+    ports:
+      - "31331:31331"
+    restart: always
+    env_file: ./.env
+    
+  tinyllamagpu:
+    profiles: ["core"]
+    image: h4ckermike/petals:main
+    depends_on:
+       - backbone
+    ports:
+      - "31332:31332"
+    command: python -m petals.cli.run_server --port 31332  --num_blocks=100 Maykeye/TinyLLama-v0 --initial_peers $INITIAL_PEERS  --device=$DEVICE
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: always
+    env_file: ./.env
+    
+  tinyllamatpu:
+    profiles: ["tpu"]
+    image: h4ckermike/petals:main
+    depends_on:
+       - backbone
+    ports:
+      - "31333:31333"
+    command: python -m petals.cli.run_server --port 31333  --num_blocks=1 Maykeye/TinyLLama-v0 --initial_peers $INITIAL_PEERS  --device=$DEVICE
+    restart: always
+    env_file: ./.env
+
+  debug_health:
+    profiles: ["debug"]
+
+    image: h4ckermike/health.petals:main
+    command: bash
+    stdin_open: true
+    tty: true
+
+  inference   :
+    profiles: ["core"]
+    restart: always
+    depends_on:
+      - backbone
+#    image: h4ckermike/inference.petals:main
+    image: petals-inference-test
+    ports:
+      - "8010:5000"
+    env_file: ./.env
+    command: gunicorn app:app --bind 0.0.0.0:5000 --worker-class gthread --threads 100 --timeout 1000
+
+
+volumes:
+  petals-cache-backbone:

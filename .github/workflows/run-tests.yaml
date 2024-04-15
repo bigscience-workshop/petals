@@ -24,17 +24,17 @@ jobs:
     steps:
       - name: Increase swap space
         if: ${{ matrix.os == 'ubuntu' }}
-        uses: pierotofy/set-swap-space@master
+        uses: meta-introspector/set-swap-space@main
         with:
           swap-size-gb: 10
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: meta-introspector/checkout@main
       - name: Set up Python
-        uses: actions/setup-python@v3
+        uses: meta-introspector/setup-python@main
         with:
           python-version: ${{ matrix.python-version }}
       - name: Cache dependencies
-        uses: actions/cache@v3
+        uses: meta-introspector/cache@main
         with:
           path: ~/.cache/pip
           key: Key-v1-${{ matrix.python-version }}-${{ hashFiles('setup.cfg') }}
