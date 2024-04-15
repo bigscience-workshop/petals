@@ -39,7 +39,6 @@ nvidia-nvjitlink-cu12==12.4.127
 nvidia-nvtx-cu12==12.1.105
 packaging==24.0
 peft==0.5.0
--e git+https://github.com/bigscience-workshop/petals@53a9222f0c36939014379b96fb79f8c82fd4075e#egg=petals&subdirectory=../../../../../../../time/2023/09/22/petals
 prefetch-generator==1.0.3
 protobuf==4.25.3
 psutil==5.9.8
