@@ -39,7 +39,26 @@ services:
               capabilities: [gpu]
     restart: always
     env_file: ./.env
-    
+
+#
+  tinymixtral_local_gpu:
+    profiles: ["local","gpu"]
+    build: .
+    depends_on:
+       - backbone
+    command: python -m petals.cli.run_server --port 31331  --num_blocks=1 SanjiWatsuki/TinyMixtral-32x248M  --initial_peers $INITIAL_PEERS  --device=$DEVICE
+    ports:
+      - "31331:31331"
+    restart: always
+    env_file: ./.env
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
   tinyllama_local_cpu:
     profiles: ["local","cpu"]
     build: .
@@ -104,8 +123,8 @@ services:
     restart: always
     depends_on:
       - backbone
-#    image: h4ckermike/inference.petals:main
-    image: petals-inference-test
+    image: h4ckermike/inference.petals:main
+#    image: petals-inference-test
     ports:
       - "8010:5000"
     env_file: ./.env

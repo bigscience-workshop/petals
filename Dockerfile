@@ -23,17 +23,17 @@ RUN conda install python~=3.10.12 pip && \
 
 VOLUME /cache
 ENV PETALS_CACHE=/cache
-COPY pip.freeze petals/pip.freeze
-RUN pip install --no-cache-dir -r petals/pip.freeze
-COPY pip.freeze2 petals/pip.freeze2
-RUN pip install --no-cache-dir -r petals/pip.freeze2
+#COPY pip.freeze petals/pip.freeze
+#RUN pip install --no-cache-dir -r petals/pip.freeze
+#COPY pip.freeze2 petals/pip.freeze2
+#RUN pip install --no-cache-dir -r petals/pip.freeze2
 
 
 ADD tests petals/tests
 ADD LICENSE  README.md pyproject.toml setup.cfg petals/
 ADD src petals/src
 RUN pip install --no-cache-dir -e petals
-RUN pip install --no-cache-dir --upgrade transformers==4.34.0
+#RUN pip install --no-cache-dir --upgrade transformers==4.34.0
 
 WORKDIR /home/petals/
 CMD python -m petals.cli.run_server --port 31331  --num_blocks=1 Maykeye/TinyLLama-v0 
