@@ -41,6 +41,26 @@ services:
     env_file: ./.env
 
 #
+  grok_local_gpu:
+    profiles: ["local","gpu"]
+    build: .
+    depends_on:
+       - backbone
+       # xai-org/grok-1
+       # hpcai-tech/grok-1
+       # keyfan/grok-1-hf
+    command: python -m petals.cli.run_server --port 31331  --num_blocks=1  keyfan/grok-1-hf  --initial_peers $INITIAL_PEERS  --device=$DEVICE
+    ports:
+      - "31331:31331"
+    restart: always
+    env_file: ./.env
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
   tinymixtral_local_gpu:
     profiles: ["local","gpu"]
     build: .

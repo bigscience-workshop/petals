@@ -33,6 +33,8 @@ ADD tests petals/tests
 ADD LICENSE  README.md pyproject.toml setup.cfg petals/
 ADD src petals/src
 RUN pip install --no-cache-dir -e petals
+
+RUN pip freeze > pip.freeze.new
 #RUN pip install --no-cache-dir --upgrade transformers==4.34.0
 
 WORKDIR /home/petals/
