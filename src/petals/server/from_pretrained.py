@@ -6,6 +6,7 @@ If necessary, one can rewrite this to implement a different behavior, such as:
  - fetch the weights over IPoAC, using a fleet of trained pigeons ( http://www.faqs.org/rfcs/rfc1149.html )
 
 """
+
 import json
 import time
 from contextlib import suppress

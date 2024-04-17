@@ -3,6 +3,7 @@ Falcon intermediate layer
 Based on https://github.com/huggingface/transformers/blob/main/src/transformers/models/falcon/modeling_falcon.py
 See commit history for authorship.
 """
+
 import math
 from functools import partial
 from typing import Optional, Tuple

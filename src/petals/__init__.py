@@ -20,7 +20,7 @@ from petals.utils.logging import initialize_logs as _initialize_logs
 __version__ = "2.3.0.dev2"
 
 
-#if not os.getenv("PETALS_IGNORE_DEPENDENCY_VERSION"):
+# if not os.getenv("PETALS_IGNORE_DEPENDENCY_VERSION"):
 #    assert (
 #        version.parse("4.38.2") <= version.parse(transformers.__version__) < version.parse("4.39.0")
 #    ), "Please install a proper transformers version: pip install transformers>=4.37.1,<4.39.0"

@@ -1,6 +1,7 @@
 """
 This module implements server-side computations on served blocks: forward, backward and inference; used by handler
 """
+
 from __future__ import annotations
 
 from typing import Any, AsyncIterator, Dict, Optional, Sequence, Tuple, Union

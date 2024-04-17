@@ -1,6 +1,7 @@
 """
 Tools for converting transformer blocks, applying quantization and/or tensor parallelism
 """
+
 import re
 from enum import Enum
 from typing import Optional, Sequence

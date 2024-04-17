@@ -51,7 +51,7 @@ class PTuneMixin:
                 batch_size,
                 self.pre_seq_len,
                 self.config.num_hidden_layers,
-                self.config.hidden_size
+                self.config.hidden_size,
                 # TODO: should be num_hidden_layers - 1
             )
             intermediate_prompts = intermediate_prompts.permute([2, 0, 1, 3])
