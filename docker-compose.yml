@@ -8,7 +8,6 @@ services:
     network_mode: host
     ipc: host
     restart: unless-stopped
-    env_file: ./.env
     
   health:
     profiles: ["core"]
@@ -19,7 +18,6 @@ services:
     ports:
       - "8009:5000"
     command: flask run --host=0.0.0.0 --port=5000
-    env_file: ./.env
 
   tinyllama_local_gpu:
     profiles: ["local","gpu"]
@@ -38,22 +36,22 @@ services:
               count: 1
               capabilities: [gpu]
     restart: always
-    env_file: ./.env
 
 #
-  grok_local_gpu:
+  envmodel_local_gpu:
     profiles: ["local","gpu"]
     build: .
+    environment:
+      - MODEL=${MODEL}
     depends_on:
        - backbone
        # xai-org/grok-1
        # hpcai-tech/grok-1
        # keyfan/grok-1-hf
-    command: python -m petals.cli.run_server --port 31331  --num_blocks=1  keyfan/grok-1-hf  --initial_peers $INITIAL_PEERS  --device=$DEVICE
+    command: python -m petals.cli.run_server --port 31331  --num_blocks=1  $MODEL  --initial_peers $INITIAL_PEERS  --device=$DEVICE
     ports:
       - "31331:31331"
     restart: always
-    env_file: ./.env
     deploy:
       resources:
         reservations:
@@ -61,6 +59,7 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [gpu]
+
   tinymixtral_local_gpu:
     profiles: ["local","gpu"]
     build: .
@@ -70,7 +69,7 @@ services:
     ports:
       - "31331:31331"
     restart: always
-    env_file: ./.env
+
     deploy:
       resources:
         reservations:
@@ -88,7 +87,7 @@ services:
     ports:
       - "31331:31331"
     restart: always
-    env_file: ./.env
+
     
   tinyllamacpu:
     profiles: ["tinyllama","cpu"]
@@ -99,7 +98,7 @@ services:
     ports:
       - "31331:31331"
     restart: always
-    env_file: ./.env
+
     
   tinyllamagpu:
     profiles: ["core"]
@@ -117,7 +116,7 @@ services:
               count: 1
               capabilities: [gpu]
     restart: always
-    env_file: ./.env
+
     
   tinyllamatpu:
     profiles: ["tpu"]
@@ -128,7 +127,7 @@ services:
       - "31333:31333"
     command: python -m petals.cli.run_server --port 31333  --num_blocks=1 Maykeye/TinyLLama-v0 --initial_peers $INITIAL_PEERS  --device=$DEVICE
     restart: always
-    env_file: ./.env
+
 
   debug_health:
     profiles: ["debug"]
@@ -147,7 +146,7 @@ services:
 #    image: petals-inference-test
     ports:
       - "8010:5000"
-    env_file: ./.env
+
     command: gunicorn app:app --bind 0.0.0.0:5000 --worker-class gthread --threads 100 --timeout 1000
 
 

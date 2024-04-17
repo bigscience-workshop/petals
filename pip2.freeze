@@ -1,0 +1,12 @@
+
+#transformers==4.38.2
+transformers==4.34.0
+
+
+#tokenizers==0.15.2
+tokenizers>=0.14,<0.15
+
+huggingface_hub>=0.16.4,<0.18
+#huggingface-hub==0.22.2
+
+
