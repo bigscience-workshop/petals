@@ -59,7 +59,7 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [gpu]
->>>>>>> 79bb253 (docker changes)
+
   tinymixtral_local_gpu:
     profiles: ["local","gpu"]
     build: .
