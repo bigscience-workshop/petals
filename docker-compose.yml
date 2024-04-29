@@ -1,6 +1,6 @@
 services:
   backbone:
-    profiles: ["core"]
+    profiles: ["backbone"]
     image:  h4ckermike/petals:main
     command: python -m petals.cli.run_dht --host_maddrs /ip4/0.0.0.0/tcp/8008 --identity_path /cache/bootstrap1.id
     volumes:
@@ -8,9 +8,10 @@ services:
     network_mode: host
     ipc: host
     restart: unless-stopped
-  envmodel_local_gpu:
-    profiles: ["local","gpu"]
-    build: .
+  envmodel_gpu:
+    profiles: ["miner","gpu"]
+#    build: .
+    image:  h4ckermike/petals:main
     environment:
       - MODEL=${MODEL}
       - INITIAL_PEERS=${INITIAL_PEERS}
