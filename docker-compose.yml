@@ -8,12 +8,13 @@ services:
     network_mode: host
     ipc: host
     restart: unless-stopped
-
   envmodel_local_gpu:
     profiles: ["local","gpu"]
     build: .
     environment:
       - MODEL=${MODEL}
+      - INITIAL_PEERS=${INITIAL_PEERS}
+      - DEVICE=${DEVICE}
     command: python -m petals.cli.run_server --port 31331  --num_blocks=1  $MODEL  --initial_peers $INITIAL_PEERS  --device=$DEVICE
     ports:
       - "31331:31331"
@@ -25,6 +26,5 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [gpu]
-
 volumes:
   petals-cache-backbone:
