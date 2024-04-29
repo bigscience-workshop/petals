@@ -1,53 +1,21 @@
 services:
   backbone:
-    profiles: ["core"]
-    image: h4ckermike/petals:main
+    profiles: ["backbone"]
+    image:  h4ckermike/petals:main
     command: python -m petals.cli.run_dht --host_maddrs /ip4/0.0.0.0/tcp/8008 --identity_path /cache/bootstrap1.id
     volumes:
       - petals-cache-backbone:/cache
     network_mode: host
     ipc: host
     restart: unless-stopped
-    
-  health:
-    profiles: ["core"]
-    restart: always
-#    depends_on:
-#     - backbone
-    image: h4ckermike/health.petals:main
-    ports:
-      - "8009:5000"
-    command: flask run --host=0.0.0.0 --port=5000
-
-  tinyllama_local_gpu:
-    profiles: ["local","gpu"]
-   #    image: h4ckermike/petals:main
-    build : .
-#    depends_on:
-#       - backbone
-    ports:
-      - "31336:31336"
-    command: python -m petals.cli.run_server --port 31336  --num_blocks=1 Maykeye/TinyLLama-v0 --initial_peers $INITIAL_PEERS  --device=$DEVICE
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
-    restart: always
-
-#
-  envmodel_local_gpu:
-    profiles: ["local","gpu"]
-    build: .
+  envmodel_gpu:
+    profiles: ["miner","gpu"]
+#    build: .
+    image:  h4ckermike/petals:main
     environment:
       - MODEL=${MODEL}
-#    depends_on:
-#       - backbone
-       # xai-org/grok-1
-       # hpcai-tech/grok-1
-       # keyfan/grok-1-hf
+      - INITIAL_PEERS=${INITIAL_PEERS}
+      - DEVICE=${DEVICE}
     command: python -m petals.cli.run_server --port 31331  --num_blocks=1  $MODEL  --initial_peers $INITIAL_PEERS  --device=$DEVICE
     ports:
       - "31331:31331"
@@ -59,96 +27,5 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [gpu]
-
-  tinymixtral_local_gpu:
-    profiles: ["local","gpu"]
-    build: .
-#    depends_on:
-#       - backbone
-    command: python -m petals.cli.run_server --port 31331  --num_blocks=1 SanjiWatsuki/TinyMixtral-32x248M  --initial_peers $INITIAL_PEERS  --device=$DEVICE
-    ports:
-      - "31331:31331"
-    restart: always
-
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
-
-  tinyllama_local_cpu:
-    profiles: ["local","cpu"]
-    build: .
-#    depends_on:
-#       - backbone
-    command: python -m petals.cli.run_server --port 31331  --num_blocks=1 Maykeye/TinyLLama-v0 --initial_peers $INITIAL_PEERS  --device=$DEVICE
-    ports:
-      - "31331:31331"
-    restart: always
-
-    
-  tinyllamacpu:
-    profiles: ["tinyllama","cpu"]
-    image: h4ckermike/petals:main
-    depends_on:
-       - backbone
-    command: python -m petals.cli.run_server --port 31331  --num_blocks=1 Maykeye/TinyLLama-v0 --initial_peers $INITIAL_PEERS  --device=$DEVICE
-    ports:
-      - "31331:31331"
-    restart: always
-
-    
-  tinyllamagpu:
-    profiles: ["core"]
-    image: h4ckermike/petals:main
-#    depends_on:
-#       - backbone
-    ports:
-      - "31332:31332"
-    command: python -m petals.cli.run_server --port 31332  --num_blocks=100 Maykeye/TinyLLama-v0 --initial_peers $INITIAL_PEERS  --device=$DEVICE
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
-    restart: always
-
-    
-  tinyllamatpu:
-    profiles: ["tpu"]
-    image: h4ckermike/petals:main
-#    depends_on:
-#       - backbone
-    ports:
-      - "31333:31333"
-    command: python -m petals.cli.run_server --port 31333  --num_blocks=1 Maykeye/TinyLLama-v0 --initial_peers $INITIAL_PEERS  --device=$DEVICE
-    restart: always
-
-
-  debug_health:
-    profiles: ["debug"]
-
-    image: h4ckermike/health.petals:main
-    command: bash
-    stdin_open: true
-    tty: true
-
-  inference   :
-    profiles: ["core"]
-    restart: always
-#    depends_on:
-#      - backbone
-    image: h4ckermike/inference.petals:main
-#    image: petals-inference-test
-    ports:
-      - "8010:5000"
-
-    command: gunicorn app:app --bind 0.0.0.0:5000 --worker-class gthread --threads 100 --timeout 1000
-
-
 volumes:
   petals-cache-backbone:
