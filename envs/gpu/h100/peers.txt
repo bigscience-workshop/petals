@@ -1,1 +1,1 @@
-/ip4/216.81.245.26/tcp/8099/p2p/QmR4PcZvHg414Q2HNEaQZLiu69HD4Vs17hcwDgq8qJdJq2
+INITIAL_PEERS=/dns/dht1.cillium.dev.compute.agentartificial.com/tcp/8008/p2p/Qmb3skfrki1PR8ww6nxvoGm51F5imK3e1DPMZgtay6ofE2
