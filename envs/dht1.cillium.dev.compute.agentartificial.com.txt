@@ -1,7 +1,12 @@
 INITIAL_PEERS=/dns/dht1.cillium.dev.compute.agentartificial.com/tcp/8008/p2p/QmYUro5QJx3YvgC4A9UBXL3ESdb3wSHXZzqUL19Fmy5Gsp
 DEVICE=cuda
-#MODEL=Maykeye/TinyLLama-v0
-MODEL=VAGOsolutions/SauerkrautLM-Mixtral-8x7B
+
 PUBLIC_NAME=NameNotConfigured
 MAX_DISK_SPACE=30GB
-BLOCKS=30
+BLOCKS=2
+#BLOCKS=33
+
+MODEL=VAGOsolutions/SauerkrautLM-Mixtral-8x7B-Instruct
+#MODEL=Maykeye/TinyLLama-v0
+#MODEL=SanjiWatsuki/TinyMixtral-32x248M
+
