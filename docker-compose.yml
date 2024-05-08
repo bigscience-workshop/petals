@@ -9,7 +9,8 @@ services:
       - MODEL=${MODEL}
       - INITIAL_PEERS=${INITIAL_PEERS}
       - DEVICE=${DEVICE}
-    command: python -m petals.cli.run_server --port 31331  --num_blocks=1  $MODEL  --initial_peers $INITIAL_PEERS  --device=$DEVICE
+      - BLOCKS=${BLOCKS}
+    command: python -m petals.cli.run_server --port 31331  --num_blocks=$BLOCKS  $MODEL  --initial_peers $INITIAL_PEERS  --device=$DEVICE
     # --max_disk_space $MAX_DISK_SPACE
     # --public-name $PUBLIC_NAME
     ports:

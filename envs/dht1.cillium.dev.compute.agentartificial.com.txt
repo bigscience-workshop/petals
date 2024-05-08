@@ -4,3 +4,4 @@ DEVICE=cuda
 MODEL=VAGOsolutions/SauerkrautLM-Mixtral-8x7B
 PUBLIC_NAME=NameNotConfigured
 MAX_DISK_SPACE=30GB
+BLOCKS=30
