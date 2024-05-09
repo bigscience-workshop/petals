@@ -3,5 +3,10 @@ DEVICE=cuda
 #MODEL=Maykeye/TinyLLama-v0
 MODEL=VAGOsolutions/SauerkrautLM-Mixtral-8x7B
 PUBLIC_NAME=NameNotConfigured
+<<<<<<< HEAD
 MAX_DISK_SPACE=300GB
 BLOCKS=40
+=======
+MAX_DISK_SPACE=30GB
+BLOCKS=1
+>>>>>>> e56d9ce (blocks)
