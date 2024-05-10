@@ -1,0 +1,7 @@
+INITIAL_PEERS=/dns/dht1.cillium.prod.compute.agentartificial.com/tcp/8008/p2p/QmRuzeEHPohDR4BGvArrBrqUNC2YPvTc1m5iwTXefdKra8
+DEVICE=cuda
+PUBLIC_NAME=NameNotConfigured
+MAX_DISK_SPACE=300GB
+#BLOCKS=40
+BLOCKS=2
+MAX_DISK_SPACE=30GB

@@ -1,31 +1,27 @@
 services:
-  backbone:
-    profiles: ["backbone"]
-    image:  h4ckermike/petals:main
-    command: python -m petals.cli.run_dht --host_maddrs /ip4/0.0.0.0/tcp/8008 --identity_path /cache/bootstrap1.id
-    volumes:
-      - petals-cache-backbone:/cache
-    network_mode: host
-    ipc: host
-    restart: unless-stopped
   envmodel_gpu:
     profiles: ["miner","gpu"]
 #    build: .
     image:  h4ckermike/petals:main
     environment:
+      - MAX_DISK_SPACE=${MAX_DISK_SPACE}
+      - PUBLIC_NAME=${PUBLIC_NAME}
       - MODEL=${MODEL}
       - INITIAL_PEERS=${INITIAL_PEERS}
       - DEVICE=${DEVICE}
-    command: python -m petals.cli.run_server --port 31331  --num_blocks=1  $MODEL  --initial_peers $INITIAL_PEERS  --device=$DEVICE
+      - BLOCKS=${BLOCKS}
+      - PORT=${PORT}
+    command: python -m petals.cli.run_server --port 31331  --num_blocks=1  $MODEL  --initial_peers $INITIAL_PEERS  --device=$DEVICE --public-name $PUBLIC_NAME --max_disk_space $MAX_DISK_SPACE
+
     ports:
-      - "31331:31331"
+      - "$PORT:$PORT"
     restart: always
     deploy:
       resources:
         reservations:
           devices:
             - driver: nvidia
-              count: 1
+              count: all
               capabilities: [gpu]
 volumes:
   petals-cache-backbone:
