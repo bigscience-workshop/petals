@@ -2,6 +2,6 @@ INITIAL_PEERS=/dns/dht1.cillium.dev.compute.agentartificial.com/tcp/8008/p2p/QmY
 DEVICE=cuda
 PUBLIC_NAME=NameNotConfigured
 MAX_DISK_SPACE=30GB
-BLOCKS=2
+BLOCKS=3
 #BLOCKS=33
 MODEL=VAGOsolutions/SauerkrautLM-Mixtral-8x7B-Instruct
