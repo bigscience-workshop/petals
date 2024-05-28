@@ -27,7 +27,7 @@ class ClientConfig:
 
     max_retries: Optional[int] = DEFAULT_MAX_RETRIES  # max number of retries before an exception (default: inf)
     min_backoff: float = 1  # after a repeated failure, sleep for this many seconds times 2 ** (num_failures - 1)
-    max_backoff: float = 60  # limit maximal sleep time between retries to this value
+    max_backoff: float = 5  # limit maximal sleep time between retries to this value
     ban_timeout: float = 15  # when a remote peer fails to respond, prevent routing to that peer for this many seconds
     active_adapter: Optional[str] = None  # name of active LoRA adapter (usually, Hugging Face repo)
 
