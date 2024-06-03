@@ -10,7 +10,16 @@ services:
       - INITIAL_PEERS=${INITIAL_PEERS}
       - DEVICE=${DEVICE}
       - BLOCKS=${BLOCKS}
-    command: python -m petals.cli.run_server  --num_blocks=$BLOCKS  $MODEL  --initial_peers $INITIAL_PEERS  --device=$DEVICE --public_name $PUBLIC_NAME --max_disk_space $MAX_DISK_SPACE
+      - PORT=${PORT}
+      - PUBLIC_IP=${PUBLIC_IP}
+#      - GOLOG_LOG_LEVEL=debug
+      - GOLOG_LOG_LEVEL=info
+      - GOLOG_FILE=/opt/cillium/var/log/p2pd_miner.log
+
+    command: python -m petals.cli.run_server  --num_blocks=$BLOCKS  $MODEL  --initial_peers $INITIAL_PEERS  --device=$DEVICE --public_name $PUBLIC_NAME --max_disk_space $MAX_DISK_SPACE --public_ip=${PUBLIC_IP} --port ${PORT} --identity_path /cache/bootstrap1.id
+    volumes:
+      - petals-cache-backbone:/cache
+      - log:/opt/cillium/var/log
 
     restart: always
     deploy:
@@ -20,5 +29,6 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
+
 volumes:
   petals-cache-backbone:
