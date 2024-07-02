@@ -160,6 +160,11 @@ async def iterate_rpc_inference(
     point_per_piece = points / max_length if max_length > 0 else 0.0
 
     async for request, step_metadata in input_iterator:
+        if "last_validated_position" in step_metadata:
+            last_validated_position = min(step_metadata["last_validated_position"], prefix_length)
+            assert prefix_length >= last_validated_position, f"prefix_length={prefix_length}, last_validated_position={last_validated_position}"
+            prefix_length = last_validated_position
+
         flat_tensors = tuple(deserialize_torch_tensor(tensor) for tensor in request.tensors)
         if args_structure is not None:
             # TODO: kwargs currently is unused, it can be used later for peft-like adaptation

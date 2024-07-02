@@ -84,7 +84,8 @@ class _ServerInferenceSession:
                 break  # this message means "done sending"
 
     def step(
-        self, inputs: torch.Tensor, prompts: torch.Tensor, hypo_ids: torch.LongTensor, *, step_id: str
+        self, inputs: torch.Tensor, prompts: torch.Tensor, hypo_ids: torch.LongTensor, *,
+        step_id: str, last_validated_position: int
     ) -> torch.Tensor:
         """
         Inference step: send a chunk of input tensors and receive a chunk of outputs
@@ -93,6 +94,12 @@ class _ServerInferenceSession:
         """
         if self.closed:
             raise Exception("Session is closed, cannot perform step")
+
+        if last_validated_position is not None:
+            assert last_validated_position <= self._position
+            self._position = last_validated_position
+            if self.history is not None and self.history.shape[1] >= last_validated_position:
+                self.history = self.history[:, :last_validated_position, :] if last_validated_position > 0 else None
 
         n_input_tokens = inputs.shape[1]
         if self.history is None:
@@ -115,6 +122,8 @@ class _ServerInferenceSession:
         request_metadata = dict(session_id=self.session_id, step_id=step_id)
         if not self.stepped:
             request_metadata.update(self.session_metadata)
+        if last_validated_position is not None:
+            request_metadata["last_validated_position"] = last_validated_position
         elif self.config.use_server_to_server:
             next_servers = self._collect_next_servers()
             if next_servers:
@@ -257,8 +266,13 @@ class InferenceSession:
         return self
 
     def step(
-        self, inputs: torch.Tensor, prompts: Optional[torch.Tensor] = None, hypo_ids: Optional[torch.Tensor] = None
+        self, inputs: torch.Tensor, prompts: Optional[torch.Tensor] = None,
+        hypo_ids: Optional[torch.Tensor] = None, last_validated_position: Optional[int] = None
     ) -> torch.Tensor:
+
+        if last_validated_position is not None:
+            self._position = last_validated_position
+
         assert not self._closed
         if torch.is_grad_enabled():
             logger.warning("Running inference session with grad enabled. Gradients will *not* be propagated correctly.")
@@ -303,7 +317,8 @@ class InferenceSession:
 
                     server_session = self._server_sessions[server_idx]
                     inputs = server_session.step(
-                        inputs, prompts[server_session.span.start : server_session.span.end], hypo_ids, step_id=step_id
+                        inputs, prompts[server_session.span.start : server_session.span.end], hypo_ids,
+                        step_id=step_id, last_validated_position=last_validated_position
                     )
 
                     server_idx += 1
