@@ -161,7 +161,6 @@ async def iterate_rpc_inference(
 
     async for request, step_metadata in input_iterator:
         if "last_validated_position" in step_metadata:
-            last_validated_position = min(step_metadata["last_validated_position"], prefix_length)
             assert prefix_length >= last_validated_position, f"prefix_length={prefix_length}, last_validated_position={last_validated_position}"
             prefix_length = last_validated_position
 
