@@ -160,6 +160,13 @@ async def iterate_rpc_inference(
     point_per_piece = points / max_length if max_length > 0 else 0.0
 
     async for request, step_metadata in input_iterator:
+        if "start_from_position" in step_metadata:
+            start_from_position = step_metadata["start_from_position"]
+            assert (
+                prefix_length >= start_from_position,
+            ), f"prefix_length={prefix_length}, start_from_position={start_from_position}"
+            prefix_length = start_from_position
+
         flat_tensors = tuple(deserialize_torch_tensor(tensor) for tensor in request.tensors)
         if args_structure is not None:
             # TODO: kwargs currently is unused, it can be used later for peft-like adaptation
