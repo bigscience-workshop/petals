@@ -1,0 +1,4141 @@
+this data comes from module_infos from llama-65b as it ran through an infinite loop of choosing other blocks after finding a swarm balance quality of 47.7% and then choosing the same blocks that it had originally
+ [
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.0',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server1)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=762.939453125,
+ │   │   │   │   public_name='https://100wires.com',
+ │   │   │   │   version='2.0.1.post1',
+ │   │   │   │   network_rps=762.939453125,
+ │   │   │   │   forward_rps=403396.67882219184,
+ │   │   │   │   inference_rps=518.954194789193,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=540672,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.3522874109697275,
+ │   │   │   │   │   server2_PeerID: 0.174999551528989,
+ │   │   │   │   │   server4_PeerID: 0.517533924095428
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=k,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server3)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=1723.5781832870298,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=1723.5781832870298,
+ │   │   │   │   forward_rps=236996.00710523955,
+ │   │   │   │   inference_rps=362.2481260701112,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=81920,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   'server1': 0.3233465197944277,
+ │   │   │   │   │   server2_PeerID: 0.08887508607785616
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.1',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server1)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=762.939453125,
+ │   │   │   │   public_name='https://100wires.com',
+ │   │   │   │   version='2.0.1.post1',
+ │   │   │   │   network_rps=762.939453125,
+ │   │   │   │   forward_rps=403396.67882219184,
+ │   │   │   │   inference_rps=518.954194789193,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=540672,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.3522874109697275,
+ │   │   │   │   │   server2_PeerID: 0.174999551528989,
+ │   │   │   │   │   server4_PeerID: 0.517533924095428
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server3)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=1723.5781832870298,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=1723.5781832870298,
+ │   │   │   │   forward_rps=236996.00710523955,
+ │   │   │   │   inference_rps=362.2481260701112,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=81920,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   'server1': 0.3233465197944277,
+ │   │   │   │   │   server2_PeerID: 0.08887508607785616
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.2',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server1)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=762.939453125,
+ │   │   │   │   public_name='https://100wires.com',
+ │   │   │   │   version='2.0.1.post1',
+ │   │   │   │   network_rps=762.939453125,
+ │   │   │   │   forward_rps=403396.67882219184,
+ │   │   │   │   inference_rps=518.954194789193,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=540672,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.3522874109697275,
+ │   │   │   │   │   server2_PeerID: 0.174999551528989,
+ │   │   │   │   │   server4_PeerID: 0.517533924095428
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server3)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=1723.5781832870298,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=1723.5781832870298,
+ │   │   │   │   forward_rps=236996.00710523955,
+ │   │   │   │   inference_rps=362.2481260701112,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=81920,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   'server1': 0.3233465197944277,
+ │   │   │   │   │   server2_PeerID: 0.08887508607785616
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.3',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server1)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=762.939453125,
+ │   │   │   │   public_name='https://100wires.com',
+ │   │   │   │   version='2.0.1.post1',
+ │   │   │   │   network_rps=762.939453125,
+ │   │   │   │   forward_rps=403396.67882219184,
+ │   │   │   │   inference_rps=518.954194789193,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=540672,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.3522874109697275,
+ │   │   │   │   │   server2_PeerID: 0.174999551528989,
+ │   │   │   │   │   server4_PeerID: 0.517533924095428
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server3)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=1723.5781832870298,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=1723.5781832870298,
+ │   │   │   │   forward_rps=236996.00710523955,
+ │   │   │   │   inference_rps=362.2481260701112,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=81920,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   'server1': 0.3233465197944277,
+ │   │   │   │   │   server2_PeerID: 0.08887508607785616
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.4',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server1)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=762.939453125,
+ │   │   │   │   public_name='https://100wires.com',
+ │   │   │   │   version='2.0.1.post1',
+ │   │   │   │   network_rps=762.939453125,
+ │   │   │   │   forward_rps=403396.67882219184,
+ │   │   │   │   inference_rps=518.954194789193,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=540672,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.3522874109697275,
+ │   │   │   │   │   server2_PeerID: 0.174999551528989,
+ │   │   │   │   │   server4_PeerID: 0.517533924095428
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server3)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=1723.5781832870298,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=1723.5781832870298,
+ │   │   │   │   forward_rps=236996.00710523955,
+ │   │   │   │   inference_rps=362.2481260701112,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=81920,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   'server1': 0.3233465197944277,
+ │   │   │   │   │   server2_PeerID: 0.08887508607785616
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.5',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server1)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=762.939453125,
+ │   │   │   │   public_name='https://100wires.com',
+ │   │   │   │   version='2.0.1.post1',
+ │   │   │   │   network_rps=762.939453125,
+ │   │   │   │   forward_rps=403396.67882219184,
+ │   │   │   │   inference_rps=518.954194789193,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=540672,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.3522874109697275,
+ │   │   │   │   │   server2_PeerID: 0.174999551528989,
+ │   │   │   │   │   server4_PeerID: 0.517533924095428
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server3)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=1723.5781832870298,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=1723.5781832870298,
+ │   │   │   │   forward_rps=236996.00710523955,
+ │   │   │   │   inference_rps=362.2481260701112,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=81920,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   'server1': 0.3233465197944277,
+ │   │   │   │   │   server2_PeerID: 0.08887508607785616
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.6',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server1)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=762.939453125,
+ │   │   │   │   public_name='https://100wires.com',
+ │   │   │   │   version='2.0.1.post1',
+ │   │   │   │   network_rps=762.939453125,
+ │   │   │   │   forward_rps=403396.67882219184,
+ │   │   │   │   inference_rps=518.954194789193,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=540672,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.3522874109697275,
+ │   │   │   │   │   server2_PeerID: 0.174999551528989,
+ │   │   │   │   │   server4_PeerID: 0.517533924095428
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server3)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=1723.5781832870298,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=1723.5781832870298,
+ │   │   │   │   forward_rps=236996.00710523955,
+ │   │   │   │   inference_rps=362.2481260701112,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=81920,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   'server1': 0.3233465197944277,
+ │   │   │   │   │   server2_PeerID: 0.08887508607785616
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.7',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server3)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=1723.5781832870298,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=1723.5781832870298,
+ │   │   │   │   forward_rps=236996.00710523955,
+ │   │   │   │   inference_rps=362.2481260701112,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=81920,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   'server1': 0.3233465197944277,
+ │   │   │   │   │   server2_PeerID: 0.08887508607785616
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server1)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=762.939453125,
+ │   │   │   │   public_name='https://100wires.com',
+ │   │   │   │   version='2.0.1.post1',
+ │   │   │   │   network_rps=762.939453125,
+ │   │   │   │   forward_rps=403396.67882219184,
+ │   │   │   │   inference_rps=518.954194789193,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=540672,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.3522874109697275,
+ │   │   │   │   │   server2_PeerID: 0.174999551528989,
+ │   │   │   │   │   server4_PeerID: 0.517533924095428
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.8',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server1)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=762.939453125,
+ │   │   │   │   public_name='https://100wires.com',
+ │   │   │   │   version='2.0.1.post1',
+ │   │   │   │   network_rps=762.939453125,
+ │   │   │   │   forward_rps=403396.67882219184,
+ │   │   │   │   inference_rps=518.954194789193,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=540672,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.3522874109697275,
+ │   │   │   │   │   server2_PeerID: 0.174999551528989,
+ │   │   │   │   │   server4_PeerID: 0.517533924095428
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server3)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=1723.5781832870298,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=1723.5781832870298,
+ │   │   │   │   forward_rps=236996.00710523955,
+ │   │   │   │   inference_rps=362.2481260701112,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=81920,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   'server1': 0.3233465197944277,
+ │   │   │   │   │   server2_PeerID: 0.08887508607785616
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.9',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server1)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=762.939453125,
+ │   │   │   │   public_name='https://100wires.com',
+ │   │   │   │   version='2.0.1.post1',
+ │   │   │   │   network_rps=762.939453125,
+ │   │   │   │   forward_rps=403396.67882219184,
+ │   │   │   │   inference_rps=518.954194789193,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=540672,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.3522874109697275,
+ │   │   │   │   │   server2_PeerID: 0.174999551528989,
+ │   │   │   │   │   server4_PeerID: 0.517533924095428
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server3)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=1723.5781832870298,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=1723.5781832870298,
+ │   │   │   │   forward_rps=236996.00710523955,
+ │   │   │   │   inference_rps=362.2481260701112,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=81920,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   'server1': 0.3233465197944277,
+ │   │   │   │   │   server2_PeerID: 0.08887508607785616
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.10',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server1)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=762.939453125,
+ │   │   │   │   public_name='https://100wires.com',
+ │   │   │   │   version='2.0.1.post1',
+ │   │   │   │   network_rps=762.939453125,
+ │   │   │   │   forward_rps=403396.67882219184,
+ │   │   │   │   inference_rps=518.954194789193,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=540672,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.3522874109697275,
+ │   │   │   │   │   server2_PeerID: 0.174999551528989,
+ │   │   │   │   │   server4_PeerID: 0.517533924095428
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server3)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=1723.5781832870298,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=1723.5781832870298,
+ │   │   │   │   forward_rps=236996.00710523955,
+ │   │   │   │   inference_rps=362.2481260701112,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=81920,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   'server1': 0.3233465197944277,
+ │   │   │   │   │   server2_PeerID: 0.08887508607785616
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.11',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server1)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=762.939453125,
+ │   │   │   │   public_name='https://100wires.com',
+ │   │   │   │   version='2.0.1.post1',
+ │   │   │   │   network_rps=762.939453125,
+ │   │   │   │   forward_rps=403396.67882219184,
+ │   │   │   │   inference_rps=518.954194789193,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=540672,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.3522874109697275,
+ │   │   │   │   │   server2_PeerID: 0.174999551528989,
+ │   │   │   │   │   server4_PeerID: 0.517533924095428
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server3)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=1723.5781832870298,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=1723.5781832870298,
+ │   │   │   │   forward_rps=236996.00710523955,
+ │   │   │   │   inference_rps=362.2481260701112,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=81920,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   'server1': 0.3233465197944277,
+ │   │   │   │   │   server2_PeerID: 0.08887508607785616
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.12',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server1)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=762.939453125,
+ │   │   │   │   public_name='https://100wires.com',
+ │   │   │   │   version='2.0.1.post1',
+ │   │   │   │   network_rps=762.939453125,
+ │   │   │   │   forward_rps=403396.67882219184,
+ │   │   │   │   inference_rps=518.954194789193,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=540672,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.3522874109697275,
+ │   │   │   │   │   server2_PeerID: 0.174999551528989,
+ │   │   │   │   │   server4_PeerID: 0.517533924095428
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server3)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=1723.5781832870298,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=1723.5781832870298,
+ │   │   │   │   forward_rps=236996.00710523955,
+ │   │   │   │   inference_rps=362.2481260701112,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=81920,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   'server1': 0.3233465197944277,
+ │   │   │   │   │   server2_PeerID: 0.08887508607785616
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.13',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server1)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=762.939453125,
+ │   │   │   │   public_name='https://100wires.com',
+ │   │   │   │   version='2.0.1.post1',
+ │   │   │   │   network_rps=762.939453125,
+ │   │   │   │   forward_rps=403396.67882219184,
+ │   │   │   │   inference_rps=518.954194789193,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=540672,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.3522874109697275,
+ │   │   │   │   │   server2_PeerID: 0.174999551528989,
+ │   │   │   │   │   server4_PeerID: 0.517533924095428
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server3)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=1723.5781832870298,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=1723.5781832870298,
+ │   │   │   │   forward_rps=236996.00710523955,
+ │   │   │   │   inference_rps=362.2481260701112,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=81920,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   'server1': 0.3233465197944277,
+ │   │   │   │   │   server2_PeerID: 0.08887508607785616
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.14',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server3)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=1723.5781832870298,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=1723.5781832870298,
+ │   │   │   │   forward_rps=236996.00710523955,
+ │   │   │   │   inference_rps=362.2481260701112,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=81920,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   'server1': 0.3233465197944277,
+ │   │   │   │   │   server2_PeerID: 0.08887508607785616
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server1)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=762.939453125,
+ │   │   │   │   public_name='https://100wires.com',
+ │   │   │   │   version='2.0.1.post1',
+ │   │   │   │   network_rps=762.939453125,
+ │   │   │   │   forward_rps=403396.67882219184,
+ │   │   │   │   inference_rps=518.954194789193,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=540672,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.3522874109697275,
+ │   │   │   │   │   server2_PeerID: 0.174999551528989,
+ │   │   │   │   │   server4_PeerID: 0.517533924095428
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.15',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server1)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=762.939453125,
+ │   │   │   │   public_name='https://100wires.com',
+ │   │   │   │   version='2.0.1.post1',
+ │   │   │   │   network_rps=762.939453125,
+ │   │   │   │   forward_rps=403396.67882219184,
+ │   │   │   │   inference_rps=518.954194789193,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=540672,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.3522874109697275,
+ │   │   │   │   │   server2_PeerID: 0.174999551528989,
+ │   │   │   │   │   server4_PeerID: 0.517533924095428
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server3)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=1723.5781832870298,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=1723.5781832870298,
+ │   │   │   │   forward_rps=236996.00710523955,
+ │   │   │   │   inference_rps=362.2481260701112,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=81920,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   'server1': 0.3233465197944277,
+ │   │   │   │   │   server2_PeerID: 0.08887508607785616
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.16',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server1)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=762.939453125,
+ │   │   │   │   public_name='https://100wires.com',
+ │   │   │   │   version='2.0.1.post1',
+ │   │   │   │   network_rps=762.939453125,
+ │   │   │   │   forward_rps=403396.67882219184,
+ │   │   │   │   inference_rps=518.954194789193,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=540672,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.3522874109697275,
+ │   │   │   │   │   server2_PeerID: 0.174999551528989,
+ │   │   │   │   │   server4_PeerID: 0.517533924095428
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server3)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=1723.5781832870298,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=1723.5781832870298,
+ │   │   │   │   forward_rps=236996.00710523955,
+ │   │   │   │   inference_rps=362.2481260701112,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=81920,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   'server1': 0.3233465197944277,
+ │   │   │   │   │   server2_PeerID: 0.08887508607785616
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.17',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server1)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=762.939453125,
+ │   │   │   │   public_name='https://100wires.com',
+ │   │   │   │   version='2.0.1.post1',
+ │   │   │   │   network_rps=762.939453125,
+ │   │   │   │   forward_rps=403396.67882219184,
+ │   │   │   │   inference_rps=518.954194789193,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=540672,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.3522874109697275,
+ │   │   │   │   │   server2_PeerID: 0.174999551528989,
+ │   │   │   │   │   server4_PeerID: 0.517533924095428
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server3)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=1723.5781832870298,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=1723.5781832870298,
+ │   │   │   │   forward_rps=236996.00710523955,
+ │   │   │   │   inference_rps=362.2481260701112,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=81920,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   'server1': 0.3233465197944277,
+ │   │   │   │   │   server2_PeerID: 0.08887508607785616
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.18',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server3)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=1723.5781832870298,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=1723.5781832870298,
+ │   │   │   │   forward_rps=236996.00710523955,
+ │   │   │   │   inference_rps=362.2481260701112,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=81920,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   'server1': 0.3233465197944277,
+ │   │   │   │   │   server2_PeerID: 0.08887508607785616
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server1)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=762.939453125,
+ │   │   │   │   public_name='https://100wires.com',
+ │   │   │   │   version='2.0.1.post1',
+ │   │   │   │   network_rps=762.939453125,
+ │   │   │   │   forward_rps=403396.67882219184,
+ │   │   │   │   inference_rps=518.954194789193,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=540672,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.3522874109697275,
+ │   │   │   │   │   server2_PeerID: 0.174999551528989,
+ │   │   │   │   │   server4_PeerID: 0.517533924095428
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.19',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server1)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=762.939453125,
+ │   │   │   │   public_name='https://100wires.com',
+ │   │   │   │   version='2.0.1.post1',
+ │   │   │   │   network_rps=762.939453125,
+ │   │   │   │   forward_rps=403396.67882219184,
+ │   │   │   │   inference_rps=518.954194789193,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=540672,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.3522874109697275,
+ │   │   │   │   │   server2_PeerID: 0.174999551528989,
+ │   │   │   │   │   server4_PeerID: 0.517533924095428
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server3)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=1723.5781832870298,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=1723.5781832870298,
+ │   │   │   │   forward_rps=236996.00710523955,
+ │   │   │   │   inference_rps=362.2481260701112,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=81920,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   'server1': 0.3233465197944277,
+ │   │   │   │   │   server2_PeerID: 0.08887508607785616
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.20',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server1)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=762.939453125,
+ │   │   │   │   public_name='https://100wires.com',
+ │   │   │   │   version='2.0.1.post1',
+ │   │   │   │   network_rps=762.939453125,
+ │   │   │   │   forward_rps=403396.67882219184,
+ │   │   │   │   inference_rps=518.954194789193,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=540672,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.3522874109697275,
+ │   │   │   │   │   server2_PeerID: 0.174999551528989,
+ │   │   │   │   │   server4_PeerID: 0.517533924095428
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.21',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server1)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=762.939453125,
+ │   │   │   │   public_name='https://100wires.com',
+ │   │   │   │   version='2.0.1.post1',
+ │   │   │   │   network_rps=762.939453125,
+ │   │   │   │   forward_rps=403396.67882219184,
+ │   │   │   │   inference_rps=518.954194789193,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=540672,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.3522874109697275,
+ │   │   │   │   │   server2_PeerID: 0.174999551528989,
+ │   │   │   │   │   server4_PeerID: 0.517533924095428
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server4)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=3154.063460812297,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=None,
+ │   │   │   │   forward_rps=31540.634608122968,
+ │   │   │   │   inference_rps=489.1779648024173,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=76114,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server2_PeerID: 0.03404902645657837,
+ │   │   │   │   │   'server7': 0.05028543718671172,
+ │   │   │   │   │   'server1': 0.28872436304810034
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.22',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server1)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=762.939453125,
+ │   │   │   │   public_name='https://100wires.com',
+ │   │   │   │   version='2.0.1.post1',
+ │   │   │   │   network_rps=762.939453125,
+ │   │   │   │   forward_rps=403396.67882219184,
+ │   │   │   │   inference_rps=518.954194789193,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=540672,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.3522874109697275,
+ │   │   │   │   │   server2_PeerID: 0.174999551528989,
+ │   │   │   │   │   server4_PeerID: 0.517533924095428
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.23',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server1)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=762.939453125,
+ │   │   │   │   public_name='https://100wires.com',
+ │   │   │   │   version='2.0.1.post1',
+ │   │   │   │   network_rps=762.939453125,
+ │   │   │   │   forward_rps=403396.67882219184,
+ │   │   │   │   inference_rps=518.954194789193,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=540672,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.3522874109697275,
+ │   │   │   │   │   server2_PeerID: 0.174999551528989,
+ │   │   │   │   │   server4_PeerID: 0.517533924095428
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server4)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=3154.063460812297,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=None,
+ │   │   │   │   forward_rps=31540.634608122968,
+ │   │   │   │   inference_rps=489.1779648024173,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=76114,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server2_PeerID: 0.03404902645657837,
+ │   │   │   │   │   'server7': 0.05028543718671172,
+ │   │   │   │   │   'server1': 0.28872436304810034
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.24',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server1)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=762.939453125,
+ │   │   │   │   public_name='https://100wires.com',
+ │   │   │   │   version='2.0.1.post1',
+ │   │   │   │   network_rps=762.939453125,
+ │   │   │   │   forward_rps=403396.67882219184,
+ │   │   │   │   inference_rps=518.954194789193,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=540672,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.3522874109697275,
+ │   │   │   │   │   server2_PeerID: 0.174999551528989,
+ │   │   │   │   │   server4_PeerID: 0.517533924095428
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server4)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=3154.063460812297,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=None,
+ │   │   │   │   forward_rps=31540.634608122968,
+ │   │   │   │   inference_rps=489.1779648024173,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=76114,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server2_PeerID: 0.03404902645657837,
+ │   │   │   │   │   'server7': 0.05028543718671172,
+ │   │   │   │   │   'server1': 0.28872436304810034
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.25',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server1)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=762.939453125,
+ │   │   │   │   public_name='https://100wires.com',
+ │   │   │   │   version='2.0.1.post1',
+ │   │   │   │   network_rps=762.939453125,
+ │   │   │   │   forward_rps=403396.67882219184,
+ │   │   │   │   inference_rps=518.954194789193,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=540672,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.3522874109697275,
+ │   │   │   │   │   server2_PeerID: 0.174999551528989,
+ │   │   │   │   │   server4_PeerID: 0.517533924095428
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.26',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server1)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=762.939453125,
+ │   │   │   │   public_name='https://100wires.com',
+ │   │   │   │   version='2.0.1.post1',
+ │   │   │   │   network_rps=762.939453125,
+ │   │   │   │   forward_rps=403396.67882219184,
+ │   │   │   │   inference_rps=518.954194789193,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=540672,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.3522874109697275,
+ │   │   │   │   │   server2_PeerID: 0.174999551528989,
+ │   │   │   │   │   server4_PeerID: 0.517533924095428
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.27',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server1)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=762.939453125,
+ │   │   │   │   public_name='https://100wires.com',
+ │   │   │   │   version='2.0.1.post1',
+ │   │   │   │   network_rps=762.939453125,
+ │   │   │   │   forward_rps=403396.67882219184,
+ │   │   │   │   inference_rps=518.954194789193,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=540672,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.3522874109697275,
+ │   │   │   │   │   server2_PeerID: 0.174999551528989,
+ │   │   │   │   │   server4_PeerID: 0.517533924095428
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server4)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=3154.063460812297,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=None,
+ │   │   │   │   forward_rps=31540.634608122968,
+ │   │   │   │   inference_rps=489.1779648024173,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=76114,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server2_PeerID: 0.03404902645657837,
+ │   │   │   │   │   'server7': 0.05028543718671172,
+ │   │   │   │   │   'server1': 0.28872436304810034
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.28',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server1)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=762.939453125,
+ │   │   │   │   public_name='https://100wires.com',
+ │   │   │   │   version='2.0.1.post1',
+ │   │   │   │   network_rps=762.939453125,
+ │   │   │   │   forward_rps=403396.67882219184,
+ │   │   │   │   inference_rps=518.954194789193,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=540672,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.3522874109697275,
+ │   │   │   │   │   server2_PeerID: 0.174999551528989,
+ │   │   │   │   │   server4_PeerID: 0.517533924095428
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server4)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=3154.063460812297,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=None,
+ │   │   │   │   forward_rps=31540.634608122968,
+ │   │   │   │   inference_rps=489.1779648024173,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=76114,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server2_PeerID: 0.03404902645657837,
+ │   │   │   │   │   'server7': 0.05028543718671172,
+ │   │   │   │   │   'server1': 0.28872436304810034
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.29',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server1)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=762.939453125,
+ │   │   │   │   public_name='https://100wires.com',
+ │   │   │   │   version='2.0.1.post1',
+ │   │   │   │   network_rps=762.939453125,
+ │   │   │   │   forward_rps=403396.67882219184,
+ │   │   │   │   inference_rps=518.954194789193,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=540672,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.3522874109697275,
+ │   │   │   │   │   server2_PeerID: 0.174999551528989,
+ │   │   │   │   │   server4_PeerID: 0.517533924095428
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server4)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=3154.063460812297,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=None,
+ │   │   │   │   forward_rps=31540.634608122968,
+ │   │   │   │   inference_rps=489.1779648024173,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=76114,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server2_PeerID: 0.03404902645657837,
+ │   │   │   │   │   'server7': 0.05028543718671172,
+ │   │   │   │   │   'server1': 0.28872436304810034
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.30',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server1)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=762.939453125,
+ │   │   │   │   public_name='https://100wires.com',
+ │   │   │   │   version='2.0.1.post1',
+ │   │   │   │   network_rps=762.939453125,
+ │   │   │   │   forward_rps=403396.67882219184,
+ │   │   │   │   inference_rps=518.954194789193,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=540672,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.3522874109697275,
+ │   │   │   │   │   server2_PeerID: 0.174999551528989,
+ │   │   │   │   │   server4_PeerID: 0.517533924095428
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.31',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server1)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=762.939453125,
+ │   │   │   │   public_name='https://100wires.com',
+ │   │   │   │   version='2.0.1.post1',
+ │   │   │   │   network_rps=762.939453125,
+ │   │   │   │   forward_rps=403396.67882219184,
+ │   │   │   │   inference_rps=518.954194789193,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=540672,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.3522874109697275,
+ │   │   │   │   │   server2_PeerID: 0.174999551528989,
+ │   │   │   │   │   server4_PeerID: 0.517533924095428
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.32',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server1)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=762.939453125,
+ │   │   │   │   public_name='https://100wires.com',
+ │   │   │   │   version='2.0.1.post1',
+ │   │   │   │   network_rps=762.939453125,
+ │   │   │   │   forward_rps=403396.67882219184,
+ │   │   │   │   inference_rps=518.954194789193,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=540672,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.3522874109697275,
+ │   │   │   │   │   server2_PeerID: 0.174999551528989,
+ │   │   │   │   │   server4_PeerID: 0.517533924095428
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.33',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server4)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=3154.063460812297,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=None,
+ │   │   │   │   forward_rps=31540.634608122968,
+ │   │   │   │   inference_rps=489.1779648024173,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=76114,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server2_PeerID: 0.03404902645657837,
+ │   │   │   │   │   'server7': 0.05028543718671172,
+ │   │   │   │   │   'server1': 0.28872436304810034
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.34',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server4)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=3154.063460812297,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=None,
+ │   │   │   │   forward_rps=31540.634608122968,
+ │   │   │   │   inference_rps=489.1779648024173,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=76114,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server2_PeerID: 0.03404902645657837,
+ │   │   │   │   │   'server7': 0.05028543718671172,
+ │   │   │   │   │   'server1': 0.28872436304810034
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.35',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.36',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.37',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server4)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=3154.063460812297,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=None,
+ │   │   │   │   forward_rps=31540.634608122968,
+ │   │   │   │   inference_rps=489.1779648024173,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=76114,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server2_PeerID: 0.03404902645657837,
+ │   │   │   │   │   'server7': 0.05028543718671172,
+ │   │   │   │   │   'server1': 0.28872436304810034
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.38',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.39',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.40',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server7)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=2203.28331063272,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=2203.28331063272,
+ │   │   │   │   forward_rps=271960.0070090508,
+ │   │   │   │   inference_rps=508.16437981575893,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=81920,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   'server6': 0.05739172527083482,
+ │   │   │   │   │   'server5': 0.0025458695964836967,
+ │   │   │   │   │   server2_PeerID: 0.08240282397267884
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.41',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server7)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=2203.28331063272,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=2203.28331063272,
+ │   │   │   │   forward_rps=271960.0070090508,
+ │   │   │   │   inference_rps=508.16437981575893,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=81920,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   'server6': 0.05739172527083482,
+ │   │   │   │   │   'server5': 0.0025458695964836967,
+ │   │   │   │   │   server2_PeerID: 0.08240282397267884
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.42',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server7)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=2203.28331063272,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=2203.28331063272,
+ │   │   │   │   forward_rps=271960.0070090508,
+ │   │   │   │   inference_rps=508.16437981575893,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=81920,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   'server6': 0.05739172527083482,
+ │   │   │   │   │   'server5': 0.0025458695964836967,
+ │   │   │   │   │   server2_PeerID: 0.08240282397267884
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.43',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server7)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=2203.28331063272,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=2203.28331063272,
+ │   │   │   │   forward_rps=271960.0070090508,
+ │   │   │   │   inference_rps=508.16437981575893,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=81920,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   'server6': 0.05739172527083482,
+ │   │   │   │   │   'server5': 0.0025458695964836967,
+ │   │   │   │   │   server2_PeerID: 0.08240282397267884
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.44',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server7)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=2203.28331063272,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=2203.28331063272,
+ │   │   │   │   forward_rps=271960.0070090508,
+ │   │   │   │   inference_rps=508.16437981575893,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=81920,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   'server6': 0.05739172527083482,
+ │   │   │   │   │   'server5': 0.0025458695964836967,
+ │   │   │   │   │   server2_PeerID: 0.08240282397267884
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.45',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server7)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=2203.28331063272,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=2203.28331063272,
+ │   │   │   │   forward_rps=271960.0070090508,
+ │   │   │   │   inference_rps=508.16437981575893,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=81920,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   'server6': 0.05739172527083482,
+ │   │   │   │   │   'server5': 0.0025458695964836967,
+ │   │   │   │   │   server2_PeerID: 0.08240282397267884
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.46',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server7)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=2203.28331063272,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=2203.28331063272,
+ │   │   │   │   forward_rps=271960.0070090508,
+ │   │   │   │   inference_rps=508.16437981575893,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=81920,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   'server6': 0.05739172527083482,
+ │   │   │   │   │   'server5': 0.0025458695964836967,
+ │   │   │   │   │   server2_PeerID: 0.08240282397267884
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.47',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server6)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=1843.87298726553,
+ │   │   │   │   public_name=None,
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=1843.87298726553,
+ │   │   │   │   forward_rps=1323938.579623994,
+ │   │   │   │   inference_rps=272.56280142101735,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=40960,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server2_PeerID: 0.03526929598266443,
+ │   │   │   │   │   'server7': 0.06578319937104085
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server7)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=2203.28331063272,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=2203.28331063272,
+ │   │   │   │   forward_rps=271960.0070090508,
+ │   │   │   │   inference_rps=508.16437981575893,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=81920,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   'server6': 0.05739172527083482,
+ │   │   │   │   │   'server5': 0.0025458695964836967,
+ │   │   │   │   │   server2_PeerID: 0.08240282397267884
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.48',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server6)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=1843.87298726553,
+ │   │   │   │   public_name=None,
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=1843.87298726553,
+ │   │   │   │   forward_rps=1323938.579623994,
+ │   │   │   │   inference_rps=272.56280142101735,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=40960,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server2_PeerID: 0.03526929598266443,
+ │   │   │   │   │   'server7': 0.06578319937104085
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server7)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=2203.28331063272,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=2203.28331063272,
+ │   │   │   │   forward_rps=271960.0070090508,
+ │   │   │   │   inference_rps=508.16437981575893,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=81920,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   'server6': 0.05739172527083482,
+ │   │   │   │   │   'server5': 0.0025458695964836967,
+ │   │   │   │   │   server2_PeerID: 0.08240282397267884
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.49',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server6)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=1843.87298726553,
+ │   │   │   │   public_name=None,
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=1843.87298726553,
+ │   │   │   │   forward_rps=1323938.579623994,
+ │   │   │   │   inference_rps=272.56280142101735,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=40960,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server2_PeerID: 0.03526929598266443,
+ │   │   │   │   │   'server7': 0.06578319937104085
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server7)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=2203.28331063272,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=2203.28331063272,
+ │   │   │   │   forward_rps=271960.0070090508,
+ │   │   │   │   inference_rps=508.16437981575893,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=81920,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   'server6': 0.05739172527083482,
+ │   │   │   │   │   'server5': 0.0025458695964836967,
+ │   │   │   │   │   server2_PeerID: 0.08240282397267884
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.50',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server6)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=1843.87298726553,
+ │   │   │   │   public_name=None,
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=1843.87298726553,
+ │   │   │   │   forward_rps=1323938.579623994,
+ │   │   │   │   inference_rps=272.56280142101735,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=40960,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server2_PeerID: 0.03526929598266443,
+ │   │   │   │   │   'server7': 0.06578319937104085
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server7)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=2203.28331063272,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=2203.28331063272,
+ │   │   │   │   forward_rps=271960.0070090508,
+ │   │   │   │   inference_rps=508.16437981575893,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=81920,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   'server6': 0.05739172527083482,
+ │   │   │   │   │   'server5': 0.0025458695964836967,
+ │   │   │   │   │   server2_PeerID: 0.08240282397267884
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.51',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server6)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=1843.87298726553,
+ │   │   │   │   public_name=None,
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=1843.87298726553,
+ │   │   │   │   forward_rps=1323938.579623994,
+ │   │   │   │   inference_rps=272.56280142101735,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=40960,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server2_PeerID: 0.03526929598266443,
+ │   │   │   │   │   'server7': 0.06578319937104085
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server7)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=2203.28331063272,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=2203.28331063272,
+ │   │   │   │   forward_rps=271960.0070090508,
+ │   │   │   │   inference_rps=508.16437981575893,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=81920,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   'server6': 0.05739172527083482,
+ │   │   │   │   │   'server5': 0.0025458695964836967,
+ │   │   │   │   │   server2_PeerID: 0.08240282397267884
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.52',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server6)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=1843.87298726553,
+ │   │   │   │   public_name=None,
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=1843.87298726553,
+ │   │   │   │   forward_rps=1323938.579623994,
+ │   │   │   │   inference_rps=272.56280142101735,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=40960,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server2_PeerID: 0.03526929598266443,
+ │   │   │   │   │   'server7': 0.06578319937104085
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server7)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=2203.28331063272,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=2203.28331063272,
+ │   │   │   │   forward_rps=271960.0070090508,
+ │   │   │   │   inference_rps=508.16437981575893,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=81920,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   'server6': 0.05739172527083482,
+ │   │   │   │   │   'server5': 0.0025458695964836967,
+ │   │   │   │   │   server2_PeerID: 0.08240282397267884
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.53',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server6)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=1843.87298726553,
+ │   │   │   │   public_name=None,
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=1843.87298726553,
+ │   │   │   │   forward_rps=1323938.579623994,
+ │   │   │   │   inference_rps=272.56280142101735,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=40960,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server2_PeerID: 0.03526929598266443,
+ │   │   │   │   │   'server7': 0.06578319937104085
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server7)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=2203.28331063272,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=2203.28331063272,
+ │   │   │   │   forward_rps=271960.0070090508,
+ │   │   │   │   inference_rps=508.16437981575893,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=81920,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   'server6': 0.05739172527083482,
+ │   │   │   │   │   'server5': 0.0025458695964836967,
+ │   │   │   │   │   server2_PeerID: 0.08240282397267884
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.54',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server6)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=1843.87298726553,
+ │   │   │   │   public_name=None,
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=1843.87298726553,
+ │   │   │   │   forward_rps=1323938.579623994,
+ │   │   │   │   inference_rps=272.56280142101735,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=40960,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server2_PeerID: 0.03526929598266443,
+ │   │   │   │   │   'server7': 0.06578319937104085
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server7)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=2203.28331063272,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=2203.28331063272,
+ │   │   │   │   forward_rps=271960.0070090508,
+ │   │   │   │   inference_rps=508.16437981575893,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=81920,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   'server6': 0.05739172527083482,
+ │   │   │   │   │   'server5': 0.0025458695964836967,
+ │   │   │   │   │   server2_PeerID: 0.08240282397267884
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.55',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server7)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=2203.28331063272,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=2203.28331063272,
+ │   │   │   │   forward_rps=271960.0070090508,
+ │   │   │   │   inference_rps=508.16437981575893,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=81920,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   'server6': 0.05739172527083482,
+ │   │   │   │   │   'server5': 0.0025458695964836967,
+ │   │   │   │   │   server2_PeerID: 0.08240282397267884
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server6)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=1843.87298726553,
+ │   │   │   │   public_name=None,
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=1843.87298726553,
+ │   │   │   │   forward_rps=1323938.579623994,
+ │   │   │   │   inference_rps=272.56280142101735,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=40960,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server2_PeerID: 0.03526929598266443,
+ │   │   │   │   │   'server7': 0.06578319937104085
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.56',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server6)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=1843.87298726553,
+ │   │   │   │   public_name=None,
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=1843.87298726553,
+ │   │   │   │   forward_rps=1323938.579623994,
+ │   │   │   │   inference_rps=272.56280142101735,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=40960,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server2_PeerID: 0.03526929598266443,
+ │   │   │   │   │   'server7': 0.06578319937104085
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server7)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=2203.28331063272,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=2203.28331063272,
+ │   │   │   │   forward_rps=271960.0070090508,
+ │   │   │   │   inference_rps=508.16437981575893,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=81920,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   'server6': 0.05739172527083482,
+ │   │   │   │   │   'server5': 0.0025458695964836967,
+ │   │   │   │   │   server2_PeerID: 0.08240282397267884
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.57',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server7)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=2203.28331063272,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=2203.28331063272,
+ │   │   │   │   forward_rps=271960.0070090508,
+ │   │   │   │   inference_rps=508.16437981575893,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=81920,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   'server6': 0.05739172527083482,
+ │   │   │   │   │   'server5': 0.0025458695964836967,
+ │   │   │   │   │   server2_PeerID: 0.08240282397267884
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.58',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server7)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=2203.28331063272,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=2203.28331063272,
+ │   │   │   │   forward_rps=271960.0070090508,
+ │   │   │   │   inference_rps=508.16437981575893,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=81920,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   'server6': 0.05739172527083482,
+ │   │   │   │   │   'server5': 0.0025458695964836967,
+ │   │   │   │   │   server2_PeerID: 0.08240282397267884
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.59',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server7)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=2203.28331063272,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=2203.28331063272,
+ │   │   │   │   forward_rps=271960.0070090508,
+ │   │   │   │   inference_rps=508.16437981575893,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=81920,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   'server6': 0.05739172527083482,
+ │   │   │   │   │   'server5': 0.0025458695964836967,
+ │   │   │   │   │   server2_PeerID: 0.08240282397267884
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.60',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server5)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=2235.7226389647903,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=2235.7226389647903,
+ │   │   │   │   forward_rps=253598.4983006539,
+ │   │   │   │   inference_rps=485.43750353302534,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=81920,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server2_PeerID: 0.09878983274175225
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.61',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server5)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=2235.7226389647903,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=2235.7226389647903,
+ │   │   │   │   forward_rps=253598.4983006539,
+ │   │   │   │   inference_rps=485.43750353302534,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=81920,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server2_PeerID: 0.09878983274175225
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.62',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server5)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=2235.7226389647903,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=2235.7226389647903,
+ │   │   │   │   forward_rps=253598.4983006539,
+ │   │   │   │   inference_rps=485.43750353302534,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=81920,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server2_PeerID: 0.09878983274175225
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.63',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server5)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=2235.7226389647903,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=2235.7226389647903,
+ │   │   │   │   forward_rps=253598.4983006539,
+ │   │   │   │   inference_rps=485.43750353302534,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=81920,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server2_PeerID: 0.09513175018190144
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.64',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server5)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=2235.7226389647903,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=2235.7226389647903,
+ │   │   │   │   forward_rps=253598.4983006539,
+ │   │   │   │   inference_rps=485.43750353302534,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=81920,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server2_PeerID: 0.09878983274175225
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.65',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server5)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=2235.7226389647903,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=2235.7226389647903,
+ │   │   │   │   forward_rps=253598.4983006539,
+ │   │   │   │   inference_rps=485.43750353302534,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=81920,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server2_PeerID: 0.09513175018190144
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.66',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server5)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=2235.7226389647903,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=2235.7226389647903,
+ │   │   │   │   forward_rps=253598.4983006539,
+ │   │   │   │   inference_rps=485.43750353302534,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=81920,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server2_PeerID: 0.09513175018190144
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.67',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server5)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=2235.7226389647903,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=2235.7226389647903,
+ │   │   │   │   forward_rps=253598.4983006539,
+ │   │   │   │   inference_rps=485.43750353302534,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=81920,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server2_PeerID: 0.09878983274175225
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.68',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server5)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=2235.7226389647903,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=2235.7226389647903,
+ │   │   │   │   forward_rps=253598.4983006539,
+ │   │   │   │   inference_rps=485.43750353302534,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=81920,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server2_PeerID: 0.09513175018190144
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.69',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server5)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=2235.7226389647903,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=2235.7226389647903,
+ │   │   │   │   forward_rps=253598.4983006539,
+ │   │   │   │   inference_rps=485.43750353302534,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=81920,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server2_PeerID: 0.09878983274175225
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.70',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server5)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=2235.7226389647903,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=2235.7226389647903,
+ │   │   │   │   forward_rps=253598.4983006539,
+ │   │   │   │   inference_rps=485.43750353302534,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=81920,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server2_PeerID: 0.09878983274175225
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.71',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server5)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=2235.7226389647903,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=2235.7226389647903,
+ │   │   │   │   forward_rps=253598.4983006539,
+ │   │   │   │   inference_rps=485.43750353302534,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=81920,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server2_PeerID: 0.09878983274175225
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.72',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server5)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=2235.7226389647903,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=2235.7226389647903,
+ │   │   │   │   forward_rps=253598.4983006539,
+ │   │   │   │   inference_rps=485.43750353302534,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=81920,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server2_PeerID: 0.09878983274175225
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.73',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server5)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=2235.7226389647903,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=2235.7226389647903,
+ │   │   │   │   forward_rps=253598.4983006539,
+ │   │   │   │   inference_rps=485.43750353302534,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=81920,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server2_PeerID: 0.09878983274175225
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.74',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server5)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=2235.7226389647903,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=2235.7226389647903,
+ │   │   │   │   forward_rps=253598.4983006539,
+ │   │   │   │   inference_rps=485.43750353302534,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=81920,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server2_PeerID: 0.09878983274175225
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.75',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server5)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=2235.7226389647903,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=2235.7226389647903,
+ │   │   │   │   forward_rps=253598.4983006539,
+ │   │   │   │   inference_rps=485.43750353302534,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=81920,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server2_PeerID: 0.09878983274175225
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.76',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server5)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=2235.7226389647903,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=2235.7226389647903,
+ │   │   │   │   forward_rps=253598.4983006539,
+ │   │   │   │   inference_rps=485.43750353302534,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=81920,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server2_PeerID: 0.09878983274175225
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.77',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server5)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=2235.7226389647903,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=2235.7226389647903,
+ │   │   │   │   forward_rps=253598.4983006539,
+ │   │   │   │   inference_rps=485.43750353302534,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=81920,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server2_PeerID: 0.09513175018190144
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.78',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server5)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=2235.7226389647903,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=2235.7226389647903,
+ │   │   │   │   forward_rps=253598.4983006539,
+ │   │   │   │   inference_rps=485.43750353302534,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=81920,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server2_PeerID: 0.09878983274175225
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   ),
+ │   RemoteModuleInfo(
+ │   │   uid='llama-65b-hf.79',
+ │   │   servers={
+ │   │   │   <libp2p.peer.id.ID (server2)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=696.5283411730552,
+ │   │   │   │   public_name='nora',
+ │   │   │   │   version='2.0.1',
+ │   │   │   │   network_rps=696.5283411730552,
+ │   │   │   │   forward_rps=468118.39927084144,
+ │   │   │   │   inference_rps=565.3898428324851,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=327680,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server3_PeerID: 0.08417929104828234,
+ │   │   │   │   │   'server5': 0.08157555941760541,
+ │   │   │   │   │   'server1': 0.1751510147404671,
+ │   │   │   │   │   server4_PeerID: 0.03520378538668156,
+ │   │   │   │   │   'server6': 0.03510849550366402
+ │   │   │   │   }
+ │   │   │   ),
+ │   │   │   <libp2p.peer.id.ID (server5)>: ServerInfo(
+ │   │   │   │   state=<ServerState.ONLINE: 2>,
+ │   │   │   │   throughput=2235.7226389647903,
+ │   │   │   │   public_name='https://www.genesiscloud.com/',
+ │   │   │   │   version='2.0.0.post2',
+ │   │   │   │   network_rps=2235.7226389647903,
+ │   │   │   │   forward_rps=253598.4983006539,
+ │   │   │   │   inference_rps=485.43750353302534,
+ │   │   │   │   adapters=('timdettmers/guanaco-65b',),
+ │   │   │   │   torch_dtype='float16',
+ │   │   │   │   quant_type='nf4',
+ │   │   │   │   using_relay=False,
+ │   │   │   │   cache_tokens_left=81920,
+ │   │   │   │   next_pings={
+ │   │   │   │   │   server2_PeerID: 0.09878983274175225
+ │   │   │   │   }
+ │   │   │   )
+ │   │   }
+ │   )
+ ]

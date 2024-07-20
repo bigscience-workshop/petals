@@ -415,7 +415,24 @@ class Server:
             return False
 
         module_infos = get_remote_module_infos(self.dht, self.module_uids, latest=True)
-        return block_selection.should_choose_other_blocks(self.dht.peer_id, module_infos, self.balance_quality)
+        should_choose = block_selection.should_choose_other_blocks(self.dht.peer_id, module_infos, self.balance_quality)
+
+        if False == should_choose:
+            return False
+        else:
+            for i in range(2):
+                wait_time = 90 + random.randint(-30, 10)
+                time.sleep(wait_time)
+
+                module_infos = get_remote_module_infos(self.dht, self.module_uids, latest=True)
+                logger.info('--retrying should_choose_other_blocks')
+                should_choose = block_selection.should_choose_other_blocks(self.dht.peer_id, module_infos, self.balance_quality)
+
+                if False == should_choose:
+                    return False
+
+        return should_choose
+
 
     def shutdown(self, timeout: Optional[float] = 5):
         self.stop.set()
