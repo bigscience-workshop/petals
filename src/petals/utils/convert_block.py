@@ -121,6 +121,9 @@ def make_tensor_parallel(
     if model_config.model_type == "bloom":
         tp_config = get_bloom_config(model_config, devices)
         del tp_config.state_rules[re.compile(".*word_embeddings.weight$")]
+    if model_config.model_type == "llama":
+        from petals.models.llama.slicing import get_llama_config
+        tp_config = get_llama_config(model_config, devices)
     else:
         if len(devices) > 1:
             logger.warning("Tensor parallelism is not tested for models other than BLOOM yet, proceed with caution")
