@@ -26,7 +26,9 @@ def test_remote_block_with_cache_invalidation_exact_match(atol_forward=1e-4, ato
     with torch.inference_mode():
         with remote_block.inference_session(max_length=inputs.shape[1]) as sess:
             initial_outputs_inference = sess.step(inputs)
-            secondary_outputs_inference = sess.step(short_inputs[:, 2:, :], start_from_position=2)
+
+            sess.position = 2
+            secondary_outputs_inference = sess.step(short_inputs[:, 2:, :])
             result = torch.cat([initial_outputs_inference[:, :2, :], secondary_outputs_inference], dim=1)
 
     ref_block = load_pretrained_block(MODEL_NAME, block_index, torch_dtype=torch.float32)
