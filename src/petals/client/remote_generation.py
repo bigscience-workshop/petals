@@ -22,23 +22,23 @@ class RemotePastKeyValues(Cache):
 
     def __init__(self) -> None:
         super().__init__()
-        self.seen_tokens = 0
+        self._seen_tokens = 0
         self.hypo_ids: Optional[torch.LongTensor] = None
 
     def __getitem__(self, _index: int) -> List[torch.Tensor]:
         return [DUMMY]  # For compatibility with BloomForCausalLM.prepare_inputs_for_generation()
 
     def get_seq_length(self, layer_idx: Optional[int] = 0) -> int:
-        return self.seen_tokens
+        return self._seen_tokens
 
     def get_max_length(self) -> Optional[int]:
         return None
 
     def update_seen(self, new_seen: int) -> None:
-        self.seen_tokens += new_seen
+        self._seen_tokens += new_seen
 
     def reorder_cache(self, beam_idx):
-        pass
+        raise NotImplementedError("Beam search reordering is not implemented yet")
 
 
 _skipped_tokens = ContextVar("skipped_tokens", default=0)
