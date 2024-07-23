@@ -221,7 +221,6 @@ class DistributedLlamaForSpeculativeGeneration(DistributedLlamaForCausalLM, Gene
                 if first_token is None:
                     first_token = valid_token
 
-                # Проверка правильности токена)
                 if valid_token.item() == speculative_tokens[:, i].item():
                     all_valid_tokens.append(valid_token.unsqueeze(-1))
                 else:
