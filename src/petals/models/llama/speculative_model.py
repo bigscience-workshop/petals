@@ -1,8 +1,7 @@
 from typing import Optional, Union
 
 import torch
-
-from transformers.generation import LogitsProcessorList, StoppingCriteriaList, GenerationConfig
+from transformers.generation import GenerationConfig, LogitsProcessorList, StoppingCriteriaList
 from transformers.generation.utils import GenerateNonBeamOutput, GenerationMixin
 from transformers.modeling_outputs import BaseModelOutputWithPast
 from transformers.models.llama import LlamaForCausalLM
