@@ -2,7 +2,6 @@ import random
 
 import pytest
 import torch
-
 import transformers
 
 from petals import AutoDistributedConfig, RemoteSequential, DistributedLlamaForSpeculativeGeneration, AutoDistributedSpeculativeModel
