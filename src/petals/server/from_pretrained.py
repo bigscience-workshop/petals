@@ -64,10 +64,6 @@ def load_pretrained_block(
         max_disk_space=max_disk_space,
     )
 
-    # dummy load, check that keys match
-    report = block.load_state_dict(state_dict, strict=False)
-    assert not report.missing_keys, f"Some block weights are missing: {report.missing_keys}"
-
     for param_name, _ in block.named_parameters():
         assert param_name in state_dict, f"{param_name} not in state dict"
         param = state_dict[param_name]
@@ -76,7 +72,6 @@ def load_pretrained_block(
         set_module_tensor_to_device(block, param_name, "cpu", value=param, dtype=param.dtype)
 
     logger.info(f"Loaded {model_name} block {block_index}")
-    logger.debug(f"Details: {report}")
     return block
 
 
