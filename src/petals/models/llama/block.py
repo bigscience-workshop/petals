@@ -15,7 +15,6 @@ from transformers.models.llama.modeling_llama import (
     LlamaConfig,
     LlamaDecoderLayer,
     LlamaMLP,
-    LlamaModel,
     LlamaRMSNorm,
     repeat_kv,
     rotate_half,
@@ -132,7 +131,8 @@ class OptimizedLlamaDecoderLayer(LlamaDecoderLayer):
     def __init__(self, config: LlamaConfig):
         nn.Module.__init__(self)
         self.hidden_size = config.hidden_size
-        self.self_attn = OptimizedLlamaAttention(config=config)
+        self.self_attn = OptimizedLlamaAttention(config=config, layer_idx=0)
+        # layer_idx only matters for KV caching, and we re-implement it in Petals
         self.mlp = LlamaMLP(config)
         self.input_layernorm = LlamaRMSNorm(config.hidden_size, eps=config.rms_norm_eps)
         self.post_attention_layernorm = LlamaRMSNorm(config.hidden_size, eps=config.rms_norm_eps)
