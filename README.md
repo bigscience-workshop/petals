@@ -141,7 +141,7 @@ _Proceedings of the 61st Annual Meeting of the Association for Computational Lin
 
 Alexander Borzunov, Max Ryabinin, Artem Chumachenko, Dmitry Baranchuk, Tim Dettmers, Younes Belkada, Pavel Samygin, and Colin Raffel.
 [Distributed inference and fine-tuning of large language models over the Internet.](https://arxiv.org/abs/2312.08361)
-_Advances in Neural Information Processing Systems_ 36 (2024).
+_Advances in Neural Information Processing Systems_ 36 (2023).
 
 ```bibtex
 @inproceedings{borzunov2023distributed,
