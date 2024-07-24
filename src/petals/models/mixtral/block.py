@@ -1,4 +1,3 @@
-import json
 from typing import Optional, Tuple
 
 import torch
@@ -8,7 +7,7 @@ from transformers.modeling_attn_mask_utils import (
     _prepare_4d_causal_attention_mask,
     _prepare_4d_causal_attention_mask_for_sdpa,
 )
-from transformers.models.mixtral.modeling_mixtral import MixtralDecoderLayer, MixtralModel
+from transformers.models.mixtral.modeling_mixtral import MixtralDecoderLayer
 
 
 class WrappedMixtralBlock(MixtralDecoderLayer):

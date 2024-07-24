@@ -267,7 +267,7 @@ def estimate_adapter_memory_per_block(
     **load_peft_kwargs,
 ) -> int:
     """Get the number of extra bytes used to store a set of adapters per given block"""
-    with init_empty_weights(include_buffers=True):
+    with init_empty_weights(include_buffers=False):
         block = get_model_block(block_config)
         base_block_parameters = sum(p.numel() for p in block.parameters())
         create_lora_adapter(block)

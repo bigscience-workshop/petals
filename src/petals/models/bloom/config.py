@@ -24,7 +24,7 @@ class DistributedBloomConfig(BloomConfig, ClientConfig, PTuneConfig, LMHeadConfi
     def from_pretrained(
         cls, model_name_or_path: Union[str, os.PathLike, None], *args, dht_prefix: Optional[str] = None, **kwargs
     ):
-        logger.info("Make sure you follow the BLOOM's terms of use: https://bit.ly/bloom-license")
+        logger.info("Make sure you follow the BLOOM terms of use: https://bit.ly/bloom-license")
 
         loading_from_repo = model_name_or_path is not None and not os.path.isdir(model_name_or_path)
         if loading_from_repo and dht_prefix is None:
