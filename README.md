@@ -122,19 +122,36 @@ Please see **Section 3.3** of our [paper](https://arxiv.org/pdf/2209.01188.pdf).
 
 Please see our [FAQ](https://github.com/bigscience-workshop/petals/wiki/FAQ:-Frequently-asked-questions#contributing) on contributing.
 
-### 📜 Citation
+### 📜 Citations
 
 Alexander Borzunov, Dmitry Baranchuk, Tim Dettmers, Max Ryabinin, Younes Belkada, Artem Chumachenko, Pavel Samygin, and Colin Raffel.
 [Petals: Collaborative Inference and Fine-tuning of Large Models.](https://arxiv.org/abs/2209.01188)
-_arXiv preprint arXiv:2209.01188,_ 2022.
+_Proceedings of the 61st Annual Meeting of the Association for Computational Linguistics (Volume 3: System Demonstrations)._ 2023.
 
 ```bibtex
-@article{borzunov2022petals,
+@inproceedings{borzunov2023petals,
   title = {Petals: Collaborative Inference and Fine-tuning of Large Models},
-  author = {Borzunov, Alexander and Baranchuk, Dmitry and Dettmers, Tim and Ryabinin, Max and Belkada, Younes and Chumachenko, Artem and Samygin, Pavel and Raffel, Colin},
-  journal = {arXiv preprint arXiv:2209.01188},
-  year = {2022},
+  author = {Borzunov, Alexander and Baranchuk, Dmitry and Dettmers, Tim and Riabinin, Maksim and Belkada, Younes and Chumachenko, Artem and Samygin, Pavel and Raffel, Colin},
+  booktitle = {Proceedings of the 61st Annual Meeting of the Association for Computational Linguistics (Volume 3: System Demonstrations)},
+  pages = {558--568},
+  year = {2023},
   url = {https://arxiv.org/abs/2209.01188}
+}
+```
+
+Alexander Borzunov, Max Ryabinin, Artem Chumachenko, Dmitry Baranchuk, Tim Dettmers, Younes Belkada, Pavel Samygin, and Colin Raffel.
+[Distributed inference and fine-tuning of large language models over the Internet.](https://arxiv.org/abs/2312.08361)
+_Advances in Neural Information Processing Systems_ 36 (2024).
+
+```bibtex
+@inproceedings{borzunov2023distributed,
+  title = {Distributed inference and fine-tuning of large language models over the {I}nternet},
+  author = {Borzunov, Alexander and Ryabinin, Max and Chumachenko, Artem and Baranchuk, Dmitry and Dettmers, Tim and Belkada, Younes and Samygin, Pavel and Raffel, Colin},
+  booktitle = {Advances in Neural Information Processing Systems},
+  volume = {36},
+  pages = {12312--12331},
+  year = {2023},
+  url = {https://arxiv.org/abs/2312.08361}
 }
 ```
 
