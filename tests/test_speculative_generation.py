@@ -4,7 +4,12 @@ import pytest
 import torch
 import transformers
 
-from petals import AutoDistributedConfig, RemoteSequential, DistributedLlamaForSpeculativeGeneration, AutoDistributedSpeculativeModel
+from petals import (
+    AutoDistributedConfig,
+    AutoDistributedSpeculativeModel,
+    DistributedLlamaForSpeculativeGeneration,
+    RemoteSequential,
+)
 from petals.server.block_functions import MAX_SHORT_INFERENCE_TOKENS
 from petals.server.from_pretrained import load_pretrained_block
 from test_utils import *
@@ -36,6 +41,7 @@ def test_remote_block_with_cache_invalidation_exact_match(atol_forward=1e-4, ato
 
     assert torch.allclose(outputs_local, result, rtol=0, atol=atol_inference)
 
+
 @pytest.fixture
 def noisy_model():
     noisy_model = transformers.AutoModelForCausalLM.from_pretrained(
@@ -47,16 +53,19 @@ def noisy_model():
         lm_head.weight += torch.randn_like(lm_head.weight) * 0.02
     return noisy_model
 
+
 @pytest.fixture
 def model():
     return transformers.AutoModelForCausalLM.from_pretrained(
         MODEL_NAME, low_cpu_mem_usage=True, torch_dtype=torch.float32
     )
 
+
 @pytest.fixture
 def tokenizer():
     # We set use_fast=False since LlamaTokenizerFast is slow on load
     return transformers.AutoTokenizer.from_pretrained(MODEL_NAME, use_fast=False)
+
 
 @pytest.mark.forked
 @pytest.mark.skipif(

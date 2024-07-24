@@ -29,7 +29,9 @@ class DistributedLlamaForSpeculativeGeneration(DistributedLlamaForCausalLM, Gene
     ) -> Union[GenerateNonBeamOutput, torch.LongTensor]:
         assert not generation_config.do_sample, "sample is not working for speculative generation now"
         assert not synced_gpus, "synced_gpus is not working for speculative generation now"
-        assert not generation_config.return_dict_in_generate, "return_dict_in_generate is not working for speculative generation now"
+        assert (
+            not generation_config.return_dict_in_generate
+        ), "return_dict_in_generate is not working for speculative generation now"
 
         has_eos_stopping_criteria = any(hasattr(criteria, "eos_token_id") for criteria in stopping_criteria)
 
@@ -40,7 +42,9 @@ class DistributedLlamaForSpeculativeGeneration(DistributedLlamaForCausalLM, Gene
         firsts = True
 
         while not finished:
-            speculative_inference_iteration_size = min(speculative_inference_iteration_size, self.active_session._max_length - input_ids.shape[1])
+            speculative_inference_iteration_size = min(
+                speculative_inference_iteration_size, self.active_session._max_length - input_ids.shape[1]
+            )
             with torch.no_grad():
                 speculative_outputs = self.small_model.generate(
                     input_ids,
@@ -55,7 +59,7 @@ class DistributedLlamaForSpeculativeGeneration(DistributedLlamaForCausalLM, Gene
             input_for_validation = full_sequence
             if not firsts:
                 self.active_session.position = input_ids.shape[1] - 1
-                input_for_validation = input_for_validation[:, -speculative_inference_iteration_size - 1:]
+                input_for_validation = input_for_validation[:, -speculative_inference_iteration_size - 1 :]
             else:
                 firsts = False
             input_for_validation = input_for_validation[:, :-1]
@@ -67,7 +71,9 @@ class DistributedLlamaForSpeculativeGeneration(DistributedLlamaForCausalLM, Gene
             first_token = None
             for i in range(speculative_inference_iteration_size):
                 token_logits = full_token_logits[:, i, :]
-                token_scores = logits_processor(input_for_validation[:, :-speculative_inference_iteration_size + 1 + i], token_logits)
+                token_scores = logits_processor(
+                    input_for_validation[:, : -speculative_inference_iteration_size + 1 + i], token_logits
+                )
                 valid_token = torch.argmax(token_scores, dim=-1)
 
                 if first_token is None:
@@ -84,7 +90,9 @@ class DistributedLlamaForSpeculativeGeneration(DistributedLlamaForCausalLM, Gene
 
             # finished sentences should have their next token be a padding token
             if has_eos_stopping_criteria:
-                all_valid_tokens = all_valid_tokens * unfinished_sequences + generation_config.pad_token_id * (1 - unfinished_sequences)
+                all_valid_tokens = all_valid_tokens * unfinished_sequences + generation_config.pad_token_id * (
+                    1 - unfinished_sequences
+                )
 
             # update generated ids, model inputs, and length for next step
             input_ids = torch.cat([input_ids, all_valid_tokens], dim=-1)
