@@ -15,7 +15,6 @@ from transformers.models.llama.modeling_llama import (
     LlamaConfig,
     LlamaDecoderLayer,
     LlamaMLP,
-    LlamaModel,
     LlamaRMSNorm,
     repeat_kv,
     rotate_half,
