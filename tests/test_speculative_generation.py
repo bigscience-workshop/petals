@@ -59,6 +59,10 @@ def tokenizer():
     return transformers.AutoTokenizer.from_pretrained(MODEL_NAME, use_fast=False)
 
 @pytest.mark.forked
+@pytest.mark.skipif(
+    "llama" not in MODEL_NAME.lower(),
+    reason="Speculative generation now works only for llama models",
+)
 def test_remote_speculative_generation(tokenizer, model, noisy_model, atol_inference=1e-3):
     speculated_distributed_model = AutoDistributedSpeculativeModel.from_pretrained(
         MODEL_NAME, initial_peers=INITIAL_PEERS, torch_dtype=torch.float32, small_model=noisy_model
