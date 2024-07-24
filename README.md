@@ -8,16 +8,14 @@
     <br>
 </p>
 
-**Warning: Llama 3.1 support is still under construction!** the latest models require custom RoPE configuration that we do not have in Petals yet; we will update the code to fix that within a day.
-
-Generate text with distributed **Llama (1-3)** (70B), **Falcon** (40B+), **BLOOM** (176B) (or their derivatives), and fine‑tune them for your own tasks &mdash; right from your desktop computer or Google Colab:
+Generate text with distributed **Llama 3.1** (up to 405B), **Mixtral** (8x7B), **Falcon** (40B+), or **BLOOM** (176B) and fine‑tune them for your own tasks &mdash; right from your desktop computer or Google Colab:
 
 ```python
 from transformers import AutoTokenizer
 from petals import AutoDistributedModelForCausalLM
 
 # Choose any model available at https://health.petals.dev
-model_name = "petals-team/StableBeluga2"  # This one is fine-tuned Llama 2 (70B)
+model_name = "meta-llama/Meta-Llama-3.1-405B-Instruct"
 
 # Connect to a distributed network hosting model layers
 tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -33,9 +31,9 @@ print(tokenizer.decode(outputs[0]))  # A cat sat on a mat...
     🚀 &nbsp;<b><a href="https://colab.research.google.com/drive/1uCphNY7gfAUkdDrTx21dZZwCOUDCMPw8?usp=sharing">Try now in Colab</a></b>
 </p>
 
-🔏 **Privacy.** Your data will be processed with the help of other people in the public swarm. Learn more about privacy [here](https://github.com/bigscience-workshop/petals/wiki/Security,-privacy,-and-AI-safety). For sensitive data, you can set up a [private swarm](https://github.com/bigscience-workshop/petals/wiki/Launch-your-own-swarm) among people you trust.
+🦙 **Want to run Llama 3?** Request access to its weights at the 🤗 [Model Hub](https://huggingface.co/meta-llama/Meta-Llama-3.1-405B-Instruct), then run `huggingface-cli login` in the terminal before loading the model. Or just try it in our [chatbot app](https://chat.petals.dev).
 
-🦙 **Want to run Llama 2?** Request access to its weights at the ♾️ [Meta AI website](https://ai.meta.com/resources/models-and-libraries/llama-downloads/) and 🤗 [Model Hub](https://huggingface.co/meta-llama/Llama-2-70b-hf), then run `huggingface-cli login` in the terminal before loading the model. Or just try it in our [chatbot app](https://chat.petals.dev).
+🔏 **Privacy.** Your data will be processed with the help of other people in the public swarm. Learn more about privacy [here](https://github.com/bigscience-workshop/petals/wiki/Security,-privacy,-and-AI-safety). For sensitive data, you can set up a [private swarm](https://github.com/bigscience-workshop/petals/wiki/Launch-your-own-swarm) among people you trust.
 
 💬 **Any questions?** Ping us in [our Discord](https://discord.gg/KdThf2bWVU)!
 
@@ -73,11 +71,11 @@ python3 -m petals.cli.run_server petals-team/StableBeluga2
     📚 &nbsp;<b><a href="https://github.com/bigscience-workshop/petals/wiki/FAQ:-Frequently-asked-questions#running-a-server">Learn more</a></b> (how to use multiple GPUs, start the server on boot, etc.)
 </p>
 
-💬 **Any questions?** Ping us in [our Discord](https://discord.gg/X7DgtxgMhc)!
-
-🦙 **Want to host Llama 2?** Request access to its weights at the ♾️ [Meta AI website](https://ai.meta.com/resources/models-and-libraries/llama-downloads/) and 🤗 [Model Hub](https://huggingface.co/meta-llama/Llama-2-70b-hf), generate an 🔑 [access token](https://huggingface.co/settings/tokens), then add `--token YOUR_TOKEN_HERE` to the `python -m petals.cli.run_server` command.
+🦙 **Want to host Llama 3?** Request access to its weights at the 🤗 [Model Hub](https://huggingface.co/meta-llama/Meta-Llama-3.1-405B-Instruct), then run `huggingface-cli login` in the terminal before loading the model.
 
 🔒 **Security.** Hosting a server does not allow others to run custom code on your computer. Learn more [here](https://github.com/bigscience-workshop/petals/wiki/Security,-privacy,-and-AI-safety).
+
+💬 **Any questions?** Ping us in [our Discord](https://discord.gg/X7DgtxgMhc)!
 
 🏆 **Thank you!** Once you load and host 10+ blocks, we can show your name or link on the [swarm monitor](https://health.petals.dev) as a way to say thanks. You can specify them with `--public_name YOUR_NAME`.
 
