@@ -137,6 +137,9 @@ class OptimizedLlamaDecoderLayer(LlamaDecoderLayer):
         self.input_layernorm = LlamaRMSNorm(config.hidden_size, eps=config.rms_norm_eps)
         self.post_attention_layernorm = LlamaRMSNorm(config.hidden_size, eps=config.rms_norm_eps)
 
+        self.num_key_value_heads = config.num_key_value_heads
+        self.head_dim = config.hidden_size // config.num_attention_heads
+
         self.pre_attn_graph = None
         self.post_attn_graph = None
 
@@ -283,7 +286,8 @@ class WrappedLlamaBlock(OptimizedLlamaDecoderLayer):
         key_states, value_states = key_value
         key_states = key_states.permute(0, 2, 1)
         key_states = key_states.view(
-            batch_size, self.self_attn.num_key_value_heads, seq_length, self.self_attn.head_dim
+            batch_size, self.num_key_value_heads//2, seq_length, self.head_dim
+            #batch_size, self.self_attn.num_key_value_heads, seq_length, self.self_attn.head_dim
         )
         value_states = value_states.view(*key_states.shape)
         return (key_states, value_states)
@@ -291,6 +295,7 @@ class WrappedLlamaBlock(OptimizedLlamaDecoderLayer):
     def _reorder_cache_from_llama_to_bloom(
         self, key_value: Tuple[torch.Tensor], batch_size: int, seq_length: int
     ) -> Tuple[torch.Tensor]:
+        raise NotImplementedError
         key_states, value_states = key_value
         value_states = value_states.view(
             batch_size * self.self_attn.num_key_value_heads, seq_length, self.self_attn.head_dim
