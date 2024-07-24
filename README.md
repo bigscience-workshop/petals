@@ -8,7 +8,9 @@
     <br>
 </p>
 
-Generate text with distributed **Llama 2** (70B), **Falcon** (40B+), **BLOOM** (176B) (or their derivatives), and fine‑tune them for your own tasks &mdash; right from your desktop computer or Google Colab:
+**Warning: Llama 3.1 support is still under construction!** the latest models require custom RoPE configuration that we do not have in Petals yet; we will update the code to fix that within a day.
+
+Generate text with distributed **Llama (1-3)** (70B), **Falcon** (40B+), **BLOOM** (176B) (or their derivatives), and fine‑tune them for your own tasks &mdash; right from your desktop computer or Google Colab:
 
 ```python
 from transformers import AutoTokenizer
