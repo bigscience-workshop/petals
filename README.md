@@ -8,7 +8,7 @@
     <br>
 </p>
 
-Generate text with distributed **Llama 3.1** (up to 405B), **Mixtral** (8x7B), **Falcon** (40B+), or **BLOOM** (176B) and fine‑tune them for your own tasks &mdash; right from your desktop computer or Google Colab:
+Generate text with distributed **Llama 3.1** (up to 405B), **Mixtral** (8x22B), **Falcon** (40B+) or **BLOOM** (176B) and fine‑tune them for your own tasks &mdash; right from your desktop computer or Google Colab:
 
 ```python
 from transformers import AutoTokenizer
