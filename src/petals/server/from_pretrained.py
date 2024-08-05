@@ -57,7 +57,8 @@ def load_pretrained_block(
         block = get_model_block(config, layer_idx=block_index)
 
     block_prefix = f"{config.block_prefix}.{block_index}."
-
+    print(config)
+    print(is_gptq_quant(config))
     if is_gptq_quant(config):
         print("Now loading GPTQ")
         hf_quantizer = AutoHfQuantizer.from_config(config.quantization_config, pre_quantized=True)
