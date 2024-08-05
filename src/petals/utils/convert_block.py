@@ -21,6 +21,9 @@ class QuantType(Enum):
     INT8 = 1  # 8-bit as in the LLM.int8() paper
     NF4 = 2  # 4-bit as in the QLoRA paper
 
+def is_gptq_quant(config):
+    return hasattr(config, 'quantization_config') and hasattr(config.quantization_config,
+                                                                  "quant_method") and config.quantization_config.quant_method == "gptq"
 
 def convert_block(
     block: nn.Module,
