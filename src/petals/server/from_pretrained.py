@@ -59,6 +59,7 @@ def load_pretrained_block(
     block_prefix = f"{config.block_prefix}.{block_index}."
 
     if is_gptq_quant(config):
+        print("Now loading GPTQ")
         hf_quantizer = AutoHfQuantizer.from_config(config.quantization_config, pre_quantized=True)
         hf_quantizer.optimum_quantizer.block_name_to_quantize = str(block_index)
         tmp_block_list = torch.nn.ModuleList([block])
@@ -77,7 +78,7 @@ def load_pretrained_block(
         cache_dir=cache_dir,
         max_disk_space=max_disk_space,
     )
-
+    print("now printing", block)
     for param_name, _ in block.named_parameters():
         assert param_name in state_dict, f"{param_name} not in state dict"
         param = state_dict[param_name]
