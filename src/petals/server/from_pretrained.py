@@ -79,7 +79,9 @@ def load_pretrained_block(
         cache_dir=cache_dir,
         max_disk_space=max_disk_space,
     )
-    print("now printing", block)
+    print(model_name,block_prefix,revision,token,cache_dir,max_disk_space)
+
+    print("now printing", state_dict)
     for param_name, _ in block.named_parameters():
         assert param_name in state_dict, f"{param_name} not in state dict"
         param = state_dict[param_name]
