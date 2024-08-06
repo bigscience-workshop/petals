@@ -53,7 +53,7 @@ def convert_block(
         block.requires_grad_(False)
 
     block = make_tensor_parallel(block, config, tensor_parallel_devices, output_device=output_device)
-
+    print( config, tensor_parallel_devices, output_device)
     if quant_type != QuantType.NONE and not is_gptq_quant(config):
         print("I'm still quantizing ")
         block = quantize_module(block, quant_type=quant_type)
