@@ -54,13 +54,14 @@ def convert_block(
 
     block = make_tensor_parallel(block, config, tensor_parallel_devices, output_device=output_device)
 
-    if quant_type != QuantType.NONE:
+    if quant_type != QuantType.NONE and not is_gptq_quant(config):
+        print("I'm still quantizing ")
         block = quantize_module(block, quant_type=quant_type)
 
     for shard, device in zip(block.module_shards, block.devices):
         shard.to(device)
 
-    if adapters:
+    if adapters and not is_gptq_quant(config):
         from petals.utils.peft import add_adapter_to_block, create_lora_adapter, load_peft
 
         create_lora_adapter(block)

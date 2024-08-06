@@ -497,20 +497,20 @@ class ModuleContainer(threading.Thread):
                     cache_dir=cache_dir,
                     max_disk_space=max_disk_space,
                 )
-                if not is_gptq_quant(block_config):
-                    block = convert_block(
-                        block,
-                        block_index,
-                        block_config,
-                        tensor_parallel_devices,
-                        device,
-                        quant_type,
-                        adapters=server_info.adapters,
-                        freeze=True,
-                        token=token,
-                        cache_dir=cache_dir,
-                        max_disk_space=max_disk_space,
-                    )
+                # if not is_gptq_quant(block_config):
+                block = convert_block(
+                    block,
+                    block_index,
+                    block_config,
+                    tensor_parallel_devices,
+                    device,
+                    quant_type,
+                    adapters=server_info.adapters,
+                    freeze=True,
+                    token=token,
+                    cache_dir=cache_dir,
+                    max_disk_space=max_disk_space,
+                )
                 blocks[module_uid] = TransformerBackend(
                     module_uid,
                     block,
