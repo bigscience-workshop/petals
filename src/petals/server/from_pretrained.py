@@ -81,6 +81,7 @@ def load_pretrained_block(
         cache_dir=cache_dir,
         max_disk_space=max_disk_space,
     )
+    print(block)
     print(model_name, block_prefix, revision,token,cache_dir,max_disk_space)
 
     # print("now printing", state_dict)
