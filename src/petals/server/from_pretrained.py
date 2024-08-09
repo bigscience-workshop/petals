@@ -70,8 +70,8 @@ def load_pretrained_block(
         hf_quantizer.preprocess_model(
             model=tmp_block_list, device_map=device_map, keep_in_fp32_modules=False,
         )
-        if model_name[-1] != '.':
-            model_name += '.'
+        # if model_name[-1] != '.':
+        #     model_name += '.'
 
     state_dict = _load_state_dict_from_repo(
         model_name,
