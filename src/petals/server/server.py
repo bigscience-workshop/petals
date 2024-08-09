@@ -514,6 +514,7 @@ class ModuleContainer(threading.Thread):
                     cache_dir=cache_dir,
                     max_disk_space=max_disk_space,
                 )
+                print("finished with block converssion")
                 blocks[module_uid] = TransformerBackend(
                     module_uid,
                     block,
@@ -535,6 +536,7 @@ class ModuleContainer(threading.Thread):
                     min_batch_size=min_batch_size,
                     max_batch_size=max_batch_size,
                 )
+                print("finished with TransformerBackend")
 
             merge_inference_pools_inplace(blocks)
 
