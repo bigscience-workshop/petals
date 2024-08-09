@@ -87,7 +87,7 @@ def load_pretrained_block(
     # print("block.named_parameters()",block.named_parameters())
     if is_gptq_quant(config):
         print("loading state_dict")
-        block.load_state_dict(state_dict, assign=True, strict=False, device_map='cpu')
+        block.load_state_dict(state_dict, assign=True, strict=False)
     else:
         for param_name, _ in block.named_parameters():
             print(param_name)
