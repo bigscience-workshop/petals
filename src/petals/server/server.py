@@ -486,6 +486,7 @@ class ModuleContainer(threading.Thread):
 
         blocks = {}
         try:
+            print(module_uids, block_indices)
             for module_uid, block_index in zip(module_uids, block_indices):
                 print(f'{converted_model_name_or_path=},{block_index=}')
 
