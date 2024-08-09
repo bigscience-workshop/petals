@@ -98,7 +98,7 @@ def load_pretrained_block(
             set_module_tensor_to_device(block, param_name, "cpu", value=param, dtype=param.dtype)
 
     logger.info(f"Loaded {model_name} block {block_index}")
-    print(block.self_attn.q_proj.weight)
+    print(block.self_attn.q_proj.qzeros)
     return block
 
 
