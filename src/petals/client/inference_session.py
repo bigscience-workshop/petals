@@ -336,7 +336,9 @@ class InferenceSession:
                         self._update_sequence(server_idx, block_idx, attempt_no)
 
                     server_session = self._server_sessions[server_idx]
-                    assert server_session.position == self.position, f"Position mismatch: {server_session.position} and {self.position}"
+                    assert (
+                        server_session.position == self.position
+                    ), f"Position mismatch: {server_session.position} and {self.position}"
                     inputs = server_session.step(
                         inputs,
                         prompts[server_session.span.start : server_session.span.end],
