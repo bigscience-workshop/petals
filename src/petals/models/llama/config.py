@@ -27,8 +27,8 @@ class DistributedLlamaConfig(LlamaConfig, ClientConfig, PTuneConfig, LMHeadConfi
         cls, model_name_or_path: Union[str, os.PathLike, None], *args, dht_prefix: Optional[str] = None, **kwargs
     ):
         logger.info(
-            "Make sure you follow the LLaMA's terms of use: "
-            "https://bit.ly/llama2-license for LLaMA 2, https://bit.ly/llama-license for LLaMA 1"
+            "Make sure you follow the Llama terms of use: "
+            "https://llama.meta.com/llama3/license, https://llama.meta.com/llama2/license"
         )
 
         loading_from_repo = model_name_or_path is not None and not os.path.isdir(model_name_or_path)

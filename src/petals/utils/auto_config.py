@@ -15,6 +15,7 @@ class _ModelClasses:
     config: Type[PretrainedConfig]
     model: Optional[Type[PreTrainedModel]] = None
     model_for_causal_lm: Optional[Type[PreTrainedModel]] = None
+    model_for_speculative: Optional[Type[PreTrainedModel]] = None
     model_for_sequence_classification: Optional[Type[PreTrainedModel]] = None
 
 
@@ -88,6 +89,10 @@ class AutoDistributedModel(DefaultRevisionMixin, _AutoDistributedBase):
 
 class AutoDistributedModelForCausalLM(DefaultRevisionMixin, _AutoDistributedBase):
     _mapping_field = "model_for_causal_lm"
+
+
+class AutoDistributedSpeculativeModel(DefaultRevisionMixin, _AutoDistributedBase):
+    _mapping_field = "model_for_speculative"
 
 
 class AutoDistributedModelForSequenceClassification(DefaultRevisionMixin, _AutoDistributedBase):

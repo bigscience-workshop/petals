@@ -61,7 +61,7 @@ def convert_block(
     if adapters:
         from petals.utils.peft import add_adapter_to_block, create_lora_adapter, load_peft
 
-        create_lora_adapter(block, quant_type=quant_type)
+        create_lora_adapter(block)
         for adapter_name in adapters:
             adapter_config, adapter_state_dict = load_peft(
                 adapter_name,
