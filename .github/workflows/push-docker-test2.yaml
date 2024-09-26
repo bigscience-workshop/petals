@@ -1,4 +1,4 @@
-name: Push to Docker Hub
+name: Another Push to Docker Hub
 
 on:
   push:
@@ -32,7 +32,7 @@ jobs:
             type=semver,pattern={{major}}
 
       - name: Set up Docker Buildx
-        id: buildx
+        id: buildxx
         uses: docker/setup-buildx-action@v1
 
       - name: Login to Docker Hub
@@ -42,10 +42,11 @@ jobs:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
 
+
       - name: Free disk space on Ubuntu runner
         uses: kfir4444/free-disk-space@main
         with:
-          # found in: https://github.com/docker/build-push-action/issues/968
+          # frees about 6 GB, warning: may remove required tools
           tool-cache: false
           android: true
           dotnet: true
@@ -54,7 +55,7 @@ jobs:
           swap-storage: true
 
       - name: Build and push
-        id: docker_build
+        id: docker_buildd
         uses: docker/build-push-action@v5
         with:
           context: .
