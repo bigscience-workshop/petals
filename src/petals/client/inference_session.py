@@ -266,7 +266,7 @@ class InferenceSession:
                 server_sessions.append(session)
                 session.__enter__()
             return server_sessions
-        except:
+        except Exception:
             self._exit_server_sessions(server_sessions)
             raise
 

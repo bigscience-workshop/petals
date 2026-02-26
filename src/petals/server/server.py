@@ -534,7 +534,7 @@ class ModuleContainer(threading.Thread):
 
             if should_validate_reachability:
                 validate_reachability(dht.peer_id)
-        except:
+        except Exception:
             logger.debug("Shutting down backends")
             for backend in blocks.values():
                 backend.shutdown()
